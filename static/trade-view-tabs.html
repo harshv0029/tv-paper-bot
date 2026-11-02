@@ -85,10 +85,12 @@
     const probs = [];
     if (h.upstash_ok === false) probs.push(`Upstash down: ${h.upstash_error || "error"}`);
     if (h.loop_lag_s >= 15) probs.push(`bot frozen ${Math.round(h.loop_lag_s)}s`);
-    if (h.rss_pct >= 75) probs.push(`memory ${h.rss_pct}%`);
+    // B-1442: CURRENT RAM vs the 2 GB instance cap (not a daily/monthly quota)
+    const memPct = (h.rss_now_mb != null && h.rss_limit_mb) ? Math.round(h.rss_now_mb / h.rss_limit_mb * 1000) / 10 : null;
+    if (memPct >= 75) probs.push(`RAM in use now ${memPct}% of instance cap`);
     if (h.threadpool_total && h.threadpool_used >= h.threadpool_total) probs.push(`bot busy: all ${h.threadpool_total} workers stuck, pages hang`);
     if (h.order_log_git_push_age_s > 600) probs.push(`order log not in git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
-    paint(probs, `System OK · Render up · Upstash ${h.upstash_ok == null ? "not checked yet" : "ok"} · mem ${h.rss_pct ?? "-"}%`);
+    paint(probs, `System OK · Render up · Upstash ${h.upstash_ok == null ? "not checked yet" : "ok"} · RAM now ${memPct ?? "-"}% of instance cap (not a quota)`);
   }
   pollHealth(); setInterval(pollHealth, 5000);
 </script>

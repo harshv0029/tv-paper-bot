@@ -1216,6 +1216,27 @@ def init_db():
             )
             """
         )
+        # B-1443 (2026-11-02): durable Kotak fill ledger for View 4's ROC KPIs. Kotak positions() is today-only, so
+        # each IST day's filled buy/sell qty and value per trading symbol + product is upserted here from Kotak's own
+        # numbers (never shrinks within a day), plus one-time 'opening' rows for holdings open when the ledger began
+        # (from tracked_union). No order ids. In _GENERIC_MIRROR_TABLES (Upstash) so a restart never loses it.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS kotak_fill_ledger (
+                day TEXT NOT NULL,
+                trdsym TEXT NOT NULL,
+                prod TEXT NOT NULL DEFAULT '',
+                source TEXT NOT NULL,            -- 'kotak_positions' | 'opening'
+                seg TEXT,
+                buy_qty REAL NOT NULL DEFAULT 0,
+                buy_amt REAL NOT NULL DEFAULT 0,
+                sell_qty REAL NOT NULL DEFAULT 0,
+                sell_amt REAL NOT NULL DEFAULT 0,
+                updated_at REAL,
+                PRIMARY KEY (day, trdsym, prod, source)
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS sl_order_snapshot (
@@ -12063,9 +12084,11 @@ def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
         dfc = _chan_short_frame(df, ts_utc)
         entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
         entry_pos = min(entry_pos, len(dfc) - 1)
+        # B-1439: live partial-day frame -> _chan_live_masks; the raw masks mark the LAST bar as the 15:15 cut bar,
+        # so every open chan position was 'flatten_1515'-exited on the first manage tick after entry.
         res = chan_kalman_band_long_exit_reason(
             dfc, interval, entry_pos, float(row["entry_price"]), float(row["stop_loss"]),
-            hold=CHAN_LONG_HOLD_BARS, ve=ve)
+            hold=CHAN_LONG_HOLD_BARS, ve=ve, masks=_chan_live_masks(dfc.index, interval))
     except Exception:
         return None
     return res[0] if res else None
@@ -12410,9 +12433,11 @@ def _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_p
         dfc = _chan_short_frame(df, ts_utc)
         entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
         entry_pos = min(entry_pos, len(dfc) - 1)
+        # B-1439: live masks (see _chan_long_manage); RELIANCE 2026-11-02 IST: real short 09:18:55, covered 09:20:59
+        # as 'flatten_1515' because the raw masks treat the live frame's last bar as the day's cut bar.
         res = chan_kalman_band_short_exit_reason(
             dfc, interval, entry_pos, float(row["entry_price"]), float(row["stop_loss"]),
-            hold=CHAN_SHORT_HOLD_BARS, ve=ve)
+            hold=CHAN_SHORT_HOLD_BARS, ve=ve, masks=_chan_live_masks(dfc.index, interval))
     except Exception:
         return None
     return res[0] if res else None
@@ -20685,7 +20710,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
-    "strategy_viable_stack", "swing_entry_stop",
+    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -20732,7 +20757,8 @@ _generic_mirror_last_hash: dict = {}
 # B-1341: positions, trades, signal state and kill switches push on every change (restart safety). Everything else in
 # the Upstash tier pushes at most every _GENERIC_MIRROR_SLOW_SEC on the tick path; an explicit only=(...) call is immediate.
 _GENERIC_MIRROR_SLOW_TABLES = ("nse_straddle_state", "signal_state_fo_options", "tracked_union",
-                               "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today")
+                               "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today",
+                               "kotak_fill_ledger")
 _GENERIC_MIRROR_SLOW_SEC = 300
 _generic_mirror_last_push_ts: dict = {}
 
@@ -21516,12 +21542,90 @@ def _refresh_real_trades_cache():
                 })
             except (TypeError, ValueError):
                 continue
+        try:  # B-1443: durable day-fill ledger for the ROC KPIs; never blocks the P&L cache
+            _capture_kotak_fill_ledger(rows)
+        except Exception as e:  # noqa: BLE001
+            print(f"[roc] fill ledger capture failed (non-fatal): {e}")
         _real_trades_cache["value"] = trades
         _real_trades_cache["fetched_at"] = time.time()
         _real_trades_cache["error"] = None
         _real_trades_cache["day"] = ist_now().strftime("%Y-%m-%d")
     except Exception as e:
         _real_trades_cache["error"] = str(e)
+
+
+def _capture_kotak_fill_ledger(position_rows: list, now_ist=None) -> int:
+    """B-1443: upsert today's per-symbol filled buy/sell qty/value from Kotak positions() rows into kotak_fill_ledger.
+    Kotak's day totals are cumulative, so a row is replaced only when its filled qty did not shrink (a partial or odd
+    response never erases a fuller capture). On the ledger's first ever capture, holdings already open (tracked_union,
+    entry before today) are stored once as 'opening' rows so their later exits have an entry. Returns rows written."""
+    now_ist = now_ist or ist_now()
+    today, hs_today = now_ist.strftime("%Y-%m-%d"), now_ist.strftime("%Y/%m/%d")
+    agg = {}
+    for row in position_rows or []:
+        try:
+            hs = str(row.get("hsUpTm") or "")
+            if hs and not hs.startswith(hs_today):
+                continue
+            bq, sq = float(row.get("flBuyQty", 0) or 0), float(row.get("flSellQty", 0) or 0)
+            if bq <= 0 and sq <= 0:
+                continue
+            k = (str(row.get("trdSym") or row.get("sym") or ""), str(row.get("prod") or "").upper())
+            if not k[0]:
+                continue
+            a = agg.setdefault(k, {"seg": row.get("exSeg"), "bq": 0.0, "ba": 0.0, "sq": 0.0, "sa": 0.0})
+            a["bq"] += bq
+            a["sq"] += sq
+            a["ba"] += float(row.get("buyAmt", 0) or 0)
+            a["sa"] += float(row.get("sellAmt", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    n, ts = 0, time.time()
+    with closing(get_db()) as conn:
+        first = conn.execute("SELECT 1 FROM kotak_fill_ledger LIMIT 1").fetchone() is None
+        if first and agg:
+            for r in conn.execute("SELECT kotak_trading_symbol, qty, is_short, entry_price, day, first_seen_day "
+                                  "FROM tracked_union WHERE qty > 0 AND entry_price > 0").fetchall():
+                d0 = str(r["day"] or r["first_seen_day"] or "")[:10]
+                if not d0 or d0 >= today:
+                    continue
+                q, v = float(r["qty"]), float(r["qty"]) * float(r["entry_price"])
+                conn.execute("INSERT OR IGNORE INTO kotak_fill_ledger (day, trdsym, prod, source, seg, buy_qty, "
+                             "buy_amt, sell_qty, sell_amt, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                             (d0, r["kotak_trading_symbol"], "" if r["is_short"] else "CNC", "opening", None,
+                              0 if r["is_short"] else q, 0 if r["is_short"] else v,
+                              q if r["is_short"] else 0, v if r["is_short"] else 0, ts))
+                n += 1
+        for (sym, prod), a in agg.items():
+            old = conn.execute("SELECT buy_qty, sell_qty FROM kotak_fill_ledger WHERE day=? AND trdsym=? AND prod=? "
+                               "AND source='kotak_positions'", (today, sym, prod)).fetchone()
+            if old and (a["bq"] < old[0] or a["sq"] < old[1]):
+                continue
+            conn.execute("INSERT OR REPLACE INTO kotak_fill_ledger (day, trdsym, prod, source, seg, buy_qty, buy_amt, "
+                         "sell_qty, sell_amt, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                         (today, sym, prod, "kotak_positions", a["seg"], a["bq"], round(a["ba"], 2), a["sq"],
+                          round(a["sa"], 2), ts))
+            n += 1
+        conn.commit()
+    return n
+
+
+def _roc_kpis_payload(today=None) -> dict:
+    """B-1443: View 4 ROC KPIs from the durable Kotak fill ledger (see roc_kpis.py for every definition)."""
+    import roc_kpis
+    today = today or ist_now().date()
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT day, trdsym, prod, source, seg, buy_qty, buy_amt, sell_qty, "
+                                              "sell_amt FROM kotak_fill_ledger").fetchall()]
+    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr)
+    out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
+                          "holdings open when the ledger began come from tracked_union. App order tables are not used: "
+                          "they miss exchange-triggered stop-loss exits, so they cannot give a trustworthy realised P&L.")
+    out["definition"] = ("ROC % = net realised P&L of real trades exited in the period (after estimated statutory "
+                         "charges; brokerage not included) / average daily deployed capital (entry value of every "
+                         "position held on each calendar day, time-weighted over the period's covered days). IST "
+                         "calendar months.")
+    return out
 
 
 def get_real_trades_today_list():
@@ -23278,8 +23382,14 @@ def _log_swing_ensure_sl_result(conn, symbol: str, kotak_trading_symbol: str, re
     trg = float(res.get("trigger_price") or 0)
     action = res.get("action")
     band_note = ""
+    if res.get("entry_floor_breached") is not None:
+        band_note += (f"; LOUD: entry-day stop Rs{float(res['entry_floor_breached']):.2f} is at/above the market, so the "
+                      f"stop rests at Rs{trg:.2f} to keep the position protected (B-1440)")
+    elif res.get("entry_floor_raised_from") is not None:
+        band_note += (f"; requested Rs{float(res['entry_floor_raised_from']):.2f} was below the entry-day stop, "
+                      f"raised to Rs{float(res.get('entry_floor') or trg):.2f} (B-1440 floor)")
     if res.get("band_clamped_from") is not None:
-        band_note = (f"; strategy stop Rs{float(res['band_clamped_from']):.2f} is outside the day's price band, "
+        band_note += (f"; strategy stop Rs{float(res['band_clamped_from']):.2f} is outside the day's price band, "
                      f"so the stop rests at the band floor Rs{trg:.2f}")
     if action == "adopted_existing":
         _log_real_order_event(
@@ -28841,18 +28951,22 @@ _SWING_SL_RULES = {
 }
 
 
-def _sl_kind(category: str, tag: str | None) -> str:
-    """B-1402: 'trail' or 'fixed' for an open real position's stop, from the strategy's own stop rule. Intraday long/short
-    engines trail (staged ladder) except the chan_kalman cells (fixed stop); swing reads _SWING_SL_RULES."""
+def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
+    """B-1402/B-1441: 'Trail' or 'Fixed' (never anything else) for an open real position's stop, from the stop logic
+    its own engine actually runs. Intraday long/short engines trail (staged ladder / per-tick SL sync) except the
+    chan_kalman cells (fixed stop). Swing: Trail for the B-1438 trailing tags (SWING_TRAILING_STOP_TAGS incl. the
+    orphan LTP trail and the be3r breakeven ratchet, + GAP_AND_GO_EXITFAMILY_LIVE_CELLS) and the LTP-trail symbols,
+    else Trail when _SWING_SL_RULES says the stop trails; every other tag exits off its frozen initial stop
+    (_swing_strategy_stop_level's default for an unrecognised tag), so Fixed."""
     tag = tag or ""
     if category in ("buy", "short_sell"):
-        return "fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "trail"
-    rule = _SWING_SL_RULES.get(tag)
-    if not rule:
-        return "unknown"
+        return "Fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "Trail"
+    if category == "swing" and (_swing_is_trailing_tag(tag) or (symbol and symbol in SWING_LTP_TRAIL_SYMBOLS)):
+        return "Trail"
+    rule = _SWING_SL_RULES.get(tag) or ""
     if "trail" in rule and "no trail" not in rule:
-        return "trail"
-    return "fixed (moves to breakeven)" if "moves to entry" in rule else "fixed"
+        return "Trail"
+    return "Fixed"
 
 
 # B-1425 (user 2026-10-29, View 4): each open position's expected exit date per its own strategy's time stop. The
@@ -28944,6 +29058,21 @@ def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=No
         return {"expected_exit": None, "expected_exit_basis": f"unavailable ({type(e).__name__})"}
 
 
+@app.get("/roc-kpis")
+def get_roc_kpis():
+    """B-1443 (View 4 capital block): return on deployed capital for last calendar month, month-to-date and rolling
+    30 days, plus per-trade return %, holding days and return/day. No token: closed-trade figures only, never order
+    ids or account details. Refreshes today's Kotak fills first (same 5-min TTL cache as /real-pnl-today)."""
+    try:
+        get_real_trades_today_list()
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] Kotak refresh failed (non-fatal, ledger as stored): {e}")
+    try:
+        return _roc_kpis_payload()
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"{type(e).__name__}: {e}", "periods": {}, "closed_trades": []}
+
+
 @app.get("/real-positions-sl-today")
 def real_positions_sl_today():
     """B-1402 (user 2026-10-28, View 4): one row per active real position - entry, qty, category, target, SL type
@@ -28961,34 +29090,23 @@ def real_positions_sl_today():
             ev = c.execute(
                 "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved') "
                 "AND ts >= ? ORDER BY ts", (r["symbol"], day0)).fetchall()
-            kind = _sl_kind(category, tag)
+            kind = _sl_kind(category, tag, r["symbol"])
             if kotak_sl is None:
                 ok, status = False, "NO - no live SL at Kotak"
             elif strat_stop is None:
                 ok, status = None, "SL live; strategy stop not stored"
             elif (side == "long" and kotak_sl < strat_stop - tick) or (side == "short" and kotak_sl > strat_stop + tick):
                 ok, status = False, f"NO - Kotak SL Rs{kotak_sl:.2f} behind strategy stop Rs{float(strat_stop):.2f}"
-            elif kind == "trail":
+            elif kind == "Trail":
                 ok, status = True, (f"yes - SL updated {len(ev)}x today, in line with the trail" if ev
                                     else "yes - in line (trail condition not met today, no move needed)")
             else:
                 ok, status = True, "yes - fixed stop, no update needed"
             last = ev[-1] if ev else None
-            # B-1410: the SL as placed at Kotak on the entry day (first 'sl placed' event that day), else the strategy's
-            # frozen initial stop.
-            eday_sl, eday_src = None, None
-            try:
-                d0 = (dt.datetime.strptime(str(r["day"]), "%Y-%m-%d") - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(
-                    tzinfo=dt.timezone.utc).timestamp()  # entry day's IST midnight
-                first = c.execute("SELECT new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event = 'placed' "
-                                  "AND ts >= ? AND ts < ? ORDER BY ts LIMIT 1", (r["symbol"], d0, d0 + 86400)).fetchone()
-                m = re.search(r"Rs\s?([0-9]+(?:\.[0-9]+)?)", (first["new_state"] or "")) if first else None
-                if m:
-                    eday_sl, eday_src = round(float(m.group(1)), 2), "kotak"
-            except Exception:
-                pass
-            if eday_sl is None and initial_stop is not None:
-                eday_sl, eday_src = round(float(initial_stop), 2), "strategy"
+            # B-1410/B-1440: the entry-day SL is _real_entry_day_stop - the SAME number every real SL placement is
+            # floored at (kotak_real_orders.apply_entry_day_floor), so View 4 and the engine never disagree.
+            eday_sl, eday_src = _real_entry_day_stop(
+                c, r["symbol"], side, r.get("day"), initial_stop, r.get("entry_price"), category)
             out.append({
                 "symbol": r["symbol"], "category": category, "side": side, "strategy": tag, "qty": r["qty"],
                 "entry_price": r["entry_price"], "target_price": target, "sl_type": kind,
@@ -30440,14 +30558,116 @@ def _swing_entry_stop(conn, symbol: str):
         return None
 
 
+def _real_entry_day_stop(conn, symbol: str, side: str = "long", day=None, initial_stop=None, entry_price=None,
+                         category=None):
+    """B-1440 (WIPRO 2026-11-02): THE entry-day stop of a real position, shared by View 4's 'entry-day SL' column and
+    the hard floor every real SL placement goes through (kotak_real_orders.apply_entry_day_floor). Candidates: the
+    first SL placed at Kotak on the entry day (real_order_events), the strategy's stored initial stop
+    (signal_state*.initial_stop_loss) and, for a swing long, the B-1367 swing_entry_stop record. The most protective
+    wins (long: highest, short: lowest); a candidate on the wrong side of the real entry price (a long 'stop' at or
+    above entry: a mismatched paper row) is ignored. Returns (value, source) or (None, None). Never raises."""
+    import re
+    cands = []
+    try:
+        if day:
+            d0 = (dt.datetime.strptime(str(day)[:10], "%Y-%m-%d") - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(
+                tzinfo=dt.timezone.utc).timestamp()  # entry day's IST midnight
+            legs = ("sl",) if side == "long" else ("short_sl", "sl")
+            first = conn.execute(
+                "SELECT new_state FROM real_order_events WHERE symbol = ? AND leg IN (%s) AND event = 'placed' "
+                "AND ts >= ? AND ts < ? ORDER BY ts LIMIT 1" % ",".join("?" * len(legs)),
+                (symbol, *legs, d0, d0 + 86400)).fetchone()
+            m = re.search(r"Rs\s?([0-9]+(?:\.[0-9]+)?)", (first[0] or "")) if first else None
+            if m:
+                cands.append((round(float(m.group(1)), 2), "kotak"))
+    except Exception:
+        pass
+    try:
+        if initial_stop is not None and float(initial_stop) > 0:
+            cands.append((round(float(initial_stop), 2), "strategy"))
+    except (TypeError, ValueError):
+        pass
+    if side == "long" and category in (None, "swing"):
+        es = _swing_entry_stop(conn, symbol)
+        if es:
+            cands.append((round(float(es), 2), "entry_stop_record"))
+    try:
+        ep = float(entry_price) if entry_price else None
+    except (TypeError, ValueError):
+        ep = None
+    if ep:
+        cands = [c for c in cands if (c[0] < ep if side == "long" else c[0] > ep)]
+    if not cands:
+        return None, None
+    return (max if side == "long" else min)(cands, key=lambda c: c[0])
+
+
+# (table, paper-state table, View-4 category) per side, for the entry-day floor lookup by Kotak trading symbol.
+_REAL_STOP_TABLES = {
+    "long": (("real_positions", "signal_state", "buy"), ("real_positions_swing", "signal_state_swing", "swing")),
+    "short": (("real_positions_short", "signal_state_short", "short_sell"),
+              ("real_positions_swing_short", "signal_state_swing_short", "swing_short")),
+}
+
+
+def _real_entry_day_stop_for_row(conn, row, paper_table: str, side: str, category: str):
+    isl = None
+    try:
+        sr = conn.execute(f"SELECT initial_stop_loss FROM {paper_table} WHERE symbol = ?", (row["symbol"],)).fetchone()
+        isl = sr[0] if sr else None
+    except Exception:
+        pass
+    r = dict(row)
+    return _real_entry_day_stop(conn, r["symbol"], side, r.get("day"), isl, r.get("entry_price"), category)
+
+
+def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
+    """B-1440: the provider kotak_real_orders calls before EVERY real SL send (long SELL stop / short BUY stop, every
+    category: intraday buy, short, swing, swing short). Own short-timeout connection; None when no tracked row. Options
+    are floored by their own engine (trigger = max(previous trigger, entry x (1 - 3%)), never below the entry stop)."""
+    try:
+        with closing(sqlite3.connect(DB_PATH, timeout=5)) as c:
+            c.row_factory = sqlite3.Row
+            best = None
+            for tbl, paper, cat in _REAL_STOP_TABLES.get(side, ()):
+                try:
+                    row = c.execute(f"SELECT * FROM {tbl} WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,)).fetchone()
+                except Exception:
+                    continue
+                if not row:
+                    continue
+                v, _src = _real_entry_day_stop_for_row(c, row, paper, side, cat)
+                if v is not None:
+                    best = v if best is None else (max(best, v) if side == "long" else min(best, v))
+            return best
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL SL FLOOR] provider failed for {kotak_trading_symbol} (non-fatal): {e}")
+        return None
+
+
+try:
+    import kotak_real_orders as _kro_for_floor
+    _kro_for_floor.set_stop_floor_provider(_real_stop_floor_for_trdsym)
+except Exception as _e:  # noqa: BLE001
+    print(f"[REAL SL FLOOR] provider not registered: {_e}")
+
+
 def _swing_stop_floored(conn, symbol: str, stop) -> float:
-    """B-1367: a swing long's stop may rise (strategy trail) but never fall below its entry-day stop."""
+    """B-1367: a swing long's stop may rise (strategy trail) but never fall below its entry-day stop. B-1440: the
+    entry-day stop is _real_entry_day_stop (the same number View 4 shows), not only the swing_entry_stop record."""
     floor = _swing_entry_stop(conn, symbol)
+    eday = None
+    try:
+        row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+        if row:
+            eday, _src = _real_entry_day_stop_for_row(conn, row, "signal_state_swing", "long", "swing")
+    except Exception:
+        eday = None
     try:
         stop = float(stop or 0)
     except (TypeError, ValueError):
         stop = 0.0
-    return round(max(stop, floor or 0.0, _swing_trail_floor(conn, symbol) or 0.0), 2)
+    return round(max(stop, floor or 0.0, eday or 0.0, _swing_trail_floor(conn, symbol) or 0.0), 2)
 
 
 # B-1438: long swing tags whose live exit trails the stop off the stored running_max_close (or ratchets it, be3r), with
@@ -30478,12 +30698,27 @@ def _swing_trail_floor(conn, symbol: str):
     try:
         st = conn.execute("SELECT strategy, initial_stop_loss, atr_at_entry, running_max_close, entry_price "
                           "FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-        if not st or st[1] is None or not _swing_is_trailing_tag(st[0]):
+        if not st or st[1] is None:
             return None
+        lvl = None
         cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(st[0])
-        atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], cell) if cell is not None else st[2]
-        lvl = float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3], entry_price=st[4]))
-        if not lvl > float(st[1]):
+        if _swing_is_trailing_tag(st[0]):
+            atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], cell) if cell is not None else st[2]
+            lvl = float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3], entry_price=st[4]))
+        # B-1440 (WIPRO 2026-11-02: re-placed at 175.12 -> band 179.01 although Friday's LTP-trailed stop was 192.89):
+        # a REAL row on the orphan LTP trail (_sync_swing_ltp_trail: peak live LTP - 1R, peak persisted in
+        # swing_ltp_peak) re-places at that trailed level, whatever strategy the paper row carries.
+        try:
+            rp = conn.execute("SELECT strategy FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+            if rp and (rp[0] == ORPHAN_SWING_STRATEGY_TAG or symbol in SWING_LTP_TRAIL_SYMBOLS) and st[4] is not None:
+                r_unit = float(st[4]) - float(st[1])
+                pk = conn.execute("SELECT peak_ltp FROM swing_ltp_peak WHERE symbol = ?", (symbol,)).fetchone()
+                if r_unit > 0 and pk and pk[0]:
+                    ltp_lvl = _ltp_trail_stop(float(pk[0]), r_unit, st[1])
+                    lvl = ltp_lvl if lvl is None else max(lvl, ltp_lvl)
+        except Exception:
+            pass
+        if lvl is None or not lvl > float(st[1]):
             return None
         refs = [p for p in (_SWING_LAST_CLOSE.get(symbol), _swing_live_ltp(symbol)) if p and float(p) > 0]
         if not refs:
