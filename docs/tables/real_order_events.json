@@ -15827,7 +15827,55 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs158.47",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 1320,
+   "ts": 1793612718.6053,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1321,
+   "ts": 1793612718.6156867,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1322,
+   "ts": 1793612718.621687,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1323,
+   "ts": 1793612718.6294994,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-02T08:03:50Z"
+ "synced_at_utc": "2026-11-02T09:45:22Z"
 }
