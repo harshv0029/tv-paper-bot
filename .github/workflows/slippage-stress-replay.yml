@@ -1,0 +1,107 @@
+name: Slippage-stress + turnover-filter replay over top viable tags (B-422)
+
+# Backlog B-422 (a)+(b). The analytic screen (docs/SLIPPAGE_STRESS_VIABLE.md) is algebra on registry numbers; this
+# replays the strategies themselves through REAL main.py entry/exit functions (scripts/slippage_stress_replay.py):
+#  (a) cost stress: main.ROUND_TRIP_COST_PCT is overridden on the main module per cell (cost_pct list, 0.8 control
+#      always added); net = gross - cost.
+#  (b) liquidity filter: entries whose 20-day average traded value (Close x Volume, signal bar inclusive) is below
+#      min_turnover_cr crore are dropped INSIDE the bar loop (dropped-signal counts reported).
+# Strategies: top_n viable registry tags (is_viable() at plan time) that have a main.py-calling replay, PFnet desc.
+# Each (cost, turnover) cell is its own tag (`cost1d2`, `turncr5` params per the naming grammar), emitted in the merge
+# job's RESULTS_JSON line and artifact (`registration` list) for later registry registration. Band cap off.
+# Universe = main._load_nse_universe_from_file() (full NSE). Daily bars, 5y.
+# Research matrix (top_n x nshards jobs, default 20): dispatch ONLY when no Deploy Gate / safety run is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      cost_pct:
+        description: "Comma list of stressed round-trip cost % (0.8 control always added)"
+        required: false
+        default: "1.2,1.6"
+      min_turnover_cr:
+        description: "Comma list of min 20-day avg traded value in INR crore (0 = no filter, always added)"
+        required: false
+        default: "0,1,5"
+      top_n:
+        description: "Number of top viable replayable tags"
+        required: false
+        default: "10"
+      nshards:
+        description: "Universe shards per tag"
+        required: false
+        default: "2"
+      symbol_limit:
+        description: "Smoke test only: symbols per shard (blank = full universe)"
+        required: false
+        default: ""
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          NSHARDS: ${{ inputs.nshards }}
+          TOP_N: ${{ inputs.top_n }}
+        run: |
+          pip install -q -r requirements.txt
+          m=$(python3 scripts/slippage_stress_replay.py plan 2>/dev/null | tail -1)
+          echo "$m"
+          echo "matrix=$m" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay cost x turnover cells (real main.py functions)
+        env:
+          TAG: ${{ matrix.tag }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          COSTS: ${{ inputs.cost_pct }}
+          TURNOVERS: ${{ inputs.min_turnover_cr }}
+          SYMBOL_LIMIT: ${{ inputs.symbol_limit }}
+        run: python3 scripts/slippage_stress_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sstress-${{ strategy.job-index }}
+          path: out/
+          retention-days: 14
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: sstress-*
+      - name: Merge shards
+        run: python3 scripts/slippage_stress_replay.py merge shards shards/slippage_stress_all.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slippage-stress-all
+          path: shards/slippage_stress_all.json
+          retention-days: 30
