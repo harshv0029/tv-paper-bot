@@ -17,6 +17,7 @@ def test_second_caller_adopts_sl_placed_seconds_ago(monkeypatch):
     # the order book has not caught up yet (empty), but this process placed an SL 1 s ago
     monkeypatch.setattr(kro.kotak_neo, "login", lambda: _Client([]))
     monkeypatch.setattr(kro, "_in_closing_session", lambda: False)
+    monkeypatch.setattr(kro, "_STOP_FLOOR_PROVIDER", None)  # B-1367: no entry-day floor leaking from another test's DB
     placed = []
 
     def fake_unlocked(sym, qty, trg):
