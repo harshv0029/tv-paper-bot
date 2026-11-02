@@ -21,13 +21,12 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| USER | 11 |
+| USER | 12 |
 | DEPLOYED | 10 |
 | P1 | 8 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
-| BUILT | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
@@ -35,6 +34,8 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
+| BUILT | 3 |
+| UNKNOWN | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
@@ -43,11 +44,11 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | WIRED-GATE-CLOSED | 2 |
 | WIRED | 2 |
 | DONE-BUILT | 2 |
-| UNKNOWN | 2 |
 | RECONCILE | 2 |
 | REAL | 2 |
 | JIOFIN26OCT217 | 2 |
 | KOTAK | 2 |
+| WATCHDOG | 2 |
 | SWING | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -74,7 +75,6 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | NATIONALUM | 1 |
 | SPAWNED | 1 |
 | B-1359 | 1 |
-| WATCHDOG | 1 |
 | RESIDUAL | 1 |
 | F | 1 |
 | B-1388 | 1 |
@@ -87,12 +87,12 @@ Total rows: 1216 | closed: 574 | not closed: 642
 
 | Priority | All | Not closed |
 |---|---|---|
-| P0 | 121 | 66 |
+| P0 | 120 | 65 |
 | P1 | 468 | 256 |
 | P2 | 479 | 232 |
 | P3 | 120 | 64 |
 | Info | 1 | 0 |
-| P? | 27 | 24 |
+| P? | 28 | 25 |
 
 ## needs-owner (7)
 
@@ -479,7 +479,6 @@ Total rows: 1216 | closed: 574 | not closed: 642
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
-| B-68 | P0 | DEPLOYED | Orphan intraday holdings (no strategy/SL/target) rerouted to swing engine | owed, verify, owner, follow-up |
 | B-865 | P0 | IN-PROGRESS | 2026-10-12 user report: /fo-entry-diagnosis says no F&O candles, so no option strike can ever fire | owed, needs |
 | B-894 | P0 | P0 | "Checks today, per asset" Last result/Last checked blank: B-892 awaited the swing pass inside the tick, sta... | owed, verify |
 | B-906 | P0 | P0 | DEPLOYED 2026-10-13 15:19 IST (main 7d438839); verify on next live occurrence | owed, verify |
@@ -542,7 +541,7 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up, awaiting, waiting |
 | B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-1441 | P1 | USER | 2026-11-02 18:50 IST | verify |
-| B-1447 | P1 | BUILT | 2026-11-02 22:40 IST | owed, verify |
+| B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, verify |
 | B-1452 | P1 | OPEN | 2026-11-03 00:35 IST |  |
 | B-1459 | P1 | OPEN | 2026-11-03 00:55 IST | owed, owner |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
@@ -602,8 +601,8 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
 | B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed, verify |
 | B-1446 | P2 | JOURNAL | 2026-11-02 22:40 IST | verify |
-| B-1448 | P2 | BUILT | 2026-11-02 22:40 IST | owed, remaining, verify |
-| B-1451 | P2 | BUILT | 2026-11-02 23:58 IST | owed |
+| B-1448 | P2 | UNKNOWN | 2026-11-02 22:40 IST | owed, remaining, verify |
+| B-1451 | P2 | USER | 2026-11-02 23:58 IST | owed, verify |
 | B-1453 | P2 | OPEN | 2026-11-03 00:35 IST |  |
 | B-1454 | P2 | OPEN | 2026-11-03 00:35 IST |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
@@ -612,6 +611,7 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | B-1455 | P3 | OPEN | 2026-11-03 00:35 IST | verify |
 | B-1456 | P3 | OPEN | 2026-11-03 00:35 IST | owner |
 | B-1457 | P3 | OPEN | 2026-11-03 00:35 IST |  |
+| B-68 | P? | DEPLOYED | Orphan intraday holdings (no strategy/SL/target) rerouted to swing engine | owed, verify, owner, follow-up |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |
 | B-1288a | P? | OPEN | URGENT: /health after B-967 deploy shows rss_mb 1951.5 of 2048 limit (95%) at 23:34 IST 2026-10-19 (was 159... |  |
