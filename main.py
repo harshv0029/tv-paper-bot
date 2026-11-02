@@ -15607,6 +15607,12 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper trade - nothing to partially exit
+    # B-68 follow-up (2026-11-02): engine-ownership rule, same guard as _maybe_place_real_exit - the intraday
+    # partial-exit ladder never sells a symbol the swing engine owns (e.g. a swing_rerouted_orphan row).
+    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+        print(f"[REAL] intraday partial exit REFUSED for {symbol}: owned by the swing engine")
+        return
     leg_name = staged_exit.get("leg")
     # The PAPER side's `staged_exit` only tells us WHICH leg just fired -
     # how much to sell on the REAL side comes from the REAL position's own
@@ -27814,6 +27820,24 @@ async def _scheduler_tick():
 
 
 STARTUP_HYDRATION_TIMEOUT_SECONDS = 15  # see _start_scheduler's own asyncio.wait_for comment
+
+
+@app.on_event("shutdown")
+def _flush_kotak_sends_on_shutdown():
+    """B-68 follow-up (2026-11-02): an ACCEPTED Kotak send waits up to _PENDING_KOTAK_SEND_MAX_AGE_S in memory
+    before its row is written. A Render restart inside that window used to lose it, and the next reconcile then
+    tagged the app's own fill `kotak_order_not_in_app_log` (indistinguishable from a manual Kotak order, as with
+    NHPC on 28 Oct). On a graceful shutdown write every queued send now and mirror it to Upstash."""
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=5)
+        try:
+            n = _flush_pending_kotak_sends(conn, min_age=0.0)
+        finally:
+            conn.close()
+        if n:
+            sync_generic_tables_external(only=("real_order_events",))
+    except Exception as e:  # noqa: BLE001 - shutdown must never raise
+        print(f"[order_log] shutdown flush of pending Kotak sends failed (non-fatal): {e}")
 
 
 @app.on_event("startup")
