@@ -7,6 +7,8 @@ Output code only. It never changes which trades are taken or how they exit; it r
   `ts_arr` is the ascending per-bar timestamp array the replay used for entry_ts/exit_ts (same unit, same offset).
 * summarize(tag, trades, universe, run_id, bar_minutes): n, win_pct, pfnet, pfgross, avg_held_bars,
   avg_held_hrs (= avg_held_bars * bar_minutes / 60), exit-reason breakdown, universe, run_id.
+* median_stop_pct (B-775): median planned stop distance in percent of entry, per trade from `stop_pct` if the
+  replay set it, else |entry_price - initial_stop (or stop)| / entry_price; None when no trade carries a stop.
 * write_summary(rows, out_dir): summary.json + summary.tsv, and prints one line per row.
 """
 import json
@@ -15,7 +17,7 @@ import os
 import numpy as np
 
 COLUMNS = ("tag", "n", "win_pct", "pfnet", "pfgross", "avg_held_bars", "avg_held_hrs", "exit_reasons",
-           "universe", "run_id")
+           "universe", "run_id", "median_stop_pct")
 
 
 def held_bars_from_ts(ts_arr, entry_ts, exit_ts):
@@ -37,6 +39,17 @@ def _pf(pnls):
     return None if gw == 0 else float("inf")
 
 
+def trade_stop_pct(t):
+    """Planned stop-% of one trade dict (B-775), or None if it carries no stop."""
+    if t.get("stop_pct") is not None:
+        return float(t["stop_pct"])
+    e = t.get("entry_price")
+    st = t.get("initial_stop", t.get("stop"))
+    if e is None or st is None or not float(e) > 0:
+        return None
+    return 100.0 * abs(float(e) - float(st)) / float(e)
+
+
 def summarize(tag, trades, universe, run_id=None, bar_minutes=5):
     run_id = run_id if run_id is not None else os.environ.get("GITHUB_RUN_ID", "")
     n = len(trades)
@@ -45,6 +58,7 @@ def summarize(tag, trades, universe, run_id=None, bar_minutes=5):
         reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
     held = [t["held_bars"] for t in trades if t.get("held_bars") is not None]
     avg_bars = (sum(held) / len(held)) if held else None
+    sps = [x for x in (trade_stop_pct(t) for t in trades) if x is not None]
     return {
         "tag": tag, "n": n,
         "win_pct": round(100.0 * sum(1 for t in trades if t["net_pnl"] > 0) / n, 2) if n else None,
@@ -54,6 +68,7 @@ def summarize(tag, trades, universe, run_id=None, bar_minutes=5):
         "avg_held_hrs": round(avg_bars * bar_minutes / 60.0, 3) if avg_bars is not None else None,
         "exit_reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1])),
         "universe": universe, "run_id": str(run_id), "bar_minutes": bar_minutes,
+        "median_stop_pct": round(float(np.median(sps)), 4) if sps else None,
     }
 
 
@@ -69,5 +84,5 @@ def write_summary(rows, out_dir="b420_out"):
     for r in rows:
         print(f"  {r['tag']}: n={r['n']} win%={r['win_pct']} PFnet={r['pfnet']} PFgross={r['pfgross']} "
               f"avg_held_bars={r['avg_held_bars']} avg_held_hrs={r['avg_held_hrs']} exits={r['exit_reasons']} "
-              f"universe={r['universe']} run_id={r['run_id']}")
+              f"universe={r['universe']} run_id={r['run_id']} median_stop_pct={r.get('median_stop_pct')}")
     return rows

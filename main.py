@@ -24,12 +24,45 @@ def _cap_malloc_arenas() -> None:
     standard fix for threaded Python on glibc and typically cuts RSS 20-40%. Must run before worker threads start.
     MALLOC_ARENA_MAX in the environment wins; non-glibc / failure is silently ignored."""
     try:
-        if os.environ.get("MALLOC_ARENA_MAX"):
-            return
         import ctypes
-        ctypes.CDLL("libc.so.6").mallopt(-8, 2)  # M_ARENA_MAX = -8
+        libc = ctypes.CDLL("libc.so.6")
+        if not os.environ.get("MALLOC_ARENA_MAX"):
+            libc.mallopt(-8, 2)  # M_ARENA_MAX = -8
+        # B-1447: a FIXED mmap threshold. glibc's default threshold is dynamic: once a large numpy/pandas buffer is
+        # freed it rises (up to 32 MB), so later buffers of that size are carved from the heap/arenas and stay pinned
+        # after free (fragmentation that ratchets RSS over a multi-day uptime). Fixed at 256 KB, large buffers are
+        # mmapped and return to the OS on free. MALLOC_MMAP_THRESHOLD_ in the environment wins.
+        if not os.environ.get("MALLOC_MMAP_THRESHOLD_"):
+            libc.mallopt(-3, 256 * 1024)  # M_MMAP_THRESHOLD = -3
     except Exception:
         pass
+
+
+_NATIVE_TRIM_STATE = {"trims": 0, "last_ts": None, "last_rss_before_mb": None, "last_rss_after_mb": None}
+
+
+def _statm_rss_mb():
+    try:
+        with open("/proc/self/statm") as f:
+            return round(int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _trim_native_heap() -> bool:
+    """B-1447: gc.collect + glibc malloc_trim(0), returning freed heap pages to the OS. Guarded: non-glibc or any
+    failure is a silent no-op. Touches no app state, so no trading decision can change. True when it trimmed."""
+    try:
+        import gc
+        import ctypes
+        before = _statm_rss_mb()
+        gc.collect()
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        _NATIVE_TRIM_STATE.update(trims=_NATIVE_TRIM_STATE["trims"] + 1, last_ts=time.time(),
+                                  last_rss_before_mb=before, last_rss_after_mb=_statm_rss_mb())
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 import os  # noqa: E402
@@ -14379,6 +14412,10 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         reason = _default_order_reason(leg, event)
     if reason:
         detail = f"reason: {reason}" + (f" | {detail}" if detail else "")
+    try:  # B-1448: write queued Kotak-send outcomes first; this caller's own row covers its order id
+        _flush_pending_kotak_sends(conn, covered_order_id=order_id, commit=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"[order_log] B-1448 pending-send flush failed (non-fatal): {e}")
     conn.execute(
         "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
         "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -14395,6 +14432,95 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     # B-1355: the order log is git-tier, so the Upstash call above does not carry it. Wake the git push thread now:
     # NATIONALUM 23-Oct sold at 09:22:27 IST, Render restarted at 09:22:35, and the last git push was 09:21:26.
     _git_tier_push_wake.set()
+
+
+# B-1448 (2026-11-02): 155 Kotak orders (mostly rejected SL retries) had no app log row, because callers log a
+# failed SL with order_id=None and the rejected order's id lived only in the result dict. kotak_real_orders now
+# reports every send it makes (place/cancel; entry, exit, SL, target, F&O) to this sink with the Kotak order id and
+# a reason. Rejections and errors are written at once (no caller ever logs a rejected order id). An ACCEPTED send is
+# held briefly: if the caller then logs its own row for that order id, the caller's row covers it (no duplicate);
+# otherwise it is written after _PENDING_KOTAK_SEND_MAX_AGE_S by the next log call, the scheduler tick or the
+# reconcile. The sink never blocks an order path: a write that cannot get the DB lock within 1 s stays queued.
+_PENDING_KOTAK_SENDS: list = []
+_PENDING_KOTAK_SENDS_LOCK = threading.Lock()
+_PENDING_KOTAK_SEND_MAX_AGE_S = 30.0
+
+
+def _write_kotak_send_row(conn, ev) -> None:
+    reason = ev.get("reason") or _default_order_reason(ev.get("leg"), ev.get("event"))
+    detail = f"reason: {reason}" + (f" | {ev['detail']}" if ev.get("detail") else "")
+    symbol, trdsym = ev.get("symbol"), ev.get("kotak_trading_symbol")
+    if not symbol and ev.get("order_id"):  # a cancel only knows the order id: take the symbol from its earlier row
+        prev = conn.execute("SELECT symbol, kotak_trading_symbol FROM real_order_events WHERE order_id = ? "
+                            "AND symbol IS NOT NULL AND symbol != '' ORDER BY id DESC LIMIT 1",
+                            (ev["order_id"],)).fetchone()
+        if prev:
+            symbol, trdsym = prev[0], trdsym or prev[1]
+    conn.execute(
+        "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
+        "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (ev.get("ts") or time.time(), symbol or "UNKNOWN", trdsym, ev.get("leg"),
+         ev.get("event"), ev.get("order_id"), "sent to Kotak", ev.get("new_state"), detail))
+
+
+def _flush_pending_kotak_sends(conn, covered_order_id=None, min_age=None, commit=True) -> int:
+    """Write queued send outcomes: every rejection/error, and every accepted send older than `min_age`
+    (default _PENDING_KOTAK_SEND_MAX_AGE_S). An accepted send whose order id equals `covered_order_id` (the
+    caller is logging its own row for it right now) is dropped instead. Returns rows written."""
+    age = _PENDING_KOTAK_SEND_MAX_AGE_S if min_age is None else min_age
+    now = time.time()
+    cov = str(covered_order_id) if covered_order_id else None
+    with _PENDING_KOTAK_SENDS_LOCK:
+        if not _PENDING_KOTAK_SENDS:
+            return 0
+        keep, write = [], []
+        for ev in _PENDING_KOTAK_SENDS:
+            if not ev.get("immediate") and cov and ev.get("order_id") == cov:
+                continue
+            if ev.get("immediate") or now - float(ev.get("ts") or 0) >= age:
+                write.append(ev)
+            else:
+                keep.append(ev)
+        _PENDING_KOTAK_SENDS[:] = keep
+    try:
+        for ev in write:
+            _write_kotak_send_row(conn, ev)
+        if write and commit:
+            conn.commit()
+    except Exception:
+        with _PENDING_KOTAK_SENDS_LOCK:  # keep them for the next flush, never lose an order's row
+            _PENDING_KOTAK_SENDS[:0] = write
+        raise
+    return len(write)
+
+
+def _kotak_send_sink(ev) -> None:
+    """Registered with kotak_real_orders.set_order_send_sink. Never raises into an order path."""
+    try:
+        with _PENDING_KOTAK_SENDS_LOCK:
+            _PENDING_KOTAK_SENDS.append(dict(ev))
+        if not ev.get("immediate"):
+            return
+        conn = sqlite3.connect(DB_PATH, timeout=1)
+        try:
+            n = _flush_pending_kotak_sends(conn)
+        finally:
+            conn.close()
+        if n:
+            try:
+                sync_generic_tables_external(only=("real_order_events",))
+            except Exception as e:  # noqa: BLE001
+                print(f"[order_log] immediate mirror failed (tick sync will retry): {e}")
+            _git_tier_push_wake.set()
+    except Exception as e:  # noqa: BLE001 - stays queued; the next log call / tick writes it
+        print(f"[order_log] B-1448 send sink deferred (non-fatal): {e}")
+
+
+try:
+    import kotak_real_orders as _kro_for_send_log
+    _kro_for_send_log.set_order_send_sink(_kotak_send_sink)
+except Exception as _e:  # noqa: BLE001
+    print(f"[order_log] B-1448 send sink not registered: {_e}")
 
 
 _DEFAULT_ORDER_REASONS = {
@@ -14479,6 +14605,31 @@ def _log_real_fo_attempt(conn, leg_key, side, status, kotak_trading_symbol=None,
          json.dumps(raw_response, default=str) if raw_response is not None else None),
     )
     conn.commit()
+    if not str(status).startswith("skipped_"):
+        _mirror_fo_attempt_to_order_log(conn, leg_key, side, status, kotak_trading_symbol, order_id, detail)
+
+
+def _mirror_fo_attempt_to_order_log(conn, leg_key, side, status, kotak_trading_symbol, order_id, detail):
+    """B-1322 (JIOFIN26OCT217.5CE, 21 Oct: entry unwound 12 s after the fill, the reason log held nothing): the
+    F&O engine wrote only real_fo_trades, never real_order_events (the durable reasoned order log), so an option
+    entry, SL attempt or unwind left no reason there. Every non-skipped F&O attempt row (entry, SL placed/failed/
+    pre-check refused/exception, exits, unwinds, closes per Kotak) is now mirrored with its reason. Skipped_* gate
+    rows stay in real_fo_trades only (they are not orders). Never raises."""
+    try:
+        txt = str(detail or "")
+        reason = None
+        if txt.startswith("reason: "):
+            reason, _, txt = txt[len("reason: "):].partition("; ")
+        st = str(status)
+        if st.startswith("sl_"):
+            leg = "fo_sl"
+        else:
+            leg = "fo_entry" if side == "B" else "fo_exit"
+        _log_real_order_event(conn, leg_key, leg, st, kotak_trading_symbol=kotak_trading_symbol,
+                              order_id=str(order_id) if order_id else None, new_state=st,
+                              detail=txt or None, reason=reason or f"F&O {leg} {st}")
+    except Exception as e:  # noqa: BLE001 - logging never breaks an order path
+        print(f"[order_log] B-1322 F&O attempt mirror failed (non-fatal): {e}")
 
 
 def _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty):
@@ -15456,6 +15607,12 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper trade - nothing to partially exit
+    # B-68 follow-up (2026-11-02): engine-ownership rule, same guard as _maybe_place_real_exit - the intraday
+    # partial-exit ladder never sells a symbol the swing engine owns (e.g. a swing_rerouted_orphan row).
+    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+        print(f"[REAL] intraday partial exit REFUSED for {symbol}: owned by the swing engine")
+        return
     leg_name = staged_exit.get("leg")
     # The PAPER side's `staged_exit` only tells us WHICH leg just fired -
     # how much to sell on the REAL side comes from the REAL position's own
@@ -16315,6 +16472,11 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
     symbol = real_row["symbol"]
     entry = float(real_row["entry_price"])
     stop, _src = _orphan_prev_day_stop(conn, real_row["symbol"], entry)
+    # B-1367: the "previous trading day's stop" (last logged SL, or the latest SL in Kotak's book, which on 27-Oct was
+    # an unlogged BANKINDIA 115.72) is never allowed under the holding's recorded entry-day stop.
+    _es = _swing_entry_stop(conn, symbol)
+    if _es and stop < _es < entry:
+        stop, _src = round(float(_es), 2), f"entry-day stop record (previous-day stop Rs{stop:.2f} was below it)"
     r = round(entry - stop, 4)
     qty = int(real_row["qty"])
     day = real_row["day"]
@@ -17263,12 +17425,8 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         # placed is unwound at once, not left naked for the 180s tick grace. "fresh_entry_awaiting_position"
         # (Kotak position not yet visible) cannot be unwound or protected yet; the 30s tick retries it
         # and the 180s risk-cut remains the backstop for that single case.
-        _sl_status = None
-        try:
-            _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
-        except Exception as _e:
-            _sl_status = "sl_exception"
-            print(f"[REAL F&O] initial SL raised for {leg_key}: {_e}")
+        _fo_last_sl_cause.pop(leg_key, None)
+        _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty, "initial protective SL right after entry")
         # B-1270: Kotak's position can lag the fill by a few seconds; retry the SL briefly here so the window without a stop is
         # seconds, not the next 30s tick. If the position is still invisible it cannot be unwound (a sell would be naked), so the
         # tick retry + 180s risk cut + 5-min backcheck remain the backstop and the alarm below is logged.
@@ -17276,11 +17434,8 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             if _sl_status != "fresh_entry_awaiting_position":
                 break
             time.sleep(FO_ENTRY_SL_RETRY_SLEEP_S)
-            try:
-                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry (position not yet visible at Kotak)")
-            except Exception as _e:
-                _sl_status = "sl_exception"
-                print(f"[REAL F&O] SL retry raised for {leg_key}: {_e}")
+            _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty,
+                                              "initial protective SL retry (position not yet visible at Kotak)")
         if _sl_status == "fresh_entry_awaiting_position":
             _log_real_fo_attempt(conn, leg_key, "B", "sl_pending_position_not_visible", kotak_trading_symbol=contract["kotak_trading_symbol"],
                                  qty=qty, detail="reason: no SL yet, Kotak position not visible after retries; 30s tick retries, 180s risk cut backstop")
@@ -17288,19 +17443,17 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         # B-1318: a first SL failure (transient reject, no order id, unreadable Kotak) must not dump the entry at once;
         # keep retrying the stop for FO_ENTRY_SL_FAIL_RETRY_WINDOW_S before unwinding (the position stays naked only that long).
         _t0 = time.time()
-        while (_sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable")) \
-                and time.time() - _t0 < FO_ENTRY_SL_FAIL_RETRY_WINDOW_S:
+        while _fo_entry_sl_failed(_sl_status) and time.time() - _t0 < FO_ENTRY_SL_FAIL_RETRY_WINDOW_S:
             time.sleep(FO_ENTRY_SL_FAIL_RETRY_SLEEP_S)
-            try:
-                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry after a failed placement")
-            except Exception as _e:
-                _sl_status = "sl_exception"
-                print(f"[REAL F&O] SL fail-retry raised for {leg_key}: {_e}")
-        if _sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable"):
+            _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty,
+                                              "initial protective SL retry after a failed placement")
+        if _fo_entry_sl_failed(_sl_status):
             _row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
             if _row:
+                # B-1322: the unwind carries the concrete cause, never a bare status (21 Oct had no reason at all).
+                _cause = _fo_last_sl_cause.get(leg_key) or f"status {_sl_status}, no further detail"
                 _close_real_fo_option_leg(
-                    conn, _row, f"entry unwound: protective trailing SL could not be placed ({_sl_status})")
+                    conn, _row, f"entry SL could not be placed: {_cause}; entry unwound (status {_sl_status})")
                 conn.commit()
         print(f"[REAL F&O] BUY {leg_key} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
               f"~Rs{contract['premium']:.2f}")
@@ -17310,6 +17463,31 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             qty=qty, price_est=contract["premium"], detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL F&O] BUY CALL FAILED {contract['kotak_trading_symbol']}: {result.get('detail')}")
+
+
+_FO_ENTRY_SL_FAIL_STATUSES = ("sl_failed", "sl_exception", "sl_precheck_failed")
+
+
+def _fo_entry_sl_failed(status) -> bool:
+    """Entry-path SL statuses that mean "no stop rests and none is coming": retried, then unwound."""
+    return status in _FO_ENTRY_SL_FAIL_STATUSES or str(status).startswith("kotak_unreadable")
+
+
+def _entry_fo_sl_attempt(conn, leg_key: str, contract: dict, qty: int, why: str):
+    """One entry-path SL attempt. B-1322: an exception before/around the send used to be only printed, so an
+    unwind for it had no reason anywhere; it is now recorded (real_fo_trades + the reasoned order log) and kept
+    as the leg's last SL cause."""
+    try:
+        return _sync_real_fo_option_sl(conn, leg_key, reason=why)
+    except Exception as e:  # noqa: BLE001
+        _fo_last_sl_cause[leg_key] = f"exception before/around the SL send: {type(e).__name__}: {e}"
+        print(f"[REAL F&O] SL attempt raised for {leg_key}: {e}")
+        try:
+            _log_real_fo_attempt(conn, leg_key, "S", "sl_exception", kotak_trading_symbol=contract.get("kotak_trading_symbol"),
+                                 qty=qty, detail=f"reason: {why}; {_fo_last_sl_cause[leg_key]}")
+        except Exception as le:  # noqa: BLE001
+            print(f"[REAL F&O] sl_exception log failed for {leg_key}: {le}")
+        return "sl_exception"
 
 
 def _maybe_place_real_fo_call_exit(conn, symbol: str, reason: str = "UNSTATED"):
@@ -17403,6 +17581,11 @@ def _close_real_fo_option_leg(conn, row, reason: str):
 
 
 _fo_sl_unprotected_since: dict = {}
+# B-1322: leg_key -> the last concrete reason its SL could not be placed (Kotak unreadable, pre-check refusal,
+# Kotak/send error, exception). The entry path stamps it on the unwind so the reason is never blank.
+_fo_last_sl_cause: dict = {}
+_fo_sl_unreadable_logged: dict = {}  # leg_key -> ts of the last logged "Kotak unreadable" SL row (1 per 5 min)
+_FO_SL_UNREADABLE_LOG_EVERY_S = 300.0
 _fo_restoring_sl: set = set()
 
 
@@ -17456,6 +17639,13 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     sym = row["kotak_trading_symbol"]
     st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
     if not st["ok"]:
+        # B-1322: no SL can be decided (or sent) without Kotak's state; record why, so a leg left without a stop
+        # (or unwound for it) always has a reason row. Rate-limited: the 30s tick would repeat it otherwise.
+        _fo_last_sl_cause[leg_key] = f"Kotak state unreadable before the SL send ({st.get('detail')})"
+        if not row["sl_order_id"] and time.time() - _fo_sl_unreadable_logged.get(leg_key, 0.0) >= _FO_SL_UNREADABLE_LOG_EVERY_S:
+            _fo_sl_unreadable_logged[leg_key] = time.time()
+            _log_real_fo_attempt(conn, leg_key, "S", "sl_precheck_failed", kotak_trading_symbol=sym, qty=row["qty"],
+                                 detail=f"reason: {reason}; SL not sent: {_fo_last_sl_cause[leg_key]}")
         # B-1320: an unreadable Kotak state must not hide an unprotected leg forever.
         # Only legs we have no SL on count; the timer is cleared as soon as a SL is confirmed.
         if not row["sl_order_id"]:
@@ -17507,12 +17697,29 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
         desired = max(prev_trigger, entry * (1 - FO_OPTION_INITIAL_STOP_PCT / 100.0))
     if row["exchange_segment"] == "nse_fo" and kotak_real_orders_closing_session():
         return "skipped_closing_session"
-    res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
+    # B-1322: pre-check the SELL SL before any cancel/send. A trigger at/above the LTP (premium already at/under
+    # the stop, or a trail raised off a feed high the price has since left) is refused by Kotak/NSE, sometimes
+    # with no order id; replacing a live SL with it would cancel the good stop first. Keep a live SL as is;
+    # with none resting, record the refusal and fall through to the no-SL risk cut below.
+    _pc_ok, _pc_why, _pc_trig, _ = kotak_real_fo_orders.option_sl_precheck(desired, ltp)
+    if not _pc_ok:
+        live = st["live_sls"]
+        if live:
+            best = max(live, key=lambda o: o["trigger"])
+            conn.execute("UPDATE real_fo_positions SET peak_price = ?, sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
+                         (peak, best["order_id"], best["trigger"], leg_key))
+            conn.commit()
+            _fo_sl_unprotected_since.pop(leg_key, None)
+            return "kept_existing_precheck_refused"
+        res = {"ok": False, "detail": f"SL pre-check refused, not sent: {_pc_why}", "precheck": True}
+    else:
+        res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
     if res.get("ok"):
         conn.execute("UPDATE real_fo_positions SET peak_price = ?, sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
                      (peak, res["order_id"], res["trigger_price"], leg_key))
         conn.commit()
         _fo_sl_unprotected_since.pop(leg_key, None)
+        _fo_last_sl_cause.pop(leg_key, None)
         if res["action"] != "adopted_existing":
             _log_real_fo_attempt(conn, leg_key, "S", f"sl_{res['action']}", kotak_trading_symbol=sym, qty=qty,
                                  order_id=res["order_id"], price_est=res["trigger_price"],
@@ -17522,11 +17729,22 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
         conn.execute("UPDATE real_fo_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
                      (res["restored_order_id"], res["restored_trigger"], leg_key))
         conn.commit()
+        _log_real_fo_attempt(conn, leg_key, "S", "sl_replace_failed_old_restored", kotak_trading_symbol=sym, qty=qty,
+                             order_id=res["restored_order_id"], price_est=res["restored_trigger"],
+                             detail=f"reason: {reason}; raise to {desired:.2f} failed ({res.get('detail')}), old trigger restored")
         return "replace_failed_old_restored"
     # No SL rests and placement failed: cut the risk after a short grace.
     since = _fo_sl_unprotected_since.setdefault(leg_key, time.time())
-    _log_real_fo_attempt(conn, leg_key, "S", "sl_failed", kotak_trading_symbol=sym, qty=qty,
+    _fo_last_sl_cause[leg_key] = str(res.get("detail") or "SL placement failed with no detail from Kotak")
+    _log_real_fo_attempt(conn, leg_key, "S", "sl_precheck_failed" if res.get("precheck") else "sl_failed",
+                         kotak_trading_symbol=sym, qty=qty,
                          detail=f"reason: {reason}; SL placement failed: {res.get('detail')}")
+    if res.get("precheck"):
+        if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
+            _close_real_fo_option_leg(conn, row, f"risk cut: no SL could be placed for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s ({res.get('detail')})")
+            _fo_sl_unprotected_since.pop(leg_key, None)
+            return "risk_cut_exit"
+        return "sl_precheck_failed"
     print(f"[REAL F&O] ALARM {leg_key} has NO stop-loss: {res.get('detail')}")
     if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
         _close_real_fo_option_leg(conn, row, f"risk cut: no SL could be placed for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s ({res.get('detail')})")
@@ -21984,6 +22202,39 @@ def _record_scheduler_check(key: str):
         _recent_check_timestamps.pop(0)
 
 
+# B-1447: _scheduler_last_results / _scheduler_last_visit_strategies are keyed per symbol AND per derivative leg
+# ("<option trdSym>:STRIKE", "<option trdSym>:RSI2FO"). Option contracts roll daily (ATM band) and weekly (expiry), so
+# over a multi-day uptime these two dicts collected every contract ever scanned and never dropped one. A derivative
+# leg (key with ":") whose last check is older than _DERIV_RESULT_MAX_AGE_S is dropped (display-only rows: /entry-why
+# and /signal-funds skip ":STRIKE", and every live leg is re-checked within one 5-min pass); a hard cap bounds the rest.
+_DERIV_RESULT_MAX_AGE_S = 24 * 3600
+_SCHEDULER_RESULTS_MAX = 8000
+
+
+def _prune_unbounded_scheduler_state(now=None) -> int:
+    """Drop stale derivative-leg rows from the per-key scheduler dicts. Equity / index / underlying keys (no ":" or a
+    ":OPT" underlying key) are never dropped by age. Returns rows dropped. Never touches positions, orders or SLs."""
+    now = time.time() if now is None else now
+    dropped = 0
+    for k, v in list(_scheduler_last_results.items()):
+        if ":" in k and not k.endswith(":OPT"):
+            ts = v.get("checked_at_utc") if isinstance(v, dict) else None
+            if ts is None or now - float(ts) > _DERIV_RESULT_MAX_AGE_S:
+                _scheduler_last_results.pop(k, None)
+                dropped += 1
+    if len(_scheduler_last_results) > _SCHEDULER_RESULTS_MAX:  # oldest derivative rows first
+        deriv = sorted((k for k in _scheduler_last_results if ":" in k and not k.endswith(":OPT")),
+                       key=lambda k: float((_scheduler_last_results.get(k) or {}).get("checked_at_utc") or 0))
+        for k in deriv[:len(_scheduler_last_results) - _SCHEDULER_RESULTS_MAX]:
+            _scheduler_last_results.pop(k, None)
+            dropped += 1
+    for k in list(_scheduler_last_visit_strategies):
+        if ":" in k and not k.endswith(":OPT") and k not in _scheduler_last_results and k not in _scheduler_check_counts:
+            _scheduler_last_visit_strategies.pop(k, None)
+            dropped += 1
+    return dropped
+
+
 # B-1271: derivative-leg visits that were skipped before any evaluation
 # (force-close window, no candles). Counted apart from _scheduler_check_counts
 # so the "checks" figures mean evaluations, not visits. Resets per IST day.
@@ -26143,6 +26394,10 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     from Kotak's own fields, so the log can never silently miss an order. Runs every
     5-min reconcile; idempotent (the new row carries the order id)."""
     n = 0
+    try:  # B-1448: write any queued send outcome first, so an order this app sent is logged as sent, not UNLOGGED
+        _flush_pending_kotak_sends(conn, min_age=10.0)
+    except Exception as e:  # noqa: BLE001
+        print(f"[order_log] B-1448 pending-send flush failed (non-fatal): {e}")
     try:
         known = {r[0] for r in conn.execute("SELECT order_id FROM real_order_events WHERE order_id IS NOT NULL").fetchall()}
         for row in order_rows or []:
@@ -26355,6 +26610,20 @@ def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
         if live:
             trg, oid = max(live)
             cur = r["sl_trigger_price"]
+            # B-1367 (27-Oct: SELL SLs at BANKINDIA 115.72 / COALINDIA 373.20 / GSEC5IETF 63.93, under the entry-day
+            # stop, were adopted here as the row's SL, so no backfill ever ratcheted them): a live SL below the
+            # entry-day stop is recorded but NOT treated as the row's protection when the entry-day stop itself can
+            # rest (inside the band, under the market); sl_order_id is cleared so the backfill's ensure_resting_sl
+            # cancels it and places the floored stop. When the floor cannot rest, the lower live SL is kept (never
+            # cancel the only protection for a stop Kotak would refuse).
+            floor = _swing_entry_day_floor_for_row(conn, r)
+            if floor and trg < floor - 0.005 and _entry_floor_can_rest(r["kotak_trading_symbol"], floor):
+                if r["sl_order_id"] is not None or cur is None or abs(float(cur) - trg) > 0.005:
+                    conn.execute("UPDATE real_positions_swing SET sl_order_id = NULL, sl_trigger_price = ? "
+                                 "WHERE symbol = ?", (trg, r["symbol"]))
+                    out.append({"symbol": r["symbol"], "action": "below_entry_day_stop", "order_id": oid,
+                                "trigger": trg, "floor": floor})
+                continue
             if r["sl_order_id"] != oid or cur is None or abs(float(cur) - trg) > 0.005:
                 conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                              (oid, trg, r["symbol"]))
@@ -26366,10 +26635,42 @@ def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
         conn.commit()
         _sync_real_positions_swing_external(conn)
         for a in out:
+            if a["action"] == "below_entry_day_stop":
+                _log_real_order_event(
+                    conn, a["symbol"], "sl", a["action"], order_id=a["order_id"],
+                    prev_state=f"live Kotak SELL SL Rs{a['trigger']:.2f}",
+                    new_state=f"not adopted; backfill replaces it at the entry-day stop Rs{a['floor']:.2f}",
+                    reason="a swing stop is never below its entry-day stop (B-1367); the lower live SL is replaced")
+                continue
             _log_real_order_event(
                 conn, a["symbol"], "sl", a["action"], new_state=str(a.get("trigger", "none")),
                 reason="Kotak order book is ground truth; this app's swing SL record was rewritten to match it")
     return out
+
+
+def _swing_entry_day_floor_for_row(conn, row):
+    """B-1367: the entry-day stop of one real_positions_swing row (swing_entry_stop record and the B-1440 entry-day
+    stop, most protective wins). None when unknown. Never raises."""
+    try:
+        a = _swing_entry_stop(conn, row["symbol"])
+        b, _src = _real_entry_day_stop_for_row(conn, row, "signal_state_swing", "long", "swing")
+        vals = [float(v) for v in (a, b) if v]
+        return max(vals) if vals else None
+    except Exception:
+        return None
+
+
+def _entry_floor_can_rest(kotak_trading_symbol: str, floor: float) -> bool:
+    """True only when a SELL stop AT the entry-day stop would rest: known prev close and last price, the floor inside
+    the widest (10%) band and under 0.995 x last. Unknown prices -> False (keep the live SL, do not churn)."""
+    try:
+        import kotak_real_orders
+        prev, last = kotak_real_orders._band_reference(kotak_trading_symbol)
+        if not prev or not last:
+            return False
+        return float(prev) * 0.90 <= float(floor) < float(last) * 0.995
+    except Exception:
+        return False
 
 
 def _sync_swing_resting_sl_to_strategy(conn):
@@ -27228,6 +27529,12 @@ async def _scheduler_tick():
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
+        try:  # B-1448: write Kotak-send outcomes no caller row covered (accepted sends > 30 s old, queued rejections)
+            if _flush_pending_kotak_sends(conn):
+                sync_generic_tables_external(only=("real_order_events",))
+                _git_tier_push_wake.set()
+        except Exception as e:  # noqa: BLE001
+            print(f"[order_log] B-1448 tick flush failed (non-fatal): {e}")
         if _nse_equity_market_open_now():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
@@ -27497,12 +27804,10 @@ async def _scheduler_tick():
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         # B-1288a: return freed pages to the OS (glibc fragmentation after big pandas scans)
         try:
-            import gc
-            import ctypes
-            gc.collect()
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
+            _prune_unbounded_scheduler_state()  # B-1447: drop rolled-off derivative keys before the trim
         except Exception:  # noqa: BLE001
             pass
+        _trim_native_heap()
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
         try:
@@ -27566,6 +27871,24 @@ async def _scheduler_tick():
 
 
 STARTUP_HYDRATION_TIMEOUT_SECONDS = 15  # see _start_scheduler's own asyncio.wait_for comment
+
+
+@app.on_event("shutdown")
+def _flush_kotak_sends_on_shutdown():
+    """B-68 follow-up (2026-11-02): an ACCEPTED Kotak send waits up to _PENDING_KOTAK_SEND_MAX_AGE_S in memory
+    before its row is written. A Render restart inside that window used to lose it, and the next reconcile then
+    tagged the app's own fill `kotak_order_not_in_app_log` (indistinguishable from a manual Kotak order, as with
+    NHPC on 28 Oct). On a graceful shutdown write every queued send now and mirror it to Upstash."""
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=5)
+        try:
+            n = _flush_pending_kotak_sends(conn, min_age=0.0)
+        finally:
+            conn.close()
+        if n:
+            sync_generic_tables_external(only=("real_order_events",))
+    except Exception as e:  # noqa: BLE001 - shutdown must never raise
+        print(f"[order_log] shutdown flush of pending Kotak sends failed (non-fatal): {e}")
 
 
 @app.on_event("startup")
@@ -27752,6 +28075,8 @@ async def _start_scheduler():
         _BACKGROUND_THREADS_STARTED = True
         threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
         threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
+        if not os.environ.get("PYTEST_CURRENT_TEST"):
+            threading.Thread(target=_open_protect_loop, name="open-protect", daemon=True).start()  # B-1363
         if not os.environ.get("PYTEST_CURRENT_TEST"):  # the heartbeat stops with each test app, so it would alarm
             global _loop_heartbeat_ts
             _loop_heartbeat_ts = time.time()  # B-1361: the stamp dates from import; startup hydration made it look like a freeze
@@ -30299,8 +30624,7 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         try:
             n = len(_DATA_CACHE)
             _DATA_CACHE.clear()
-            import gc
-            gc.collect()
+            _trim_native_heap()  # B-1447: gc + malloc_trim, so the cleared frames' pages actually leave RSS
             _MEMORY_STATE.update(trims=_MEMORY_STATE["trims"] + 1, last_trim_ts=time.time(),
                                  last_trim_freed_entries=n)
             print(f"[memory] {level.upper()}: rss_now_mb={now_mb} ({pct}% of {RSS_LIMIT_MB}); "
@@ -30346,6 +30670,51 @@ def _threadpool_status() -> dict:
     return out
 
 
+def _bounded_cache_sizes() -> dict:
+    """B-1447: entry counts of every long-lived cache across the modules this app runs (main's own globals are also
+    listed by largest_globals), plus the data cache's approximate frame bytes. Read-only; never raises."""
+    import sys as _sys
+    out = {}
+
+    def _n(label, obj):
+        try:
+            out[label] = len(obj)
+        except Exception:  # noqa: BLE001
+            pass
+
+    try:
+        with data_fetch._CACHE_LOCK:
+            frames = [v[1] for v in _DATA_CACHE.values()]
+        out["data_cache_entries"] = len(frames)
+        out["data_cache_mb"] = round(sum(int(f.memory_usage(index=True, deep=False).sum()) for f in frames) / 1048576, 1)
+        out["data_cache_max_entries"] = data_fetch._MAX_CACHE_ENTRIES
+    except Exception:  # noqa: BLE001
+        pass
+    for label, obj in (("scheduler_last_results", _scheduler_last_results),
+                       ("scheduler_last_visit_strategies", _scheduler_last_visit_strategies),
+                       ("scheduler_check_counts", _scheduler_check_counts),
+                       ("pair_scan_stats", _pair_scan_stats), ("symbol_strategy_scans", _symbol_strategy_scans),
+                       ("fo_strike_monitor", _fo_strike_monitor), ("fo_strike_eval_cache", _fo_strike_eval_cache),
+                       ("fo_rsi2_no_signal_fp", _fo_rsi2_no_signal_fp)):
+        _n(label, obj)
+    for mod, names in (("kotak_fo_candle_feed", ("_in_progress_candles", "_pending_candles")),
+                       ("kotak_live_feed", ("_live_ticks",)),
+                       ("fo_candle_journal", ("_last_hash", "_last_push_ts", "_last_fp")),
+                       ("kotak_real_orders", ("_ORDER_REASONS", "_BAND_REF_CACHE", "_RECENT_SL_PLACED")),
+                       ("nse_fo_chain", ("_fo_rows_cache",)), ("multitasking", ())):
+        m = _sys.modules.get(mod)
+        if m is None:
+            continue
+        for nm in names:
+            _n(f"{mod}.{nm}", getattr(m, nm, ()))
+        if mod == "multitasking":
+            try:
+                _n("multitasking.TASKS", m.config.get("TASKS") or ())
+            except Exception:  # noqa: BLE001
+                pass
+    return out
+
+
 _MEM_BREAKDOWN_STATE: dict = {"ts": 0.0, "out": None}
 _MEM_BREAKDOWN_LOCK = threading.Lock()
 
@@ -30382,7 +30751,8 @@ def _memory_breakdown() -> dict:
         except Exception:  # noqa: BLE001
             pass
         out = {"ts": time.time(), "rss_now_mb": _current_rss_mb(), "gc_objects": n_objs, "dataframes": frames,
-               "threads": threading.active_count(), "by_type": by_type,
+               "threads": threading.active_count(), "by_type": by_type, "bounded_caches": _bounded_cache_sizes(),
+               "native_trim": dict(_NATIVE_TRIM_STATE),
                "largest_globals": [{"name": n, "len": l, "shallow_bytes": b} for n, l, b in containers[:30]]}
         _MEM_BREAKDOWN_STATE.update(ts=time.time(), out=out)
         return out
@@ -30636,6 +31006,43 @@ def _real_entry_day_stop_for_row(conn, row, paper_table: str, side: str, categor
     return _real_entry_day_stop(conn, r["symbol"], side, r.get("day"), isl, r.get("entry_price"), category)
 
 
+def _nse_symbol_from_trdsym(kotak_trading_symbol: str) -> str:
+    base = str(kotak_trading_symbol or "")
+    for suf in ("-EQ", "-BE", "-BZ", "-SM", "-ST"):
+        if base.upper().endswith(suf):
+            base = base[: -len(suf)]
+            break
+    return f"{base}.NS"
+
+
+def _swing_owned_entry_day_floor(conn, kotak_trading_symbol: str, seen: set):
+    """B-1367: the swing entry-day stop for a holding the swing engine owns (open signal_state_swing row) but whose
+    real_positions_swing row is absent. Symbols come from any real row already seen for this trdsym, else the trdsym
+    itself (BANKINDIA-EQ -> BANKINDIA.NS). A symbol that has a real_positions_swing row was already floored by the
+    caller. None when nothing swing-owned matches. Never raises."""
+    try:
+        syms = set(seen) or {_nse_symbol_from_trdsym(kotak_trading_symbol)}
+        best = None
+        for sym in syms:
+            if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (sym,)).fetchone():
+                continue
+            ss = conn.execute("SELECT entry_day, entry_price, initial_stop_loss FROM signal_state_swing WHERE symbol = ?",
+                              (sym,)).fetchone()
+            if not ss:
+                continue
+            ep = None
+            for tbl in ("real_positions",):
+                r = conn.execute(f"SELECT entry_price FROM {tbl} WHERE symbol = ?", (sym,)).fetchone()
+                if r and r[0]:
+                    ep = r[0]
+            v, _src = _real_entry_day_stop(conn, sym, "long", ss[0], ss[2], ep or ss[1], "swing")
+            if v is not None:
+                best = v if best is None else max(best, v)
+        return best
+    except Exception:
+        return None
+
+
 def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
     """B-1440: the provider kotak_real_orders calls before EVERY real SL send (long SELL stop / short BUY stop, every
     category: intraday buy, short, swing, swing short). Own short-timeout connection; None when no tracked row. Options
@@ -30644,6 +31051,7 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
         with closing(sqlite3.connect(DB_PATH, timeout=5)) as c:
             c.row_factory = sqlite3.Row
             best = None
+            seen: set = set()
             for tbl, paper, cat in _REAL_STOP_TABLES.get(side, ()):
                 try:
                     row = c.execute(f"SELECT * FROM {tbl} WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,)).fetchone()
@@ -30654,6 +31062,15 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
                 v, _src = _real_entry_day_stop_for_row(c, row, paper, side, cat)
                 if v is not None:
                     best = v if best is None else (max(best, v) if side == "long" else min(best, v))
+                seen.add(row["symbol"])
+            if side == "long":
+                # B-1367 (27-Oct BANKINDIA 115.72 / COALINDIA 373.20 / GSEC5IETF 63.93 rested under the entry-day stop):
+                # a swing-OWNED holding whose real_positions_swing row is missing (lost on a restart before the Upstash
+                # restore, or misadopted into the intraday table, whose 'buy' category never reads swing_entry_stop)
+                # still gets its swing entry-day stop, keyed off the open paper swing row.
+                v = _swing_owned_entry_day_floor(c, kotak_trading_symbol, seen)
+                if v is not None:
+                    best = v if best is None else max(best, v)
             return best
     except Exception as e:  # noqa: BLE001
         print(f"[REAL SL FLOOR] provider failed for {kotak_trading_symbol} (non-fatal): {e}")
@@ -31801,6 +32218,214 @@ def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
     return base
 
 
+# B-1363 (2026-11-02, user: every overnight holding's SL must rest at Kotak BEFORE 09:16 IST). Evidence from the
+# order log (state-sync docs/tables/real_order_events.json): even with the 09:15:01 wake, 28-Oct placed BANKINDIA
+# 09:15:31, UNIONBANK 09:15:49, WIPRO 09:16:00, NHPC 09:16:11, SUZLON 09:16:29 (29-Oct SUZLON 09:16:17, 30-Oct
+# 09:16:09). Three causes: (1) the SLs came from the swing governance-backfill loop deep inside
+# _reconcile_real_positions_core, ~30 s of positions/holdings/align/unlogged-order work after the wake; (2) that loop
+# was serial; (3) each placement did 3-4 full TOTP logins (~12-14 s per SL). This dedicated thread arms at 09:14:55
+# IST (one login, pinned for the window; holdings and the swing rows/stops read in advance), fires at 09:15:00.5
+# with ONE fresh order book read, places every missing SL in parallel, and retries every 3 s until all are covered
+# or 09:20. The 5-min reconcile still runs after it as the second layer (ensure_resting_sl adopts what this placed).
+_OPEN_PROTECT_ARM_HMS = (9, 14, 55)
+_OPEN_PROTECT_FIRE_HMS = (9, 15, 0, 500_000)  # the exchange rejects SL orders before the 09:15:00 open
+_OPEN_PROTECT_GIVE_UP_HMS = (9, 20, 0)
+_OPEN_PROTECT_RETRY_SECONDS = 3
+_OPEN_PROTECT_PIN_SECONDS = 150
+_OPEN_PROTECT_MAX_WORKERS = 8
+_open_protect_last: dict = {}
+
+
+def _ist_now_aware() -> dt.datetime:
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+
+
+def _open_protect_next_arm(now_ist: dt.datetime) -> dt.datetime:
+    """When the open-protect pass should next start. Today 09:14:55 IST if that is still ahead on a weekday; NOW if
+    a restart lands inside 09:14:55-09:20 on a weekday (protect immediately, never wait a day); else the next
+    weekday's 09:14:55."""
+    arm = now_ist.replace(hour=_OPEN_PROTECT_ARM_HMS[0], minute=_OPEN_PROTECT_ARM_HMS[1],
+                          second=_OPEN_PROTECT_ARM_HMS[2], microsecond=0)
+    give_up = now_ist.replace(hour=_OPEN_PROTECT_GIVE_UP_HMS[0], minute=_OPEN_PROTECT_GIVE_UP_HMS[1],
+                              second=_OPEN_PROTECT_GIVE_UP_HMS[2], microsecond=0)
+    if now_ist.weekday() < 5:
+        if now_ist < arm:
+            return arm
+        if now_ist < give_up:
+            return now_ist
+    nxt = arm + dt.timedelta(days=1)
+    while nxt.weekday() >= 5:
+        nxt += dt.timedelta(days=1)
+    return nxt
+
+
+def _open_protect_fire_at(day_ist: dt.datetime) -> dt.datetime:
+    h, m, s, us = _OPEN_PROTECT_FIRE_HMS
+    return day_ist.replace(hour=h, minute=m, second=s, microsecond=us)
+
+
+def _open_protect_prearm() -> dict:
+    """09:14:55 IST: everything that does not need the open. One Kotak login pinned for the window, holdings
+    (governance step 1), and each swing row's floored stop. The order book (step 2) is read fresh at fire time."""
+    import kotak_neo
+    try:
+        kotak_neo.pin_order_session(kotak_neo.login(), _OPEN_PROTECT_PIN_SECONDS)
+    except Exception as e:  # noqa: BLE001 - placements then log in on their own, slower but still protected
+        print(f"[open_protect] pre-arm login failed (placements will log in themselves): {e}")
+    holdings = _kotak_holdings_open_by_trdsym()
+    rows = []
+    with closing(get_db()) as conn:
+        for r in conn.execute("SELECT * FROM real_positions_swing WHERE qty > 0").fetchall():
+            try:
+                stop = _swing_stop_floored(conn, r["symbol"], r["stop_loss"])
+            except Exception:  # noqa: BLE001
+                stop = r["stop_loss"]
+            rows.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                         "qty": int(r["qty"]), "stop": stop})
+    return {"holdings": holdings, "rows": rows}
+
+
+def _open_protect_pending(plan: dict, order_rows: list) -> list:
+    """What still needs an SL: tracked swing rows (when holdings were readable, only those Kotak still holds) and
+    untracked holdings, minus anything a live SELL SL already covers in the fresh order book."""
+    holdings = plan.get("holdings")
+    rows = [r for r in plan.get("rows") or [] if r.get("stop")
+            and (holdings is None or r["kotak_trading_symbol"] in holdings)]
+    tracked = {r["kotak_trading_symbol"] for r in rows}
+    want = {r["kotak_trading_symbol"]: {"qty": r["qty"], "is_short": False} for r in rows}
+    for trd, h in (holdings or {}).items():
+        if trd not in want:
+            want[trd] = {"qty": h["qty"], "is_short": False}
+    naked = {u["kotak_trading_symbol"] for u in _find_unprotected_open_positions(want, order_rows)}
+    out = [dict(r, kind="swing_row") for r in rows if r["kotak_trading_symbol"] in naked]
+    out += [{"kind": "holding", "kotak_trading_symbol": trd, "held": holdings[trd]}
+            for trd in sorted(naked) if trd not in tracked and holdings and trd in holdings]
+    return out
+
+
+def _open_protect_place_one(item: dict, order_rows: list) -> dict:
+    import kotak_real_orders
+    try:
+        if item["kind"] == "swing_row":
+            return {"item": item, "res": kotak_real_orders.ensure_resting_sl(
+                item["kotak_trading_symbol"], item["qty"], item["stop"])}
+        return {"item": item, "heal": _heal_swing_holding_core(item["kotak_trading_symbol"], item["held"], order_rows)}
+    except Exception as e:  # noqa: BLE001
+        return {"item": item, "res": {"ok": False, "detail": f"placement raised: {e}"}}
+
+
+def _open_protect_place(plan: dict) -> dict:
+    """09:15:00.5 IST: one fresh order book read, then every missing SL in parallel (the per-symbol lock inside
+    ensure_resting_sl and its recent-placement memory stop a duplicate with the 5-min reconcile). DB writes and the
+    reasoned order-log lines are serial, on this thread."""
+    import kotak_neo
+    rep = kotak_neo.order_report()
+    order_rows = rep.get("data") if isinstance(rep, dict) else None
+    if not isinstance(order_rows, list):
+        return {"ok": False, "error": "order_report unreadable", "pending": None}
+    pending = _open_protect_pending(plan, order_rows)
+    results = []
+    if pending:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(_OPEN_PROTECT_MAX_WORKERS, len(pending))) as pool:
+            results = list(pool.map(lambda it: _open_protect_place_one(it, order_rows), pending))
+    failed = []
+    with closing(get_db()) as conn:
+        for out in results:
+            it = out["item"]
+            if it["kind"] == "holding":
+                h = out.get("heal") or {}
+                if not h.get("sl_ok") and "already_protected" not in str(h.get("status") or ""):
+                    failed.append(it["kotak_trading_symbol"])
+                continue
+            res = out.get("res") or {}
+            if res.get("ok"):
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (res.get("order_id"), res.get("trigger_price"), it["symbol"]))
+                _log_swing_ensure_sl_result(conn, it["symbol"], it["kotak_trading_symbol"], res, it["stop"],
+                                            "09:15 IST open protect-first pass: overnight holding had no resting "
+                                            "stop-loss (the exchange cancels every resting order at 15:15 IST)")
+            else:
+                failed.append(it["kotak_trading_symbol"])
+                _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
+                                      prev_state="none", new_state="none (placement failed)",
+                                      detail=f"reason: 09:15 IST open protect-first pass; {res.get('detail')}")
+                _flag_if_t1_restricted(conn, it["symbol"], res.get("detail"))
+        try:
+            _heal_real_swing_short_sl(conn, order_rows)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] short-swing heal failed (non-fatal): {e}")
+        conn.commit()
+        try:
+            _sync_real_positions_swing_external(conn)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] swing mirror sync failed (non-fatal): {e}")
+    return {"ok": not failed, "pending": [p["kotak_trading_symbol"] for p in pending], "failed": failed}
+
+
+def _open_protect_run(now_fn=_ist_now_aware, sleep=time.sleep, prearm=None, place=None) -> dict:
+    """One trading day's open-protect pass: pre-arm, wait for 09:15:00.5 IST, place, retry every 3 s until every
+    holding is covered or 09:20 IST. Returns the last attempt's summary. Never raises."""
+    import kotak_neo
+    prearm = prearm or _open_protect_prearm
+    place = place or _open_protect_place
+    now = now_fn()
+    give_up = now.replace(hour=_OPEN_PROTECT_GIVE_UP_HMS[0], minute=_OPEN_PROTECT_GIVE_UP_HMS[1],
+                          second=_OPEN_PROTECT_GIVE_UP_HMS[2], microsecond=0)
+    try:
+        plan = prearm()
+    except Exception as e:  # noqa: BLE001
+        print(f"[open_protect] pre-arm failed (placement still attempted): {e}")
+        plan = {"holdings": None, "rows": []}
+    wait = (_open_protect_fire_at(now) - now_fn()).total_seconds()
+    if wait > 0:
+        sleep(wait)
+    summary: dict = {"ok": False, "attempts": 0}
+    try:
+        while True:
+            summary["attempts"] += 1
+            try:
+                out = place(plan)
+            except Exception as e:  # noqa: BLE001
+                out = {"ok": False, "error": str(e)}
+            summary.update({k: v for k, v in out.items() if k != "attempts"},
+                           finished_ist=now_fn().strftime("%H:%M:%S IST"))
+            if out.get("ok") or now_fn() >= give_up:
+                break
+            if summary["attempts"] % 10 == 0:  # holdings may have changed; re-read them and re-pin a fresh login
+                try:
+                    plan = prearm()
+                except Exception:  # noqa: BLE001
+                    pass
+            sleep(_OPEN_PROTECT_RETRY_SECONDS)
+    finally:
+        kotak_neo.unpin_order_session()
+    _open_protect_last.clear()
+    _open_protect_last.update(summary)
+    if not summary.get("ok"):
+        print(f"[UNPROTECTED-ALERT] 09:15 open protect pass ended without covering every holding: {summary}")
+    return summary
+
+
+def _open_protect_loop(now_fn=_ist_now_aware, sleep=time.sleep, rounds=None, run=None):
+    """B-1363: dedicated daemon thread. Sleeps to the next 09:14:55 IST weekday arm time, runs the pass, repeats.
+    Never raises."""
+    run = run or _open_protect_run
+    n = 0
+    while rounds is None or n < rounds:
+        try:
+            wait = (_open_protect_next_arm(now_fn()) - now_fn()).total_seconds()
+            if wait > 0:
+                sleep(wait)
+            import kotak_neo
+            if not kotak_neo.missing_credentials():
+                run(now_fn=now_fn, sleep=sleep)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] pass failed (non-fatal; the 5-min reconcile still heals): {e}")
+        n += 1
+        if _open_protect_next_arm(now_fn()) <= now_fn():
+            sleep(60)  # a pass that ended early inside the window must not re-run back to back
+
+
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
 _git_tier_push_last_ok: dict = {}
 _git_tier_push_wake = threading.Event()  # B-1355: set by _log_real_order_event for an immediate push
@@ -32676,6 +33301,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 if not target_result.get("ok") and _T1_HOLDINGS_MARKER in str(target_result.get("detail") or ""):
                     # B-1329: the resting SL already holds the full qty, so Kotak rejects the target on every
                     # 5-min pass (ITC x4 on 2026-10-21). Try once per symbol per day; the tick poll books profit.
+                    for _old in [k for k in _target_backfill_t1_rejected if k[1] != _tgt_day_key[1]]:
+                        _target_backfill_t1_rejected.discard(_old)  # B-1447: only today's keys are ever read
                     _target_backfill_t1_rejected.add(_tgt_day_key)
                 if target_result.get("ok"):
                     conn.execute(
@@ -32821,12 +33448,23 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # and the retries buried the real order book); the next in-hours reconcile does it.
         _swing_missing_sl = (conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall()
                              if _nse_equity_market_open_now() and not _exchange_purge_window() else [])  # B-1444
-        for r in _swing_missing_sl:
-            import kotak_real_orders
-            # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two
-            # paths never fight over two different levels (BANKINDIA 2026-10-29: 115.72 here vs 126.73 there).
-            _bf_stop = _swing_stop_floored(conn, r["symbol"], r["stop_loss"])
-            sl_result = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], _bf_stop)
+        import kotak_real_orders
+        # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two
+        # paths never fight over two different levels (BANKINDIA 2026-10-29: 115.72 here vs 126.73 there).
+        _bf_stops = [_swing_stop_floored(conn, r["symbol"], r["stop_loss"]) for r in _swing_missing_sl]
+
+        def _bf_place(i):
+            # B-1363: was serial (~12-14 s per SL), so the 5th holding got its SL at 09:16:29 IST on 28-Oct.
+            try:
+                return kotak_real_orders.ensure_resting_sl(_swing_missing_sl[i]["kotak_trading_symbol"],
+                                                           _swing_missing_sl[i]["qty"], _bf_stops[i])
+            except Exception as e:  # noqa: BLE001
+                return {"ok": False, "detail": f"placement raised: {e}"}
+        _bf_results = []
+        if _swing_missing_sl:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(_swing_missing_sl))) as _bf_pool:
+                _bf_results = list(_bf_pool.map(_bf_place, range(len(_swing_missing_sl))))
+        for r, _bf_stop, sl_result in zip(_swing_missing_sl, _bf_stops, _bf_results):
             backfill_entry = {
                 "symbol": r["symbol"], "entry_price": r["entry_price"],
                 "stop_loss": r["stop_loss"], "qty": r["qty"],

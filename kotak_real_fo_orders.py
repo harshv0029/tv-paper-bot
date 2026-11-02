@@ -112,6 +112,10 @@ def check_margin_affordable(exchange_segment: str, instrument_token: str, transa
     }
 
 
+from kotak_real_orders import _records_send  # noqa: E402  B-1448: every send logs its outcome + Kotak order id
+
+
+@_records_send("fo_entry", "real F&O market BUY entry")
 def place_real_fo_entry(kotak_trading_symbol: str, exchange_segment: str, qty: int, product: str = "NRML") -> dict:
     """Places a REAL market BUY on nse_fo/mcx_fo. Never raises - see this
     module's docstring."""
@@ -132,6 +136,7 @@ def place_real_fo_entry(kotak_trading_symbol: str, exchange_segment: str, qty: i
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "qty": qty}
 
 
+@_records_send("fo_exit", "real F&O market SELL exit")
 def place_real_fo_exit(kotak_trading_symbol: str, exchange_segment: str, qty: int, product: str = "NRML") -> dict:
     """Places a REAL market SELL to close an already-open F&O position.
     Same never-raises discipline. No gate of its own - same reasoning as
@@ -202,17 +207,45 @@ def option_entry_sl_placeable(premium: float, stop_pct: float, bid=None, ltp=Non
     return True, f"SL trigger {trigger} limit {limit_price} placeable"
 
 
+def option_sl_precheck(trigger_price: float, ltp=None):
+    """B-1322: the exact SELL SL place_real_fo_stop_loss would send (trigger tick-rounded, limit 5% under it
+    rounded down), checked before any send. (ok, why, trigger, limit). Fails when the trigger is not a positive
+    tick, the limit is not a positive tick strictly under the trigger, or a known LTP is at/under the trigger
+    (a SELL stop must trigger below the last price; Kotak/NSE refuse one at or above it, often with no order id)."""
+    try:
+        raw = float(trigger_price)
+    except (TypeError, ValueError):
+        return False, f"trigger {trigger_price!r} not a number", None, None
+    if raw <= 0:
+        return False, f"trigger {raw} not positive", None, None
+    trigger = _tick_round(raw)
+    limit_price = _tick_round(trigger * 0.95, down=True)
+    if trigger * 0.95 < OPTION_TICK or limit_price >= trigger:
+        return False, f"limit {limit_price} not a positive tick under trigger {trigger}", trigger, limit_price
+    try:
+        l = float(ltp) if ltp is not None else None
+    except (TypeError, ValueError):
+        l = None
+    if l is not None and l > 0 and trigger >= l - 1e-9:
+        return False, f"trigger {trigger} at/above LTP {l} (premium already at/under the stop)", trigger, limit_price
+    return True, f"trigger {trigger} limit {limit_price}", trigger, limit_price
+
+
+@_records_send("fo_sl", "resting SELL trailing stop-loss on an open option position")
 def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qty: int,
                             trigger_price: float, product: str = "NRML") -> dict:
     """Resting SELL SL (limit-behind-trigger) for a long option. Limit sits 5%
     under the trigger (tick-aligned) so a fast premium drop still fills; the
-    trigger itself is tick-aligned. Rejections are confirmed, never assumed."""
+    trigger itself is tick-aligned. Rejections are confirmed, never assumed.
+    B-1322: the trigger/limit are pre-checked before login; a refusal returns "precheck failed: ..." (logged as
+    sl_precheck_failed by the send recorder) instead of sending an order Kotak would drop without an id."""
+    _ok, _why, trigger, limit_price = option_sl_precheck(trigger_price)
+    if not _ok:
+        return {"ok": False, "detail": f"precheck failed: {_why}"}
     try:
         client = kotak_neo.login()
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
-    trigger = _tick_round(trigger_price)
-    limit_price = _tick_round(trigger * 0.95, down=True)
     try:
         resp = client.place_order(
             exchange_segment=exchange_segment, product=product, price=str(limit_price), order_type="SL",

@@ -1,0 +1,8 @@
+{
+ "basis": "atr_mult_x_universe_median_atr_pct",
+ "also": {
+  "pct": "explicit N percent stop parsed from tag (exact)",
+  "tgt_fixed_8pct": "main.oneil_stop_price tgt mode fixed 8%"
+ },
+ "note": "planned stop distance, not per-trade measured; atrnone tags excluded"
+}

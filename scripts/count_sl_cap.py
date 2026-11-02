@@ -5,7 +5,7 @@ the registry metrics (+ optional sidecar of measured stop-% per tag).
 The registry stores only the ATR multiple, not stop-%; measured stop-% comes from a
 sidecar JSON {tag: median_stop_pct} written by research outputs (docs/backtest_data/
 stop_pct.json). Tags with no measurement are reported as UNKNOWN, never guessed.
-Usage: python3 scripts/count_sl_cap.py [--hold 5] [--cap 2.0] [--sidecar PATH]"""
+Usage: python3 scripts/count_sl_cap.py [--hold 5] [--cap 2.0] [--floor 1.1] [--sidecar PATH]"""
 import argparse
 import json
 import pathlib
@@ -45,9 +45,10 @@ def main():
     ap.add_argument("--hold", type=float, default=5.0)
     ap.add_argument("--cap", type=float, default=2.0)
     ap.add_argument("--sidecar", default="docs/backtest_data/stop_pct.json")
+    ap.add_argument("--floor", type=float, default=None, help="PFnet floor (default: registry PFNET_LIVE_FLOOR)")
     a = ap.parse_args()
-    r = count(a.hold, a.cap, a.sidecar)
-    print(f"viable & hold<={a.hold}d: pass(SL<={a.cap}%)={len(r['pass'])} "
+    r = count(a.hold, a.cap, a.sidecar, floor=a.floor)
+    print(f"PFnet>={sr.PFNET_LIVE_FLOOR if a.floor is None else a.floor} & hold<={a.hold}d: pass(SL<={a.cap}%)={len(r['pass'])} "
           f"over_cap={len(r['over_cap'])} stop_unmeasured={len(r['unknown_stop'])} "
           f"hold_unrecorded={len(r['hold_unknown'])}")
 

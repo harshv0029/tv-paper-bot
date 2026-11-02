@@ -34,6 +34,12 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 _last_hash: dict = {}
 _last_push_ts: dict = {}
+# B-1447: per-day (db file, row count, max id) seen at the last full build of that day's payload. The table is
+# append-only (INSERT OR IGNORE, AUTOINCREMENT id), so an unchanged fingerprint means the day's rows, and hence its
+# payload, are unchanged. Before this, every 5-min sync re-materialised EVERY local day (~2,300 option tokens x ~75
+# bars = ~170k rows -> lists + JSON + sha per day, ~150 MB transient each) only to find the hash unchanged, and the
+# work grew with every day of uptime / restored history: the multi-day native-heap ratchet behind B-1447.
+_last_fp: dict = {}
 
 
 def ist_day(ts: float) -> str:
@@ -55,8 +61,40 @@ def _get_days(get) -> list:
 
 
 def local_days(conn) -> list:
-    rows = conn.execute("SELECT DISTINCT bucket_start_ts FROM fo_option_candles").fetchall()
-    return sorted({ist_day(r[0]) for r in rows})
+    return sorted(local_day_fingerprints(conn))
+
+
+_IST_OFFSET_S = 5 * 3600 + 30 * 60
+
+
+def local_day_fingerprints(conn) -> dict:
+    """B-1447: {IST day: (row count, max id)} in ONE grouped scan, no rows materialised in Python."""
+    out = {}
+    for d, n, mx in conn.execute(
+            "SELECT CAST((bucket_start_ts + ?) / 86400 AS INTEGER) AS d, COUNT(*), MAX(id) "
+            "FROM fo_option_candles GROUP BY d", (_IST_OFFSET_S,)).fetchall():
+        day = (datetime(1970, 1, 1) + timedelta(days=int(d))).strftime("%Y-%m-%d")
+        prev = out.get(day)
+        out[day] = (int(n), int(mx)) if prev is None else (prev[0] + int(n), max(prev[1], int(mx)))
+    return out
+
+
+def _db_file(conn) -> str:
+    try:
+        for row in conn.execute("PRAGMA database_list").fetchall():
+            if row[1] == "main":
+                return str(row[2] or "")
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+def _prune_day_state(keep_days) -> None:
+    """B-1447: drop per-day bookkeeping for days no longer in the local table (bounded by local history)."""
+    keep = set(keep_days)
+    for d in (_last_hash, _last_push_ts, _last_fp):
+        for k in [k for k in d if k not in keep]:
+            d.pop(k, None)
 
 
 def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
@@ -64,10 +102,18 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
     now = time.time() if now is None else now
     today = ist_day(now)
     pushed = 0
-    known = set(_get_days(get))
-    for day in local_days(conn):
+    known = None
+    fps = local_day_fingerprints(conn)
+    db = _db_file(conn)
+    _prune_day_state(fps)
+    for day in sorted(fps):
         if day == today and now - _last_push_ts.get(day, 0) < CURRENT_DAY_MIN_PUSH_SECONDS:
             continue
+        fp = (db,) + fps[day]
+        if _last_fp.get(day) == fp:
+            continue  # B-1447: rows unchanged since the last build -> same payload, nothing to push
+        if known is None:
+            known = set(_get_days(get))
         lo, hi = _day_bounds(day)
         rows = [list(r) for r in conn.execute(
             f"SELECT {','.join(COLUMNS)} FROM fo_option_candles "
@@ -76,9 +122,11 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
         payload = json.dumps(rows, separators=(",", ":"))
         digest = hashlib.sha256(payload.encode()).hexdigest()
         if _last_hash.get(day) == digest:
+            _last_fp[day] = fp
             continue
         meta_raw = get(_key(day, "meta"))
         if meta_raw and int(json.loads(meta_raw).get("rows", 0)) > len(rows):
+            _last_fp[day] = fp  # re-checked only once local rows change (remote meta only grows from this process)
             continue  # remote holds more (e.g. after a wipe): restore first, never shrink
         chunks = [payload[i:i + CHUNK_CHARS] for i in range(0, len(payload), CHUNK_CHARS)]
         for i, chunk in enumerate(chunks):
@@ -88,6 +136,8 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
         set_(f"{PREFIX}:days", json.dumps(sorted(known)))
         _last_hash[day] = digest
         _last_push_ts[day] = now
+        _last_fp[day] = fp
+        del rows, payload, chunks
         pushed += 1
     return pushed
 
