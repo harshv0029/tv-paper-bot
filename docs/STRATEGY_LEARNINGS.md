@@ -1613,3 +1613,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Rolling MIS (re-short every morning) is not a substitute. It pays costs every day (about 12 x 0.8%) and throws away the overnight gaps a 1d short earns.
 - Reuse next time: before designing any route for a short edge, intersect the edge's universe with the universe of the instrument (futures/options/SLB eligibility) and re-run the exact cells there. Check that first, then capital, then cost.
 - Profit-booking / exit takeaway: a 1d short earns its PFnet by holding through gaps to a 3-4R target over about 12 days. Any route that forces a daily flatten or a 5-day option hold changes the exit and cannot inherit that PFnet.
+
+## chan_shape 1d long main.py replay, run 38553284949 kept as a partial row (B-1265, 2026-11-02)
+- **Result:** main.py replay (full NSE, cost 0.8%) best cell atr4d0_hold10 nonovl PFnet 0.907 (n 48019), the other 5 cells 0.73-0.86; the later run 40572999957 re-measured the same cell at 0.891 (n 48369). Registered as `chan_shape__mom_mr_mr__long__1d__atr4d0_hold10_rid38553284949__nonovl__v2` with pfgross/win/hold None (owed from artifact 11887209982, never zero-filled).
+- **Lesson / reuse:** two runs of the same cell map to the same `_mr` tag, so a second run of the same cell needs a run-id param (`rid<run>`) to stay its own row; transcribe the full merge table into docs/backtest_data the day the run finishes, because the backlog row alone kept only one cell.
+- **Profit-booking / exit takeaway:** as with cup cheat, timeouts are the only profitable exits; the rule stays below the floor at either hold, so no exit tweak rescues it.
