@@ -1124,6 +1124,7 @@ def stop_placeable_for_entry(kotak_trading_symbol: str, stop: float, ltp: float)
 # stop above) the position's entry-day stop. main.py registers the provider; fn(kotak_trading_symbol, side) -> float or
 # None. Never loosens a stop: it only raises a long trigger / lowers a short one.
 _STOP_FLOOR_PROVIDER = None
+_FLOOR_BYPASS = threading.local()  # B-1367: set only around ensure_resting_sl's restore of a just-cancelled stop
 
 
 def set_stop_floor_provider(fn) -> None:
@@ -1231,7 +1232,10 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
     rejection only, retry at the tightest-band floor that is still below the market
     (prev close x (1 - band) x 1.003, bands 10/5/2%), so a stop rests instead of nothing.
     The stop is only ever raised toward the market, never above 0.5% under last price."""
-    trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "long")  # B-1440
+    if getattr(_FLOOR_BYPASS, "on", False):  # B-1367: ensure_resting_sl's restore of the just-cancelled stop only
+        floor_info = {}
+    else:
+        trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "long")  # B-1440
     trigger_price, clamped_from = _preclamp_long_stop(kotak_trading_symbol, trigger_price)  # only ever raises
     res = _place_real_stop_loss_once(kotak_trading_symbol, qty, trigger_price)
     res.update(floor_info)
@@ -1383,7 +1387,13 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
             res["action"] = "replaced"
             res["cancelled"] = [o["order_id"] for o in live]
             return res
-        restore = place_real_stop_loss(kotak_trading_symbol, qty, best["trigger"])
+        # B-1367: the restore re-places the EXACT stop that was just cancelled (a lower stop beats no stop). Flooring
+        # it to the very level Kotak just refused would leave the position naked, so the floor is bypassed here only.
+        _FLOOR_BYPASS.on = True
+        try:
+            restore = place_real_stop_loss(kotak_trading_symbol, qty, best["trigger"])
+        finally:
+            _FLOOR_BYPASS.on = False
         res["action"] = "replace_failed"
         if restore.get("ok"):
             res["restored_order_id"] = restore["order_id"]

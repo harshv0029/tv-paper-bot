@@ -16472,6 +16472,11 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
     symbol = real_row["symbol"]
     entry = float(real_row["entry_price"])
     stop, _src = _orphan_prev_day_stop(conn, real_row["symbol"], entry)
+    # B-1367: the "previous trading day's stop" (last logged SL, or the latest SL in Kotak's book, which on 27-Oct was
+    # an unlogged BANKINDIA 115.72) is never allowed under the holding's recorded entry-day stop.
+    _es = _swing_entry_stop(conn, symbol)
+    if _es and stop < _es < entry:
+        stop, _src = round(float(_es), 2), f"entry-day stop record (previous-day stop Rs{stop:.2f} was below it)"
     r = round(entry - stop, 4)
     qty = int(real_row["qty"])
     day = real_row["day"]
@@ -26605,6 +26610,20 @@ def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
         if live:
             trg, oid = max(live)
             cur = r["sl_trigger_price"]
+            # B-1367 (27-Oct: SELL SLs at BANKINDIA 115.72 / COALINDIA 373.20 / GSEC5IETF 63.93, under the entry-day
+            # stop, were adopted here as the row's SL, so no backfill ever ratcheted them): a live SL below the
+            # entry-day stop is recorded but NOT treated as the row's protection when the entry-day stop itself can
+            # rest (inside the band, under the market); sl_order_id is cleared so the backfill's ensure_resting_sl
+            # cancels it and places the floored stop. When the floor cannot rest, the lower live SL is kept (never
+            # cancel the only protection for a stop Kotak would refuse).
+            floor = _swing_entry_day_floor_for_row(conn, r)
+            if floor and trg < floor - 0.005 and _entry_floor_can_rest(r["kotak_trading_symbol"], floor):
+                if r["sl_order_id"] is not None or cur is None or abs(float(cur) - trg) > 0.005:
+                    conn.execute("UPDATE real_positions_swing SET sl_order_id = NULL, sl_trigger_price = ? "
+                                 "WHERE symbol = ?", (trg, r["symbol"]))
+                    out.append({"symbol": r["symbol"], "action": "below_entry_day_stop", "order_id": oid,
+                                "trigger": trg, "floor": floor})
+                continue
             if r["sl_order_id"] != oid or cur is None or abs(float(cur) - trg) > 0.005:
                 conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                              (oid, trg, r["symbol"]))
@@ -26616,10 +26635,42 @@ def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
         conn.commit()
         _sync_real_positions_swing_external(conn)
         for a in out:
+            if a["action"] == "below_entry_day_stop":
+                _log_real_order_event(
+                    conn, a["symbol"], "sl", a["action"], order_id=a["order_id"],
+                    prev_state=f"live Kotak SELL SL Rs{a['trigger']:.2f}",
+                    new_state=f"not adopted; backfill replaces it at the entry-day stop Rs{a['floor']:.2f}",
+                    reason="a swing stop is never below its entry-day stop (B-1367); the lower live SL is replaced")
+                continue
             _log_real_order_event(
                 conn, a["symbol"], "sl", a["action"], new_state=str(a.get("trigger", "none")),
                 reason="Kotak order book is ground truth; this app's swing SL record was rewritten to match it")
     return out
+
+
+def _swing_entry_day_floor_for_row(conn, row):
+    """B-1367: the entry-day stop of one real_positions_swing row (swing_entry_stop record and the B-1440 entry-day
+    stop, most protective wins). None when unknown. Never raises."""
+    try:
+        a = _swing_entry_stop(conn, row["symbol"])
+        b, _src = _real_entry_day_stop_for_row(conn, row, "signal_state_swing", "long", "swing")
+        vals = [float(v) for v in (a, b) if v]
+        return max(vals) if vals else None
+    except Exception:
+        return None
+
+
+def _entry_floor_can_rest(kotak_trading_symbol: str, floor: float) -> bool:
+    """True only when a SELL stop AT the entry-day stop would rest: known prev close and last price, the floor inside
+    the widest (10%) band and under 0.995 x last. Unknown prices -> False (keep the live SL, do not churn)."""
+    try:
+        import kotak_real_orders
+        prev, last = kotak_real_orders._band_reference(kotak_trading_symbol)
+        if not prev or not last:
+            return False
+        return float(prev) * 0.90 <= float(floor) < float(last) * 0.995
+    except Exception:
+        return False
 
 
 def _sync_swing_resting_sl_to_strategy(conn):
@@ -30955,6 +31006,43 @@ def _real_entry_day_stop_for_row(conn, row, paper_table: str, side: str, categor
     return _real_entry_day_stop(conn, r["symbol"], side, r.get("day"), isl, r.get("entry_price"), category)
 
 
+def _nse_symbol_from_trdsym(kotak_trading_symbol: str) -> str:
+    base = str(kotak_trading_symbol or "")
+    for suf in ("-EQ", "-BE", "-BZ", "-SM", "-ST"):
+        if base.upper().endswith(suf):
+            base = base[: -len(suf)]
+            break
+    return f"{base}.NS"
+
+
+def _swing_owned_entry_day_floor(conn, kotak_trading_symbol: str, seen: set):
+    """B-1367: the swing entry-day stop for a holding the swing engine owns (open signal_state_swing row) but whose
+    real_positions_swing row is absent. Symbols come from any real row already seen for this trdsym, else the trdsym
+    itself (BANKINDIA-EQ -> BANKINDIA.NS). A symbol that has a real_positions_swing row was already floored by the
+    caller. None when nothing swing-owned matches. Never raises."""
+    try:
+        syms = set(seen) or {_nse_symbol_from_trdsym(kotak_trading_symbol)}
+        best = None
+        for sym in syms:
+            if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (sym,)).fetchone():
+                continue
+            ss = conn.execute("SELECT entry_day, entry_price, initial_stop_loss FROM signal_state_swing WHERE symbol = ?",
+                              (sym,)).fetchone()
+            if not ss:
+                continue
+            ep = None
+            for tbl in ("real_positions",):
+                r = conn.execute(f"SELECT entry_price FROM {tbl} WHERE symbol = ?", (sym,)).fetchone()
+                if r and r[0]:
+                    ep = r[0]
+            v, _src = _real_entry_day_stop(conn, sym, "long", ss[0], ss[2], ep or ss[1], "swing")
+            if v is not None:
+                best = v if best is None else max(best, v)
+        return best
+    except Exception:
+        return None
+
+
 def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
     """B-1440: the provider kotak_real_orders calls before EVERY real SL send (long SELL stop / short BUY stop, every
     category: intraday buy, short, swing, swing short). Own short-timeout connection; None when no tracked row. Options
@@ -30963,6 +31051,7 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
         with closing(sqlite3.connect(DB_PATH, timeout=5)) as c:
             c.row_factory = sqlite3.Row
             best = None
+            seen: set = set()
             for tbl, paper, cat in _REAL_STOP_TABLES.get(side, ()):
                 try:
                     row = c.execute(f"SELECT * FROM {tbl} WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,)).fetchone()
@@ -30973,6 +31062,15 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
                 v, _src = _real_entry_day_stop_for_row(c, row, paper, side, cat)
                 if v is not None:
                     best = v if best is None else (max(best, v) if side == "long" else min(best, v))
+                seen.add(row["symbol"])
+            if side == "long":
+                # B-1367 (27-Oct BANKINDIA 115.72 / COALINDIA 373.20 / GSEC5IETF 63.93 rested under the entry-day stop):
+                # a swing-OWNED holding whose real_positions_swing row is missing (lost on a restart before the Upstash
+                # restore, or misadopted into the intraday table, whose 'buy' category never reads swing_entry_stop)
+                # still gets its swing entry-day stop, keyed off the open paper swing row.
+                v = _swing_owned_entry_day_floor(c, kotak_trading_symbol, seen)
+                if v is not None:
+                    best = v if best is None else max(best, v)
             return best
     except Exception as e:  # noqa: BLE001
         print(f"[REAL SL FLOOR] provider failed for {kotak_trading_symbol} (non-fatal): {e}")
