@@ -27,7 +27,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 123.21,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 123.2142835344587,
    "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": "IOC.NS"
@@ -43,7 +43,7 @@
    "owner": "swing",
    "qty": 4,
    "sl_trigger_price": 440.2,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 440.21311188083456,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "IRCTC.NS"
@@ -59,7 +59,7 @@
    "owner": "swing",
    "qty": 4,
    "sl_trigger_price": 279.25,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 279.235471104135,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "RECLTD.NS"
@@ -75,7 +75,7 @@
    "owner": "swing",
    "qty": 5,
    "sl_trigger_price": 158.47,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 158.4723431840611,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "SAIL.NS"
