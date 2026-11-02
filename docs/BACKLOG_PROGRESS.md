@@ -499,7 +499,7 @@ Total rows: 1215 | closed: 573 | not closed: 642
 | B-1316 | P0 | JIOFIN26OCT217 | 2026-10-21 | owed |
 | B-1317 | P0 | USER | 2026-10-21 | verify |
 | B-1318 | P0 | USER | 2026-10-21 | owed, verify |
-| B-1322 | P0 | JIOFIN26OCT217 | 2026-10-21 | open:, verify, needs |
+| B-1322 | P0 | JIOFIN26OCT217 | 2026-10-21 | owed, open:, verify, needs |
 | B-1328 | P0 | B-1319 | 2026-10-21 | owed, verify |
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up |
 | B-1363 | P0 | P0 | FIX COMMITTED 2026-11-02 (branch work-b1363, not deployed); owed: deploy + a week of opens all before 09:16... | owed, verify, follow-up |
