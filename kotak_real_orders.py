@@ -215,6 +215,103 @@ import kotak_neo
 _TERMINAL_ORDER_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
 
 
+# B-1448 (2026-11-02): 155 Kotak orders had no app log row, mostly rejected SL retries: the callers log a failed
+# SL with order_id=None (a rejected result carries `rejected_order_id`, not `order_id`), so the reconcile's
+# order-id match never found them. Every send this module makes (place, cancel) now reports its outcome, with the
+# Kotak order id and a reason, to a sink main.py registers (it writes real_order_events). The sink is called, never
+# the database directly, so this module stays DB-free. Which orders are sent is unchanged.
+_SEND_SINK = None
+_REPEAT_WINDOW_S = 300.0
+_LAST_REJECTION: dict = {}  # (trdSym, leg, short reject text) -> (first_ts, count)
+
+
+def set_order_send_sink(fn) -> None:
+    global _SEND_SINK
+    _SEND_SINK = fn
+
+
+def _symbol_from_trdsym(trdsym):
+    if not trdsym:
+        return None
+    t = str(trdsym)
+    return t.rsplit("-", 1)[0] + ".NS" if t.endswith(("-EQ", "-BE", "-BZ", "-SM", "-ST")) else t
+
+
+def _report_send(leg: str, purpose: str, trdsym, res, order_id_hint=None) -> None:
+    """Hand one send outcome to the sink: placed / rejected (with Kotak's reason) / error. A login failure is
+    not a send (nothing reached Kotak), so it is not reported. A rejection repeating for the same symbol, leg and
+    reason within _REPEAT_WINDOW_S is still reported (each one is a real Kotak order) with a compact detail."""
+    try:
+        if not isinstance(res, dict):
+            return
+        detail = str(res.get("detail") or "")
+        if not res.get("ok") and detail.startswith("login failed"):
+            return
+        rej_oid = res.get("rejected_order_id")
+        if res.get("ok"):
+            oid = res.get("order_id") or order_id_hint
+            event, state = ("kotak_cancelled", "cancel accepted") if leg == "cancel" else ("kotak_placed", "accepted")
+            reason = f"{purpose}; Kotak accepted it"
+            extra = [f"{k}={res.get(k)}" for k in ("trigger_price", "target_price", "limit_price", "band_clamped_from")
+                     if res.get(k) is not None]
+            if res.get("adopted_after_lost_ack"):
+                extra.append("ack lost; adopted the live order from Kotak's order book")
+            info = " ".join(extra) or None
+            immediate = False
+        elif rej_oid:
+            oid, event, state = str(rej_oid), "kotak_rejected", "rejected"
+            rej = detail.split("rejected:", 1)[-1].strip() if "rejected:" in detail else detail
+            key = (str(trdsym), leg, rej[:60])
+            now = time.time()
+            first, cnt = _LAST_REJECTION.get(key, (0.0, 0))
+            if cnt and now - first <= _REPEAT_WINDOW_S:
+                cnt += 1
+                _LAST_REJECTION[key] = (first, cnt)
+                info = f"repeat #{cnt} within {int(_REPEAT_WINDOW_S)}s: {rej[:60]}"
+            else:
+                _LAST_REJECTION[key] = (now, 1)
+                info = f"Kotak rejRsn: {rej[:200]}"
+            reason = f"{purpose}; Kotak rejected it"
+            immediate = True
+        else:
+            oid = order_id_hint
+            if leg == "cancel":
+                event, reason = "kotak_cancel_failed", f"{purpose}; Kotak did not accept the cancel"
+            else:
+                event, reason = "kotak_send_error", f"{purpose}; the send failed before Kotak returned an order id"
+            state = "failed"
+            info = detail[:200] or None
+            immediate = True
+        if oid:
+            _ORDER_REASONS.setdefault(str(oid), reason)
+        sink = _SEND_SINK
+        if sink is not None:
+            sink({"symbol": _symbol_from_trdsym(trdsym), "kotak_trading_symbol": trdsym, "leg": leg,
+                  "event": event, "order_id": str(oid) if oid else None, "new_state": state,
+                  "detail": info, "reason": reason, "immediate": immediate, "ts": time.time()})
+    except Exception as e:  # noqa: BLE001 - logging must never break an order path
+        print(f"[order_log] B-1448 send report failed (non-fatal): {e}")
+
+
+def _records_send(leg: str, purpose: str):
+    """Decorator for every function that sends one order to Kotak (first positional arg = the trading symbol,
+    or the order id for a cancel). Reports the returned outcome; never changes the result or what is sent."""
+    import functools
+
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            res = fn(*args, **kwargs)
+            first = args[0] if args else (kwargs.get("kotak_trading_symbol") or kwargs.get("order_id"))
+            if leg == "cancel":
+                _report_send(leg, purpose, None, res, order_id_hint=str(first) if first else None)
+            else:
+                _report_send(leg, purpose, first, res)
+            return res
+        return wrapper
+    return deco
+
+
 def _confirm_order_status(order_id: str) -> dict:
     """One order_report(order_id) call, right after placement - the only
     way to see whether an accepted order (a valid nOrdNo) was later
@@ -260,6 +357,7 @@ def _confirm_order_status(order_id: str) -> dict:
             "filled_qty": filled_qty, "row": row}
 
 
+@_records_send("entry", "real market BUY entry")
 def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
     """Places a REAL market BUY for `qty` shares via Kotak Neo, CNC, on
     nse_cm. Never raises - every failure path (login failure, an
@@ -320,6 +418,7 @@ def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
     }
 
 
+@_records_send("short_entry", "real market SELL-to-open short entry")
 def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, product: str = "MIS") -> dict:
     """Places a REAL market SELL-TO-OPEN for `qty` shares via Kotak Neo -
     the short mirror of place_real_entry (2026-09-29, explicit user
@@ -376,6 +475,7 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, prod
     }
 
 
+@_records_send("short_cover", "real market BUY-to-cover short exit")
 def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "MIS") -> dict:
     """Places a REAL market BUY-TO-COVER to close a real short position,
     MIS, on nse_cm - the short mirror of place_real_exit. Same never-
@@ -421,6 +521,7 @@ def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "
     }
 
 
+@_records_send("exit", "real market SELL exit")
 def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
     """Places a REAL market SELL to close a real position, CNC, on
     nse_cm. Same never-raises / rejection-confirmed discipline as
@@ -746,6 +847,7 @@ def _tick_size_for(kotak_trading_symbol: str) -> float:
     return tick
 
 
+@_records_send("sl", "resting SELL stop-loss to protect an open long/swing position")
 def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Places a REAL resting stop-loss sell order at Kotak for an already-
     open real position, so the stop fires at the exchange even if this app
@@ -1313,6 +1415,7 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
     return res
 
 
+@_records_send("short_sl", "resting BUY stop-loss to protect an open short position")
 def _place_real_short_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "MIS") -> dict:
     """Short mirror of place_real_stop_loss (2026-09-29) - a resting
     BUY-stop (transaction_type="B") that triggers ABOVE the short's entry
@@ -1356,6 +1459,7 @@ def _place_real_short_stop_loss_once(kotak_trading_symbol: str, qty: int, trigge
             "trigger_price": trigger_price, "limit_price": limit_price}
 
 
+@_records_send("target", "resting LIMIT SELL profit target")
 def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
     """Places a REAL resting LIMIT sell order at Kotak for an already-open
     real position, at the paper engine's own profit target, so a
@@ -1399,6 +1503,7 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
 
 
+@_records_send("short_target", "resting LIMIT BUY profit target for a short")
 def place_real_short_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
     """Short mirror of place_real_target (2026-09-29) - a resting LIMIT
     BUY order at the short's profit target (BELOW entry price), to cover
@@ -1436,6 +1541,7 @@ def place_real_short_target(kotak_trading_symbol: str, qty: int, target_price: f
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
 
 
+@_records_send("cancel", "cancel of a resting order")
 def cancel_real_order(order_id: str) -> dict:
     """Cancels a real resting order (e.g. a stop-loss placed by
     place_real_stop_loss) at Kotak. Never raises - a cancel failure (the

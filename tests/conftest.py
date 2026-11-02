@@ -220,3 +220,17 @@ def _cas_session_gate_off_by_default(monkeypatch):
     _orig = main._exchange_purge_window
     monkeypatch.setattr(main, "_exchange_purge_window",
                         lambda now_ist=None: _orig(now_ist) if now_ist is not None else False)
+
+
+@pytest.fixture(autouse=True)
+def _b1448_clear_pending_kotak_sends():
+    """B-1448: queued Kotak-send outcomes and the repeat-rejection counter are process-global; never let one
+    test's queued rows land in another test's DB."""
+    import sys as _sys
+    _m = _sys.modules.get("main")
+    if _m is not None and hasattr(_m, "_PENDING_KOTAK_SENDS"):
+        _m._PENDING_KOTAK_SENDS.clear()
+    _k = _sys.modules.get("kotak_real_orders")
+    if _k is not None and hasattr(_k, "_LAST_REJECTION"):
+        _k._LAST_REJECTION.clear()
+    yield
