@@ -21,6 +21,15 @@ Definitions (shown to the user in the View 4 tooltip):
     timestamps) wins, else this app's own record of the entry (``side_hints[(trdsym, day)]`` built from
     real_order_events 'entry'/'short_entry' confirmations and real_positions_short). First fill a sell -> short.
     When the order is unknown the side is SIDE_UNKNOWN, never guessed as long. P&L is identical either way.
+  * B-1451 since-start KPIs (ledger start to today, covered days only):
+      - Return on deployed capital R = total net P&L of exited trades / average daily deployed capital.
+      - CAGR % = ((1 + R) ^ (365 / covered days) - 1) x 100: R compounded to a yearly rate.
+      - XIRR % = the annual rate that makes the net present value of every closed trade's cash flows zero
+        (entry day: -entry value; exit day: +entry value + net P&L), i.e. the money-weighted annual return of the
+        realised trades. Open lots are left out (no Kotak exit price yet), and said so.
+      Both are annualised; under MIN_ANNUALISE_DAYS covered days they are still computed but flagged unreliable.
+  * B-1451 rolling 30-day series: for each covered day d, the ROC % over the 30 calendar days ending on d
+    (same formula as the rolling_30d period), so the trend is visible, not only today's value.
 """
 from __future__ import annotations
 
@@ -28,6 +37,7 @@ import datetime as dt
 from collections import defaultdict
 
 DAY = dt.timedelta(days=1)
+MIN_ANNUALISE_DAYS = 90
 SIDE_UNKNOWN = "intraday (side unknown)"
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 
@@ -209,6 +219,104 @@ def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: i
                         p["reason"] = (f"partial: covers {len(dep)} of {p['period_days']} days "
                                        f"(ledger starts {ledger_start.isoformat()})")
         out["periods"][key] = p
+    out["since_start"] = since_start_kpis(closed, open_lots, ledger_start, today)
+    out["rolling_30d_series"] = rolling_30d_series(closed, open_lots, ledger_start, today)
     out["closed_trades"] = sorted(closed, key=lambda t: (t["exit_day"], t["symbol"]), reverse=True)[:trades_limit]
     out["closed_trades_total"] = len(closed)
+    return out
+
+
+def xirr(flows: list) -> float | None:
+    """B-1451: annual rate r with sum(cf / (1 + r) ** (days / 365)) = 0 over [(date, cf)]. None when undefined
+    (no flows of both signs) or when no root is found. Bisection on a bracket, so it never diverges."""
+    flows = [(d, float(cf)) for d, cf in flows if cf]
+    if not flows or not any(cf > 0 for _, cf in flows) or not any(cf < 0 for _, cf in flows):
+        return None
+    d0 = min(d for d, _ in flows)
+
+    def npv(r):
+        return sum(cf / (1.0 + r) ** ((d - d0).days / 365.0) for d, cf in flows)
+
+    lo, hi = -0.9999, 1.0
+    f_lo = npv(lo)
+    while npv(hi) * f_lo > 0:
+        hi *= 4
+        if hi > 1e9:
+            return None
+    for _ in range(300):
+        mid = (lo + hi) / 2
+        f_mid = npv(mid)
+        if abs(f_mid) < 1e-7 or hi - lo < 1e-12:
+            break
+        if f_mid * f_lo > 0:
+            lo, f_lo = mid, f_mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def since_start_kpis(closed: list, open_lots: list, ledger_start, today: dt.date) -> dict:
+    """B-1451: return, CAGR and XIRR from the ledger's first Kotak day to today. Never invents data."""
+    out = {"start": ledger_start.isoformat() if ledger_start else None, "end": today.isoformat(),
+           "covered_days": 0, "trades": 0, "net_pnl_inr": None, "avg_deployed_inr": None, "return_pct": None,
+           "cagr_pct": None, "xirr_pct": None, "open_lots_excluded": len(open_lots), "reason": None,
+           "unreliable": False}
+    if ledger_start is None or ledger_start > today:
+        out["reason"] = "no Kotak fill ledger yet"
+        return out
+    dep = _deployed_by_day(closed, open_lots, ledger_start, today, today)
+    ts = [t for t in closed if ledger_start <= _d(t["exit_day"]) <= today]
+    net = sum(t["net_pnl_inr"] for t in ts)
+    avg = sum(dep.values()) / len(dep)
+    days = len(dep)
+    out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2))
+    notes = []
+    if avg > 0:
+        r = net / avg
+        out["return_pct"] = round(r * 100, 3)
+        if 1 + r > 0:
+            out["cagr_pct"] = round(((1 + r) ** (365.0 / days) - 1) * 100, 2)
+        else:
+            notes.append("CAGR undefined: loss larger than the average deployed capital")
+    else:
+        notes.append("no capital deployed yet")
+    flows = []
+    for t in ts:
+        flows.append((_d(t["entry_day"]), -t["entry_value_inr"]))
+        flows.append((_d(t["exit_day"]), t["entry_value_inr"] + t["net_pnl_inr"]))
+    x = xirr(flows)
+    if x is not None:
+        out["xirr_pct"] = round(x * 100, 2)
+    elif ts:
+        notes.append("XIRR undefined for these cash flows")
+    if days < MIN_ANNUALISE_DAYS:
+        out["unreliable"] = True
+        notes.append(f"annualised from only {days} days, so CAGR and XIRR swing widely; reliable after "
+                     f"{MIN_ANNUALISE_DAYS} days")
+    if open_lots:
+        notes.append(f"XIRR uses closed trades only; {len(open_lots)} open lot(s) left out until exited")
+    out["reason"] = "; ".join(notes) or None
+    return out
+
+
+def rolling_30d_series(closed: list, open_lots: list, ledger_start, today: dt.date) -> list:
+    """B-1451: [{day, roc_pct, net_pnl_inr, avg_deployed_inr, full_window}] for every covered day, oldest first.
+    roc_pct None on a day with no capital deployed in its window."""
+    if ledger_start is None or ledger_start > today:
+        return []
+    dep = _deployed_by_day(closed, open_lots, ledger_start, today, today)
+    pnl_by_day = defaultdict(float)
+    for t in closed:
+        pnl_by_day[_d(t["exit_day"])] += t["net_pnl_inr"]
+    out = []
+    d = ledger_start
+    while d <= today:
+        a = max(d - 29 * DAY, ledger_start)
+        win = [dep[x] for x in dep if a <= x <= d]
+        avg = sum(win) / len(win)
+        net = sum(v for x, v in pnl_by_day.items() if a <= x <= d)
+        out.append({"day": d.isoformat(), "roc_pct": round(net / avg * 100, 3) if avg > 0 else None,
+                    "net_pnl_inr": round(net, 2), "avg_deployed_inr": round(avg, 2),
+                    "full_window": (d - a).days == 29})
+        d += DAY
     return out
