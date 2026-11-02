@@ -15647,7 +15647,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs179.01",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs179.01 (target stop Rs175.12); strategy stop Rs175.12 is outside the day's price band, so the stop rests at the band floor Rs179.01"
+  },
+  {
+   "id": 1305,
+   "ts": 1793591285.0018086,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261102000030918",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs135.67",
+   "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-02T03:46:09Z"
+ "synced_at_utc": "2026-11-02T03:48:08Z"
 }
