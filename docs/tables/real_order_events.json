@@ -15671,7 +15671,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs123.21",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 1307,
+   "ts": 1793591301.593583,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261102000032139",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs123.21",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs123.21 already covers the position (target stop Rs123.21), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-02T03:48:24Z"
+ "synced_at_utc": "2026-11-02T03:48:41Z"
 }
