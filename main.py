@@ -42,6 +42,7 @@ import datetime as dt
 import hashlib
 import functools
 import json
+import logging
 import math
 import os
 import re
@@ -19993,7 +19994,8 @@ def _exchange_purge_window(now_ist=None) -> bool:
     """True when resting orders are expected to be absent by exchange design:
     the exchange cancels ALL standing orders at 15:15 IST daily (B-309), so
     from 15:15 until the 09:15 IST open (and all weekend) a missing SL is the
-    expected state, not an app failure. Display-only; never gates an order."""
+    expected state, not an app failure. Also gates swing SL (re)placement retries
+    (B-1444: Kotak rejects SL/SL-M in the CAS session, 15:15+ IST); never gates an exit."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
     if n.weekday() >= 5:
         return True
@@ -23433,6 +23435,11 @@ def _maybe_sync_real_swing_stop_loss(conn):
     exit behavior the intraday engine has, that needs its own
     daily-cadence design, not a copy of the tick-based one."""
     import kotak_real_orders
+    if _exchange_purge_window():
+        # B-1444: 15:15-09:15 IST the exchange rejects SL/SL-M ("NOT ALLOWED IN CAS SESSION"); the 09:15 protect pass
+        # re-places. Debug only, so the per-tick skip never floods the log.
+        logging.getLogger(__name__).debug("[REAL SWING] SL retry skipped: exchange purge/CAS window (15:15-09:15 IST)")
+        return
     rows = conn.execute(
         "SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL"
     ).fetchall()
@@ -25692,7 +25699,7 @@ def _heal_real_swing_short_sl(conn, order_rows) -> list:
             conn.execute("UPDATE real_positions_swing_short SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?",
                          (row["symbol"],))
     conn.commit()
-    if not _nse_equity_market_open_now():
+    if not _nse_equity_market_open_now() or _exchange_purge_window():  # B-1444: no SL in the 15:15+ CAS session
         return out
     for row in conn.execute("SELECT * FROM real_positions_swing_short WHERE sl_order_id IS NULL").fetchall():
         entry = {"symbol": row["symbol"], "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
@@ -32813,7 +32820,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # 2026-10-07: no SL placement while the exchange is closed (Kotak rejects them
         # and the retries buried the real order book); the next in-hours reconcile does it.
         _swing_missing_sl = (conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall()
-                             if _nse_equity_market_open_now() else [])
+                             if _nse_equity_market_open_now() and not _exchange_purge_window() else [])  # B-1444
         for r in _swing_missing_sl:
             import kotak_real_orders
             # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two

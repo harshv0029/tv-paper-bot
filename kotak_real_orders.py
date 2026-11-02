@@ -1205,6 +1205,9 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
         if rows is None or not isinstance(rows, list):
             raise ValueError("order_report returned no data list")
     except Exception as e:
+        if _in_closing_session():  # B-1444: Kotak rejects SL/SL-M in the CAS session
+            return {"ok": False, "order_id": None, "action": "skipped_closing_session",
+                    "detail": "no SL placement after 15:15 IST", "raw_response": None}
         res = place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
         res["action"] = "placed_unchecked"
         res["scan_error"] = str(e)
@@ -1264,6 +1267,11 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
             res["restored_trigger"] = restore["trigger_price"]
         return res
 
+    if _in_closing_session():
+        # B-1444 (IOC 2 Nov 2026, 6 rejects 15:22-15:31 IST "SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"): after the
+        # exchange's 15:15 cancel a fresh SL is rejected too; the 09:15 IST protect pass re-places it.
+        return {"ok": False, "order_id": None, "action": "skipped_closing_session",
+                "detail": "no SL placement after 15:15 IST", "raw_response": None}
     res = place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
     res["action"] = "placed"
     return res
