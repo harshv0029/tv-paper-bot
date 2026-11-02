@@ -15875,7 +15875,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1324,
+   "ts": 1793612731.4351056,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261102000653399 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-11-02T09:45:22Z"
+ "synced_at_utc": "2026-11-02T09:45:36Z"
 }
