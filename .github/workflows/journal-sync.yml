@@ -221,17 +221,22 @@ jobs:
         run: |
           # The full audit trail for real money - kept forever, uncapped,
           # same policy as docs/attempt_log.json/trade_outcomes_log.json.
-          # Deduped by id (real_trades' own AUTOINCREMENT primary key), so
-          # re-running this sync never double-appends the same attempt.
+          # B-1446 (2026-11-02): dedupe key is (id, ts, symbol, status,
+          # order_id), not id alone - same bug as B-305 for the order log.
+          # real_trades' AUTOINCREMENT id restarted at 1 after a Render wipe
+          # on 27 Oct, so every new attempt (ids 1..502 by 2 Nov) collided
+          # with an old id and group_by(.id)|.[0] silently kept the old row:
+          # the log froze at 696 entries (last row 27 Oct 14:15 IST). A
+          # re-run still never double-appends (same row, same composite key).
           mkdir -p docs
           test -f docs/real_trade_log.json || echo '[]' > docs/real_trade_log.json
           jq -s '
             (.[0] // []) as $existing |
             (.[1].trades // []) as $new |
             ($existing + $new)
-            | group_by(.id)
+            | group_by([.id, .ts, .symbol, .status, .order_id] | tojson)
             | map(.[0])
-            | sort_by(.id)
+            | sort_by(.ts, .id)
           ' docs/real_trade_log.json /tmp/real-trades.json > /tmp/real_trade_log_merged.json
           mv /tmp/real_trade_log_merged.json docs/real_trade_log.json
           echo "real_trade_log.json now has $(jq 'length' docs/real_trade_log.json) entries"
