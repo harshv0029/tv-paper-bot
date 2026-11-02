@@ -15803,7 +15803,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs279.25",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 1318,
+   "ts": 1793606609.7284644,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261102000496077",
+   "prev_state": "no position",
+   "new_state": "long 5 @ Rs164.93",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-02T08:03:19Z"
+ "synced_at_utc": "2026-11-02T08:03:36Z"
 }
