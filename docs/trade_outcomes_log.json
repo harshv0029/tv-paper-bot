@@ -3311,5 +3311,33 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "DABUR.NS",
+    "exit_time_utc": 1793685255.9746292,
+    "entry_price_native": null,
+    "exit_price_native": 381.25,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 21.2,
+    "pnl_pct_of_capital": 0.005,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "PFC.NS",
+    "exit_time_utc": 1793685499.1680276,
+    "entry_price_native": null,
+    "exit_price_native": 318.25,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 4.55,
+    "pnl_pct_of_capital": 0.001,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
