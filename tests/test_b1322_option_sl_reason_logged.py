@@ -84,31 +84,44 @@ def test_login_failure_on_sl_send_is_logged_once_per_window(monkeypatch):
     assert len(ev) == 1 and "token expired" in ev[0]["detail"] and "reason:" in ev[0]["detail"]
 
 
-def test_sync_trigger_above_ltp_with_no_live_sl_is_not_sent_and_logged(monkeypatch):
-    sent = []
+def test_sync_trigger_above_ltp_with_no_live_sl_exits_at_market(monkeypatch):
+    # B-1459: premium 2.40 is already under the 2.45 initial stop: no SL is sent, the leg is exited at market.
+    sent, closed = [], []
     _sync_env(monkeypatch, ltp=2.40, state={"ok": True, "net_qty": 2350, "live_sls": []})
     monkeypatch.setattr(kfo, "ensure_option_trailing_sl", lambda *a, **k: sent.append(a) or {"ok": True})
+    monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda c, r, why: closed.append(why) or True)
     with closing(main.get_db()) as c:
         _insert_leg(c)
         assert main._sync_real_fo_option_sl(c, "JIOFIN:CALL", reason="initial protective SL right after entry") \
-            == "sl_precheck_failed"
+            == "trail_breached_exit"
     assert not sent
-    ev = [e for e in _events() if e["event"] == "sl_precheck_failed"]
-    assert ev and "at/above LTP 2.4" in ev[-1]["detail"] and "initial protective SL" in ev[-1]["detail"]
-    assert "at/above LTP" in main._fo_last_sl_cause["JIOFIN:CALL"]
+    assert closed and "B-1459 trail breached" in closed[0] and "2.4" in closed[0]
 
 
-def test_sync_trigger_above_ltp_keeps_live_sl_instead_of_cancel_replace(monkeypatch):
-    sent = []
+def test_sync_trail_above_ltp_with_live_lower_sl_exits_at_market(monkeypatch):
+    # B-1459: trail 2.75 (peak 2.80) is above LTP 2.60; holding on the old 2.45 stop is refused: exit at market.
+    sent, closed = [], []
     live = [{"order_id": "SL9", "trigger": 2.45, "qty": 2350}]
     _sync_env(monkeypatch, ltp=2.60, state={"ok": True, "net_qty": 2350, "live_sls": live})
     monkeypatch.setattr(main, "_option_feed_high_since", lambda c, r: 2.80)  # trail 2.77 > LTP 2.60
     monkeypatch.setattr(kfo, "ensure_option_trailing_sl", lambda *a, **k: sent.append(a) or {"ok": True})
+    monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda c, r, why: closed.append(why) or True)
+    with closing(main.get_db()) as c:
+        _insert_leg(c, trig=2.45, sl_oid="SL9")
+        assert main._sync_real_fo_option_sl(c, "JIOFIN:CALL") == "trail_breached_exit"
+    assert not sent
+    assert closed and "SL 2.75" in closed[0] and "resting trigger 2.45" in closed[0]
+
+
+def test_sync_non_ltp_precheck_refusal_keeps_live_sl(monkeypatch):
+    # A refusal NOT caused by LTP (bad tick) still keeps the live SL as before.
+    live = [{"order_id": "SL9", "trigger": 2.45, "qty": 2350}]
+    _sync_env(monkeypatch, ltp=2.60, state={"ok": True, "net_qty": 2350, "live_sls": live})
+    monkeypatch.setattr(kfo, "option_sl_precheck", lambda d, l: (False, "limit not a positive tick", 0.05, 0.0))
+    monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda c, r, why: (_ for _ in ()).throw(AssertionError("no exit")))
     with closing(main.get_db()) as c:
         _insert_leg(c, trig=2.45, sl_oid="SL9")
         assert main._sync_real_fo_option_sl(c, "JIOFIN:CALL") == "kept_existing_precheck_refused"
-        assert c.execute("SELECT sl_order_id FROM real_fo_positions").fetchone()[0] == "SL9"
-    assert not sent
 
 
 def test_sync_kotak_unreadable_logs_reason_once(monkeypatch):

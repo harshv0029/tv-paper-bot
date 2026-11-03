@@ -12343,6 +12343,17 @@ def _chan_gap_manage(row, df, mins_now, exit_price, halted):
     return None
 
 
+def _chan_gap_paper_usable(conn, capital, real_mirrored=False) -> float:
+    """B-1452: capital a chan_gap paper entry may size into. A paper row that will be mirrored to Kotak is sized
+    off Kotak's Net (capital, which already nets real margin) / CAPITAL_TRANCHES only: subtracting paper-only
+    notional (positions the real gate refused) could floor the paper qty to 0, write no paper row, and so fire
+    no real order. Paper-only entries keep the old shared-capital cap."""
+    tranche = capital / CAPITAL_TRANCHES
+    if real_mirrored:
+        return max(0.0, tranche)
+    return min(max(0.0, capital - deployed_notional(conn)), tranche)
+
+
 def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                              risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
                              mins_now=None, universe=None, agg_blocked=False):
@@ -12387,8 +12398,7 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     stop_dist = last_close - stop_loss
     if stop_loss <= 0 or stop_dist <= 0:
         return None
-    available = max(0.0, capital - deployed_notional(conn))
-    usable = min(available, capital / CAPITAL_TRANCHES)
+    usable = _chan_gap_paper_usable(conn, capital, real_mirrored=require_real_tradability)  # B-1452
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
@@ -17702,6 +17712,14 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     # with no order id; replacing a live SL with it would cancel the good stop first. Keep a live SL as is;
     # with none resting, record the refusal and fall through to the no-SL risk cut below.
     _pc_ok, _pc_why, _pc_trig, _ = kotak_real_fo_orders.option_sl_precheck(desired, ltp)
+    if not _pc_ok and ltp is not None and ltp > 0 and _pc_trig is not None and _pc_trig >= ltp - 1e-9:
+        # B-1459 (owner-default decision 2026-11-03): the premium is already at/under where the stop should sit,
+        # so the stop has effectively been hit; a SELL SL cannot rest above LTP and holding a weekly option under
+        # its own trail (on an older, lower stop or none) only adds risk. Exit at market now.
+        _close_real_fo_option_leg(conn, row, f"B-1459 trail breached: premium {ltp} at/under the intended trailing SL "
+                                             f"{_pc_trig} (peak {peak}, resting trigger {prev_trigger or 'none'}); exit at market")
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        return "trail_breached_exit"
     if not _pc_ok:
         live = st["live_sls"]
         if live:
@@ -25624,7 +25642,7 @@ def _run_chan_gap_short_scan(conn=None):
             if stop_dist <= 0:
                 continue
             risk_pct = float((cfg_by_sym.get(sym) or {}).get("risk_pct", 1.0))
-            usable = min(max(0.0, capital - deployed_notional(conn)), capital / CAPITAL_TRANCHES)
+            usable = _chan_gap_paper_usable(conn, capital, real_mirrored=True)  # B-1452: batch always mirrors real
             qty = float(math.floor(min(usable * risk_pct / 100 / stop_dist, usable / px)))
             if qty <= 0 or qty * px < 100.0:
                 continue
