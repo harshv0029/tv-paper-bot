@@ -17459,7 +17459,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1456,
+   "ts": 1793677525.063107,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261103000016356",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs167.90",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); a live SELL SL at Rs167.90 already covers the position (target stop Rs164.80), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-02T19:26:46Z"
+ "synced_at_utc": "2026-11-03T03:45:29Z"
 }
