@@ -30,11 +30,11 @@ Total rows: 1216 | closed: 575 | not closed: 641
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
+| BUILT | 4 |
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
-| BUILT | 3 |
 | UNKNOWN | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
@@ -48,7 +48,6 @@ Total rows: 1216 | closed: 575 | not closed: 641
 | REAL | 2 |
 | JIOFIN26OCT217 | 2 |
 | KOTAK | 2 |
-| WATCHDOG | 2 |
 | FROM | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -75,6 +74,7 @@ Total rows: 1216 | closed: 575 | not closed: 641
 | NATIONALUM | 1 |
 | SPAWNED | 1 |
 | B-1359 | 1 |
+| WATCHDOG | 1 |
 | RESIDUAL | 1 |
 | SWING | 1 |
 | F | 1 |
@@ -542,7 +542,7 @@ Total rows: 1216 | closed: 575 | not closed: 641
 | B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up, awaiting, waiting |
 | B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-1441 | P1 | USER | 2026-11-02 18:50 IST | verify |
-| B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, verify |
+| B-1447 | P1 | BUILT | 2026-11-02 22:40 IST | owed, verify |
 | B-1452 | P1 | FROM | 2026-11-03 00:35 IST | owed |
 | B-1459 | P1 | FROM | 2026-11-03 00:55 IST | owed, owner |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
