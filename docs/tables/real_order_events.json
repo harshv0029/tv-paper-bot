@@ -17711,7 +17711,139 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1477,
+   "ts": 1793699389.1128507,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1478,
+   "ts": 1793699389.2671397,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1479,
+   "ts": 1793699389.2744558,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1480,
+   "ts": 1793699389.2805436,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1481,
+   "ts": 1793699389.2858906,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1482,
+   "ts": 1793699400.470447,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1483,
+   "ts": 1793699400.686204,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1484,
+   "ts": 1793699400.8043394,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1486,
+   "ts": 1793699400.8604825,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1485,
+   "ts": 1793699400.868709,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1487,
+   "ts": 1793699400.8716483,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-03T09:49:52Z"
+ "synced_at_utc": "2026-11-03T09:50:10Z"
 }
