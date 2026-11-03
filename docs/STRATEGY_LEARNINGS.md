@@ -1618,3 +1618,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Result:** main.py replay (full NSE, cost 0.8%) best cell atr4d0_hold10 nonovl PFnet 0.907 (n 48019), the other 5 cells 0.73-0.86; the later run 40572999957 re-measured the same cell at 0.891 (n 48369). Registered as `chan_shape__mom_mr_mr__long__1d__atr4d0_hold10_rid38553284949__nonovl__v2` with pfgross/win/hold None (owed from artifact 11887209982, never zero-filled).
 - **Lesson / reuse:** two runs of the same cell map to the same `_mr` tag, so a second run of the same cell needs a run-id param (`rid<run>`) to stay its own row; transcribe the full merge table into docs/backtest_data the day the run finishes, because the backlog row alone kept only one cell.
 - **Profit-booking / exit takeaway:** as with cup cheat, timeouts are the only profitable exits; the rule stays below the floor at either hold, so no exit tweak rescues it.
+
+## Option trailing SL above LTP: exit at market (B-1459, 2026-11-03)
+- **Mechanism:** the option trail is max(previous trigger, peak x (1 - trail %)); when the premium has already fallen to or under that level (often after a feed-high spike between 30 s polls), a SELL SL cannot rest above LTP and Kotak/NSE refuse it. Before, the leg kept its older, lower stop (or none, then waited a grace window).
+- **Decision:** the stop has effectively been hit, so `_sync_real_fo_option_sl` now exits at market (`trail_breached_exit`, reasoned order log). Refusals not caused by LTP (bad tick) still keep the live SL.
+- **Fit / risk:** weekly options decay fast; holding under the trail adds theta and gap risk for no edge. Cost: a feed-high spike can trigger an exit the 30 s LTP would not; measure how often in live logs (event `trail_breached_exit`).
+- **Owed:** an option trail replay comparing "keep old stop" and "exit at market" net PFnet (fo-options-blackscholes-backtest-research.yml does not model the feed-high trail yet).
+- **Profit-booking / exit takeaway:** a trail that cannot rest is a hit stop: book it at market, never wait on a lower legacy stop.
