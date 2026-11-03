@@ -15,7 +15,7 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 45 |
+| OPEN | 43 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -28,13 +28,13 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
+| BUILT | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
-| BUILT | 3 |
 | UNKNOWN | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
@@ -501,8 +501,8 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | B-1322 | P0 | JIOFIN26OCT217 | 2026-10-21 | owed, open:, verify, needs |
 | B-1328 | P0 | B-1319 | 2026-10-21 | owed, verify |
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up |
-| B-1363 | P0 | P0 | FIX COMMITTED 2026-11-02 (branch work-b1363, not deployed); owed: deploy + a week of opens all before 09:16... | owed, verify, follow-up |
-| B-1439 | P0 | USER | 2026-11-02 18:50 IST | verify |
+| B-1363 | P0 | P0 | FIX COMMITTED 2026-11-02 (branch work-b1363, not deployed); owed: deploy + a week of opens all before 09:16... | owed, pending, verify, follow-up |
+| B-1439 | P0 | USER | 2026-11-02 18:50 IST | owed, verify |
 | B-1440 | P0 | USER | 2026-11-02 18:50 IST | verify |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
@@ -542,8 +542,8 @@ Total rows: 1216 | closed: 574 | not closed: 642
 | B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-1441 | P1 | USER | 2026-11-02 18:50 IST | verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, verify |
-| B-1452 | P1 | OPEN | 2026-11-03 00:35 IST |  |
-| B-1459 | P1 | OPEN | 2026-11-03 00:55 IST | owed, owner |
+| B-1452 | P1 | BUILT | 2026-11-03 00:35 IST | owed |
+| B-1459 | P1 | BUILT | 2026-11-03 00:55 IST | owed, owner |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
