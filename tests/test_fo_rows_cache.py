@@ -35,3 +35,18 @@ def test_errors_are_not_cached(monkeypatch):
     assert nf._fo_rows("NIFTY", "CE")[1].startswith("search_scrip_error_response")
     nf._fo_rows("NIFTY", "CE")
     assert len(calls) == 2 and not nf._fo_rows_cache
+
+
+def test_cache_holds_all_ist_day_and_drops_on_date_change(monkeypatch):
+    """B-1447: a same-date entry hours old is still a hit; a new IST date always refetches."""
+    import datetime as dt
+    calls = _patch(monkeypatch, [{"pSymbolName": "NIFTY"}])
+    nf._fo_rows("NIFTY", "FUT")
+    key = ("NIFTY", "FUT")
+    d, ts, rows = nf._fo_rows_cache[key]
+    nf._fo_rows_cache[key] = (d, ts - 6 * 3600, rows)
+    nf._fo_rows("NIFTY", "FUT")
+    assert len(calls) == 1
+    nf._fo_rows_cache[key] = (d - dt.timedelta(days=1), ts, rows)
+    nf._fo_rows("NIFTY", "FUT")
+    assert len(calls) == 2
