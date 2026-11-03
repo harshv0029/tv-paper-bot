@@ -27600,7 +27600,10 @@ async def _scheduler_tick():
             print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
 
         try:  # B-1361: off the event loop; its Kotak quotes() call froze /health 16 s at boot
-            await asyncio.to_thread(_fo_chain_monitoring_snapshot_own_conn)
+            # B-1447: NSE hours only. Nothing reads fo_chain_snapshot live, and the after-close runs (15:33-17:50 IST
+            # on 2026-11-03) lined up with the /health RSS alarms from the scrip-master parse.
+            if _nse_equity_market_open_now():
+                await asyncio.to_thread(_fo_chain_monitoring_snapshot_own_conn)
         except Exception as e:
             print(f"[FO_MONITOR] snapshot failed (non-fatal, intraday tick continues): {e}")
 

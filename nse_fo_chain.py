@@ -239,7 +239,10 @@ def _to_float(v):
 # (only the CSV bytes are cached). The F&O snapshot made ~20 such calls in a row, and the parse holds the GIL, so
 # the event loop froze ~18 s each time on Render's small CPU (/health watchdog stacks). Contract lists do not
 # change intraday, so the exact-match rows are kept for 30 min within one IST date; errors are never cached.
-_FO_ROWS_CACHE_TTL_SECONDS = 30 * 60
+# B-1447 (2026-11-03): 30 min -> whole IST date. Each refresh re-ran the SDK's full scrip-master parse, and the
+# /health watchdog showed RSS alarms (75-84% of 2 GB) at every ~15-30 min snapshot. The IST-date check below still
+# drops every entry at midnight IST, so a new day's listings are always picked up.
+_FO_ROWS_CACHE_TTL_SECONDS = 24 * 60 * 60
 _fo_rows_cache: dict = {}
 
 
