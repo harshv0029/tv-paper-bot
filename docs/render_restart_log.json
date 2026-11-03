@@ -1424,5 +1424,66 @@
     "prev_last_alarm": null,
     "prev_first_alarm_threads": [],
     "prev_last_alarm_threads": []
+  },
+  {
+    "boot_ts": 1793708659.4291868,
+    "boot_ist": "2026-11-03 17:54:19 IST",
+    "logged_ist": "2026-11-03 17:55:04 IST",
+    "commit": "6dcc21da7238",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "5732608a7449",
+    "prev_boot_ist": "2026-11-03 00:56:01 IST",
+    "prev_last_alive_ist": "2026-11-03 17:54:41 IST",
+    "prev_uptime_min": 1018.7,
+    "downtime_s_max": -21.7,
+    "prev_rss_now_mb": 1601.8,
+    "prev_peak_rss_mb": 1981.5,
+    "prev_loop_lag_s": 0.8,
+    "prev_watchdog_alarms": 102,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": {
+      "ts": 1793708681.1680286,
+      "loop_lag_s": 0.8,
+      "rss_mb": 1601.8,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": [
+      "scan-prefetch_7: _prefetch_one_frame:20651 > fetch_ohlc:135",
+      "scan-prefetch_6: _prefetch_one_frame:20651 > fetch_ohlc:140",
+      "scan-prefetch_5: _prefetch_one_frame:20651 > fetch_ohlc:135",
+      "scan-prefetch_4: _prefetch_one_frame:20651 > fetch_ohlc:135",
+      "scan-prefetch_3: _prefetch_one_frame:20653 > fetch_ohlc:156",
+      "scan-prefetch_2: _prefetch_one_frame:20651 > fetch_ohlc:140",
+      "scan-prefetch_1: _prefetch_one_frame:20651 > fetch_ohlc:135",
+      "scan-prefetch_0: _prefetch_one_frame:20653 > fetch_ohlc:156"
+    ],
+    "prev_last_alarm_threads": [
+      "open-protect: _open_protect_loop:32418",
+      "unprotected-backcheck: _unprotected_backcheck_loop:32197",
+      "git-tier-push: _git_tier_push_loop:32456 > _git_tier_push_wait:32435",
+      "MainThread (event loop): base_events.py:run_until_complete:641 > base_events.py:run_forever:608 > base_events.py:_run_once:1898 > selectors.py:select:468"
+    ]
+  },
+  {
+    "boot_ts": 1793711100.9386744,
+    "boot_ist": "2026-11-03 18:35:00 IST",
+    "logged_ist": "2026-11-03 18:35:45 IST",
+    "commit": "af525fed5dbc",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "6dcc21da7238",
+    "prev_boot_ist": "2026-11-03 17:54:19 IST",
+    "prev_last_alive_ist": "2026-11-03 18:35:14 IST",
+    "prev_uptime_min": 40.9,
+    "downtime_s_max": -13.9,
+    "prev_rss_now_mb": 704.2,
+    "prev_peak_rss_mb": 1033.3,
+    "prev_loop_lag_s": 0.4,
+    "prev_watchdog_alarms": 0,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": null,
+    "prev_first_alarm_threads": [],
+    "prev_last_alarm_threads": []
   }
 ]
