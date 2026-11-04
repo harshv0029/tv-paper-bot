@@ -14242,6 +14242,23 @@ def hydrate_t1_restricted_from_external(conn) -> int:
     return restored
 
 
+_RMS_USED_AVAIL_RE = re.compile(r"Used:\s*([\d.]+)\s*,\s*Available:\s*([\d.]+)")
+
+
+def _is_sell_overcommit_rejection(detail: str | None) -> bool:
+    """B-1462: Kotak's RMS text "Check T1 holdings ... Used:16.00, Available:8.00" with Available > 0 means shares ARE
+    held and settled, but a sell already resting (e.g. the 09:15 IST SL) reserves them, so a second sell for the same
+    qty is over-committed. That is a duplicate order, not a T1/T2T same-day restriction, and must never blacklist the
+    stock. Genuine T1 text is "No Holdings Present" / Available:0."""
+    m = _RMS_USED_AVAIL_RE.search(str(detail or ""))
+    if not m or "No Holdings Present" in str(detail):
+        return False
+    try:
+        return float(m.group(2)) > 0
+    except ValueError:
+        return False
+
+
 def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
     """Records `symbol` as T1/T2T-restricted for today the first time its
     detail string carries either of Kotak's own same-day-sell rejection
@@ -14252,6 +14269,9 @@ def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
     IGNORE) and never raises - a failure to flag must never break the
     real order flow it's observing."""
     if not detail or (_T1_HOLDINGS_MARKER not in detail and _T2T_SAME_DAY_MARKER not in detail):
+        return
+    if _is_sell_overcommit_rejection(detail):  # B-1462: a duplicate sell over a resting SL, not a T1 stock
+        print(f"[T1-restricted] {symbol} NOT flagged: over-committed sell (resting order holds the shares): {detail}")
         return
     today = ist_now().strftime("%Y-%m-%d")
     try:
@@ -14289,9 +14309,9 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
     day-scoped PRIMARY KEY, unchanged - useful audit history), but this
     read now checks for ANY row ever, regardless of which day it was
     inserted on."""
-    return conn.execute(
-        "SELECT 1 FROM real_t1_restricted WHERE symbol = ?", (symbol,)
-    ).fetchone() is not None
+    # B-1462: rows flagged from an over-committed duplicate sell (before the fix) never count as a T1 restriction
+    return any(not _is_sell_overcommit_rejection(r[0]) for r in conn.execute(
+        "SELECT detail FROM real_t1_restricted WHERE symbol = ?", (symbol,)).fetchall())
 
 
 def _holding_strategy(trd_sym):
@@ -31336,7 +31356,7 @@ def _swing_entry_stop_breach_sweep(conn) -> list:
 
 
 def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: list,
-                             strategy: str = "holding_atr_stop") -> dict:
+                             strategy: str = "holding_atr_stop", allow_unchecked: bool = True) -> dict:
     """Place a protective SL for ONE delivery holding that has no live resting
     SELL SL (caller has already fetched holdings/order_report fresh). Stop =
     holding avg price - SWING_ATR_STOP_MULT x daily ATR (the swing engine's
@@ -31394,7 +31414,15 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
         _swing_entry_stop_record(conn, symbol, stop, "heal: first stop on record for this holding")
         if _swing_stop_breached_exit(conn, symbol, stop, _swing_live_ltp(symbol)):
             return {"symbol": symbol, "qty": held["qty"], "stop": stop, "status": "stop breached - market exit sent"}
-        sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
+        sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop, allow_unchecked=allow_unchecked)
+        if sl.get("action") == "skipped_unreadable_book":  # B-1462: nothing sent; the next pass re-checks
+            conn.commit()
+            _log_real_order_event(conn, symbol, "sl", "skipped", kotak_trading_symbol=kotak_trading_symbol,
+                                  detail=str(sl.get("detail"))[:200],
+                                  reason="5-min re-check could not read Kotak's order book, so it placed nothing "
+                                         "(an SL may already be live); retried next pass")
+            return {"symbol": symbol, "qty": held["qty"], "stop": stop, "sl_ok": False, "sl_error": sl.get("detail"),
+                    "status": "skipped - order book unreadable"}
         # B-1367 (2026-10-26): the old fallback here recomputed a LOWER stop on ANY rejection and stored it; a
         # 15:21 IST CAS-session rejection on 23-Oct lowered BANKINDIA/WIPRO/COALINDIA for good. A rejected stop now
         # stays where it is and is retried (and a breached one exits above); it is never lowered.
@@ -31406,12 +31434,14 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
         # 2026-10-07: every real order carries a logged reason (GMRAIRPORT/INDHOTEL SLs
         # were placed by this heal path with no event row at all).
         _log_real_order_event(
-            conn, symbol, "sl", "placed" if sl.get("ok") else "failed", kotak_trading_symbol=kotak_trading_symbol,
+            conn, symbol, "sl", ("adopted" if sl.get("action") == "adopted_existing" else "placed") if sl.get("ok")
+            else "failed", kotak_trading_symbol=kotak_trading_symbol,
             order_id=sl.get("order_id"), prev_state="no live resting SL at Kotak (holdings + order book checked first)",
             new_state=(f"resting SELL trigger Rs{sl['trigger_price']:.2f}" if sl.get("ok") else "none (placement failed)"),
             detail=str(sl.get("detail") or sl.get("error") or "")[:200] or None,
-            reason=("delivery holding found with no live SL; "
-                    + ("previous day's stop carried over" if carried > 0 else "stop = avg price - 2.5 x daily ATR")))
+            reason=(("a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+                     if sl.get("action") == "adopted_existing" else "delivery holding found with no live SL; "
+                     + ("previous day's stop carried over" if carried > 0 else "stop = avg price - 2.5 x daily ATR"))))
     return {"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
             "atr": round(atr_last, 2) if atr_last else None, "stop": stop, "carried_over": bool(carried), "sl_ok": bool(sl.get("ok")),
             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")}
@@ -33553,7 +33583,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             # B-1363: was serial (~12-14 s per SL), so the 5th holding got its SL at 09:16:29 IST on 28-Oct.
             try:
                 return kotak_real_orders.ensure_resting_sl(_swing_missing_sl[i]["kotak_trading_symbol"],
-                                                           _swing_missing_sl[i]["qty"], _bf_stops[i])
+                                                           _swing_missing_sl[i]["qty"], _bf_stops[i],
+                                                           allow_unchecked=False)  # B-1462
             except Exception as e:  # noqa: BLE001
                 return {"ok": False, "detail": f"placement raised: {e}"}
         _bf_results = []
@@ -33644,7 +33675,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             def _heal_one(u):
                 trd = u["kotak_trading_symbol"]
                 try:
-                    res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows)
+                    res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows,
+                                                   allow_unchecked=False)  # B-1462: periodic, never blind
                 except Exception as e:  # noqa: BLE001
                     res = {"error": f"heal raised: {e}"}
                 return {"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),

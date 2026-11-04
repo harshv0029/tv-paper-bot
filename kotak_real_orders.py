@@ -1301,12 +1301,34 @@ def cancel_converted_stop_orders(kotak_trading_symbol: str, stale_trigger: float
     return done
 
 
-def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float, allow_unchecked: bool = True) -> dict:
     with _sl_symbol_lock(kotak_trading_symbol):
-        return _ensure_resting_sl_unlocked(kotak_trading_symbol, qty, trigger_price)
+        return _ensure_resting_sl_unlocked(kotak_trading_symbol, qty, trigger_price, allow_unchecked)
 
 
-def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+ORDER_BOOK_READ_RETRY_DELAYS_S = (0.5, 1.5)  # B-1462: a failed order-book read is retried before any fallback
+
+
+def _read_order_rows_with_retry(sleep=None):
+    import time as _t
+    sleep = sleep or _t.sleep
+    last = None
+    for delay in (0.0,) + ORDER_BOOK_READ_RETRY_DELAYS_S:
+        if delay:
+            sleep(delay)
+        try:
+            report = kotak_neo.login().order_report()
+            rows = report.get("data") if isinstance(report, dict) else None
+            if isinstance(rows, list):
+                return rows, None
+            last = ValueError("order_report returned no data list")
+        except Exception as e:  # noqa: BLE001
+            last = e
+    return None, last
+
+
+def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float,
+                                allow_unchecked: bool = True) -> dict:
     """Scan-then-act SL placement for LONG (swing) positions (2026-10-07, explicit
     user instruction after live rejects: "before placing any new order request you
     need to scan existing order list, then either place new, or cancel current plus
@@ -1325,13 +1347,12 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
     shape plus `action` in {adopted_existing, replaced, placed, placed_unchecked,
     replace_failed}; on replace_failed `restored_order_id`/`restored_trigger` describe
     the re-placed old stop when that worked."""
-    try:
-        client = kotak_neo.login()
-        report = client.order_report()
-        rows = report.get("data") if isinstance(report, dict) else None
-        if rows is None or not isinstance(rows, list):
-            raise ValueError("order_report returned no data list")
-    except Exception as e:
+    rows, e = _read_order_rows_with_retry()
+    if rows is None:
+        if not allow_unchecked:  # B-1462: a periodic re-check never places blind over a possibly-live SL
+            return {"ok": False, "order_id": None, "action": "skipped_unreadable_book",
+                    "detail": f"Kotak order book unreadable after retries ({e}); nothing placed, next pass retries",
+                    "raw_response": None}
         if _in_closing_session():  # B-1444: Kotak rejects SL/SL-M in the CAS session
             return {"ok": False, "order_id": None, "action": "skipped_closing_session",
                     "detail": "no SL placement after 15:15 IST", "raw_response": None}
