@@ -101,4 +101,10 @@ def build():
         "main.oneil_stop_price/oneil_exit_bar, strict FIFO, cost 0.008, run 41847222200)", min_n=1) + _oneil(
         seen, "oneil_ext_main_nonovl_1w.json", "1w", 5, "B-1463",
         "oneil ext main.py-detector non-overlap 1w (B-1463; docs/backtest_data/oneil_ext_main_nonovl_1w.json, main.oneil_ext_signals + "
-        "main.oneil_stop_price/oneil_exit_bar, strict FIFO, cost 0.008, run 41847932950; avg_hold in weekly bars)", min_n=1)
+        "main.oneil_stop_price/oneil_exit_bar, strict FIFO, cost 0.008, run 41847932950; avg_hold in weekly bars)", min_n=1) + _oneil(
+        seen, "oneil_rsscreen_n200_nonovl_1d.json", "1d", 1, "B-1468",
+        "oneil rsscreen main.py-detector non-overlap 1d, RS ranked inside the live SWING_WATCHLIST (B-1468; "
+        "docs/backtest_data/oneil_rsscreen_n200_nonovl_1d.json, strict FIFO, cost 0.008, run 41855872144)", min_n=1) + _oneil(
+        seen, "oneil_rsscreen_n200_nonovl_1w.json", "1w", 5, "B-1468",
+        "oneil rsscreen main.py-detector non-overlap 1w, RS ranked inside the live SWING_WATCHLIST (B-1468; "
+        "docs/backtest_data/oneil_rsscreen_n200_nonovl_1w.json, strict FIFO, cost 0.008, run 41855879111; avg_hold in weekly bars)", min_n=1)
