@@ -18407,7 +18407,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261104000060466 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 1535,
+   "ts": 1793770379.9309943,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261104000011278",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs194.11",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-04T03:55:04Z"
+ "synced_at_utc": "2026-11-04T05:33:03Z"
 }
