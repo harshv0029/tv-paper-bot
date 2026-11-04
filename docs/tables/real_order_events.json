@@ -18023,7 +18023,67 @@
    "prev_state": "sent to Kotak",
    "new_state": "accepted",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=279.25 limit_price=279.25"
+  },
+  {
+   "id": 1503,
+   "ts": 1793763920.1493073,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261104000011278",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=194.11 limit_price=194.11"
+  },
+  {
+   "id": 1504,
+   "ts": 1793763920.1541357,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261104000011292",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=158.47 limit_price=158.47"
+  },
+  {
+   "id": 1505,
+   "ts": 1793763920.1561182,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261104000011261",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=440.25 limit_price=440.25"
+  },
+  {
+   "id": 1506,
+   "ts": 1793763979.7043402,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011485",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs125.18",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); a live SELL SL at Rs125.18 already covers the position (target stop Rs123.21), adopted, nothing placed"
+  },
+  {
+   "id": 1507,
+   "ts": 1793763979.7153008,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011365",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs279.25",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); a live SELL SL at Rs279.25 already covers the position (target stop Rs279.25), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-04T03:45:53Z"
+ "synced_at_utc": "2026-11-04T03:46:23Z"
 }
