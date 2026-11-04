@@ -16,6 +16,8 @@ RUNS = {
     "minervini_lab_main_replay_baseline_long.json": 41889377598,
     "minervini_lab_main_replay_long_h30.json": 41891143316,
     "minervini_lab_main_replay_long_h40.json": 41891148569,
+    "minervini_lab_main_replay_short_h30.json": 41895945064,
+    "minervini_lab_main_replay_short_h40.json": 41895952533,
 }
 
 
