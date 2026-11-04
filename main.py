@@ -6679,6 +6679,100 @@ def chan_kalman_band_long_exit_reason(df, interval: str, entry_pos: int, entry_p
     return None
 
 
+# ---- B-1467 chan_kalman "v1 band" (registry chan_kalman__band__{long,short}__{5m,15m,1h,1d}__atr*_hold40_ve*_z*__v1,
+# evidence scripts/chan_ext_research.py run 38147514850). VERBATIM PORT of kalman_cells + intraday_wrap + day_flags
+# (scripts/chan_ext_research.py) and the trade loop of chan_research.simulate. UNWIRED: no scan, no order path, not in
+# _STRATEGY_TAG_TO_REGISTRY_NAME, no kill switch. Exists so scripts/chan_kalman_main_replay_job.py replays real main.py code.
+# Rule: Kalman adaptive mean on log close (delta 1e-4, Ve 1e-4|1e-3). Signal at the CLOSE of bar i: long when
+# err < -z*sqrtQ, short when err > z*sqrtQ. Entry at the OPEN of bar i+1; stop = entry -/+ k*ATR14[i] (simple-mean ATR,
+# gap-aware fill), ALWAYS set (no trade without SL). Exit order per bar j >= entry bar: stop -> state exit (long err >= 0,
+# short err <= 0; on 5m/15m also the last bar of each day, forced flat at its close) -> max hold (close of bar
+# entry+hold-1). On 5m/15m no signal is taken on the last bar of a day. 1h/1d carry positions overnight (as the research).
+# Differs from the v2 band_mr port above (15:15 flatten masks); a different tag family, never merged with it.
+CHAN_KALMAN_V1_HOLD = 40
+CHAN_KALMAN_V1_INTRADAY = ("5m", "15m")
+
+
+def chan_kalman_v1_day_last(index):
+    """Research day_flags: True on the last bar of each calendar date of the index (its own tz) and on the final bar."""
+    d = pd.Series(pd.DatetimeIndex(index).date, index=range(len(index)))
+    return (d != d.shift(-1)).to_numpy()
+
+
+def chan_kalman_band_v1_precompute(df, interval: str, z: float, ve: float, delta: float = CHAN_KALMAN_DELTA):
+    """Causal arrays over the whole frame: sig (+1 long / -1 short / 0), exit_long, exit_short, atr, err, sq.
+    = kalman_cells(ve, z) then intraday_wrap(day_flags) for 5m/15m. Slicing equals recomputing (all causal except the
+    day-last flag, which needs the next bar's date; live, the last bar of the day is known from the session clock)."""
+    c = df["Close"].to_numpy(float)
+    err, sq = chan_kalman_series(c, ve, delta)
+    sig = np.zeros(len(c))
+    sig[err < -z * sq], sig[err > z * sq] = 1, -1
+    xl, xs = err >= 0, err <= 0
+    last = None
+    if interval in CHAN_KALMAN_V1_INTRADAY:
+        last = chan_kalman_v1_day_last(df.index)
+        sig[last] = 0
+        xl, xs = xl | last, xs | last
+    atr = chan_atr14(df["High"].to_numpy(float), df["Low"].to_numpy(float), c)
+    return {"sig": sig, "exit_long": xl, "exit_short": xs, "atr": atr, "err": err, "sq": sq, "last": last}
+
+
+def chan_kalman_band_v1_entry_signal(df, interval: str, direction: str, z: float = 2.0, ve: float = 1e-3,
+                                     atr_mult: float = 4.0, pos: int | None = None, pre=None):
+    """Signal check at bar `pos` (default the last bar). None or {signal_pos, direction, atr, atr_mult, close}.
+    The fill is the NEXT bar's open; chan_kalman_band_v1_stop(fill, ...) gives the protective stop."""
+    if direction not in ("long", "short") or not atr_mult or atr_mult <= 0:
+        return None
+    n = len(df)
+    if n < 20:
+        return None
+    if pre is None:
+        pre = chan_kalman_band_v1_precompute(df, interval, z, ve)
+    i = n - 1 if pos is None else int(pos)
+    side = 1 if direction == "long" else -1
+    a = pre["atr"][i]
+    if pre["sig"][i] != side or np.isnan(a) or a <= 0:
+        return None
+    return {"signal_pos": i, "direction": direction, "atr": float(a), "atr_mult": float(atr_mult),
+            "close": float(df["Close"].iloc[i])}
+
+
+def chan_kalman_band_v1_stop(entry_price: float, atr: float, atr_mult: float, direction: str):
+    """entry -/+ k*ATR(signal bar). None (= no entry, SL on every trade) when it cannot be a valid stop."""
+    if not entry_price or entry_price <= 0 or not atr or atr <= 0 or not atr_mult or atr_mult <= 0:
+        return None
+    return float(entry_price - atr_mult * atr) if direction == "long" else float(entry_price + atr_mult * atr)
+
+
+def chan_kalman_band_v1_exit_reason(bars, direction: str, entry_pos: int, stop: float, hold: int = CHAN_KALMAN_V1_HOLD,
+                                    pos: int | None = None, pre=None):
+    """Exit check at bar j (`pos`, default the last bar) for a position FILLED at the open of bar entry_pos.
+    bars: DataFrame or dict of numpy arrays (Open/High/Low/Close). pre: chan_kalman_band_v1_precompute output.
+    Order = research simulate: gap-aware stop (fill bar at the stop, later bars at min/max(stop, open)) -> state exit at
+    the close ('state_exit' = err crossed the mean, 'eod_flat' = 5m/15m last bar of the day) -> 'max_hold' at the close of
+    bar entry_pos+hold-1. Returns (reason, px) or None while open."""
+    o_, h_, l_, c_ = (bars[k] for k in ("Open", "High", "Low", "Close"))
+    if hasattr(c_, "to_numpy"):
+        o_, h_, l_, c_ = (x.to_numpy(float) for x in (o_, h_, l_, c_))
+    j = len(c_) - 1 if pos is None else int(pos)
+    if j < entry_pos:
+        return None
+    o, h, l, c = float(o_[j]), float(h_[j]), float(l_[j]), float(c_[j])
+    if direction == "long":
+        if l <= stop:
+            return "stop", (min(stop, o) if j > entry_pos else float(stop))
+        if pre["exit_long"][j]:
+            return ("state_exit" if pre["err"][j] >= 0 else "eod_flat"), c
+    else:
+        if h >= stop:
+            return "stop", (max(stop, o) if j > entry_pos else float(stop))
+        if pre["exit_short"][j]:
+            return ("state_exit" if pre["err"][j] <= 0 else "eod_flat"), c
+    if j >= entry_pos + hold - 1:
+        return "max_hold", c
+    return None
+
+
 # ---------------------------------------------------------------------------
 # O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
 # scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
