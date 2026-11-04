@@ -15,6 +15,7 @@ RUNS = {
     "sector_main_replay_1d_next_open.json": 41861804507,
     "sector_main_replay_4h_next_open.json": 41877626376,
     "sector_main_replay_1h_next_open.json": 41877630594,
+    "sector_main_replay_15m_next_open.json": 41906455430,
 }
 
 
