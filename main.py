@@ -84,6 +84,7 @@ import sqlite3
 import concurrent.futures
 import threading
 import time
+import contextlib
 from contextlib import closing
 from itertools import product
 
@@ -20691,9 +20692,16 @@ def _prefetch_one_frame(symbol: str, period: str, interval: str):
     return (ts if ts is not None else t0), df
 
 
-def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
-                        workers: int | None = None, intervals=None, timeout: float | None = None,
-                        collect: dict | None = None) -> dict:
+def _prefetch_tick_ohlc(symbols, *args, **kwargs) -> dict:
+    """B-1447: same as _prefetch_tick_ohlc_impl, with the RSS before/after recorded under stage "tick_prefetch"
+    and a live-prefetch counter, so a swing-scan stage can say whether the 8 download threads overlapped it."""
+    with _stage_rss("tick_prefetch", prefetch=True):
+        return _prefetch_tick_ohlc_impl(symbols, *args, **kwargs)
+
+
+def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
+                             workers: int | None = None, intervals=None, timeout: float | None = None,
+                             collect: dict | None = None) -> dict:
     """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
     thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
     per-symbol scan then fetches (and reports) it itself exactly as before."""
@@ -24606,23 +24614,28 @@ def _run_swing_scan_pass(conn):
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
     try:  # sector rotation entries (after the per-symbol chain so a symbol never gets two entries)
-        _run_sector_rotation_entries(conn, dfs, capital, today)
+        with _stage_rss('swing_sector_rotation'):
+            _run_sector_rotation_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[SECTOR ROT] entry pass failed (non-fatal): {e}")
     try:
-        _run_pattern_cell_entries(conn, dfs, capital, today)
+        with _stage_rss('swing_pattern_cells'):
+            _run_pattern_cell_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[PATTERN] entry pass failed (non-fatal): {e}")
     try:  # B-871: short-swing engine (exits first, then entries; a long swing entry made this scan wins the symbol)
-        _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
+        with _stage_rss('swing_short_1d'):
+            _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT] pass failed (non-fatal): {e}")
     try:  # B-965: 1h leg (swingminrr brk20_gate short 1h); same engine tables, hourly bars
-        _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
+        with _stage_rss('swing_short_1h'):
+            _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT 1h] pass failed (non-fatal): {e}")
     try:  # B-984: 1h LONG leg (macddiv line cells); same long swing table, hourly bars
-        _run_long_swing_1h_pass(conn, _with_held_1h_long_symbols(conn, list(dfs)), capital, today, _done_syms)
+        with _stage_rss('swing_long_1h'):
+            _run_long_swing_1h_pass(conn, _with_held_1h_long_symbols(conn, list(dfs)), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING LONG 1h] pass failed (non-fatal): {e}")
 
@@ -30748,7 +30761,7 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[memory] trim failed (non-fatal): {e}")
     return {"memory_level": level, "memory_pct_now": pct, "memory_warn_pct": RSS_WARN_PCT,
-            "memory_trims": _MEMORY_STATE["trims"]}
+            "memory_trims": _MEMORY_STATE["trims"], "stage_rss": _stage_rss_snapshot()}
 
 
 def _rss_headroom(rss_mb=None) -> dict:
@@ -30768,6 +30781,50 @@ def _current_rss_mb() -> float | None:
         return round(pages * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)
     except Exception:
         return None
+
+
+# B-1447: RSS before/after each swing-scan stage and each tick prefetch, to find which stage drives the 85-87%
+# peaks (measure first, no blind constant change). Read-only bookkeeping: never trims, never blocks.
+_STAGE_RSS: dict = {}
+_PREFETCH_ACTIVE = {"n": 0}
+
+
+@contextlib.contextmanager
+def _stage_rss(stage: str, prefetch: bool = False):
+    before = _current_rss_mb()
+    overlap = _PREFETCH_ACTIVE["n"] > 0
+    if prefetch:
+        _PREFETCH_ACTIVE["n"] += 1
+    t0 = time.time()
+    try:
+        yield
+    finally:
+        if prefetch:
+            _PREFETCH_ACTIVE["n"] = max(0, _PREFETCH_ACTIVE["n"] - 1)
+        overlap = overlap or (not prefetch and _PREFETCH_ACTIVE["n"] > 0)
+        try:
+            after = _current_rss_mb()
+            delta = round(after - before, 1) if after is not None and before is not None else None
+            st = _STAGE_RSS.setdefault(stage, {"runs": 0, "max_delta_mb": None, "max_after_mb": None,
+                                               "overlap_runs": 0})
+            st["runs"] += 1
+            st["overlap_runs"] += 1 if overlap else 0
+            st.update(last_before_mb=before, last_after_mb=after, last_delta_mb=delta,
+                      last_seconds=round(time.time() - t0, 1), last_overlap_prefetch=overlap,
+                      last_ist=(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M:%S IST"))
+            if delta is not None and (st["max_delta_mb"] is None or delta > st["max_delta_mb"]):
+                st["max_delta_mb"] = delta
+            if after is not None and (st["max_after_mb"] is None or after > st["max_after_mb"]):
+                st["max_after_mb"] = after
+            if not prefetch and delta is not None and abs(delta) >= 50:
+                print(f"[memory] stage {stage}: rss {before} -> {after} MB ({delta:+} MB) "
+                      f"prefetch_overlap={overlap}")
+        except Exception:  # noqa: BLE001 (bookkeeping must never break a scan)
+            pass
+
+
+def _stage_rss_snapshot() -> dict:
+    return {k: dict(v) for k, v in _STAGE_RSS.items()}
 
 
 def _threadpool_status() -> dict:

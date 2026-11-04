@@ -30,11 +30,11 @@ Total rows: 1219 | closed: 577 | not closed: 642
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
-| BUILT | 4 |
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
+| BUILT | 3 |
 | UNKNOWN | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
@@ -83,6 +83,7 @@ Total rows: 1219 | closed: 577 | not closed: 642
 | FOUND | 1 |
 | ROC | 1 |
 | JOURNAL | 1 |
+| DUPLICATE | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -606,7 +607,7 @@ Total rows: 1219 | closed: 577 | not closed: 642
 | B-1451 | P2 | USER | 2026-11-02 23:58 IST | owed, verify |
 | B-1453 | P2 | OPEN | 2026-11-03 00:35 IST |  |
 | B-1454 | P2 | OPEN | 2026-11-03 00:35 IST |  |
-| B-1462 | P2 | BUILT | 2026-11-04 IST | owed, pending |
+| B-1462 | P2 | DUPLICATE | 2026-11-04 IST | pending |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1445 | P3 | ROC | 2026-11-02 | owed, verify |
 | B-1455 | P3 | OPEN | 2026-11-03 00:35 IST | verify |
