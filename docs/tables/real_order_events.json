@@ -18083,7 +18083,139 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs279.25",
    "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); a live SELL SL at Rs279.25 already covers the position (target stop Rs279.25), adopted, nothing placed"
+  },
+  {
+   "id": 1508,
+   "ts": 1793763981.1481504,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011206",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs126.73 already covers the position (target stop Rs126.73), adopted, nothing placed"
+  },
+  {
+   "id": 1509,
+   "ts": 1793763982.0600657,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011206",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs126.73 already covers the position (target stop Rs126.73), adopted, nothing placed"
+  },
+  {
+   "id": 1510,
+   "ts": 1793763984.8879995,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011206",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs126.73 (target stop Rs126.73)"
+  },
+  {
+   "id": 1511,
+   "ts": 1793763984.9201703,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011293",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs165.37",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs165.37 (target stop Rs164.80); strategy stop Rs164.80 is outside the day's price band, so the stop rests at the band floor Rs165.37"
+  },
+  {
+   "id": 1512,
+   "ts": 1793763984.9340346,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011278",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs194.11",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs194.11 (target stop Rs194.11)"
+  },
+  {
+   "id": 1513,
+   "ts": 1793763984.9436712,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011485",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs125.18",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs125.18 (target stop Rs123.21); strategy stop Rs123.21 is outside the day's price band, so the stop rests at the band floor Rs125.18"
+  },
+  {
+   "id": 1514,
+   "ts": 1793763984.9564693,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011261",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs440.25",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs440.25 (target stop Rs440.21); requested Rs440.21 was below the entry-day stop, raised to Rs440.25 (B-1440 floor)"
+  },
+  {
+   "id": 1515,
+   "ts": 1793763984.9683902,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011365",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs279.25",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs279.25 (target stop Rs279.25)"
+  },
+  {
+   "id": 1516,
+   "ts": 1793763985.0310357,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011292",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs158.47",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs158.47 (target stop Rs158.47)"
+  },
+  {
+   "id": 1517,
+   "ts": 1793763989.8543859,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011293",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs165.37",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs165.37 already covers the position (target stop Rs164.80), adopted, nothing placed"
+  },
+  {
+   "id": 1518,
+   "ts": 1793763993.673166,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011293",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs165.37",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs165.37 already covers the position (target stop Rs164.80), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-04T03:46:23Z"
+ "synced_at_utc": "2026-11-04T03:46:38Z"
 }
