@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
 import bar_hygiene as bh  # noqa: E402
 
-JOBS = ("long", "short", "baseline_long", "baseline_short")
+JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40")  # _hNN: max-hold sweep (B-1469)
 MAXH = 60
 IS_FRAC = 0.7
 COOLDOWN = 5
@@ -56,18 +56,20 @@ BASELINE_VARIANTS = ("pct8_hard", "rr3", "ma200_break")
 TOL = 1e-9
 
 
-def new_tag(variant, direction, maxh=MAXH):
+def new_tag(variant, direction, maxh=None):
+    maxh = MAXH if maxh is None else maxh
     return f"minervini_vcp__{variant}_srcmain__{direction}__1d__h{maxh}__v1"
 
 
-def source_tag(variant, direction, maxh=MAXH):
+def source_tag(variant, direction, maxh=None):
+    maxh = MAXH if maxh is None else maxh
     return f"minervini_vcp__{variant}__{direction}__1d__h{maxh}__v1"
 
 
 def job_spec(job):
     if job not in JOBS:
         raise SystemExit(f"unknown job {job!r}; jobs: {JOBS}")
-    direction = "short" if job.endswith("short") else "long"
+    direction = "short" if "short" in job else "long"
     return direction, job.startswith("baseline")
 
 
@@ -196,7 +198,10 @@ def summarize(trades, split_date):
 
 def run(job):
     import main as m
+    global MAXH
     direction, baseline = job_spec(job)
+    if "_h" in job:
+        MAXH = int(job.rsplit("_h", 1)[1])
     lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     t0 = time.time()
     frames, dropped, requested = load_frames(m, lim)
