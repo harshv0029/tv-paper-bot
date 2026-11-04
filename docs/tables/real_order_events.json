@@ -17999,7 +17999,31 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1501,
+   "ts": 1793763916.3529854,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261104000011206",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=126.73 limit_price=126.73"
+  },
+  {
+   "id": 1502,
+   "ts": 1793763917.8858752,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261104000011365",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=279.25 limit_price=279.25"
   }
  ],
- "synced_at_utc": "2026-11-03T13:07:03Z"
+ "synced_at_utc": "2026-11-04T03:45:53Z"
 }
