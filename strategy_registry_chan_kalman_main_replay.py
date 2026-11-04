@@ -13,6 +13,8 @@ SRC = "scripts/chan_kalman_main_replay_job.py"
 RUNS = {
     "chan_kalman_main_replay_1d.json": 41881365947,
     "chan_kalman_main_replay_1h.json": 41886040481,
+    "chan_kalman_main_replay_15m.json": 41899822245,
+    "chan_kalman_main_replay_5m.json": 41899828500,
 }
 
 
