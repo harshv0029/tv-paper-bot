@@ -21872,10 +21872,43 @@ def _roc_kpis_payload(today=None) -> dict:
     fa = _real_trades_cache.get("fetched_at") or 0
     out["kotak_fills_fetched_ist"] = ((dt.datetime.utcfromtimestamp(fa) + dt.timedelta(minutes=IST_OFFSET_MIN))
                                       .strftime("%Y-%m-%d %H:%M:%S") if fa else None)
+    try:  # B-1461: running CAGR = realised + open holdings/positions at live prices (refreshed every 60 s)
+        out["running"] = _roc_running_block(out)
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] running CAGR unavailable (non-fatal): {e}")
+        out["running"] = {"reason": f"unavailable: {e}"}
+    out.pop("open_lot_rows", None)
     out["definition"] = ("ROC % = net realised P&L of real trades exited in the period (after estimated statutory "
                          "charges; brokerage not included) / average daily deployed capital (entry value of every "
                          "position held on each calendar day, time-weighted over the period's covered days). IST "
                          "calendar months.")
+    return out
+
+
+ROC_RUNNING_PRICE_TTL_S = 60  # B-1461: live prices for the running CAGR are re-read at most once a minute
+ROC_RUNNING_PRICE_BUDGET_S = 4.0
+_roc_running_px_cache = {"at": 0.0, "px": {}, "syms": ()}
+
+
+def _roc_running_block(payload: dict) -> dict:
+    """B-1461: View 4 running CAGR. Equity open lots (nse_cm/bse_cm, holdings and positions) are priced from the
+    Kotak live feed first, else Yahoo, within a short budget; prices cached ROC_RUNNING_PRICE_TTL_S. F&O/MCX lots
+    are left out (counted) until a live quote path for them exists. DISPLAY ONLY: no order path reads this."""
+    import roc_kpis
+    lots = payload.get("open_lot_rows") or []
+    eq = {o["symbol"]: _nse_symbol_from_trdsym(o["symbol"]) for o in lots
+          if str(o.get("seg") or "nse_cm").endswith("_cm")}
+    c = _roc_running_px_cache
+    syms = tuple(sorted(set(eq.values())))
+    if time.time() - c["at"] > ROC_RUNNING_PRICE_TTL_S or c["syms"] != syms:
+        px = _open_positions_prices(list(syms), {}, budget_s=ROC_RUNNING_PRICE_BUDGET_S) if syms else {}
+        c.update(at=time.time(), px=px, syms=syms)
+    price_by_trdsym = {t: c["px"].get(y) for t, y in eq.items()}
+    out = roc_kpis.running_kpis(payload.get("since_start") or {}, lots, price_by_trdsym,
+                                charges_fn=_estimate_statutory_charges_inr)
+    out["prices_as_of_ist"] = ((dt.datetime.utcfromtimestamp(c["at"]) + dt.timedelta(minutes=IST_OFFSET_MIN))
+                               .strftime("%Y-%m-%d %H:%M:%S") if c["at"] else None)
+    out["refresh_seconds"] = ROC_RUNNING_PRICE_TTL_S
     return out
 
 
