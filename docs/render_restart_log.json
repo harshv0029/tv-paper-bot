@@ -1485,5 +1485,49 @@
     "prev_last_alarm": null,
     "prev_first_alarm_threads": [],
     "prev_last_alarm_threads": []
+  },
+  {
+    "boot_ts": 1793777231.8008387,
+    "boot_ist": "2026-11-04 12:57:11 IST",
+    "logged_ist": "2026-11-04 12:57:56 IST",
+    "commit": "99d12de4ec00",
+    "cause_guess": "deploy",
+    "in_market_hours": true,
+    "prev_commit": "af525fed5dbc",
+    "prev_boot_ist": "2026-11-03 18:35:00 IST",
+    "prev_last_alive_ist": "2026-11-04 12:57:29 IST",
+    "prev_uptime_min": 1102.5,
+    "downtime_s_max": -17.6,
+    "prev_rss_now_mb": 1209.8,
+    "prev_peak_rss_mb": 1550.9,
+    "prev_loop_lag_s": 0.7,
+    "prev_watchdog_alarms": 1,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": {
+      "ts": 1793766070.710766,
+      "loop_lag_s": 1.0,
+      "rss_mb": 1545.2,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": [
+      "scan-prefetch_7: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_6: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_5: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_4: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_3: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_2: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_1: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_0: _prefetch_one_frame:20669 > fetch_ohlc:135"
+    ],
+    "prev_last_alarm_threads": [
+      "scan-prefetch_7: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_6: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_5: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_4: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_3: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_2: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_1: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_0: _prefetch_one_frame:20669 > fetch_ohlc:135"
+    ]
   }
 ]
