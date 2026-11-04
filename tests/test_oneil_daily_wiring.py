@@ -235,3 +235,24 @@ def test_weekly_ext_signals_computed_once_per_symbol(monkeypatch):
     finally:
         main._ONEIL_DAILY_IDX["close"] = None
         main._ONEIL_DAILY_SIG_CACHE.clear()
+
+
+def test_weekly_cascade_blocks_same_week_reentry_through_a_sibling_cell(monkeypatch):
+    """B-1463: a same-week buy under ANY weekly O'Neil cell blocks every other weekly cell for that symbol."""
+    import time as _t
+    tags = list(main.ONEIL_SWING_CELLS)
+    first, other = tags[0], tags[-1]
+    monkeypatch.setattr(main, "oneil_swing_entry_signal",
+                        lambda df, tag: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 3.0} if tag == other else None)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda t: True)
+    sized = []
+    monkeypatch.setattr(main, "_swing_position_size", lambda *a: sized.append(1) or 0)
+    today = main.dt.datetime.now(main.dt.timezone.utc).strftime("%Y-%m-%d")
+    conn = _conn()
+    conn.execute("INSERT INTO trades VALUES (?, 'X.NS', 'buy', 1, 100, 1, 'swing', ?)",
+                 (_t.time(), '{"entry_reason": "%s", "stop_loss": 90.0}' % first))
+    assert main._oneil_swing_try_entry(conn, "X.NS", None, 100000, 0.01, today, 1.0) is False
+    assert not sized
+    conn.execute("DELETE FROM trades")
+    main._oneil_swing_try_entry(conn, "X.NS", None, 100000, 0.01, today, 1.0)
+    assert sized

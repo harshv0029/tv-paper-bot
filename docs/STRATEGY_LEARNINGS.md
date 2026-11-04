@@ -1632,3 +1632,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: many "unwired viable" tags are IS/OOS splits, be1 breakeven twins or band-cap reruns of the same entry; counting tags overstates real new edges.
 - Reuse: to grow the wired set, port the research detector into main.py with parity tests, then run the main-calling non-overlap replay (done for 11 O'Neil ext families, tags ..._srcmain__nonovl__v2).
 - Profit-booking / exit takeaway: cascade looser-rr brk20 cells after the tighter one so they only add trades where the higher-PFnet cell stays silent; each keeps its own ATR stop and registry gate.
+
+## B-1463 O'Neil ext families on main.py detectors, strict non-overlap (2026-11-04)
+- Result: weekly (1w) beats daily by a wide margin. 1w atr3_h26 long: all 14 cells pooled PFnet 1.46-3.83 and OOS > 1 (runs 41847932950). 1d: 48 pooled > 1 but only 9 OOS > 1 (run 41847222200); daily edges fade in the recent 40% of history.
+- Shorts (reciprocal mirror) fail on both candle sizes: daily all <= 1, weekly best 1.24 with OOS <= 1.05. O'Neil base patterns are long-side phenomena on NSE.
+- Surprise: RS-rank strategies depend on the ranking population; a rank over the full universe is not the rank over NIFTY 200, so rsscreen was not wired until re-replayed on the live population.
+- Reuse: always read the OOS segment tag before wiring; pooled PFnet alone admitted 39 daily cells that fade OOS.
+- Profit-booking / exit takeaway: a frozen 3xATR stop with a long (26-week) hold is what carries the weekly edge; in a multi-cell cascade guard re-entry across ALL sibling cells, since each cell was replayed alone.

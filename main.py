@@ -7242,10 +7242,12 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
         if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
-        # a stop-out inside the 2-session window must not re-enter the same week's signal
+        # a stop-out inside the 2-session window must not re-enter the same week's signal - under ANY weekly O'Neil cell
+        # (B-1463: the cascade now holds 16 cells; each was replayed alone, so a same-week re-entry through a sibling
+        # cell after a stop-out is a trade no replay measured)
         wk_start = (pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).weekday())).timestamp()
         if conn.execute("SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND raw_payload LIKE ?",
-                        (symbol, wk_start, f'%"entry_reason": "{tag}"%')).fetchone():
+                        (symbol, wk_start, '%"entry_reason": "oneil_%__1w__%')).fetchone():
             return False
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
