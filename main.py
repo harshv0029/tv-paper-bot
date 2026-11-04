@@ -6980,6 +6980,90 @@ def chan_kalman_band_v1_exit_reason(bars, direction: str, entry_pos: int, stop: 
     return None
 
 
+# ---- B-1467 chan_kalman v1 band LONG 1d, WIRED into the live swing scan (main.py replay run 41881365947 on the full
+# NSE universe: PFnet 1.367, OOS 1.105, n 27328, avg hold 6.0 bars; short mirror 0.845 stays unwired). Signal at the
+# daily close (err < -z*sqrtQ), stop = entry - 4xATR14 (simple mean) on EVERY trade, exit on the gap-aware stop, the
+# Kalman state exit (err >= 0 at a close) or the close of bar 40. One position per symbol (swing engine invariant).
+CHAN_KALMAN_1D_LONG_TAG = "chan_kalman__band_srcmain__long__1d__atr4d0_hold40_ve10d0e4_z2d0__v1"
+# tag -> (z, Ve, ATR stop multiple, hold bars)
+CHAN_KALMAN_1D_CELLS = {CHAN_KALMAN_1D_LONG_TAG: (2.0, 1e-3, 4.0, 40)}
+CHAN_KALMAN_1D_MIN_BARS = 60
+
+
+def chan_kalman_1d_long_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """Last-bar signal for a CHAN_KALMAN_1D_CELLS tag; None when no signal, unknown tag or no valid stop."""
+    cfg = CHAN_KALMAN_1D_CELLS.get(tag)
+    if cfg is None or df is None or len(df) < CHAN_KALMAN_1D_MIN_BARS:
+        return None
+    z, ve, k, _hold = cfg
+    sig = chan_kalman_band_v1_entry_signal(df, "1d", "long", z=z, ve=ve, atr_mult=k)
+    if not sig:
+        return None
+    px = float(sig["close"])
+    stop = chan_kalman_band_v1_stop(px, sig["atr"], k, "long")
+    if stop is None or not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": float(sig["atr"]), "risk": px - stop,
+            "direction": "long"}
+
+
+def _chan_kalman_1d_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag):
+    """Swing exit fn signature (reason, new_running_max). Bars after entry_day are the held bars (first = fill bar)."""
+    if df is None or len(df) == 0:
+        return None, running_max_close
+    z, ve, _k, hold = CHAN_KALMAN_1D_CELLS[tag]
+    new_running_max = max(float(running_max_close or 0.0), float(df["Close"].iloc[-1]))
+    dates = df["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates > str(entry_day)[:10])
+    if len(starts) == 0:
+        return None, new_running_max
+    start = int(starts[0])
+    pre = chan_kalman_band_v1_precompute(df, "1d", z, ve)
+    for j in range(start, len(df)):
+        r = chan_kalman_band_v1_exit_reason(df, "long", start, float(initial_stop), hold, pos=j, pre=pre)
+        if r:
+            return "chan_kalman_" + r[0], new_running_max
+    return None, new_running_max
+
+
+def _chan_kalman_1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one chan_kalman 1d position (scan recorded for every cell; gate checked only after a trigger).
+    The real mirror (_maybe_place_real_swing_entry) re-checks the gate, places the resting SL and unwinds if it fails."""
+    for tag in CHAN_KALMAN_1D_CELLS:
+        _record_strategy_scan(tag)
+        sig = chan_kalman_1d_long_entry_signal(df, tag)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
 # scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
@@ -23908,6 +23992,7 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
     cells += [(t, lambda t=t: swingminrr_vcp_entry_signal(df, t, rs_percentile=rs)) for t in SWINGMINRR_TAGS]
     cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
     cells += [(t, lambda t=t: pl1d_long_entry_signal(df, t)) for t in PL1D_CELLS]
+    cells += [(t, lambda t=t: chan_kalman_1d_long_entry_signal(df, t)) for t in CHAN_KALMAN_1D_CELLS]
     cells += [(t, lambda t=t: gapfade_long_entry_signal(df, t)) for t in GAPFADE_TAGS]
     cells += [(t, lambda t=t: _oneil_scan_signal(df, t, symbol)) for t in ONEIL_SWING_CELLS]
     cells += [(t, lambda t=t: _oneil_daily_scan_signal(df, t, symbol)) for t in ONEIL_DAILY_CELLS]
@@ -25213,6 +25298,14 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in CHAN_KALMAN_1D_CELLS:
+                reason, new_running_max = _chan_kalman_1d_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    pos["strategy"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in PL1D_CELLS:
                 reason, new_running_max = _pl1d_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
@@ -25536,6 +25629,11 @@ def _run_swing_scan_pass(conn):
                         _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] pl1d entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # B-1467 chan_kalman v1 band LONG 1d, after pl1d (one position per symbol)
+                        if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+                            _chan_kalman_1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] chan_kalman 1d entry eval failed for {symbol} (non-fatal): {e}")
                     try:  # gaps fade LONG 1d (exhaust / common), checked after island, i.e. LAST of all
                         _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
@@ -25720,7 +25818,7 @@ for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 for _t in BRK20_LONG_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # B-1463: 1:1, each cell its own main.py-replay registry row
-for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS):
+for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS) + tuple(CHAN_KALMAN_1D_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
@@ -30493,6 +30591,8 @@ _SWING_SL_RULES = {
        for _t, (a, h) in CHAN_SHAPE_CELLS.items()},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
        for _t, (_r, k, h) in PL1D_CELLS.items()},
+    **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of bar {h})"
+       for _t, (_z, _v, k, h) in CHAN_KALMAN_1D_CELLS.items()},
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
 }
@@ -30542,6 +30642,8 @@ def _strategy_hold_spec(tag):
     tf = parts[3] if len(parts) >= 5 else "1d"
     if tag in PL1D_CELLS:
         return int(PL1D_CELLS[tag][2]), tf
+    if tag in CHAN_KALMAN_1D_CELLS:
+        return int(CHAN_KALMAN_1D_CELLS[tag][3]), tf
     if tag in CHAN_SHAPE_CELLS:
         return int(CHAN_SHAPE_CELLS[tag][1]), tf
     if tag in _PATTERN_LIVE_TAGS:
