@@ -24946,7 +24946,7 @@ def _run_swing_scan_pass(conn):
                     conn.commit()
             elif pos["strategy"] in _PATTERN_LIVE_TAGS:
                 reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
-            elif pos["strategy"] == SECTOR_ROT_TAG:
+            elif pos["strategy"] in SECTOR_ROT_CELLS:
                 reason = sector_rotation_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"])
             elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
                 new_running_max = max(float(pos["running_max_close"] or pos["entry_price"]), float(df["Close"].iloc[-1]))
@@ -26796,6 +26796,12 @@ SECTOR_ROT_BREADTH_HI = 0.6
 SECTOR_ROT_MIN_SECTOR = 5
 SECTOR_ROT_HOLD_DAYS = 20
 SECTOR_ROT_ATR_MULT = 6.0
+# B-1467: main.py replay (sector-rotation-backtest.yml run 41861798852, NIFTY 200, one position per symbol, stop on
+# close = live exit) validated N=3 (PFnet 1.327, OOS 1.141, n 1862) and N=5 (1.229 / OOS 1.048, n 2654). N=3 picks are
+# the top 3 of the N=5 picks, so the cells run as a cascade: the top 3 enter under the N=3 tag, picks 4-5 under N=5.
+SECTOR_ROT_N3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1"
+SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5}  # tag -> N; order = priority (PFnet)
+_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SECTOR_ROT_N3_TAG, SECTOR_ROT_N3_TAG)  # 1:1, main replay run 41861798852
 _sector_map_cache = None
 
 
@@ -26984,11 +26990,16 @@ def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
 
 
 def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
-    _record_strategy_scan(SECTOR_ROT_TAG)
+    for _tag, _n in SECTOR_ROT_CELLS.items():
+        _run_sector_rotation_cell(conn, dfs, capital, today, _tag, _n)
+
+
+def _run_sector_rotation_cell(conn, dfs: dict, capital, today: str, tag: str = SECTOR_ROT_TAG, n: int = SECTOR_ROT_N):
+    _record_strategy_scan(tag)
     for _s in _scan_visit(list(dfs)):  # B-1274 stage 2: the cross-sectional cell is evaluated for every scanned symbol
-        _record_symbol_strategy_scan(SECTOR_ROT_TAG)
+        _record_symbol_strategy_scan(tag)
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
-    for sym in sector_rotation_picks(dfs):
+    for sym in sector_rotation_picks(dfs, N=n):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue
         df = dfs[sym]
@@ -27004,19 +27015,19 @@ def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
             "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (sym, SECTOR_ROT_TAG, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
+            (sym, tag, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
         )
         apply_paper_trade(conn, sym, "buy", qty, entry_price)
         conn.execute(
             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
             (time.time(), sym, qty, entry_price, 1.0, SWING_STRATEGY_TAG,
-             json.dumps({"entry_reason": SECTOR_ROT_TAG, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
         )
         conn.commit()
-        print(f"[SWING] entry {sym} (sector_rotation) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        print(f"[SWING] entry {sym} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
         try:
-            _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, SECTOR_ROT_TAG)
+            _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, tag)
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {sym} (non-fatal, paper entry already recorded): {e}")
 
@@ -30234,7 +30245,7 @@ def _strategy_hold_spec(tag):
         return int(CHAN_SHAPE_CELLS[tag][1]), tf
     if tag in _PATTERN_LIVE_TAGS:
         return int(_PATTERN_LIVE_TAGS[tag][2]), tf
-    if tag == SECTOR_ROT_TAG:
+    if tag in SECTOR_ROT_CELLS:
         return SECTOR_ROT_HOLD_DAYS, "1d"
     if tag in ONEIL_DAILY_CELLS:
         return int(ONEIL_DAILY_CELLS[tag][2]), tf
