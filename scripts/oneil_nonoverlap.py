@@ -204,13 +204,18 @@ def summarize(a):
     }
 
 
-def cell_tag(spec, tf, d, ex_cfg, holds):
-    """(registry-style old tag, hold) for a cell spec in direction d."""
+def cell_tag(spec, tf, d, ex_cfg, holds, rsn=""):
+    """(registry-style old tag, hold) for a cell spec in direction d. rsn (B-1468): non-empty = RS ranked inside the
+    live swing watchlist, adds param rsn<rsn> (e.g. rsn200) so those tags never collide with the full-universe ones."""
+    def x(p):
+        if rsn:
+            p["rsn"] = rsn
+        return p
     kind = spec[0]
     if kind == "mainentry":
         fam, var, pk = resolve_key(spec[2], d)
         hold = holds[spec[3]]
-        p = {"h": hold, "atr": spec[4], "src": "main"}
+        p = x({"h": hold, "atr": spec[4], "src": "main"})
         if pk != "na":
             if pk.startswith("rs"):
                 p["rs"] = pk[2:]
@@ -219,22 +224,22 @@ def cell_tag(spec, tf, d, ex_cfg, holds):
         return ox.ptag(fam, var, d, tf, p), hold
     if kind == "filter":
         base_h = holds[1]
-        bt = ox.ptag("oneil_pivot", "breakout", d, tf, {"h": base_h, "atr": 3.0, "chase": 10})
+        bt = ox.ptag("oneil_pivot", "breakout", d, tf, x({"h": base_h, "atr": 3.0, "chase": 10}))
         ffam, fvar, fpk = spec[2]
         return ox.combo(bt, ox.ptag(ffam, fvar, d, tf, {"p": fpk})), base_h
     if kind == "entry":
         fam, var, pk = spec[2]
-        p = {"h": spec[3], "atr": spec[4]}
+        p = x({"h": spec[3], "atr": spec[4]})
         if pk != "na":
             p["p"] = pk
         return ox.ptag(fam, var, d, tf, p), spec[3]
     mode, val = spec[2], spec[3]
     hold = ex_cfg["six"] + 5
-    return ox.ptag("oneil_pivot", "exit", d, tf, {"h": hold, "atr": 3.0, "chase": 10, "xm": mode + str(int(val))}), hold
+    return ox.ptag("oneil_pivot", "exit", d, tf, x({"h": hold, "atr": 3.0, "chase": 10, "xm": mode + str(int(val))})), hold
 
 
 def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, raw_counts, split_date="", split_frac=0.6,
-               mirror=False, families=None):
+               mirror=False, families=None, rsn=""):
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     v = df["Volume"].to_numpy(float)
     rs = rs_series.reindex(df.index).to_numpy(float)
@@ -261,7 +266,7 @@ def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, ra
                     sg = msigs.get(resolve_key(spec[2], d_native))
                     if sg is None or not np.asarray(sg).any():
                         continue
-                    tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"])
+                    tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"], rsn)
                     kept, nraw = nonovl_trades_main(sg, o, h, l, c, matr, hold, spec[4], side, cost)
                     full = no.nonovl_tag(tag)
                     add_trades(aggs.setdefault(full, new_agg()), kept, sym, df.index)
@@ -291,7 +296,7 @@ def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, ra
                 else:
                     mode, val = spec[2], ex["six"]
                     sg = brk
-                tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"])
+                tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"], rsn)
                 if not np.asarray(sg).any():
                     continue
                 kept, nraw = nonovl_trades(sg, o, h, l, c, v, atr, hold, stopm, mode, val, None, side, cost, ex)
@@ -309,9 +314,21 @@ def _shard(args):
     tf = args.tf
     cfg, ex = orx.CFG[tf], ox.EX[tf]
     cost = app.ROUND_TRIP_COST_PCT / 100.0
-    syms = sorted(set(app._load_nse_universe_from_file()))[args.shard::args.nshards]
-    if args.maxsym:
-        syms = syms[:args.maxsym]
+    rs_universe = getattr(args, "rs_universe", "full") or "full"
+    if rs_universe == "n200":
+        # B-1468: RS ranked over exactly the live swing watchlist (main.SWING_WATCHLIST, NIFTY 200 + validated 52).
+        # Every shard fetches the WHOLE watchlist so the rank population is complete, then trades only its own slice.
+        fetch_syms = sorted(set(app.SWING_WATCHLIST))
+        syms = fetch_syms[args.shard::args.nshards]
+        if args.maxsym:
+            syms = syms[:args.maxsym]
+        trade_set = set(syms)
+        rsn = "200"
+    else:
+        syms = sorted(set(app._load_nse_universe_from_file()))[args.shard::args.nshards]
+        if args.maxsym:
+            syms = syms[:args.maxsym]
+        fetch_syms, trade_set, rsn = syms, None, ""
     period = args.period or cfg["period"]
     interval = "1wk" if tf == "1w" else "1d"
     idx_series = None
@@ -322,8 +339,8 @@ def _shard(args):
     except Exception as e:
         print("index download failed:", e, flush=True)
     data = {}
-    for b0 in range(0, len(syms), 100):
-        batch = syms[b0:b0 + 100]
+    for b0 in range(0, len(fetch_syms), 100):
+        batch = fetch_syms[b0:b0 + 100]
         try:
             d = yf.download(batch, period=period, interval=interval, group_by="ticker", auto_adjust=True, progress=False, threads=True)
         except Exception as e:
@@ -343,19 +360,25 @@ def _shard(args):
     cells_sel = [x for x in (args.cells or DEFAULT_CELLS[tf]).split(",") if x]
     fams = {x for x in (args.families or "").split(",") if x} or None
     aggs, raw_counts = {}, {}
-    for i, (s, df) in enumerate(data.items()):
+    traded = [(s, df) for s, df in data.items() if trade_set is None or s in trade_set]
+    for i, (s, df) in enumerate(traded):
         try:
             run_symbol(df, idx_series, rs_all[s], cfg, ex, cost, tf, cells_sel, aggs, raw_counts, args.split_date,
-                       args.split_frac, args.mirror, fams)
+                       args.split_frac, args.mirror, fams, rsn)
         except Exception as e:
             print("ERROR", s, e, file=sys.stderr)
         if i % 100 == 0:
             print("processed", i, "tags", len(aggs), flush=True)
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"oneil_nonovl_{tf}_{args.shard}.json"), "w") as f:
-        json.dump({"tf": tf, "cells": cells_sel, "fetched": len(data), "universe": len(syms), "split_date": args.split_date,
-                   "split_frac": args.split_frac, "raw_signal_trades": raw_counts, "aggs": aggs}, f, default=_jsonable)
-    print(f"shard {args.shard} {tf}: fetched {len(data)}/{len(syms)} tags {len(aggs)}")
+        meta = {"tf": tf, "cells": cells_sel, "fetched": len(traded), "universe": len(syms), "split_date": args.split_date,
+                "split_frac": args.split_frac, "raw_signal_trades": raw_counts, "aggs": aggs}
+        if trade_set is not None:
+            meta["rs_universe"] = rs_universe
+            meta["rs_population"] = len(data)
+        json.dump(meta, f, default=_jsonable)
+    print(f"shard {args.shard} {tf}: fetched {len(traded)}/{len(syms)} tags {len(aggs)}"
+          + (f" rs_population {len(data)}" if trade_set is not None else ""))
 
 
 def merge_dir(path):
@@ -384,6 +407,9 @@ def main(argv=None):
     r.add_argument("--families", default="", help="ext_main only: comma list of O'Neil families (blank = all)")
     r.add_argument("--period", default="")
     r.add_argument("--maxsym", type=int, default=0)
+    r.add_argument("--rs_universe", default="full", choices=("full", "n200"),
+                   help="full = RS ranked across the shard's full-universe slice (default); n200 = RS ranked across "
+                        "main.SWING_WATCHLIST, trading that same watchlist (tags gain rsn200)")
     r.add_argument("--split_date", default="")
     r.add_argument("--split_frac", type=float, default=0.6)
     r.add_argument("--out", default="out")

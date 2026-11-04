@@ -7034,6 +7034,36 @@ def oneil_rsscreen_signals(c, rs, tf: str, direction: str) -> np.ndarray:
     return np.nan_to_num(np.asarray(sig, float)).astype(bool)
 
 
+# B-1468: RS lookback in bars, identical to scripts/oneil_research.py CFG[tf]["rs_lb"] (12 months).
+ONEIL_RS_LB = {"1d": 252, "1w": 52}
+
+
+def oneil_rs_rank_series(closes, tf: str = "1d") -> pd.DataFrame:
+    """B-1468: per-date 1-99 RS rank across the given symbols, exactly as the replay
+    (scripts/oneil_research.rs_rank_matrix): 12-month return close/close.shift(lb)-1, ranked across columns with
+    pct=True, scaled *98+1. `closes` is a DataFrame (columns = symbols) or {symbol: close Series}. Meant to be
+    computed ONCE per swing pass over the live watchlist (main.SWING_WATCHLIST) so an oneil_rsscreen cell ranks
+    inside the same population the rs_universe=n200 replay validated. Additive and UNWIRED: no live caller yet."""
+    if not isinstance(closes, pd.DataFrame):
+        closes = pd.DataFrame(dict(closes))
+    lb = ONEIL_RS_LB[tf]
+    ret = closes / closes.shift(lb) - 1
+    return ret.rank(axis=1, pct=True) * 98 + 1
+
+
+def oneil_rs_rank_for_swing_pass(frames: dict, tf: str = "1d") -> pd.DataFrame:
+    """B-1468: build the RS rank matrix from a swing pass's {symbol: OHLC DataFrame} prefetch (None/empty/failed
+    fetches skipped). UNWIRED helper for a future oneil_rsscreen live cell."""
+    closes = {}
+    for sym, df in (frames or {}).items():
+        if df is None or not hasattr(df, "columns") or "Close" not in df.columns or len(df) == 0:
+            continue
+        closes[sym] = df["Close"].astype(float)
+    if not closes:
+        return pd.DataFrame()
+    return oneil_rs_rank_series(closes, tf)
+
+
 def oneil_ext_signals(direction: str, tf: str, o, h, l, c, v, idx=None, rs=None) -> dict:
     """All ext entry arrays for one direction: {(family, variant, pkey): bool array}. Short = mirror of the bullish
     detector; oneil_rsscreen (needs rs) is native on both sides with pkey rs90 (long) / rs20 (short)."""
