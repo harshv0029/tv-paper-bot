@@ -170,7 +170,8 @@ def match_round_trips(ledger_rows: list, charges_fn=None, side_hints=None) -> tu
                     lots.append({"side": "short", "qty": sq, "px": spx, "day": day})
         for lot in lots:
             open_lots.append({"symbol": sym, "side": lot["side"], "qty": lot["qty"], "entry_day": lot["day"].isoformat(),
-                              "entry_value_inr": round(lot["qty"] * lot["px"], 2)})
+                              "entry_value_inr": round(lot["qty"] * lot["px"], 2), "entry_px": lot["px"],
+                              "seg": seg, "prod": prod})  # B-1461: seg/prod/px for the mark-to-market running CAGR
     return closed, open_lots, notes
 
 
@@ -223,6 +224,7 @@ def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: i
     out["rolling_30d_series"] = rolling_30d_series(closed, open_lots, ledger_start, today)
     out["closed_trades"] = sorted(closed, key=lambda t: (t["exit_day"], t["symbol"]), reverse=True)[:trades_limit]
     out["closed_trades_total"] = len(closed)
+    out["open_lot_rows"] = open_lots  # B-1461: for the running (mark-to-market) CAGR
     return out
 
 
@@ -269,7 +271,9 @@ def since_start_kpis(closed: list, open_lots: list, ledger_start, today: dt.date
     net = sum(t["net_pnl_inr"] for t in ts)
     avg = sum(dep.values()) / len(dep)
     days = len(dep)
-    out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2))
+    out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2),
+               gross_pnl_inr=round(sum(t["gross_pnl_inr"] for t in ts), 2),  # B-1460: before charges
+               charges_inr=round(sum(t["charges_inr"] for t in ts), 2))
     notes = []
     if avg > 0:
         r = net / avg
@@ -319,4 +323,53 @@ def rolling_30d_series(closed: list, open_lots: list, ledger_start, today: dt.da
                     "net_pnl_inr": round(net, 2), "avg_deployed_inr": round(avg, 2),
                     "full_window": (d - a).days == 29})
         d += DAY
+    return out
+
+
+def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, charges_fn=None) -> dict:
+    """B-1461: running (mark-to-market) return and CAGR since start = realised net P&L of exited trades PLUS the
+    unrealised net P&L of every open lot (holdings and positions) valued at its live price, over the same average
+    deployed capital and covered days as since_start. Unrealised net deducts the statutory charges an exit at that
+    price would cost (brokerage not included). A lot with no live price is left out and counted, never guessed."""
+    out = {"realised_net_inr": since_start.get("net_pnl_inr"), "unrealised_gross_inr": None,
+           "unrealised_charges_inr": None, "unrealised_net_inr": None, "total_net_inr": None, "return_pct": None,
+           "cagr_pct": None, "open_lots": len(open_lots), "priced_lots": 0, "unpriced": [], "lots": [], "reason": None}
+    days, avg = since_start.get("covered_days") or 0, since_start.get("avg_deployed_inr") or 0
+    if since_start.get("net_pnl_inr") is None or days <= 0:
+        out["reason"] = since_start.get("reason") or "no Kotak fill ledger yet"
+        return out
+    ug = uc = 0.0
+    for o in open_lots:
+        px = price_by_symbol.get(o["symbol"])
+        try:
+            px = float(px) if px is not None else None
+        except (TypeError, ValueError):
+            px = None
+        if not px or px <= 0 or not o.get("entry_px"):
+            out["unpriced"].append(o["symbol"])
+            continue
+        q, epx, long_ = o["qty"], o["entry_px"], o["side"] != "short"
+        buy_v, sell_v = (epx if long_ else px) * q, (px if long_ else epx) * q
+        ch = float(charges_fn(o.get("seg"), o["symbol"], o.get("prod"), buy_v, sell_v)) if charges_fn else 0.0
+        ug += sell_v - buy_v
+        uc += ch
+        out["priced_lots"] += 1
+        out["lots"].append({"symbol": o["symbol"], "side": o["side"], "qty": q, "entry_px": round(epx, 2),
+                            "ltp": round(px, 2), "unrealised_net_inr": round(sell_v - buy_v - ch, 2)})
+    total = since_start["net_pnl_inr"] + ug - uc
+    out.update(unrealised_gross_inr=round(ug, 2), unrealised_charges_inr=round(uc, 2), unrealised_net_inr=round(ug - uc, 2),
+               total_net_inr=round(total, 2))
+    notes = []
+    if avg > 0:
+        r = total / avg
+        out["return_pct"] = round(r * 100, 3)
+        if 1 + r > 0:
+            out["cagr_pct"] = round(((1 + r) ** (365.0 / days) - 1) * 100, 2)
+        else:
+            notes.append("CAGR undefined: loss larger than the average deployed capital")
+    if out["unpriced"]:
+        notes.append(f"{len(out['unpriced'])} open lot(s) had no live price or entry price and are left out")
+    if days < MIN_ANNUALISE_DAYS:
+        notes.append(f"annualised from only {days} days; swings widely until {MIN_ANNUALISE_DAYS} days")
+    out["reason"] = "; ".join(notes) or None
     return out
