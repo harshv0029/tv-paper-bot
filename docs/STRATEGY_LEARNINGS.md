@@ -1647,3 +1647,29 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Surprise:** a 2y daily prefetch resamples to ~104 weeks, below the replay's 120-week eligibility rule, so the live weekly population uses a 100-week proxy. The residual mismatch is stocks listed 2.0-2.3 years ago.
 - **Reuse:** any cross-sectional (relative) signal must be validated on the population the live path can actually rank, not the research universe.
 - **Profit-booking / exit takeaway:** the daily cell's OOS edge (1.09) is thin next to the weekly one (3.46): the weekly cell holds longer and keeps far more of the trend, so it sits high in its cascade while the daily one is only a top-of-list daily filler.
+
+## B-1467 chan_kalman v1 band, main.py replay (2026-11-05)
+- Mechanism: Kalman adaptive mean on log close; long when the error drops below -2·sqrtQ, exit when price crosses back to the mean, stop entry - 4×ATR14, max hold 40 bars.
+- Result (full NSE universe, run 41881365947, cost 0.8%): LONG 1d atr4 z2 Ve1e-3 PFnet 1.367, OOS 1.105, n 27,328, avg hold 6 bars, wired. Tighter stops fail (atr2.5 1.234/1.000, atr1.5 1.065/0.881). Every SHORT mirror fails (~0.84): fading strength does not pay on NSE daily bars.
+- Surprise: the state exit carries the whole edge (PFnet 2.2 on 26k trades); every stop-out is a full loss. A wide stop lets the mean-reversion finish.
+- Profit-booking / exit takeaway: on this mean-reversion family, book at the mean (state exit), not at a fixed target, and keep the stop wide (4×ATR); a tight stop turns a winning reversion into a stop-out.
+
+## Minervini lab main-replay LONG (B-1467, 2026-11-05)
+- Mechanism: real `main.minervini_vcp_entry_signal` (RS gate skipped) with 79 lab exit/filter variants ported into main.py, full universe 2053 symbols, 1d, max hold 60, cost 0.8%.
+- Result: the plain base cell is breakeven (PFnet 1.000, OOS 0.691). Most exit variants lift pooled PFnet to 1.4-1.6 but collapse OOS (< 0.95): the in-sample edge came from the 2021-24 bull run.
+- Only 3 cells hold OOS > 1 (early_bull_10_25_on, rs_blend_ge70_off, after_stopout_cluster_off), and all hold 30.6-37.5 bars on average, over the 30-bar wiring bar. Not wired.
+- Reuse: for VCP the regime filter (early bull) and the after-stop-out cluster filter are the only things that survive OOS; a shorter max hold (h30/h40) on those three is the next cheap test to bring hold under 30.
+- Profit-booking / exit takeaway: VCP winners need long holds; exits that cut them early (ma50 trail, breakeven after 1R) lose OOS, so book profit on time/regime, not tight trails.
+- Short mirror (run 41888716565): only after_stopout_cluster_off passes (1.314 / OOS 1.573) and its IS is 0.555. That filter (and the long 2.934 cell) uses the lab's look-ahead cluster rule, so treat any stop-out-cluster number from scripts/minervini_lab.py as contaminated until re-run with the no-look-ahead `_nla_` variant (only trades exited before entry, matching the live `_swing_stopout_cluster`).
+- Profit-booking / exit takeaway: a portfolio-state filter (recent stop-outs) must be built from trades already closed at entry time, or it books phantom profit.
+
+## chan_kalman v1 band LONG 1h wired (B-1465, 2026-11-05)
+- Same Kalman band rule as the wired 1d cell, on completed 1h bars in the swing engine's 1h long leg. Replay 41886040481: PFnet 1.083, IS 1.127, OOS 1.002 (n 1681), avg hold 8.2 bars. The OOS margin is razor-thin, so the registry gate will close it automatically if a later re-measure lands at or below 1.00.
+- Exits: state_exit trades carry the edge (PFnet 2.67, 89% of trades); 4xATR stops are all losers. Same shape as 1d.
+- Lesson: check the code before believing a backlog "no live path" note; the 1h long leg existed since B-984.
+- Profit-booking / exit takeaway: book on the mean-reversion state exit; do not tighten the 4xATR stop (tighter stops failed on 1d).
+
+## Minervini lab cells wired at h30/h40 (B-1469, 2026-11-05)
+- Cutting max hold from 60 to 30/40 bars brought three VCP cells under the 30-bar wiring bar and lifted their OOS (early_bull h40 OOS 1.196 vs h60 1.138). Shorter holds did not hurt pooled PFnet (about 1.30).
+- Exit = 8% hard stop (pct8_hard) + time exit; the trailing/MA exits that looked better pooled all failed OOS.
+- Profit-booking / exit takeaway: for VCP breakouts, a fixed 8% stop plus a 30-40 bar time exit beats every trailing exit out of sample; book on time, not on a trail.

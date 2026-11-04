@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
 import bar_hygiene as bh  # noqa: E402
 
-JOBS = ("long", "short", "baseline_long", "baseline_short")
+JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40", "short_h30", "short_h40")  # _hNN: max-hold sweep (B-1469)
 MAXH = 60
 IS_FRAC = 0.7
 COOLDOWN = 5
@@ -56,18 +56,20 @@ BASELINE_VARIANTS = ("pct8_hard", "rr3", "ma200_break")
 TOL = 1e-9
 
 
-def new_tag(variant, direction, maxh=MAXH):
+def new_tag(variant, direction, maxh=None):
+    maxh = MAXH if maxh is None else maxh
     return f"minervini_vcp__{variant}_srcmain__{direction}__1d__h{maxh}__v1"
 
 
-def source_tag(variant, direction, maxh=MAXH):
+def source_tag(variant, direction, maxh=None):
+    maxh = MAXH if maxh is None else maxh
     return f"minervini_vcp__{variant}__{direction}__1d__h{maxh}__v1"
 
 
 def job_spec(job):
     if job not in JOBS:
         raise SystemExit(f"unknown job {job!r}; jobs: {JOBS}")
-    direction = "short" if job.endswith("short") else "long"
+    direction = "short" if "short" in job else "long"
     return direction, job.startswith("baseline")
 
 
@@ -159,6 +161,20 @@ def baseline_signals(df, direction):
     return [(i, float(c[i]), float(c[i]) * k, 1.0) for i in range(FIRST_BAR, len(df) - 2, 10)]
 
 
+def stopout_cluster_flags_no_lookahead(trades, lookback=5, losers=3):
+    """B-1469: the live rule (main._swing_stopout_cluster): flag a trade when >= `losers` of the last `lookback` trades
+    that had EXITED strictly before its entry date lost. `trades` sorted by entry_date. No look-ahead."""
+    import bisect
+    closed = sorted(trades, key=lambda t: t["exit_date"])
+    exits = [t["exit_date"] for t in closed]
+    out = []
+    for t in trades:
+        k = bisect.bisect_left(exits, t["entry_date"])
+        prev = closed[max(0, k - lookback):k]
+        out.append(len(prev) == lookback and sum(1 for p in prev if p["net"] < 0) >= losers)
+    return out
+
+
 def walk(m, variant, df, arrs, sigs, direction, cost, accept=None):
     """Strict one position per symbol: a signal at or before the previous trade's exit bar is skipped."""
     o, h, l, c, mas = arrs
@@ -173,7 +189,8 @@ def walk(m, variant, df, arrs, sigs, direction, cost, accept=None):
             continue
         x, px, held, reason, ent = r
         g = sgn * (px / ent - 1)
-        trades.append({"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_date": df.index[i + 1]})
+        trades.append({"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_date": df.index[i + 1],
+                       "exit_date": df.index[min(x, len(df.index) - 1)]})
         free_from = x + 1
     return trades
 
@@ -196,7 +213,10 @@ def summarize(trades, split_date):
 
 def run(job):
     import main as m
+    global MAXH
     direction, baseline = job_spec(job)
+    if "_h" in job:
+        MAXH = int(job.rsplit("_h", 1)[1])
     lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     t0 = time.time()
     frames, dropped, requested = load_frames(m, lim)
@@ -262,13 +282,17 @@ def run(job):
         flags = m.minervini_lab_stopout_cluster_flags([t["net"] for t in cluster_stream])
         acc["pct8_hard_f_after_stopout_cluster_on"] = [t for t, f in zip(cluster_stream, flags) if f]
         acc["pct8_hard_f_after_stopout_cluster_off"] = [t for t, f in zip(cluster_stream, flags) if not f]
+        nla = stopout_cluster_flags_no_lookahead(cluster_stream)  # B-1469: only trades CLOSED before entry count
+        acc["pct8_hard_f_after_stopout_cluster_nla_on"] = [t for t, f in zip(cluster_stream, nla) if f]
+        acc["pct8_hard_f_after_stopout_cluster_nla_off"] = [t for t, f in zip(cluster_stream, nla) if not f]
     rows = {}
     for v, trades in acc.items():
         if not trades:
             continue
         rows[new_tag(v, direction)] = {
             "variant": v, "direction": direction, "source_tag": source_tag(v, direction), "metrics": summarize(trades, split_date),
-            "note": ("stopout-cluster flag reads earlier-entered trades' final results (lab look-ahead, ported verbatim)"
+            "note": (("stopout-cluster flag uses only trades exited before entry (no look-ahead, live rule)" if "_nla_" in v else
+                      "stopout-cluster flag reads earlier-entered trades' final results (lab look-ahead, ported verbatim)")
                      if "stopout_cluster" in v else None)}
     out = {"job": job, "direction": direction, "tf": "1d", "max_hold_bars": MAXH, "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
            "universe": "main._load_nse_universe_from_file() minus ETF_SYMBOLS", "universe_requested": requested,
