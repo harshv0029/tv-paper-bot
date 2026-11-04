@@ -6801,6 +6801,243 @@ def oneil_exit_reason(df, tf: str, direction: str, entry_pos: int, stop: float, 
     return oneil_exit_bar(direction, o[j], h[j], l[j], c[j], j, entry_pos + hold - 1, stop, init, target)
 
 
+# ---------------------------------------------------------------------------
+# O'Neil EXTENSION entry detectors (B-1463). ADDITIVE, UNWIRED PORT of scripts/oneil_ext_research.bull_signals
+# (families hft/shakeout/hns/triple/trendline/tightarea/pullback/rsline/leaders/volpct) and of the RS-screen rule in
+# scripts/oneil_research.entry_signals (oneil_rsscreen). Constants and arithmetic are copied verbatim; every array
+# value at bar t depends only on bars <= t (rolling windows are backward-looking, swing pivots count only once
+# confirmed sw bars later), so oneil_ext_signal_at(t) on bars[:t+1] equals the full-array value at t.
+# Short = the research's reciprocal-price mirror (o'=1/o, h'=1/l, l'=1/h, c'=1/c, idx'=1/idx, rs'=100-rs) of the
+# same bullish detector, its own direction. oneil_rsscreen keeps its research definition on both sides (long
+# RS>=90 near the 52w high, short RS<=20 near the 52w low, native, not mirrored) so it matches the registered cells.
+# No live scan, no real-order path, no kill switch. Exits reuse oneil_stop_price / oneil_exit_bar.
+# ---------------------------------------------------------------------------
+ONEIL_EXT_CFG = {
+    "1d": dict(pole=40, flag=15, sw=4, sk=10, pull=20, ma10=50, tight5=5, idx_lb=120, idx_rec=63,
+               hs_max_age=40, tl_age=60, tl_min_sep=5, trip_span=20),
+    "1w": dict(pole=8, flag=3, sw=2, sk=2, pull=4, ma10=10, tight5=3, idx_lb=26, idx_rec=13,
+               hs_max_age=8, tl_age=12, tl_min_sep=2, trip_span=5),
+}
+ONEIL_EXT_SHAKE_M = (1.0, 2.0)
+ONEIL_EXT_TIGHT5 = (0.02, 0.03)
+ONEIL_EXT_VOLPCT = (3.0, 5.0)
+ONEIL_EXT_FAMILIES = ("oneil_hft", "oneil_shakeout", "oneil_hns", "oneil_triple", "oneil_trendline", "oneil_tightarea",
+                      "oneil_pullback", "oneil_rsline", "oneil_leaders", "oneil_volpct", "oneil_rsscreen")
+
+
+def _ox_shift(x, k=1):
+    x = np.asarray(x, float)
+    out = np.full_like(x, np.nan)
+    if k > 0:
+        out[k:] = x[:-k]
+    elif k < 0:
+        out[:k] = x[-k:]
+    else:
+        out[:] = x
+    return out
+
+
+def _ox_sma(x, n):
+    return pd.Series(x).rolling(n).mean().to_numpy()
+
+
+def _ox_rmax(x, n):
+    return pd.Series(x).rolling(n).max().to_numpy()
+
+
+def _ox_rmin(x, n):
+    return pd.Series(x).rolling(n).min().to_numpy()
+
+
+def _ox_atr(h, l, c, n=14):
+    pc = _ox_shift(c)
+    tr = np.nanmax(np.vstack([h - l, np.abs(h - pc), np.abs(l - pc)]), axis=0)
+    return pd.Series(tr).rolling(n).mean().to_numpy()
+
+
+def _ox_fnum(v):
+    return ("%g" % v).replace(".", "d")
+
+
+def _ox_swing_pivots(h, l, sw):
+    """Confirmed swing highs/lows: list of (k, price, confirm_index=k+sw)."""
+    n = len(h)
+    hi, lo = [], []
+    for k in range(sw, n - sw):
+        if h[k] == np.max(h[k - sw:k + sw + 1]):
+            hi.append((k, h[k], k + sw))
+        if l[k] == np.min(l[k - sw:k + sw + 1]):
+            lo.append((k, l[k], k + sw))
+    return hi, lo
+
+
+def _ox_confirmed(piv, t):
+    out = []
+    for p in piv:
+        if p[2] <= t:
+            out.append(p)
+        else:
+            break
+    return out
+
+
+def oneil_ext_mirror(o, h, l, c, idx=None, rs=None):
+    """Reciprocal-price mirror: the bullish detector run on this IS the short rule on the original series."""
+    o, h, l, c = (np.asarray(a, float) for a in (o, h, l, c))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mi = None if idx is None else 1.0 / np.asarray(idx, float)
+        mr = None if rs is None else 100.0 - np.asarray(rs, float)
+        return 1.0 / o, 1.0 / l, 1.0 / h, 1.0 / c, mi, mr
+
+
+def oneil_ext_bull_signals(o, h, l, c, v, idx, rs, tf: str) -> dict:
+    """Bullish ext detectors (signal at the close of t). Returns {(family, variant, pkey): bool array}.
+    idx=None skips the index-dependent families (rsline, leaders), as in the research. rs is unused (kept for
+    signature parity with the research bull_signals)."""
+    o, h, l, c, v = (np.asarray(a, float) for a in (o, h, l, c, v))
+    cfg, ex = ONEIL_CFG[tf], ONEIL_EXT_CFG[tf]
+    n = len(c)
+    base, vol_n, smalt, yr = cfg["base"], cfg["vol"], cfg["smalt"], cfg["yr"]
+    vavg = _ox_shift(_ox_sma(v, vol_n))
+    ma = _ox_sma(c, smalt)
+    ma50 = _ox_sma(c, ex["ma10"])
+    atr = _ox_atr(h, l, c)
+    E = {}
+    zero = np.zeros(n, bool)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        volok = v >= ONEIL_VOL_MULT * vavg
+        # high tight flag (B-467)
+        Fb, P = ex["flag"], ex["pole"]
+        fH, fL = _ox_shift(_ox_rmax(h, Fb)), _ox_shift(_ox_rmin(l, Fb))
+        poleLow = _ox_shift(_ox_rmin(l, P), Fb)
+        E[("oneil_hft", "breakout", "na")] = (fH / poleLow >= 2.0) & ((fH - fL) / fH <= 0.20) & (c > fH) & volok
+        # shakeout plus m*ATR (B-468)
+        sk = ex["sk"]
+        baseLow = _ox_shift(_ox_rmin(l, base), sk)
+        brokeLow = _ox_shift(_ox_rmin(l, sk))
+        brokeRec = brokeLow < baseLow
+        for m in ONEIL_EXT_SHAKE_M:
+            lvl = baseLow + m * atr
+            E[("oneil_shakeout", "plus3", f"m{_ox_fnum(m)}")] = (brokeRec & (c > lvl) & (_ox_shift(c) <= _ox_shift(lvl))
+                                                                 & (c > baseLow))
+        # inverse H&S (B-470), triple bottom (B-471), descending trendline break (B-472)
+        hi, lo = _ox_swing_pivots(h, l, ex["sw"])
+        hns, trip, tl = zero.copy(), zero.copy(), zero.copy()
+        age = ex["hs_max_age"]
+        for t in range(n):
+            los = _ox_confirmed(lo, t)
+            his = _ox_confirmed(hi, t)
+            if len(los) >= 3:
+                (k1, p1, _), (k2, p2, _), (k3, p3, c3) = los[-3], los[-2], los[-1]
+                if p2 < p1 * 0.97 and p2 < p3 * 0.97 and abs(p1 - p3) / p1 <= 0.15 and 0 < t - c3 <= age:
+                    n1 = [x[1] for x in his if k1 < x[0] < k2]
+                    n2 = [x[1] for x in his if k2 < x[0] < k3]
+                    if n1 and n2:
+                        neck = (max(n1) + max(n2)) / 2.0
+                        if c[t] > neck and (t == 0 or c[t - 1] <= neck) and volok[t]:
+                            hns[t] = True
+                lows3 = [p1, p2, p3]
+                if (max(lows3) - min(lows3)) / max(lows3) <= 0.03 and k3 - k1 >= ex["trip_span"] and 0 < t - c3 <= age:
+                    mid = [x[1] for x in his if k1 < x[0] < k3]
+                    if mid:
+                        neck = max(mid)
+                        if c[t] > neck and (t == 0 or c[t - 1] <= neck) and volok[t]:
+                            trip[t] = True
+            if len(his) >= 2:
+                (ka, pa, _), (kb, pb, cb) = his[-2], his[-1]
+                if pb < pa and kb - ka >= ex["tl_min_sep"] and 0 < t - cb <= ex["tl_age"]:
+                    line_t = pb + (pb - pa) / (kb - ka) * (t - kb)
+                    line_p = pb + (pb - pa) / (kb - ka) * (t - 1 - kb)
+                    if c[t] > line_t and t > 0 and c[t - 1] <= line_p:
+                        tl[t] = True
+        E[("oneil_hns", "neckline", "na")] = hns
+        E[("oneil_triple", "neckline", "na")] = trip
+        E[("oneil_trendline", "break", "na")] = tl
+        # tight area (B-471)
+        t5 = ex["tight5"]
+        tH, tCmax, tCmin = _ox_shift(_ox_rmax(h, t5)), _ox_shift(_ox_rmax(c, t5)), _ox_shift(_ox_rmin(c, t5))
+        for th in ONEIL_EXT_TIGHT5:
+            E[("oneil_tightarea", "breakout", f"r{_ox_fnum(th * 100)}")] = (((tCmax - tCmin) / tCmax <= th) & (c > tH)
+                                                                           & volok & (c > ma))
+        # pullback buy (B-478)
+        Hh = _ox_shift(_ox_rmax(h, ex["pull"]))
+        dry3 = _ox_sma(v, 3) < 0.75 * vavg
+        E[("oneil_pullback", "buy", "na")] = ((c < Hh) & (c >= 0.95 * Hh) & (Hh >= 0.97 * _ox_shift(_ox_rmax(h, yr)))
+                                              & _ox_shift(dry3.astype(float)).astype(bool) & (c > ma50) & (c > o))
+        # leaders first high (B-480), RS line new high (B-484): need the index
+        if idx is not None:
+            idx = np.asarray(idx, float)
+            nh = (c > _ox_shift(_ox_rmax(c, yr))).astype(float)
+            cs = np.cumsum(np.nan_to_num(nh))
+            first_after_low = zero.copy()
+            L = ex["idx_lb"]
+            for t in range(L, n):
+                w = idx[t - L:t + 1]
+                if np.isnan(w).any():
+                    continue
+                pos = t - L + int(np.argmin(w))
+                if (t - pos <= ex["idx_rec"] and idx[t] / idx[pos] - 1 >= 0.05 and nh[t] == 1
+                        and (cs[t - 1] - cs[pos]) == 0):
+                    first_after_low[t] = True
+            E[("oneil_leaders", "firsthigh", "na")] = first_after_low
+            rsl = c / idx
+            E[("oneil_rsline", "newhigh", "na")] = ((rsl > _ox_shift(_ox_rmax(rsl, yr))) & (c < _ox_shift(_ox_rmax(c, yr)))
+                                                    & (c > ma))
+        # volume % surge (B-487)
+        vr = v / vavg - 1
+        for th in ONEIL_EXT_VOLPCT:
+            E[("oneil_volpct", "surge", f"v{_ox_fnum(th)}")] = (vr >= th) & (c / _ox_shift(c) - 1 >= 0.02) & (c > o)
+    return {k: np.nan_to_num(np.asarray(m, float)).astype(bool) for k, m in E.items()}
+
+
+def oneil_rsscreen_signals(c, rs, tf: str, direction: str) -> np.ndarray:
+    """oneil_rsscreen__top (B-483), research definition: long RS>=90 & close>MA & close>=95% of the 52w high,
+    short RS<=20 & close<MA & close<=105% of the 52w low; first bar of each run only."""
+    c = np.asarray(c, float)
+    rs = np.asarray(rs, float)
+    cfg = ONEIL_CFG[tf]
+    ma = _ox_sma(c, cfg["smalt"])
+    yr = cfg["yr"]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        if direction == "long":
+            cond = (rs >= 90) & (c > ma) & (c >= 0.95 * _ox_rmax(c, yr))
+        else:
+            cond = (rs <= 20) & (c < ma) & (c <= 1.05 * _ox_rmin(c, yr))
+        sig = cond & (_ox_shift(cond.astype(float)) != 1)
+    return np.nan_to_num(np.asarray(sig, float)).astype(bool)
+
+
+def oneil_ext_signals(direction: str, tf: str, o, h, l, c, v, idx=None, rs=None) -> dict:
+    """All ext entry arrays for one direction: {(family, variant, pkey): bool array}. Short = mirror of the bullish
+    detector; oneil_rsscreen (needs rs) is native on both sides with pkey rs90 (long) / rs20 (short)."""
+    if direction == "long":
+        mo, mh, ml, mc = (np.asarray(a, float) for a in (o, h, l, c))
+        mi, mr = idx, rs
+    else:
+        mo, mh, ml, mc, mi, mr = oneil_ext_mirror(o, h, l, c, idx, rs)
+    out = oneil_ext_bull_signals(mo, mh, ml, mc, v, mi, mr, tf)
+    if rs is not None:
+        key = ("oneil_rsscreen", "top", "rs90" if direction == "long" else "rs20")
+        out[key] = oneil_rsscreen_signals(c, rs, tf, direction)
+    return out
+
+
+def oneil_ext_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c, v, idx=None, rs=None,
+                        pkey: str = "na") -> bool:
+    """Walk-forward check: does (family, pkey) fire at the CLOSE of bar t using only bars <= t?"""
+    if family not in ONEIL_EXT_FAMILIES or tf not in ONEIL_EXT_CFG or t < 0 or t >= len(c):
+        return False
+
+    def cut(a):
+        return None if a is None else np.asarray(a, float)[:t + 1]
+
+    sigs = oneil_ext_signals(direction, tf, cut(o), cut(h), cut(l), cut(c), cut(v), cut(idx), cut(rs))
+    for (fam, _var, pk), arr in sigs.items():
+        if fam == family and pk == pkey:
+            return bool(arr[t])
+    return False
+
+
 # ---- O'Neil 1w LONG cells wired into the live SWING scan (2026-10-14, user "go"; main.py replay run 38517583883) ----
 # The scan holds completed DAILY bars; weekly bars are resampled from them (W-FRI, same as scripts/oneil_replay.py's 1w
 # feed). Signal = last COMPLETED week, evaluated in the first 1-2 sessions of the next week (entry ~ that week's open).
