@@ -44,7 +44,7 @@ def test_heal_carries_floor_not_the_lowered_stop():
         main._swing_entry_stop_record(c, "X.NS", 126.73, "entry", replace=True)
     placed = {}
 
-    def _ensure(trd, qty, trg):
+    def _ensure(trd, qty, trg, **kw):
         placed["trg"] = trg
         return {"ok": True, "order_id": "1", "trigger_price": trg}
     with patch("kotak_real_orders.ensure_resting_sl", side_effect=_ensure), \

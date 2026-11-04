@@ -44,7 +44,7 @@ def test_holding_heals_run_in_parallel(monkeypatch):
     holdings = {f"S{i}-EQ": {"symbol": f"S{i}", "qty": 1, "avg_price": 100.0} for i in range(5)}
     active, peak, lock = [0], [0], threading.Lock()
 
-    def slow_heal(trd, held, rows):
+    def slow_heal(trd, held, rows, **kw):
         with lock:
             active[0] += 1
             peak[0] = max(peak[0], active[0])
