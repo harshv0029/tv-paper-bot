@@ -7064,6 +7064,129 @@ def _chan_kalman_1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) ->
     return False
 
 
+# ---- B-1469 Minervini lab cells, WIRED into the live swing scan (main.py-calling replays on the full NSE universe,
+# scripts/minervini_lab_main_replay_job.py jobs long_h40 / long_h30). Entry = the real minervini_vcp_entry_signal with the
+# RS gate skipped (rs_percentile=None, as replayed), then ONE lab feature filter (main.minervini_lab_features at the
+# signal bar; ^NSEI closes from the pass index for early_bull). Exit = lab variant pct8_hard: a fixed stop 8% under the
+# entry on EVERY trade, else the close of bar `maxh` after entry (main.minervini_lab_exit_reason). Order = priority.
+# rs_blend_ge70 cells also passed but rank RS on the full universe (population rule: not wired); stop-out-cluster cells
+# used a look-ahead lab rule (not wired). Deviations: paper enters at the signal close (replay: next open) and the
+# replay's 5-bar signal cooldown is replaced by the swing engine's one-position-per-symbol rule.
+# tag -> (feature name, wanted value, max hold bars)
+MINERVINI_LAB_LIVE_CELLS = {
+    # run 41891148569 (h40): PFnet 1.302, IS 1.313, OOS 1.196 (n 194), n 1753, avg hold 23.3 bars
+    "minervini_vcp__pct8_hard_f_early_bull_10_25_on_srcmain__long__1d__h40__v1": ("early_bull_10_25", True, 40),
+    # run 41891143316 (h30): PFnet 1.292, IS 1.315, OOS 1.196 (n 75), n 349, avg hold 18.9 bars
+    "minervini_vcp__pct8_hard_f_updown_vol_pos_off_srcmain__long__1d__h30__v1": ("updown_vol_pos", False, 30),
+    # run 41891143316 (h30): PFnet 1.104, IS 1.071, OOS 1.324 (n 42), n 270, avg hold 15.7 bars
+    "minervini_vcp__pct8_hard_f_ext_le5_off_srcmain__long__1d__h30__v1": ("ext_le5", False, 30),
+}
+MINERVINI_LAB_LIVE_VARIANT = "pct8_hard"
+MINERVINI_LAB_LIVE_MIN_BARS = 260  # features look back 252 bars
+
+
+def _minervini_lab_live_index(df):
+    """^NSEI closes reindexed onto df's dates (forward-filled), or None when the pass has no index."""
+    ix = _ONEIL_DAILY_IDX.get("close")
+    if ix is None:
+        return None
+    try:
+        return ix.reindex(_oneil_daily_dates(df)).ffill().to_numpy(float)
+    except Exception:
+        return None
+
+
+def minervini_lab_live_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """Last-bar signal for a MINERVINI_LAB_LIVE_CELLS tag; None when no VCP signal, the filter fails, or no valid stop."""
+    cfg = MINERVINI_LAB_LIVE_CELLS.get(tag)
+    if cfg is None or df is None or len(df) < MINERVINI_LAB_LIVE_MIN_BARS:
+        return None
+    feat, want, _maxh = cfg
+    sig = minervini_vcp_entry_signal(df, rs_percentile=None)
+    if not sig:
+        return None
+    idx = _minervini_lab_live_index(df) if feat == "early_bull_10_25" else None
+    if feat == "early_bull_10_25" and (idx is None or not np.isfinite(idx[-1])):
+        return None  # no index -> no signal (fail closed)
+    try:
+        f = minervini_lab_features(df, len(df) - 1, idx, None, False)
+    except Exception:
+        return None
+    if feat not in f or bool(f[feat]) != want:
+        return None
+    px = float(df["Close"].iloc[-1])
+    stop0 = float(sig["stop_loss"])
+    if not (0 < stop0 < px):
+        return None  # lab: stop on the wrong side of the entry -> no trade
+    stop = minervini_lab_initial_stop(MINERVINI_LAB_LIVE_VARIANT, px, stop0, "long")
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "stop0": stop0, "atr_at_entry": float(sig.get("atr_at_entry") or 0.0),
+            "risk": px - stop, "direction": "long"}
+
+
+def _minervini_lab_live_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag):
+    """Swing exit fn signature (reason, new_running_max). Bars after entry_day are the held bars (first = fill bar);
+    walks minervini_lab_exit_reason (pct8_hard: the frozen stop, then the max-hold close)."""
+    if df is None or len(df) == 0:
+        return None, running_max_close
+    _f, _w, maxh = MINERVINI_LAB_LIVE_CELLS[tag]
+    new_running_max = max(float(running_max_close or 0.0), float(df["Close"].iloc[-1]))
+    dates = df["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates > str(entry_day)[:10])
+    if len(starts) == 0:
+        return None, new_running_max
+    start = int(starts[0])
+    o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
+    ma20, ma50, ma200 = minervini_lab_moving_averages(c)
+    st = float(initial_stop)
+    pos = {"entry": float(c[start - 1]) if start > 0 else st, "stop": st, "R": 0.0, "extreme": float(c[start - 1]) if start > 0 else st,
+           "atr": float(atr_at_entry or 0.0), "entry_idx": start}
+    for j in range(start, len(df)):
+        reason, _px = minervini_lab_exit_reason(MINERVINI_LAB_LIVE_VARIANT, pos, j, o, h, l, c, ma20, ma50, ma200, "long", maxh)
+        if reason:
+            return "minervini_lab_" + reason, new_running_max
+    return None, new_running_max
+
+
+def _minervini_lab_live_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one Minervini lab position (scan recorded for every cell; gate checked only after a trigger).
+    The real mirror (_maybe_place_real_swing_entry) re-checks the gate, places the resting SL and unwinds if it fails."""
+    for tag in MINERVINI_LAB_LIVE_CELLS:
+        _record_strategy_scan(tag)
+        sig = minervini_lab_live_entry_signal(df, tag)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
 # scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
@@ -23993,6 +24116,7 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
     cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
     cells += [(t, lambda t=t: pl1d_long_entry_signal(df, t)) for t in PL1D_CELLS]
     cells += [(t, lambda t=t: chan_kalman_1d_long_entry_signal(df, t)) for t in CHAN_KALMAN_1D_CELLS]
+    cells += [(t, lambda t=t: minervini_lab_live_entry_signal(df, t)) for t in MINERVINI_LAB_LIVE_CELLS]
     cells += [(t, lambda t=t: gapfade_long_entry_signal(df, t)) for t in GAPFADE_TAGS]
     cells += [(t, lambda t=t: _oneil_scan_signal(df, t, symbol)) for t in ONEIL_SWING_CELLS]
     cells += [(t, lambda t=t: _oneil_daily_scan_signal(df, t, symbol)) for t in ONEIL_DAILY_CELLS]
@@ -25306,6 +25430,14 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in MINERVINI_LAB_LIVE_CELLS:
+                reason, new_running_max = _minervini_lab_live_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    pos["strategy"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in PL1D_CELLS:
                 reason, new_running_max = _pl1d_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
@@ -25634,6 +25766,11 @@ def _run_swing_scan_pass(conn):
                             _chan_kalman_1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] chan_kalman 1d entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # B-1469 Minervini lab cells (8% hard stop, 30/40-bar hold), after chan_kalman 1d
+                        if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+                            _minervini_lab_live_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] minervini lab entry eval failed for {symbol} (non-fatal): {e}")
                     try:  # gaps fade LONG 1d (exhaust / common), checked after island, i.e. LAST of all
                         _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
@@ -25818,7 +25955,7 @@ for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 for _t in BRK20_LONG_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # B-1463: 1:1, each cell its own main.py-replay registry row
-for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS) + tuple(CHAN_KALMAN_1D_CELLS):
+for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS) + tuple(CHAN_KALMAN_1D_CELLS) + tuple(MINERVINI_LAB_LIVE_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
@@ -30684,6 +30821,8 @@ _SWING_SL_RULES = {
        for _t, (_r, k, h) in PL1D_CELLS.items()},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of bar {h})"
        for _t, (_z, _v, k, h) in CHAN_KALMAN_1D_CELLS.items()},
+    **{_t: f"entry x 0.92 (8% hard stop), frozen (exit also on the close of bar {h} after entry)"
+       for _t, (_f, _w, h) in MINERVINI_LAB_LIVE_CELLS.items()},
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of 1h bar {h})"
@@ -30737,6 +30876,8 @@ def _strategy_hold_spec(tag):
         return int(PL1D_CELLS[tag][2]), tf
     if tag in CHAN_KALMAN_1D_CELLS:
         return int(CHAN_KALMAN_1D_CELLS[tag][3]), tf
+    if tag in MINERVINI_LAB_LIVE_CELLS:
+        return int(MINERVINI_LAB_LIVE_CELLS[tag][2]), tf
     if tag in CHAN_KALMAN_1H_CELLS:
         return int(CHAN_KALMAN_1H_CELLS[tag][3]), tf
     if tag in CHAN_SHAPE_CELLS:
