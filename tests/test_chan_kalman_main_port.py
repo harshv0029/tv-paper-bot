@@ -150,7 +150,7 @@ def test_port_is_unwired():
     tags = set(main._STRATEGY_TAG_TO_REGISTRY_NAME) | set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
     # the v2 fl1515 tags (a different, already-wired family) are allowed; no v1 band / srcmain tag may be mapped
     # B-1467: only the replay-cleared CHAN_KALMAN_1D_CELLS tag is wired; every other v1 band / srcmain tag stays unmapped
-    wired = set(main.CHAN_KALMAN_1D_CELLS)
+    wired = set(main.CHAN_KALMAN_1D_CELLS) | set(main.CHAN_KALMAN_1H_CELLS)  # B-1465: + the 1h cell
     assert not any(("band_srcmain" in t or (t.startswith("chan_kalman__band__") and t.endswith("__v1"))) and t not in wired
                    for t in tags)
     src = inspect.getsource(main)
@@ -160,7 +160,10 @@ def test_port_is_unwired():
         allowed = ("pre = chan_kalman_band_v1_precompute(df, interval, z, ve)",
                    'sig = chan_kalman_band_v1_entry_signal(df, "1d", "long", z=z, ve=ve, atr_mult=k)',
                    'pre = chan_kalman_band_v1_precompute(df, "1d", z, ve)',
-                   'r = chan_kalman_band_v1_exit_reason(df, "long", start, float(initial_stop), hold, pos=j, pre=pre)')
+                   'r = chan_kalman_band_v1_exit_reason(df, "long", start, float(initial_stop), hold, pos=j, pre=pre)',
+                   'sig = chan_kalman_band_v1_entry_signal(df1h, "1h", "long", z=z, ve=ve, atr_mult=k)',
+                   'pre = chan_kalman_band_v1_precompute(df, "1h", z, ve)',
+                   'r = chan_kalman_band_v1_exit_reason(df, "long", start, float(pos["initial_stop_loss"]), hold, pos=j, pre=pre)')
         assert all(any(a in ln for a in allowed) for ln in uses), uses
 
 
