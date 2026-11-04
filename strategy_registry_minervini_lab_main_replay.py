@@ -11,9 +11,10 @@ _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtes
 SRC = "scripts/minervini_lab_main_replay_job.py"
 # results file -> GitHub Actions run id that produced it
 RUNS = {
-    "minervini_lab_main_replay_long.json": 41887002039,
+    "minervini_lab_main_replay_long.json": 41897578023,  # re-run with _nla_ cluster rows (first run 41887002039)
     "minervini_lab_main_replay_short.json": 41888716565,
     "minervini_lab_main_replay_baseline_long.json": 41889377598,
+    "minervini_lab_main_replay_baseline_short.json": 41897583920,
     "minervini_lab_main_replay_long_h30.json": 41891143316,
     "minervini_lab_main_replay_long_h40.json": 41891148569,
     "minervini_lab_main_replay_short_h30.json": 41895945064,
