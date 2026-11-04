@@ -12,6 +12,8 @@ SRC = "scripts/minervini_lab_main_replay_job.py"
 # results file -> GitHub Actions run id that produced it
 RUNS = {
     "minervini_lab_main_replay_long.json": 41887002039,
+    "minervini_lab_main_replay_short.json": 41888716565,
+    "minervini_lab_main_replay_baseline_long.json": 41889377598,
 }
 
 
@@ -53,7 +55,8 @@ def _defs(fn, run_id, seen):
                                    run_ref=f"sector-rotation-backtest.yml run {run_id}"),
                 source=SRC, evidence=ev,
                 notes=(f"minervini lab main.py replay {r['tf']} variant={r.get('variant')} ({seg}); pooled/_segis/_segoos are separate "
-                       "strategies. Viability derived vs PFNET_LIVE_FLOOR at read time.")))
+                       "strategies. Viability derived vs PFNET_LIVE_FLOOR at read time."
+                       + (f" CAUTION: {r['note']}" if r.get("note") else ""))))
     return out
 
 
