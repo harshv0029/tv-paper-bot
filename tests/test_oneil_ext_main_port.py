@@ -149,9 +149,16 @@ def test_ext_main_tags_grammar_and_run_symbol():
 
 
 def test_not_wired_live():
+    """B-1463: the ext detectors run live only through the two memoised helpers (1d leaders cell, 1w ext cells);
+    rsscreen is not wired in either timeframe and the 1w try-entry never calls them directly."""
+    import inspect
     src = (R / "main.py").read_text()
     for fn in ("oneil_ext_signals(", "oneil_ext_signal_at(", "oneil_ext_bull_signals(", "oneil_rsscreen_signals("):
         uses = src.count(fn) - src.count("def " + fn)
-        # only internal calls between the ported functions themselves
+        # internal calls between the ported functions themselves + the one live 1d call
         assert uses <= 3, (fn, uses)
-    assert "oneil_ext_signal" not in src.split("def _oneil_swing_try_entry")[1].split("\ndef ")[0]
+    assert "oneil_ext_signal" not in inspect.getsource(app._oneil_swing_try_entry)
+    assert "oneil_ext_signals(" in inspect.getsource(app._oneil_daily_last_bar_signals)
+    assert app.ONEIL_RSSCREEN_1D_TAG not in app.ONEIL_DAILY_CELLS
+    assert "oneil_ext_signals(" in inspect.getsource(app._oneil_weekly_ext_last_bar_signals)
+    assert app.ONEIL_EXT_1W_RSSCREEN_TAG not in app.ONEIL_SWING_CELLS
