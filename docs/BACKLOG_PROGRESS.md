@@ -15,7 +15,7 @@ Total rows: 1225 | closed: 578 | not closed: 647
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 48 |
+| OPEN | 47 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -29,10 +29,10 @@ Total rows: 1225 | closed: 578 | not closed: 647
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
+| IN | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
 | TODO | 3 |
-| IN | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
 | BUILT | 3 |
@@ -546,7 +546,7 @@ Total rows: 1225 | closed: 578 | not closed: 647
 | B-1452 | P1 | FROM | 2026-11-03 00:35 IST | owed |
 | B-1459 | P1 | FROM | 2026-11-03 00:55 IST | owed, owner |
 | B-1463 | P1 | IN | 2026-11-04 IST | owed, owner, awaiting, waiting |
-| B-1467 | P1 | OPEN | 2026-11-04 |  |
+| B-1467 | P1 | IN | 2026-11-04 | open: |
 | B-1468 | P1 | OPEN | 2026-11-04 |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
