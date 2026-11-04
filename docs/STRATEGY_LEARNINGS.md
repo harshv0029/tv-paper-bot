@@ -1639,3 +1639,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: RS-rank strategies depend on the ranking population; a rank over the full universe is not the rank over NIFTY 200, so rsscreen was not wired until re-replayed on the live population.
 - Reuse: always read the OOS segment tag before wiring; pooled PFnet alone admitted 39 daily cells that fade OOS.
 - Profit-booking / exit takeaway: a frozen 3xATR stop with a long (26-week) hold is what carries the weekly edge; in a multi-cell cascade guard re-entry across ALL sibling cells, since each cell was replayed alone.
+
+### B-1468 (2026-11-04 IST): O'Neil RS screen, wired once the RS population matched the live scan
+
+- **Mechanism:** buy when a stock's 12-month return ranks in the top decile (RS >= 90), it is above its long average and within 5% of its 52-week high. The rank is relative, so who it is ranked against changes which stocks qualify.
+- **Fit:** the live scan only sees the ~250-symbol swing watchlist. The first replay ranked RS across the full NSE universe, which the live bot cannot reproduce without fetching ~2,680 symbols every pass. Re-running with RS ranked inside the watchlist (rs_universe=n200) gave 1w atr3_h26 PFnet 3.18 (OOS 3.46, n 445) and 1d atr2_h40 PFnet 1.75 (OOS 1.09, n 487).
+- **Surprise:** a 2y daily prefetch resamples to ~104 weeks, below the replay's 120-week eligibility rule, so the live weekly population uses a 100-week proxy. The residual mismatch is stocks listed 2.0-2.3 years ago.
+- **Reuse:** any cross-sectional (relative) signal must be validated on the population the live path can actually rank, not the research universe.
+- **Profit-booking / exit takeaway:** the daily cell's OOS edge (1.09) is thin next to the weekly one (3.46): the weekly cell holds longer and keeps far more of the trend, so it sits high in its cascade while the daily one is only a top-of-list daily filler.

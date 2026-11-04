@@ -165,7 +165,7 @@ def test_signals_computed_once_per_df(monkeypatch):
 
 # ---- B-1463 scope extension: 13 O'Neil ext 1w LONG cells in the existing weekly path (run 41847932950) ----
 W_LEAD = "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2"
-EXT_1W = [t for t, cell in main.ONEIL_SWING_CELLS.items() if cell[2] is not None]
+EXT_1W = [t for t, cell in main.ONEIL_SWING_CELLS.items() if cell[2] is not None and cell[2][0] == "ext"]
 
 
 def _weekly_leaders_fixture(weeks=110):
@@ -243,7 +243,7 @@ def test_weekly_cascade_blocks_same_week_reentry_through_a_sibling_cell(monkeypa
     tags = list(main.ONEIL_SWING_CELLS)
     first, other = tags[0], tags[-1]
     monkeypatch.setattr(main, "oneil_swing_entry_signal",
-                        lambda df, tag: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 3.0} if tag == other else None)
+                        lambda df, tag, *a: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 3.0} if tag == other else None)
     monkeypatch.setattr(main, "_is_strategy_wired", lambda t: True)
     sized = []
     monkeypatch.setattr(main, "_swing_position_size", lambda *a: sized.append(1) or 0)
