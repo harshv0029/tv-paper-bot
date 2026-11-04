@@ -4606,6 +4606,213 @@ def minervini_vcp_exit_reason_breakeven(
     return None, new_running_max
 
 
+# ---- Minervini lab exit variants, main.py port (B-1467) -------------------
+#
+# UNWIRED. ~65 viable minervini_vcp__* registry rows were measured by the research harness
+# scripts/minervini_lab.py (run_variant / features) with the REAL minervini_vcp_entry_signal but lab-only
+# exits. These functions are a verbatim port of those exit/stop/filter rules so a replay
+# (scripts/minervini_lab_main_replay_job.py) can measure them on main.py code. Nothing in a live scan,
+# _STRATEGY_TAG_TO_REGISTRY_NAME or any real-order path calls them. The short side is a mirror
+# (every comparison inverted, ratios reflected: 0.92 -> 1.08, 1.25*ma50 -> 0.75*ma50, gap down -> gap up).
+MINERVINI_LAB_MAX_HOLD = 60
+MINERVINI_LAB_CHANDELIER_ATR_MULT = 2.0
+MINERVINI_LAB_EXIT_VARIANTS = (
+    "base", "pct8_hard", "cap10_struct", "cap15_struct", "ma20_fail", "ma50_trail", "ma200_break", "rr2", "rr3",
+    "timestop10", "climax_sell", "breakeven_after_1r", "gap_dn_exit", "regime_nifty50", "regime_nifty200")
+MINERVINI_LAB_CHANDELIER_VARIANTS = ("base", "regime_nifty50", "cap10_struct", "cap15_struct", "regime_nifty200")
+MINERVINI_LAB_FEATURE_NAMES = (
+    "ext_le3", "ext_le5", "dryup", "tight_closes5", "pivot_vol2x", "stage2_30pct_off_low", "near_52w_high10",
+    "base_depth_le25", "ma200_rising_100d", "updown_vol_pos", "held_up_vs_index", "leaders_lead", "early_bull_10_25",
+    "index_within5_of_high", "rs_blend_ge70", "breadth_nhnl_ok")
+
+
+def minervini_lab_parse_variant(v: str) -> tuple:
+    """'pct8_hard_f_ext_le5_on' -> ('pct8_hard', 'ext_le5', 'on'); 'rr3' -> ('rr3', None, None)."""
+    if "_f_" in v:
+        ex, rest = v.split("_f_", 1)
+        feat, flag = rest.rsplit("_", 1)
+        return ex, feat, flag
+    return v, None, None
+
+
+def minervini_lab_moving_averages(closes) -> tuple:
+    """(ma20, ma50, ma200) as pandas rolling means - the lab's own sma()."""
+    s = pd.Series(np.asarray(closes, dtype=float))
+    return tuple(s.rolling(n).mean().to_numpy() for n in (20, 50, 200))
+
+
+def minervini_lab_initial_stop(variant: str, entry: float, stop0: float, direction: str = "long") -> float:
+    """Lab initial stop for `variant` given the entry fill and the signal's structural stop0."""
+    if direction == "long":
+        if variant == "pct8_hard":
+            return entry * 0.92
+        if variant == "cap10_struct":
+            return max(stop0, entry * 0.90)
+        if variant == "cap15_struct":
+            return max(stop0, entry * 0.85)
+        return stop0
+    if variant == "pct8_hard":
+        return entry * 1.08
+    if variant == "cap10_struct":
+        return min(stop0, entry * 1.10)
+    if variant == "cap15_struct":
+        return min(stop0, entry * 1.15)
+    return stop0
+
+
+def minervini_lab_open_position(variant: str, entry: float, stop0: float, atr: float, signal_close: float,
+                                entry_idx: int, direction: str = "long") -> dict | None:
+    """Position state for minervini_lab_exit_reason, or None when the stop is on the wrong side of the
+    entry fill (no entry: SL on every trade)."""
+    if not entry or np.isnan(entry):
+        return None
+    if (direction == "long" and stop0 >= entry) or (direction == "short" and stop0 <= entry):
+        return None
+    stop = minervini_lab_initial_stop(variant, entry, stop0, direction)
+    return {"entry": float(entry), "stop": float(stop), "R": abs(float(entry) - float(stop)),
+            "extreme": float(signal_close), "atr": float(atr), "entry_idx": int(entry_idx)}
+
+
+def minervini_lab_exit_reason(variant: str, pos: dict, j: int, o, h, l, c, ma20, ma50, ma200,
+                              direction: str = "long", maxh: int = MINERVINI_LAB_MAX_HOLD) -> tuple:
+    """One bar (index j) of a lab-variant exit, verbatim port of scripts/minervini_lab.run_variant's loop
+    body (long) and its mirror (short). Mutates pos["stop"]/pos["extreme"]. Order per bar: resting stop vs
+    the bar's low (high), then the chandelier ratchet on the close, then close-based exits, then the
+    max-hold timeout at the close of bar entry_idx + maxh - 1. Returns (reason, exit_price) or (None, None)."""
+    ent, stop, R, atr = pos["entry"], pos["stop"], pos["R"], pos["atr"]
+    held = j - pos["entry_idx"] + 1
+    cj = c[j]
+    if direction == "long":
+        if l[j] <= stop:
+            return "stop_hit", min(stop, o[j])
+        pos["extreme"] = max(pos["extreme"], cj)
+        if variant in MINERVINI_LAB_CHANDELIER_VARIANTS:
+            pos["stop"] = max(stop, pos["extreme"] - MINERVINI_LAB_CHANDELIER_ATR_MULT * atr)
+        if variant == "ma20_fail" and held >= 3 and cj < ma20[j]:
+            return "ma20_fail", cj
+        if variant == "ma50_trail" and cj < ma50[j]:
+            return "ma50_break", cj
+        if variant == "ma200_break" and cj < ma200[j]:
+            return "ma200_break", cj
+        if variant in ("rr2", "rr3"):
+            tgt = ent + (2 if variant == "rr2" else 3) * R
+            if h[j] >= tgt:
+                return "target_hit", tgt
+        if variant == "timestop10" and held == 10 and cj < ent * 1.02:
+            return "time_stop", cj
+        if variant == "climax_sell" and cj / c[j - 1] - 1 >= 0.07 and cj > 1.25 * ma50[j]:
+            return "climax_sell", cj
+        if variant == "breakeven_after_1r" and cj >= ent + R:
+            pos["stop"] = max(pos["stop"], ent)
+        if variant == "gap_dn_exit" and o[j] < c[j - 1] * 0.95:
+            return "gap_down_exit", o[j]
+    else:
+        if h[j] >= stop:
+            return "stop_hit", max(stop, o[j])
+        pos["extreme"] = min(pos["extreme"], cj)
+        if variant in MINERVINI_LAB_CHANDELIER_VARIANTS:
+            pos["stop"] = min(stop, pos["extreme"] + MINERVINI_LAB_CHANDELIER_ATR_MULT * atr)
+        if variant == "ma20_fail" and held >= 3 and cj > ma20[j]:
+            return "ma20_fail", cj
+        if variant == "ma50_trail" and cj > ma50[j]:
+            return "ma50_break", cj
+        if variant == "ma200_break" and cj > ma200[j]:
+            return "ma200_break", cj
+        if variant in ("rr2", "rr3"):
+            tgt = ent - (2 if variant == "rr2" else 3) * R
+            if l[j] <= tgt:
+                return "target_hit", tgt
+        if variant == "timestop10" and held == 10 and cj > ent * 0.98:
+            return "time_stop", cj
+        if variant == "climax_sell" and cj / c[j - 1] - 1 <= -0.07 and cj < 0.75 * ma50[j]:
+            return "climax_sell", cj
+        if variant == "breakeven_after_1r" and cj <= ent - R:
+            pos["stop"] = min(pos["stop"], ent)
+        if variant == "gap_dn_exit" and o[j] > c[j - 1] * 1.05:
+            return "gap_up_exit", o[j]
+    if held >= maxh:
+        return "max_hold_timeout", cj
+    return None, None
+
+
+def minervini_lab_simulate_trade(variant: str, o, h, l, c, sig: tuple, direction: str = "long",
+                                 maxh: int = MINERVINI_LAB_MAX_HOLD, mas: tuple | None = None) -> tuple | None:
+    """Whole trade from signal bar i: enter at bar i+1 open, walk minervini_lab_exit_reason bar by bar.
+    sig = (i, entry_price, stop0, atr). Returns (exit_idx, exit_price, held_bars, reason, entry_fill) or
+    None (no next bar / stop on the wrong side). A trade still open at the last bar exits at its close,
+    reason "end_of_data" (the lab labelled it max_hold_timeout)."""
+    i, _ep, stop0, atr = sig
+    n = len(c)
+    e = i + 1
+    if e >= n:
+        return None
+    pos = minervini_lab_open_position(variant, o[e], stop0, atr, c[i], e, direction)
+    if pos is None:
+        return None
+    ma20, ma50, ma200 = mas if mas is not None else minervini_lab_moving_averages(c)
+    for j in range(e, min(e + maxh, n)):
+        reason, px = minervini_lab_exit_reason(variant, pos, j, o, h, l, c, ma20, ma50, ma200, direction, maxh)
+        if reason:
+            return j, float(px), j - e + 1, reason, float(pos["entry"])
+    j = min(e + maxh, n) - 1
+    return j, float(c[j]), j - e + 1, "end_of_data", float(pos["entry"])
+
+
+def minervini_lab_features(df: pd.DataFrame, i: int, idx_close, rs_pct, nhnl_ok) -> dict:
+    """Verbatim port of scripts/minervini_lab.features: boolean filters at signal bar i (data <= i only)."""
+    c, h, l, v = (df[x].to_numpy(float) for x in ("Close", "High", "Low", "Volume"))
+    f = {}
+    pivot = h[i - 25:i].max()
+    f["ext_le3"] = c[i] / pivot - 1 <= 0.03
+    f["ext_le5"] = c[i] / pivot - 1 <= 0.05
+    f["dryup"] = v[i - 6:i - 1].mean() < 0.5 * v[i - 55:i - 5].mean()
+    rets = np.abs(c[i - 10:i] / c[i - 11:i - 1] - 1)
+    f["tight_closes5"] = int((rets < 0.01).sum()) >= 5
+    f["pivot_vol2x"] = v[i] >= 2 * v[i - 20:i].mean()
+    f["stage2_30pct_off_low"] = c[i] >= 1.3 * l[i - 252:i].min()
+    f["near_52w_high10"] = c[i] >= 0.9 * h[i - 252:i].max()
+    f["base_depth_le25"] = (h[i - 60:i].max() - l[i - 60:i].min()) / h[i - 60:i].max() <= 0.25
+    ma200 = pd.Series(c).rolling(200).mean().to_numpy()
+    f["ma200_rising_100d"] = bool(ma200[i] > ma200[i - 100])
+    up = c[i - 50:i] > c[i - 51:i - 1]
+    f["updown_vol_pos"] = v[i - 50:i][up].sum() > v[i - 50:i][~up].sum()
+    sdd = 1 - c[i] / c[i - 60:i].max()
+    idd = 1 - idx_close[i] / idx_close[i - 60:i].max() if idx_close is not None else np.nan
+    f["held_up_vs_index"] = bool(sdd <= 2 * idd + 0.02) if idx_close is not None else False
+    if idx_close is not None:
+        f["leaders_lead"] = bool(l[i - 20:i].min() > l[i - 40:i - 20].min() and idx_close[i - 20:i].min() < idx_close[i - 40:i - 20].min())
+        off_low = idx_close[i] / idx_close[i - 120:i].min() - 1
+        f["early_bull_10_25"] = bool(0.10 <= off_low <= 0.25)
+        f["index_within5_of_high"] = bool(idx_close[i] >= 0.95 * idx_close[i - 252:i].max())
+    f["rs_blend_ge70"] = bool(rs_pct is not None and rs_pct >= 70)
+    f["breadth_nhnl_ok"] = bool(nhnl_ok)
+    return f
+
+
+def minervini_lab_rs_nhnl_panels(closes: pd.DataFrame, highs: pd.DataFrame, lows: pd.DataFrame) -> tuple:
+    """Cross-sectional panels the lab's features need: (rs_rank 0-100 of the 63/126/189/252-bar blended
+    return, nhnl_ok = new-high share of new highs+lows >= 0.6). Verbatim from scripts/minervini_lab.main_run."""
+    blend = (0.4 * (closes / closes.shift(63) - 1) + 0.2 * (closes / closes.shift(126) - 1)
+             + 0.2 * (closes / closes.shift(189) - 1) + 0.2 * (closes / closes.shift(252) - 1))
+    rs_rank = blend.rank(axis=1, pct=True) * 100
+    nh = (highs >= highs.rolling(252, min_periods=200).max()).sum(axis=1)
+    nl = (lows <= lows.rolling(252, min_periods=200).min()).sum(axis=1)
+    nhnl_ok = ((nh / (nh + nl).replace(0, np.nan)) >= 0.6).fillna(False)
+    return rs_rank, nhnl_ok
+
+
+def minervini_lab_stopout_cluster_flags(rets_by_entry_order) -> list:
+    """Lab B-259 rule: a trade is flagged when >= 3 of the previous 5 trades (by entry date) lost. The lab's
+    rule reads earlier-entered trades' FINAL results, which may not be known yet at entry (look-ahead in the
+    original; ported verbatim and flagged in the replay output)."""
+    r = list(rets_by_entry_order)
+    out = []
+    for j in range(len(r)):
+        prev = r[max(0, j - 5):j]
+        out.append(len(prev) == 5 and sum(1 for x in prev if x < 0) >= 3)
+    return out
+
+
 # ---- Minervini VCP scale-in tranche sizing ---------------------------------
 #
 # 2026-09-29, explicit user task: a position-sizing REFINEMENT on top of
