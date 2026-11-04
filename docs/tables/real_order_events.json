@@ -18419,7 +18419,67 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs194.11",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 1536,
+   "ts": 1793785601.7164204,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1537,
+   "ts": 1793785601.7252662,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1538,
+   "ts": 1793785601.7332225,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1539,
+   "ts": 1793785601.740973,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1540,
+   "ts": 1793785601.7465384,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-04T07:27:56Z"
+ "synced_at_utc": "2026-11-04T09:46:45Z"
 }
