@@ -14242,6 +14242,23 @@ def hydrate_t1_restricted_from_external(conn) -> int:
     return restored
 
 
+_RMS_USED_AVAIL_RE = re.compile(r"Used:\s*([\d.]+)\s*,\s*Available:\s*([\d.]+)")
+
+
+def _is_sell_overcommit_rejection(detail: str | None) -> bool:
+    """B-1462: Kotak's RMS text "Check T1 holdings ... Used:16.00, Available:8.00" with Available > 0 means shares ARE
+    held and settled, but a sell already resting (e.g. the 09:15 IST SL) reserves them, so a second sell for the same
+    qty is over-committed. That is a duplicate order, not a T1/T2T same-day restriction, and must never blacklist the
+    stock. Genuine T1 text is "No Holdings Present" / Available:0."""
+    m = _RMS_USED_AVAIL_RE.search(str(detail or ""))
+    if not m or "No Holdings Present" in str(detail):
+        return False
+    try:
+        return float(m.group(2)) > 0
+    except ValueError:
+        return False
+
+
 def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
     """Records `symbol` as T1/T2T-restricted for today the first time its
     detail string carries either of Kotak's own same-day-sell rejection
@@ -14252,6 +14269,9 @@ def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
     IGNORE) and never raises - a failure to flag must never break the
     real order flow it's observing."""
     if not detail or (_T1_HOLDINGS_MARKER not in detail and _T2T_SAME_DAY_MARKER not in detail):
+        return
+    if _is_sell_overcommit_rejection(detail):  # B-1462: a duplicate sell over a resting SL, not a T1 stock
+        print(f"[T1-restricted] {symbol} NOT flagged: over-committed sell (resting order holds the shares): {detail}")
         return
     today = ist_now().strftime("%Y-%m-%d")
     try:
@@ -14289,9 +14309,9 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
     day-scoped PRIMARY KEY, unchanged - useful audit history), but this
     read now checks for ANY row ever, regardless of which day it was
     inserted on."""
-    return conn.execute(
-        "SELECT 1 FROM real_t1_restricted WHERE symbol = ?", (symbol,)
-    ).fetchone() is not None
+    # B-1462: rows flagged from an over-committed duplicate sell (before the fix) never count as a T1 restriction
+    return any(not _is_sell_overcommit_rejection(r[0]) for r in conn.execute(
+        "SELECT detail FROM real_t1_restricted WHERE symbol = ?", (symbol,)).fetchall())
 
 
 def _holding_strategy(trd_sym):
