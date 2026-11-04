@@ -18287,7 +18287,31 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs279.25",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs279.25 already covers the position (target stop Rs279.25), adopted, nothing placed"
+  },
+  {
+   "id": 1525,
+   "ts": 1793764011.766187,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011292",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs158.47",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs158.47 already covers the position (target stop Rs158.47), adopted, nothing placed"
+  },
+  {
+   "id": 1526,
+   "ts": 1793764015.5331342,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261104000011292",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs158.47",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs158.47 already covers the position (target stop Rs158.47), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-04T03:46:55Z"
+ "synced_at_utc": "2026-11-04T03:47:03Z"
 }
