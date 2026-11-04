@@ -1529,5 +1529,70 @@
       "scan-prefetch_1: _prefetch_one_frame:20669 > fetch_ohlc:135",
       "scan-prefetch_0: _prefetch_one_frame:20669 > fetch_ohlc:135"
     ]
+  },
+  {
+    "boot_ts": 1793800085.6148045,
+    "boot_ist": "2026-11-04 19:18:05 IST",
+    "logged_ist": "2026-11-04 19:18:50 IST",
+    "commit": "594c221cfa5b",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "99d12de4ec00",
+    "prev_boot_ist": "2026-11-04 12:57:11 IST",
+    "prev_last_alive_ist": "2026-11-04 19:18:32 IST",
+    "prev_uptime_min": 381.3,
+    "downtime_s_max": -26.4,
+    "prev_rss_now_mb": 1006.9,
+    "prev_peak_rss_mb": 1789.2,
+    "prev_loop_lag_s": 0.3,
+    "prev_watchdog_alarms": 1,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": {
+      "ts": 1793785580.6432269,
+      "loop_lag_s": 0.8,
+      "rss_mb": 1750.9,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": [
+      "scan-prefetch_7: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_6: _prefetch_one_frame:20671 > fetch_ohlc:156",
+      "scan-prefetch_5: _prefetch_one_frame:20671 > fetch_ohlc:156",
+      "scan-prefetch_4: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_3: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_2: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_1: _prefetch_one_frame:20671 > fetch_ohlc:156",
+      "scan-prefetch_0: _prefetch_one_frame:20669 > fetch_ohlc:140"
+    ],
+    "prev_last_alarm_threads": [
+      "scan-prefetch_7: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_6: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_5: _prefetch_one_frame:20671 > fetch_ohlc:156 > _prune_multitasking_tasks:86",
+      "scan-prefetch_4: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_3: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_2: _prefetch_one_frame:20669 > fetch_ohlc:135",
+      "scan-prefetch_1: _prefetch_one_frame:20669 > fetch_ohlc:140",
+      "scan-prefetch_0: _prefetch_one_frame:20669 > fetch_ohlc:135"
+    ]
+  },
+  {
+    "boot_ts": 1793815195.467945,
+    "boot_ist": "2026-11-04 23:29:55 IST",
+    "logged_ist": "2026-11-04 23:30:39 IST",
+    "commit": "9c98c64642f0",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "594c221cfa5b",
+    "prev_boot_ist": "2026-11-04 19:18:05 IST",
+    "prev_last_alive_ist": "2026-11-04 23:30:32 IST",
+    "prev_uptime_min": 252.4,
+    "downtime_s_max": -37.1,
+    "prev_rss_now_mb": 609.4,
+    "prev_peak_rss_mb": 899.3,
+    "prev_loop_lag_s": 0.1,
+    "prev_watchdog_alarms": 0,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": null,
+    "prev_first_alarm_threads": [],
+    "prev_last_alarm_threads": []
   }
 ]
