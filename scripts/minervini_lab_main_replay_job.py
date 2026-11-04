@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
 import bar_hygiene as bh  # noqa: E402
 
-JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40")  # _hNN: max-hold sweep (B-1469)
+JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40", "short_h30", "short_h40")  # _hNN: max-hold sweep (B-1469)
 MAXH = 60
 IS_FRAC = 0.7
 COOLDOWN = 5
