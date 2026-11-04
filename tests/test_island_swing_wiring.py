@@ -133,7 +133,7 @@ def test_exit_adapter_stop_rule_exit_and_timeout():
 
 def test_scan_wiring_checked_last_sl_attached_reasoned_exit_no_new_switch():
     src = inspect.getsource(main._run_swing_scan_pass)
-    assert src.index("_island_swing_try_entry") > src.index('brk20_min_rr_entry_signal(df, "long"')
+    assert src.index("_island_swing_try_entry") > src.index("brk20_long_swing_entry_signal(df)")
     assert "_island_swing_exit_adapter" in src
     assert "_maybe_place_real_swing_exit(conn, symbol, reason=" in src
     entry = inspect.getsource(main._island_swing_try_entry)

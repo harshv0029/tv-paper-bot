@@ -117,7 +117,7 @@ def test_blocked_trigger_recorded_when_gate_closed(monkeypatch):
     import main
     tag = main.ONEIL_FLATBASE_TAG
     main._strategy_blocked_triggers.clear()
-    monkeypatch.setattr(main, "oneil_swing_entry_signal", lambda df, t: {"entry_price": 10.0, "stop_loss": 9.0, "atr_at_entry": 1.0})
+    monkeypatch.setattr(main, "oneil_swing_entry_signal", lambda df, t, *a: {"entry_price": 10.0, "stop_loss": 9.0, "atr_at_entry": 1.0})
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda t, check_switch=True: False)
     monkeypatch.setattr(main, "_is_strategy_wired", lambda t, check_switch=True: False)
     before = main._strategy_scan_counts.get(tag, 0)

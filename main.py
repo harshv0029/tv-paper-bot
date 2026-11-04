@@ -84,6 +84,7 @@ import sqlite3
 import concurrent.futures
 import threading
 import time
+import contextlib
 from contextlib import closing
 from itertools import product
 
@@ -4605,6 +4606,213 @@ def minervini_vcp_exit_reason_breakeven(
     return None, new_running_max
 
 
+# ---- Minervini lab exit variants, main.py port (B-1467) -------------------
+#
+# UNWIRED. ~65 viable minervini_vcp__* registry rows were measured by the research harness
+# scripts/minervini_lab.py (run_variant / features) with the REAL minervini_vcp_entry_signal but lab-only
+# exits. These functions are a verbatim port of those exit/stop/filter rules so a replay
+# (scripts/minervini_lab_main_replay_job.py) can measure them on main.py code. Nothing in a live scan,
+# _STRATEGY_TAG_TO_REGISTRY_NAME or any real-order path calls them. The short side is a mirror
+# (every comparison inverted, ratios reflected: 0.92 -> 1.08, 1.25*ma50 -> 0.75*ma50, gap down -> gap up).
+MINERVINI_LAB_MAX_HOLD = 60
+MINERVINI_LAB_CHANDELIER_ATR_MULT = 2.0
+MINERVINI_LAB_EXIT_VARIANTS = (
+    "base", "pct8_hard", "cap10_struct", "cap15_struct", "ma20_fail", "ma50_trail", "ma200_break", "rr2", "rr3",
+    "timestop10", "climax_sell", "breakeven_after_1r", "gap_dn_exit", "regime_nifty50", "regime_nifty200")
+MINERVINI_LAB_CHANDELIER_VARIANTS = ("base", "regime_nifty50", "cap10_struct", "cap15_struct", "regime_nifty200")
+MINERVINI_LAB_FEATURE_NAMES = (
+    "ext_le3", "ext_le5", "dryup", "tight_closes5", "pivot_vol2x", "stage2_30pct_off_low", "near_52w_high10",
+    "base_depth_le25", "ma200_rising_100d", "updown_vol_pos", "held_up_vs_index", "leaders_lead", "early_bull_10_25",
+    "index_within5_of_high", "rs_blend_ge70", "breadth_nhnl_ok")
+
+
+def minervini_lab_parse_variant(v: str) -> tuple:
+    """'pct8_hard_f_ext_le5_on' -> ('pct8_hard', 'ext_le5', 'on'); 'rr3' -> ('rr3', None, None)."""
+    if "_f_" in v:
+        ex, rest = v.split("_f_", 1)
+        feat, flag = rest.rsplit("_", 1)
+        return ex, feat, flag
+    return v, None, None
+
+
+def minervini_lab_moving_averages(closes) -> tuple:
+    """(ma20, ma50, ma200) as pandas rolling means - the lab's own sma()."""
+    s = pd.Series(np.asarray(closes, dtype=float))
+    return tuple(s.rolling(n).mean().to_numpy() for n in (20, 50, 200))
+
+
+def minervini_lab_initial_stop(variant: str, entry: float, stop0: float, direction: str = "long") -> float:
+    """Lab initial stop for `variant` given the entry fill and the signal's structural stop0."""
+    if direction == "long":
+        if variant == "pct8_hard":
+            return entry * 0.92
+        if variant == "cap10_struct":
+            return max(stop0, entry * 0.90)
+        if variant == "cap15_struct":
+            return max(stop0, entry * 0.85)
+        return stop0
+    if variant == "pct8_hard":
+        return entry * 1.08
+    if variant == "cap10_struct":
+        return min(stop0, entry * 1.10)
+    if variant == "cap15_struct":
+        return min(stop0, entry * 1.15)
+    return stop0
+
+
+def minervini_lab_open_position(variant: str, entry: float, stop0: float, atr: float, signal_close: float,
+                                entry_idx: int, direction: str = "long") -> dict | None:
+    """Position state for minervini_lab_exit_reason, or None when the stop is on the wrong side of the
+    entry fill (no entry: SL on every trade)."""
+    if not entry or np.isnan(entry):
+        return None
+    if (direction == "long" and stop0 >= entry) or (direction == "short" and stop0 <= entry):
+        return None
+    stop = minervini_lab_initial_stop(variant, entry, stop0, direction)
+    return {"entry": float(entry), "stop": float(stop), "R": abs(float(entry) - float(stop)),
+            "extreme": float(signal_close), "atr": float(atr), "entry_idx": int(entry_idx)}
+
+
+def minervini_lab_exit_reason(variant: str, pos: dict, j: int, o, h, l, c, ma20, ma50, ma200,
+                              direction: str = "long", maxh: int = MINERVINI_LAB_MAX_HOLD) -> tuple:
+    """One bar (index j) of a lab-variant exit, verbatim port of scripts/minervini_lab.run_variant's loop
+    body (long) and its mirror (short). Mutates pos["stop"]/pos["extreme"]. Order per bar: resting stop vs
+    the bar's low (high), then the chandelier ratchet on the close, then close-based exits, then the
+    max-hold timeout at the close of bar entry_idx + maxh - 1. Returns (reason, exit_price) or (None, None)."""
+    ent, stop, R, atr = pos["entry"], pos["stop"], pos["R"], pos["atr"]
+    held = j - pos["entry_idx"] + 1
+    cj = c[j]
+    if direction == "long":
+        if l[j] <= stop:
+            return "stop_hit", min(stop, o[j])
+        pos["extreme"] = max(pos["extreme"], cj)
+        if variant in MINERVINI_LAB_CHANDELIER_VARIANTS:
+            pos["stop"] = max(stop, pos["extreme"] - MINERVINI_LAB_CHANDELIER_ATR_MULT * atr)
+        if variant == "ma20_fail" and held >= 3 and cj < ma20[j]:
+            return "ma20_fail", cj
+        if variant == "ma50_trail" and cj < ma50[j]:
+            return "ma50_break", cj
+        if variant == "ma200_break" and cj < ma200[j]:
+            return "ma200_break", cj
+        if variant in ("rr2", "rr3"):
+            tgt = ent + (2 if variant == "rr2" else 3) * R
+            if h[j] >= tgt:
+                return "target_hit", tgt
+        if variant == "timestop10" and held == 10 and cj < ent * 1.02:
+            return "time_stop", cj
+        if variant == "climax_sell" and cj / c[j - 1] - 1 >= 0.07 and cj > 1.25 * ma50[j]:
+            return "climax_sell", cj
+        if variant == "breakeven_after_1r" and cj >= ent + R:
+            pos["stop"] = max(pos["stop"], ent)
+        if variant == "gap_dn_exit" and o[j] < c[j - 1] * 0.95:
+            return "gap_down_exit", o[j]
+    else:
+        if h[j] >= stop:
+            return "stop_hit", max(stop, o[j])
+        pos["extreme"] = min(pos["extreme"], cj)
+        if variant in MINERVINI_LAB_CHANDELIER_VARIANTS:
+            pos["stop"] = min(stop, pos["extreme"] + MINERVINI_LAB_CHANDELIER_ATR_MULT * atr)
+        if variant == "ma20_fail" and held >= 3 and cj > ma20[j]:
+            return "ma20_fail", cj
+        if variant == "ma50_trail" and cj > ma50[j]:
+            return "ma50_break", cj
+        if variant == "ma200_break" and cj > ma200[j]:
+            return "ma200_break", cj
+        if variant in ("rr2", "rr3"):
+            tgt = ent - (2 if variant == "rr2" else 3) * R
+            if l[j] <= tgt:
+                return "target_hit", tgt
+        if variant == "timestop10" and held == 10 and cj > ent * 0.98:
+            return "time_stop", cj
+        if variant == "climax_sell" and cj / c[j - 1] - 1 <= -0.07 and cj < 0.75 * ma50[j]:
+            return "climax_sell", cj
+        if variant == "breakeven_after_1r" and cj <= ent - R:
+            pos["stop"] = min(pos["stop"], ent)
+        if variant == "gap_dn_exit" and o[j] > c[j - 1] * 1.05:
+            return "gap_up_exit", o[j]
+    if held >= maxh:
+        return "max_hold_timeout", cj
+    return None, None
+
+
+def minervini_lab_simulate_trade(variant: str, o, h, l, c, sig: tuple, direction: str = "long",
+                                 maxh: int = MINERVINI_LAB_MAX_HOLD, mas: tuple | None = None) -> tuple | None:
+    """Whole trade from signal bar i: enter at bar i+1 open, walk minervini_lab_exit_reason bar by bar.
+    sig = (i, entry_price, stop0, atr). Returns (exit_idx, exit_price, held_bars, reason, entry_fill) or
+    None (no next bar / stop on the wrong side). A trade still open at the last bar exits at its close,
+    reason "end_of_data" (the lab labelled it max_hold_timeout)."""
+    i, _ep, stop0, atr = sig
+    n = len(c)
+    e = i + 1
+    if e >= n:
+        return None
+    pos = minervini_lab_open_position(variant, o[e], stop0, atr, c[i], e, direction)
+    if pos is None:
+        return None
+    ma20, ma50, ma200 = mas if mas is not None else minervini_lab_moving_averages(c)
+    for j in range(e, min(e + maxh, n)):
+        reason, px = minervini_lab_exit_reason(variant, pos, j, o, h, l, c, ma20, ma50, ma200, direction, maxh)
+        if reason:
+            return j, float(px), j - e + 1, reason, float(pos["entry"])
+    j = min(e + maxh, n) - 1
+    return j, float(c[j]), j - e + 1, "end_of_data", float(pos["entry"])
+
+
+def minervini_lab_features(df: pd.DataFrame, i: int, idx_close, rs_pct, nhnl_ok) -> dict:
+    """Verbatim port of scripts/minervini_lab.features: boolean filters at signal bar i (data <= i only)."""
+    c, h, l, v = (df[x].to_numpy(float) for x in ("Close", "High", "Low", "Volume"))
+    f = {}
+    pivot = h[i - 25:i].max()
+    f["ext_le3"] = c[i] / pivot - 1 <= 0.03
+    f["ext_le5"] = c[i] / pivot - 1 <= 0.05
+    f["dryup"] = v[i - 6:i - 1].mean() < 0.5 * v[i - 55:i - 5].mean()
+    rets = np.abs(c[i - 10:i] / c[i - 11:i - 1] - 1)
+    f["tight_closes5"] = int((rets < 0.01).sum()) >= 5
+    f["pivot_vol2x"] = v[i] >= 2 * v[i - 20:i].mean()
+    f["stage2_30pct_off_low"] = c[i] >= 1.3 * l[i - 252:i].min()
+    f["near_52w_high10"] = c[i] >= 0.9 * h[i - 252:i].max()
+    f["base_depth_le25"] = (h[i - 60:i].max() - l[i - 60:i].min()) / h[i - 60:i].max() <= 0.25
+    ma200 = pd.Series(c).rolling(200).mean().to_numpy()
+    f["ma200_rising_100d"] = bool(ma200[i] > ma200[i - 100])
+    up = c[i - 50:i] > c[i - 51:i - 1]
+    f["updown_vol_pos"] = v[i - 50:i][up].sum() > v[i - 50:i][~up].sum()
+    sdd = 1 - c[i] / c[i - 60:i].max()
+    idd = 1 - idx_close[i] / idx_close[i - 60:i].max() if idx_close is not None else np.nan
+    f["held_up_vs_index"] = bool(sdd <= 2 * idd + 0.02) if idx_close is not None else False
+    if idx_close is not None:
+        f["leaders_lead"] = bool(l[i - 20:i].min() > l[i - 40:i - 20].min() and idx_close[i - 20:i].min() < idx_close[i - 40:i - 20].min())
+        off_low = idx_close[i] / idx_close[i - 120:i].min() - 1
+        f["early_bull_10_25"] = bool(0.10 <= off_low <= 0.25)
+        f["index_within5_of_high"] = bool(idx_close[i] >= 0.95 * idx_close[i - 252:i].max())
+    f["rs_blend_ge70"] = bool(rs_pct is not None and rs_pct >= 70)
+    f["breadth_nhnl_ok"] = bool(nhnl_ok)
+    return f
+
+
+def minervini_lab_rs_nhnl_panels(closes: pd.DataFrame, highs: pd.DataFrame, lows: pd.DataFrame) -> tuple:
+    """Cross-sectional panels the lab's features need: (rs_rank 0-100 of the 63/126/189/252-bar blended
+    return, nhnl_ok = new-high share of new highs+lows >= 0.6). Verbatim from scripts/minervini_lab.main_run."""
+    blend = (0.4 * (closes / closes.shift(63) - 1) + 0.2 * (closes / closes.shift(126) - 1)
+             + 0.2 * (closes / closes.shift(189) - 1) + 0.2 * (closes / closes.shift(252) - 1))
+    rs_rank = blend.rank(axis=1, pct=True) * 100
+    nh = (highs >= highs.rolling(252, min_periods=200).max()).sum(axis=1)
+    nl = (lows <= lows.rolling(252, min_periods=200).min()).sum(axis=1)
+    nhnl_ok = ((nh / (nh + nl).replace(0, np.nan)) >= 0.6).fillna(False)
+    return rs_rank, nhnl_ok
+
+
+def minervini_lab_stopout_cluster_flags(rets_by_entry_order) -> list:
+    """Lab B-259 rule: a trade is flagged when >= 3 of the previous 5 trades (by entry date) lost. The lab's
+    rule reads earlier-entered trades' FINAL results, which may not be known yet at entry (look-ahead in the
+    original; ported verbatim and flagged in the replay output)."""
+    r = list(rets_by_entry_order)
+    out = []
+    for j in range(len(r)):
+        prev = r[max(0, j - 5):j]
+        out.append(len(prev) == 5 and sum(1 for x in prev if x < 0) >= 3)
+    return out
+
+
 # ---- Minervini VCP scale-in tranche sizing ---------------------------------
 #
 # 2026-09-29, explicit user task: a position-sizing REFINEMENT on top of
@@ -5349,9 +5557,36 @@ def brk20_min_rr_exit_reason(
 BRK20_SWING_ATR_MULT = 4.0
 BRK20_SWING_MIN_RR = 4.0
 BRK20_SWING_TAG = "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1"
+# B-1463 (2026-11-04): the other viable brk20 LONG 1d cells of the SAME main.py replay (brk20-min-rr-main-replay.yml
+# run 38185670883, scripts/brk20_replay.py calls the real brk20_min_rr_entry_signal/_exit_reason, 0.8% cost, full NSE),
+# wired as a cascade exactly like the short side's BRK20_SHORT_SWING_CELLS: the original atr4_rr4 cell first, then by
+# PFnet (2.290 n282 / 1.850 n406 / 1.762 n414 / 1.676 n580 / 1.377 n904). One long swing row per symbol: the first cell
+# whose signal fires opens, so a looser-rr cell only adds trades on bars where every tighter cell stayed silent. The
+# be1 (breakeven ratchet) and 1h cells are NOT wired: be1 shares the no-be cell's entry signal (duplicate) and the
+# long swing scan is daily only. Each cell is gated by its own registry row (PFnet > floor).
+BRK20_LONG_SWING_CELLS = (  # (tag, atr_mult, min_rr), cascade order
+    (BRK20_SWING_TAG, BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR),
+    ("brk20_min_rr__main_replay__long__1d__atr4_rr3d5__v1", 4.0, 3.5),
+    ("brk20_min_rr__main_replay__long__1d__atr4_rr3__v1", 4.0, 3.0),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr4__v1", 3.0, 4.0),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr3d5__v1", 3.0, 3.5),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr3__v1", 3.0, 3.0),
+)
+BRK20_LONG_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_LONG_SWING_CELLS}
+BRK20_LONG_SWING_TAGS = tuple(t for t, _a, _r in BRK20_LONG_SWING_CELLS)
 
 
-def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+def brk20_long_swing_entry_signal(df):
+    """First BRK20_LONG_SWING_CELLS cell that fires on the last bar -> (tag, signal) or (None, None). The stop is always
+    set by the signal (entry - atr_mult x ATR) and must sit below the entry (no trade without SL)."""
+    for tag, atr_mult, min_rr in BRK20_LONG_SWING_CELLS:
+        sig = brk20_min_rr_entry_signal(df, "long", atr_mult, min_rr)
+        if sig and sig["stop_loss"] < sig["entry_price"]:
+            return tag, sig
+    return None, None
+
+
+def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag=BRK20_SWING_TAG):
     """Same signature as the other swing exit fns. The research fills at the bar AFTER the signal bar,
     so the fill bar is the first bar dated after entry_day (the live entry is recorded on the signal day).
     Every completed bar since is replayed in order, so a skipped scan day cannot hide a stop / the exact
@@ -5362,7 +5597,7 @@ def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
     if "Date" not in d.columns:
         d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
     new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
-    entry_price = float(initial_stop) + BRK20_SWING_ATR_MULT * float(atr_at_entry or 0.0)
+    entry_price = float(initial_stop) + BRK20_LONG_SWING_ATR_OF_TAG.get(tag, BRK20_SWING_ATR_MULT) * float(atr_at_entry or 0.0)
     fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     dates = d["Date"].astype(str).str[:10].to_numpy()
     starts = np.flatnonzero(dates >= fill_day)
@@ -6651,6 +6886,100 @@ def chan_kalman_band_long_exit_reason(df, interval: str, entry_pos: int, entry_p
     return None
 
 
+# ---- B-1467 chan_kalman "v1 band" (registry chan_kalman__band__{long,short}__{5m,15m,1h,1d}__atr*_hold40_ve*_z*__v1,
+# evidence scripts/chan_ext_research.py run 38147514850). VERBATIM PORT of kalman_cells + intraday_wrap + day_flags
+# (scripts/chan_ext_research.py) and the trade loop of chan_research.simulate. UNWIRED: no scan, no order path, not in
+# _STRATEGY_TAG_TO_REGISTRY_NAME, no kill switch. Exists so scripts/chan_kalman_main_replay_job.py replays real main.py code.
+# Rule: Kalman adaptive mean on log close (delta 1e-4, Ve 1e-4|1e-3). Signal at the CLOSE of bar i: long when
+# err < -z*sqrtQ, short when err > z*sqrtQ. Entry at the OPEN of bar i+1; stop = entry -/+ k*ATR14[i] (simple-mean ATR,
+# gap-aware fill), ALWAYS set (no trade without SL). Exit order per bar j >= entry bar: stop -> state exit (long err >= 0,
+# short err <= 0; on 5m/15m also the last bar of each day, forced flat at its close) -> max hold (close of bar
+# entry+hold-1). On 5m/15m no signal is taken on the last bar of a day. 1h/1d carry positions overnight (as the research).
+# Differs from the v2 band_mr port above (15:15 flatten masks); a different tag family, never merged with it.
+CHAN_KALMAN_V1_HOLD = 40
+CHAN_KALMAN_V1_INTRADAY = ("5m", "15m")
+
+
+def chan_kalman_v1_day_last(index):
+    """Research day_flags: True on the last bar of each calendar date of the index (its own tz) and on the final bar."""
+    d = pd.Series(pd.DatetimeIndex(index).date, index=range(len(index)))
+    return (d != d.shift(-1)).to_numpy()
+
+
+def chan_kalman_band_v1_precompute(df, interval: str, z: float, ve: float, delta: float = CHAN_KALMAN_DELTA):
+    """Causal arrays over the whole frame: sig (+1 long / -1 short / 0), exit_long, exit_short, atr, err, sq.
+    = kalman_cells(ve, z) then intraday_wrap(day_flags) for 5m/15m. Slicing equals recomputing (all causal except the
+    day-last flag, which needs the next bar's date; live, the last bar of the day is known from the session clock)."""
+    c = df["Close"].to_numpy(float)
+    err, sq = chan_kalman_series(c, ve, delta)
+    sig = np.zeros(len(c))
+    sig[err < -z * sq], sig[err > z * sq] = 1, -1
+    xl, xs = err >= 0, err <= 0
+    last = None
+    if interval in CHAN_KALMAN_V1_INTRADAY:
+        last = chan_kalman_v1_day_last(df.index)
+        sig[last] = 0
+        xl, xs = xl | last, xs | last
+    atr = chan_atr14(df["High"].to_numpy(float), df["Low"].to_numpy(float), c)
+    return {"sig": sig, "exit_long": xl, "exit_short": xs, "atr": atr, "err": err, "sq": sq, "last": last}
+
+
+def chan_kalman_band_v1_entry_signal(df, interval: str, direction: str, z: float = 2.0, ve: float = 1e-3,
+                                     atr_mult: float = 4.0, pos: int | None = None, pre=None):
+    """Signal check at bar `pos` (default the last bar). None or {signal_pos, direction, atr, atr_mult, close}.
+    The fill is the NEXT bar's open; chan_kalman_band_v1_stop(fill, ...) gives the protective stop."""
+    if direction not in ("long", "short") or not atr_mult or atr_mult <= 0:
+        return None
+    n = len(df)
+    if n < 20:
+        return None
+    if pre is None:
+        pre = chan_kalman_band_v1_precompute(df, interval, z, ve)
+    i = n - 1 if pos is None else int(pos)
+    side = 1 if direction == "long" else -1
+    a = pre["atr"][i]
+    if pre["sig"][i] != side or np.isnan(a) or a <= 0:
+        return None
+    return {"signal_pos": i, "direction": direction, "atr": float(a), "atr_mult": float(atr_mult),
+            "close": float(df["Close"].iloc[i])}
+
+
+def chan_kalman_band_v1_stop(entry_price: float, atr: float, atr_mult: float, direction: str):
+    """entry -/+ k*ATR(signal bar). None (= no entry, SL on every trade) when it cannot be a valid stop."""
+    if not entry_price or entry_price <= 0 or not atr or atr <= 0 or not atr_mult or atr_mult <= 0:
+        return None
+    return float(entry_price - atr_mult * atr) if direction == "long" else float(entry_price + atr_mult * atr)
+
+
+def chan_kalman_band_v1_exit_reason(bars, direction: str, entry_pos: int, stop: float, hold: int = CHAN_KALMAN_V1_HOLD,
+                                    pos: int | None = None, pre=None):
+    """Exit check at bar j (`pos`, default the last bar) for a position FILLED at the open of bar entry_pos.
+    bars: DataFrame or dict of numpy arrays (Open/High/Low/Close). pre: chan_kalman_band_v1_precompute output.
+    Order = research simulate: gap-aware stop (fill bar at the stop, later bars at min/max(stop, open)) -> state exit at
+    the close ('state_exit' = err crossed the mean, 'eod_flat' = 5m/15m last bar of the day) -> 'max_hold' at the close of
+    bar entry_pos+hold-1. Returns (reason, px) or None while open."""
+    o_, h_, l_, c_ = (bars[k] for k in ("Open", "High", "Low", "Close"))
+    if hasattr(c_, "to_numpy"):
+        o_, h_, l_, c_ = (x.to_numpy(float) for x in (o_, h_, l_, c_))
+    j = len(c_) - 1 if pos is None else int(pos)
+    if j < entry_pos:
+        return None
+    o, h, l, c = float(o_[j]), float(h_[j]), float(l_[j]), float(c_[j])
+    if direction == "long":
+        if l <= stop:
+            return "stop", (min(stop, o) if j > entry_pos else float(stop))
+        if pre["exit_long"][j]:
+            return ("state_exit" if pre["err"][j] >= 0 else "eod_flat"), c
+    else:
+        if h >= stop:
+            return "stop", (max(stop, o) if j > entry_pos else float(stop))
+        if pre["exit_short"][j]:
+            return ("state_exit" if pre["err"][j] <= 0 else "eod_flat"), c
+    if j >= entry_pos + hold - 1:
+        return "max_hold", c
+    return None
+
+
 # ---------------------------------------------------------------------------
 # O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
 # scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
@@ -6800,6 +7129,351 @@ def oneil_exit_reason(df, tf: str, direction: str, entry_pos: int, stop: float, 
     return oneil_exit_bar(direction, o[j], h[j], l[j], c[j], j, entry_pos + hold - 1, stop, init, target)
 
 
+# ---------------------------------------------------------------------------
+# O'Neil EXTENSION entry detectors (B-1463). ADDITIVE, UNWIRED PORT of scripts/oneil_ext_research.bull_signals
+# (families hft/shakeout/hns/triple/trendline/tightarea/pullback/rsline/leaders/volpct) and of the RS-screen rule in
+# scripts/oneil_research.entry_signals (oneil_rsscreen). Constants and arithmetic are copied verbatim; every array
+# value at bar t depends only on bars <= t (rolling windows are backward-looking, swing pivots count only once
+# confirmed sw bars later), so oneil_ext_signal_at(t) on bars[:t+1] equals the full-array value at t.
+# Short = the research's reciprocal-price mirror (o'=1/o, h'=1/l, l'=1/h, c'=1/c, idx'=1/idx, rs'=100-rs) of the
+# same bullish detector, its own direction. oneil_rsscreen keeps its research definition on both sides (long
+# RS>=90 near the 52w high, short RS<=20 near the 52w low, native, not mirrored) so it matches the registered cells.
+# No live scan, no real-order path, no kill switch. Exits reuse oneil_stop_price / oneil_exit_bar.
+# ---------------------------------------------------------------------------
+ONEIL_EXT_CFG = {
+    "1d": dict(pole=40, flag=15, sw=4, sk=10, pull=20, ma10=50, tight5=5, idx_lb=120, idx_rec=63,
+               hs_max_age=40, tl_age=60, tl_min_sep=5, trip_span=20),
+    "1w": dict(pole=8, flag=3, sw=2, sk=2, pull=4, ma10=10, tight5=3, idx_lb=26, idx_rec=13,
+               hs_max_age=8, tl_age=12, tl_min_sep=2, trip_span=5),
+}
+ONEIL_EXT_SHAKE_M = (1.0, 2.0)
+ONEIL_EXT_TIGHT5 = (0.02, 0.03)
+ONEIL_EXT_VOLPCT = (3.0, 5.0)
+ONEIL_EXT_FAMILIES = ("oneil_hft", "oneil_shakeout", "oneil_hns", "oneil_triple", "oneil_trendline", "oneil_tightarea",
+                      "oneil_pullback", "oneil_rsline", "oneil_leaders", "oneil_volpct", "oneil_rsscreen")
+
+
+def _ox_shift(x, k=1):
+    x = np.asarray(x, float)
+    out = np.full_like(x, np.nan)
+    if k > 0:
+        out[k:] = x[:-k]
+    elif k < 0:
+        out[:k] = x[-k:]
+    else:
+        out[:] = x
+    return out
+
+
+def _ox_sma(x, n):
+    return pd.Series(x).rolling(n).mean().to_numpy()
+
+
+def _ox_rmax(x, n):
+    return pd.Series(x).rolling(n).max().to_numpy()
+
+
+def _ox_rmin(x, n):
+    return pd.Series(x).rolling(n).min().to_numpy()
+
+
+def _ox_atr(h, l, c, n=14):
+    pc = _ox_shift(c)
+    tr = np.nanmax(np.vstack([h - l, np.abs(h - pc), np.abs(l - pc)]), axis=0)
+    return pd.Series(tr).rolling(n).mean().to_numpy()
+
+
+def _ox_fnum(v):
+    return ("%g" % v).replace(".", "d")
+
+
+def _ox_swing_pivots(h, l, sw):
+    """Confirmed swing highs/lows: list of (k, price, confirm_index=k+sw)."""
+    n = len(h)
+    hi, lo = [], []
+    for k in range(sw, n - sw):
+        if h[k] == np.max(h[k - sw:k + sw + 1]):
+            hi.append((k, h[k], k + sw))
+        if l[k] == np.min(l[k - sw:k + sw + 1]):
+            lo.append((k, l[k], k + sw))
+    return hi, lo
+
+
+def _ox_confirmed(piv, t):
+    out = []
+    for p in piv:
+        if p[2] <= t:
+            out.append(p)
+        else:
+            break
+    return out
+
+
+def oneil_ext_mirror(o, h, l, c, idx=None, rs=None):
+    """Reciprocal-price mirror: the bullish detector run on this IS the short rule on the original series."""
+    o, h, l, c = (np.asarray(a, float) for a in (o, h, l, c))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        mi = None if idx is None else 1.0 / np.asarray(idx, float)
+        mr = None if rs is None else 100.0 - np.asarray(rs, float)
+        return 1.0 / o, 1.0 / l, 1.0 / h, 1.0 / c, mi, mr
+
+
+def oneil_ext_bull_signals(o, h, l, c, v, idx, rs, tf: str) -> dict:
+    """Bullish ext detectors (signal at the close of t). Returns {(family, variant, pkey): bool array}.
+    idx=None skips the index-dependent families (rsline, leaders), as in the research. rs is unused (kept for
+    signature parity with the research bull_signals)."""
+    o, h, l, c, v = (np.asarray(a, float) for a in (o, h, l, c, v))
+    cfg, ex = ONEIL_CFG[tf], ONEIL_EXT_CFG[tf]
+    n = len(c)
+    base, vol_n, smalt, yr = cfg["base"], cfg["vol"], cfg["smalt"], cfg["yr"]
+    vavg = _ox_shift(_ox_sma(v, vol_n))
+    ma = _ox_sma(c, smalt)
+    ma50 = _ox_sma(c, ex["ma10"])
+    atr = _ox_atr(h, l, c)
+    E = {}
+    zero = np.zeros(n, bool)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        volok = v >= ONEIL_VOL_MULT * vavg
+        # high tight flag (B-467)
+        Fb, P = ex["flag"], ex["pole"]
+        fH, fL = _ox_shift(_ox_rmax(h, Fb)), _ox_shift(_ox_rmin(l, Fb))
+        poleLow = _ox_shift(_ox_rmin(l, P), Fb)
+        E[("oneil_hft", "breakout", "na")] = (fH / poleLow >= 2.0) & ((fH - fL) / fH <= 0.20) & (c > fH) & volok
+        # shakeout plus m*ATR (B-468)
+        sk = ex["sk"]
+        baseLow = _ox_shift(_ox_rmin(l, base), sk)
+        brokeLow = _ox_shift(_ox_rmin(l, sk))
+        brokeRec = brokeLow < baseLow
+        for m in ONEIL_EXT_SHAKE_M:
+            lvl = baseLow + m * atr
+            E[("oneil_shakeout", "plus3", f"m{_ox_fnum(m)}")] = (brokeRec & (c > lvl) & (_ox_shift(c) <= _ox_shift(lvl))
+                                                                 & (c > baseLow))
+        # inverse H&S (B-470), triple bottom (B-471), descending trendline break (B-472)
+        hi, lo = _ox_swing_pivots(h, l, ex["sw"])
+        hns, trip, tl = zero.copy(), zero.copy(), zero.copy()
+        age = ex["hs_max_age"]
+        for t in range(n):
+            los = _ox_confirmed(lo, t)
+            his = _ox_confirmed(hi, t)
+            if len(los) >= 3:
+                (k1, p1, _), (k2, p2, _), (k3, p3, c3) = los[-3], los[-2], los[-1]
+                if p2 < p1 * 0.97 and p2 < p3 * 0.97 and abs(p1 - p3) / p1 <= 0.15 and 0 < t - c3 <= age:
+                    n1 = [x[1] for x in his if k1 < x[0] < k2]
+                    n2 = [x[1] for x in his if k2 < x[0] < k3]
+                    if n1 and n2:
+                        neck = (max(n1) + max(n2)) / 2.0
+                        if c[t] > neck and (t == 0 or c[t - 1] <= neck) and volok[t]:
+                            hns[t] = True
+                lows3 = [p1, p2, p3]
+                if (max(lows3) - min(lows3)) / max(lows3) <= 0.03 and k3 - k1 >= ex["trip_span"] and 0 < t - c3 <= age:
+                    mid = [x[1] for x in his if k1 < x[0] < k3]
+                    if mid:
+                        neck = max(mid)
+                        if c[t] > neck and (t == 0 or c[t - 1] <= neck) and volok[t]:
+                            trip[t] = True
+            if len(his) >= 2:
+                (ka, pa, _), (kb, pb, cb) = his[-2], his[-1]
+                if pb < pa and kb - ka >= ex["tl_min_sep"] and 0 < t - cb <= ex["tl_age"]:
+                    line_t = pb + (pb - pa) / (kb - ka) * (t - kb)
+                    line_p = pb + (pb - pa) / (kb - ka) * (t - 1 - kb)
+                    if c[t] > line_t and t > 0 and c[t - 1] <= line_p:
+                        tl[t] = True
+        E[("oneil_hns", "neckline", "na")] = hns
+        E[("oneil_triple", "neckline", "na")] = trip
+        E[("oneil_trendline", "break", "na")] = tl
+        # tight area (B-471)
+        t5 = ex["tight5"]
+        tH, tCmax, tCmin = _ox_shift(_ox_rmax(h, t5)), _ox_shift(_ox_rmax(c, t5)), _ox_shift(_ox_rmin(c, t5))
+        for th in ONEIL_EXT_TIGHT5:
+            E[("oneil_tightarea", "breakout", f"r{_ox_fnum(th * 100)}")] = (((tCmax - tCmin) / tCmax <= th) & (c > tH)
+                                                                           & volok & (c > ma))
+        # pullback buy (B-478)
+        Hh = _ox_shift(_ox_rmax(h, ex["pull"]))
+        dry3 = _ox_sma(v, 3) < 0.75 * vavg
+        E[("oneil_pullback", "buy", "na")] = ((c < Hh) & (c >= 0.95 * Hh) & (Hh >= 0.97 * _ox_shift(_ox_rmax(h, yr)))
+                                              & _ox_shift(dry3.astype(float)).astype(bool) & (c > ma50) & (c > o))
+        # leaders first high (B-480), RS line new high (B-484): need the index
+        if idx is not None:
+            idx = np.asarray(idx, float)
+            nh = (c > _ox_shift(_ox_rmax(c, yr))).astype(float)
+            cs = np.cumsum(np.nan_to_num(nh))
+            first_after_low = zero.copy()
+            L = ex["idx_lb"]
+            for t in range(L, n):
+                w = idx[t - L:t + 1]
+                if np.isnan(w).any():
+                    continue
+                pos = t - L + int(np.argmin(w))
+                if (t - pos <= ex["idx_rec"] and idx[t] / idx[pos] - 1 >= 0.05 and nh[t] == 1
+                        and (cs[t - 1] - cs[pos]) == 0):
+                    first_after_low[t] = True
+            E[("oneil_leaders", "firsthigh", "na")] = first_after_low
+            rsl = c / idx
+            E[("oneil_rsline", "newhigh", "na")] = ((rsl > _ox_shift(_ox_rmax(rsl, yr))) & (c < _ox_shift(_ox_rmax(c, yr)))
+                                                    & (c > ma))
+        # volume % surge (B-487)
+        vr = v / vavg - 1
+        for th in ONEIL_EXT_VOLPCT:
+            E[("oneil_volpct", "surge", f"v{_ox_fnum(th)}")] = (vr >= th) & (c / _ox_shift(c) - 1 >= 0.02) & (c > o)
+    return {k: np.nan_to_num(np.asarray(m, float)).astype(bool) for k, m in E.items()}
+
+
+def oneil_rsscreen_signals(c, rs, tf: str, direction: str) -> np.ndarray:
+    """oneil_rsscreen__top (B-483), research definition: long RS>=90 & close>MA & close>=95% of the 52w high,
+    short RS<=20 & close<MA & close<=105% of the 52w low; first bar of each run only."""
+    c = np.asarray(c, float)
+    rs = np.asarray(rs, float)
+    cfg = ONEIL_CFG[tf]
+    ma = _ox_sma(c, cfg["smalt"])
+    yr = cfg["yr"]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        if direction == "long":
+            cond = (rs >= 90) & (c > ma) & (c >= 0.95 * _ox_rmax(c, yr))
+        else:
+            cond = (rs <= 20) & (c < ma) & (c <= 1.05 * _ox_rmin(c, yr))
+        sig = cond & (_ox_shift(cond.astype(float)) != 1)
+    return np.nan_to_num(np.asarray(sig, float)).astype(bool)
+
+
+# B-1468: RS lookback in bars, identical to scripts/oneil_research.py CFG[tf]["rs_lb"] (12 months).
+ONEIL_RS_LB = {"1d": 252, "1w": 52}
+
+
+def oneil_rs_rank_series(closes, tf: str = "1d") -> pd.DataFrame:
+    """B-1468: per-date 1-99 RS rank across the given symbols, exactly as the replay
+    (scripts/oneil_research.rs_rank_matrix): 12-month return close/close.shift(lb)-1, ranked across columns with
+    pct=True, scaled *98+1. `closes` is a DataFrame (columns = symbols) or {symbol: close Series}. Meant to be
+    computed ONCE per swing pass over the live watchlist (main.SWING_WATCHLIST) so an oneil_rsscreen cell ranks
+    inside the same population the rs_universe=n200 replay validated. Additive and UNWIRED: no live caller yet."""
+    if not isinstance(closes, pd.DataFrame):
+        closes = pd.DataFrame(dict(closes))
+    lb = ONEIL_RS_LB[tf]
+    ret = closes / closes.shift(lb) - 1
+    return ret.rank(axis=1, pct=True) * 98 + 1
+
+
+def oneil_rs_rank_for_swing_pass(frames: dict, tf: str = "1d") -> pd.DataFrame:
+    """B-1468: build the RS rank matrix from a swing pass's {symbol: OHLC DataFrame} prefetch (None/empty/failed
+    fetches skipped). UNWIRED helper for a future oneil_rsscreen live cell."""
+    closes = {}
+    for sym, df in (frames or {}).items():
+        if df is None or not hasattr(df, "columns") or "Close" not in df.columns or len(df) == 0:
+            continue
+        closes[sym] = df["Close"].astype(float)
+    if not closes:
+        return pd.DataFrame()
+    return oneil_rs_rank_series(closes, tf)
+
+
+# B-1468 wiring: RS-population eligibility, matched to scripts/oneil_nonoverlap.py --rs_universe n200 (_shard): every
+# fetched bar series goes through scripts/oneil_research.clean_bars, then only symbols with >= CFG[tf]["min_bars"] clean
+# bars (300 daily / 120 weekly) join the rank population. Daily parity is exact: the live 2y daily prefetch (~495 bars)
+# answers "300+ clean daily bars" exactly as the replay's 5y fetch does. Weekly cannot be exact without an extra (10y)
+# fetch: a 2y prefetch resamples to ~104-105 weeks, so the replay's 120-week rule would exclude every symbol. Live
+# proxy = the symbol's clean weekly bars cover the whole 2y prefetch (>= ONEIL_RS_MIN_BARS_LIVE["1w"]); the only
+# residual mismatch is a symbol listed 2.0-2.3 years ago (in live, out of the replay population).
+ONEIL_RS_MIN_BARS = {"1d": 300, "1w": 120}        # scripts/oneil_research.CFG[tf]["min_bars"] (replay)
+ONEIL_RS_MIN_BARS_LIVE = {"1d": 300, "1w": 100}   # live: 1d exact; 1w proxy (see above)
+_ONEIL_RS_PASS: dict = {"1d": None, "1w": None}   # RS rank matrices for the current swing pass (computed once)
+
+
+def oneil_clean_bars(df: pd.DataFrame, max_move: float = 0.35) -> pd.DataFrame:
+    """Verbatim port of scripts/oneil_research.clean_bars (vendor-glitch bar filter)."""
+    o, h, l, c = df["Open"], df["High"], df["Low"], df["Close"]
+    ok = (o <= h * 1.001) & (o >= l * 0.999) & (c <= h * 1.001) & (c >= l * 0.999) & (l > 0) & ((h / l) < 1.6)
+    jump = (c / c.shift(1) - 1).abs() > max_move
+    return df[ok & ~jump.fillna(False)]
+
+
+def oneil_rs_eligible_closes(frames: dict, tf: str = "1d", min_bars: int | None = None) -> dict:
+    """{symbol: clean close Series} for the RS population (see block comment). 1d keyed by YYYY-MM-DD, 1w by W-FRI
+    period (oneil_weekly_from_daily per symbol). Bad/short frames are skipped, never raised."""
+    need = ONEIL_RS_MIN_BARS_LIVE[tf] if min_bars is None else int(min_bars)
+    out = {}
+    for sym, df in (frames or {}).items():
+        try:
+            if df is None or len(df) == 0 or not {"Open", "High", "Low", "Close"}.issubset(df.columns):
+                continue
+            if tf == "1w":
+                b = oneil_clean_bars(oneil_weekly_from_daily(df)[["Open", "High", "Low", "Close"]].astype(float).dropna())
+                s = b["Close"]
+            else:
+                d = df[["Open", "High", "Low", "Close"]].astype(float)
+                d.index = _oneil_daily_dates(df)
+                b = oneil_clean_bars(d.dropna())
+                s = b["Close"][~b.index.duplicated(keep="last")]
+            if len(s) >= need:
+                out[sym] = s
+        except Exception:
+            continue
+    return out
+
+
+def oneil_rs_rank_eligible(frames: dict, tf: str = "1d", min_bars: int | None = None) -> pd.DataFrame:
+    """RS rank matrix over the eligible population only (the n200 replay's rs_all)."""
+    closes = oneil_rs_eligible_closes(frames, tf, min_bars)
+    if not closes:
+        return pd.DataFrame()
+    return oneil_rs_rank_series(pd.DataFrame(closes).sort_index(), tf)
+
+
+def _oneil_rs_set_for_pass(frames: dict) -> None:
+    """ONCE per swing pass, from the frames the pass already holds (no fetch): daily + weekly RS matrices."""
+    for tf in ("1d", "1w"):
+        try:
+            m = oneil_rs_rank_eligible(frames, tf)
+            _ONEIL_RS_PASS[tf] = m if len(m.columns) else None
+        except Exception as e:
+            print(f"[SWING] O'Neil RS rank {tf} failed (rsscreen cells skip this pass): {e}")
+            _ONEIL_RS_PASS[tf] = None
+
+
+def _oneil_rs_for(symbol, tf: str, keys):
+    """The symbol's RS series aligned onto `keys` (daily date strings / weekly periods), or None (fail closed) when the
+    pass has no matrix, the symbol is outside the eligible population, or its rank at the last key is missing/NaN."""
+    m = _ONEIL_RS_PASS.get(tf)
+    if symbol is None or m is None or symbol not in m.columns:
+        return None
+    try:
+        rs = m[symbol].reindex(keys).to_numpy(float)
+    except Exception:
+        return None
+    if len(rs) == 0 or not np.isfinite(rs[-1]):
+        return None
+    return rs
+
+
+def oneil_ext_signals(direction: str, tf: str, o, h, l, c, v, idx=None, rs=None) -> dict:
+    """All ext entry arrays for one direction: {(family, variant, pkey): bool array}. Short = mirror of the bullish
+    detector; oneil_rsscreen (needs rs) is native on both sides with pkey rs90 (long) / rs20 (short)."""
+    if direction == "long":
+        mo, mh, ml, mc = (np.asarray(a, float) for a in (o, h, l, c))
+        mi, mr = idx, rs
+    else:
+        mo, mh, ml, mc, mi, mr = oneil_ext_mirror(o, h, l, c, idx, rs)
+    out = oneil_ext_bull_signals(mo, mh, ml, mc, v, mi, mr, tf)
+    if rs is not None:
+        key = ("oneil_rsscreen", "top", "rs90" if direction == "long" else "rs20")
+        out[key] = oneil_rsscreen_signals(c, rs, tf, direction)
+    return out
+
+
+def oneil_ext_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c, v, idx=None, rs=None,
+                        pkey: str = "na") -> bool:
+    """Walk-forward check: does (family, pkey) fire at the CLOSE of bar t using only bars <= t?"""
+    if family not in ONEIL_EXT_FAMILIES or tf not in ONEIL_EXT_CFG or t < 0 or t >= len(c):
+        return False
+
+    def cut(a):
+        return None if a is None else np.asarray(a, float)[:t + 1]
+
+    sigs = oneil_ext_signals(direction, tf, cut(o), cut(h), cut(l), cut(c), cut(v), cut(idx), cut(rs))
+    for (fam, _var, pk), arr in sigs.items():
+        if fam == family and pk == pkey:
+            return bool(arr[t])
+    return False
+
+
 # ---- O'Neil 1w LONG cells wired into the live SWING scan (2026-10-14, user "go"; main.py replay run 38517583883) ----
 # The scan holds completed DAILY bars; weekly bars are resampled from them (W-FRI, same as scripts/oneil_replay.py's 1w
 # feed). Signal = last COMPLETED week, evaluated in the first 1-2 sessions of the next week (entry ~ that week's open).
@@ -6814,11 +7488,42 @@ ONEIL_SWING_CHASE = 0.10
 ONEIL_FLATBASE_TAG = "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
 ONEIL_NEWHIGH_TAG = "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2"
 ONEIL_PIVOT_TAG = "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
-# tag -> (family, chase or None); order = priority (PFnet 3.921 > 2.484 > 2.177)
+# B-1463 (2026-11-04): + 13 O'Neil EXT 1w LONG cells from the main.py replay run 41847932950 (scripts/oneil_nonoverlap.py
+# ext_main: entry main.oneil_ext_signals on weekly bars, exit main.oneil_stop_price atr3 + oneil_exit_bar h26, strict FIFO,
+# 0.8% cost, 1965 symbols fetched; pooled PFnet > 1 AND OOS segment PFnet > 1). Same atr3 stop, 26-week hold, timing and
+# exit as the 3 classic cells; only the detector differs. The replay's weekly ^NSEI series feeds the index families
+# (leaders, rsline): live it is the pass's ^NSEI daily closes resampled W-FRI (last close), reindexed onto the symbol's
+# weeks and forward-filled; no index -> those two cells never fire (fail closed). NOT wired: oneil_rsscreen 1w rs90
+# (PFnet 2.566) for the same RS-population reason as the 1d rsscreen cell (see the O'Neil ext 1d block below), and every
+# weekly SHORT cell (best h8/h12 pooled 1.04-1.24, OOS <= 1.05: too thin).
+# tag -> (family, chase or None, detector); detector None = classic oneil_signal_at, else ("ext", variant, pkey, needs_idx).
+# Order = priority, registry PFnet descending (one position per symbol: the first cell that fires owns it).
+ONEIL_EXT_1W_RSSCREEN_TAG = "oneil_rsscreen__top__long__1w__atr3_h26_rs90_srcmain__nonovl__v2"  # registered, NOT wired
+ONEIL_RSSCREEN_1W_N200_TAG = "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2"
 ONEIL_SWING_CELLS = {
-    ONEIL_FLATBASE_TAG: ("oneil_flatbase", ONEIL_SWING_CHASE),
-    ONEIL_NEWHIGH_TAG: ("oneil_newhigh", None),
-    ONEIL_PIVOT_TAG: ("oneil_pivot", ONEIL_SWING_CHASE),
+    ONEIL_FLATBASE_TAG: ("oneil_flatbase", ONEIL_SWING_CHASE, None),  # 3.921
+    "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_hft", None, ("ext", "breakout", "na", False)),  # 3.831
+    # B-1468: RS ranked inside the live watchlist (rs_universe=n200 replay run 41855879111: n 445, OOS 3.463)
+    ONEIL_RSSCREEN_1W_N200_TAG: ("oneil_rsscreen", None, ("rs", "top", "rs90", False)),  # 3.179
+    "oneil_tightarea__breakout__long__1w__atr3_h26_pr2_srcmain__nonovl__v2":
+        ("oneil_tightarea", None, ("ext", "breakout", "r2", False)),  # 2.726
+    "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2":
+        ("oneil_leaders", None, ("ext", "firsthigh", "na", True)),  # 2.669
+    "oneil_pullback__buy__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_pullback", None, ("ext", "buy", "na", False)),  # 2.620
+    ONEIL_NEWHIGH_TAG: ("oneil_newhigh", None, None),  # 2.484
+    "oneil_tightarea__breakout__long__1w__atr3_h26_pr3_srcmain__nonovl__v2":
+        ("oneil_tightarea", None, ("ext", "breakout", "r3", False)),  # 2.462
+    "oneil_rsline__newhigh__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_rsline", None, ("ext", "newhigh", "na", True)),  # 2.358
+    "oneil_hns__neckline__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_hns", None, ("ext", "neckline", "na", False)),  # 2.354
+    ONEIL_PIVOT_TAG: ("oneil_pivot", ONEIL_SWING_CHASE, None),  # 2.177
+    "oneil_volpct__surge__long__1w__atr3_h26_pv3_srcmain__nonovl__v2": ("oneil_volpct", None, ("ext", "surge", "v3", False)),  # 1.866
+    "oneil_volpct__surge__long__1w__atr3_h26_pv5_srcmain__nonovl__v2": ("oneil_volpct", None, ("ext", "surge", "v5", False)),  # 1.766
+    "oneil_triple__neckline__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_triple", None, ("ext", "neckline", "na", False)),  # 1.730
+    "oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_trendline", None, ("ext", "break", "na", False)),  # 1.724
+    "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2":
+        ("oneil_shakeout", None, ("ext", "plus3", "m1", False)),  # 1.480
+    "oneil_shakeout__plus3__long__1w__atr3_h26_pm2_srcmain__nonovl__v2":
+        ("oneil_shakeout", None, ("ext", "plus3", "m2", False)),  # 1.460
 }
 
 
@@ -6834,7 +7539,39 @@ def oneil_weekly_from_daily(df: pd.DataFrame) -> pd.DataFrame:
                  Volume=("Volume", "sum"), nbars=("Close", "size"))
 
 
-def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+def _oneil_weekly_index(weeks_index) -> np.ndarray | None:
+    """The pass's ^NSEI daily closes resampled W-FRI (last close), aligned to the symbol's completed weeks, ffilled."""
+    ic = _ONEIL_DAILY_IDX["close"]
+    if ic is None:
+        return None
+    try:
+        per = pd.DatetimeIndex(pd.to_datetime(list(ic.index))).to_period("W-FRI")
+        wk = pd.Series(np.asarray(ic, float), index=per).groupby(level=0).last()
+        idx = wk.reindex(weeks_index).ffill().to_numpy(float)
+    except Exception:
+        return None
+    return None if np.isnan(idx).all() else idx
+
+
+def _oneil_weekly_ext_last_bar_signals(wc: pd.DataFrame) -> dict:
+    """{(family, variant, pkey): fired at the last completed week} from ONE oneil_ext_signals call per symbol per pass
+    (memoised on the weekly bars + index), reused by every ext 1w cell."""
+    idx = _oneil_weekly_index(wc.index)
+    c = wc["Close"].to_numpy(float)
+    key = ("1w", str(wc.index[0]), str(wc.index[-1]), len(wc), hash(c.tobytes()), float(wc["Volume"].iloc[-1]),
+           None if idx is None else hash(np.nan_to_num(idx).tobytes()))
+    hit = _ONEIL_DAILY_SIG_CACHE.get(key)
+    if hit is not None:
+        return hit
+    o, h, l, v = (wc[x].to_numpy(float) for x in ("Open", "High", "Low", "Volume"))
+    sigs = oneil_ext_signals("long", "1w", o, h, l, c, v, idx, None)
+    out = {k: bool(np.asarray(a)[-1]) for k, a in sigs.items()}
+    out["_idx_ok"] = bool(idx is not None and np.isfinite(idx[-1]))
+    _ONEIL_DAILY_SIG_CACHE[key] = out
+    return out
+
+
+def oneil_swing_entry_signal(df: pd.DataFrame, tag: str, symbol: str | None = None) -> dict | None:
     """Live entry check for one wired cell on the daily df (see block comment). Returns the swing-engine signal dict
     (entry_price/stop_loss/atr_at_entry) or None. Fires only while the latest daily bar is among the first two sessions
     of a week, using the previous completed week as the signal bar t; the next-open no-chase test uses the live daily
@@ -6842,7 +7579,7 @@ def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
     cell = ONEIL_SWING_CELLS.get(tag)
     if cell is None or df is None or len(df) < 60:
         return None
-    family, chase = cell
+    family, chase, detector = cell
     w = oneil_weekly_from_daily(df)
     if len(w) < 3 or int(w["nbars"].iloc[-1]) > 2:
         return None  # the newest week is already 3+ sessions old: the signal week's entry window has passed
@@ -6852,9 +7589,20 @@ def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
         return None
     o, h, l, c, v = (wc[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
     t = len(c) - 1
-    o2, h2, l2, c2, v2 = (np.append(a, px) for a in (o, h, l, c, v))
-    if not oneil_signal_at(family, "long", "1w", t, o2, h2, l2, c2, v2, None, chase, None):
-        return None
+    if detector is None:
+        o2, h2, l2, c2, v2 = (np.append(a, px) for a in (o, h, l, c, v))
+        if not oneil_signal_at(family, "long", "1w", t, o2, h2, l2, c2, v2, None, chase, None):
+            return None
+    elif detector[0] == "rs":
+        # B-1468: RS rank of `symbol` inside the pass's eligible watchlist population; no rank -> no signal
+        rs = _oneil_rs_for(symbol, "1w", wc.index)
+        if rs is None or not bool(oneil_rsscreen_signals(c, rs, "1w", "long")[-1]):
+            return None
+    else:
+        _kind, variant, pkey, needs_idx = detector
+        s = _oneil_weekly_ext_last_bar_signals(wc)
+        if (needs_idx and not s.get("_idx_ok")) or not s.get((family, variant, pkey)):
+            return None  # an index cell with no ^NSEI fails closed
     atr = oneil_atr14(h, l, c)
     if not np.isfinite(atr[t]) or atr[t] <= 0:
         return None
@@ -6895,9 +7643,9 @@ def _oneil_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
     return oneil_swing_exit_reason(df, entry_day, initial_stop, running_max_close)
 
 
-def _oneil_scan_signal(df, tag):
+def _oneil_scan_signal(df, tag, symbol=None):
     """Scan-only trigger evaluation (B-1274 stage 2); never an order."""
-    return oneil_swing_entry_signal(df, tag)
+    return oneil_swing_entry_signal(df, tag, symbol)
 
 
 def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
@@ -6905,16 +7653,18 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
     mirror pattern as _gapfade_try_entry; the PFnet gate is inside _is_strategy_viable_for_real_money."""
     for tag in ONEIL_SWING_CELLS:
         _record_strategy_scan(tag)
-        sig = oneil_swing_entry_signal(df, tag)
+        sig = oneil_swing_entry_signal(df, tag, symbol)
         if not sig:
             continue
         if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
-        # a stop-out inside the 2-session window must not re-enter the same week's signal
+        # a stop-out inside the 2-session window must not re-enter the same week's signal - under ANY weekly O'Neil cell
+        # (B-1463: the cascade now holds 16 cells; each was replayed alone, so a same-week re-entry through a sibling
+        # cell after a stop-out is a trade no replay measured)
         wk_start = (pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).weekday())).timestamp()
         if conn.execute("SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND raw_payload LIKE ?",
-                        (symbol, wk_start, f'%"entry_reason": "{tag}"%')).fetchone():
+                        (symbol, wk_start, '%"entry_reason": "oneil_%__1w__%')).fetchone():
             return False
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -6932,6 +7682,208 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
             (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
              json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
+# ---- O'Neil ext 1d LONG cells wired into the live SWING scan (B-1463, 2026-11-04; main.py replay run 41847222200) ----
+# Replay = scripts/oneil_nonoverlap.py `ext_main`: entry signal main.oneil_ext_signals at the CLOSE of daily bar t, entry
+# at the open of t+1, stop = entry - atr x oneil_atr14[t] (frozen; main.oneil_stop_price), exit main.oneil_exit_bar
+# (gap-aware stop, else the close of the 40th daily bar counting the entry bar as bar 1), strict FIFO one position per
+# symbol, 0.8% round trip, full NSE universe (2184 fetched). Owner rule (B-1463): pooled PFnet > 1 AND OOS segment
+# PFnet > 1 AND avg hold <= 30 trading days, one cell per family, best PFnet.
+# Live: signal bar t = the last COMPLETED daily bar (the pass drops today's forming bar); entry reference = the live
+# price (today's forming close when the pass sees it, else the last completed close); entry ONLY on the first NSE
+# session after t (a stale feed or a later pass never re-uses an old signal), and never twice for the same signal
+# bar (a stop-out on the entry day cannot re-enter it). The stop is the real resting SL (no trade without SL).
+# Wired: oneil_leaders__firsthigh (PFnet 1.593 n=1606, OOS 1.118, hold 25.1d). Its index input is ^NSEI daily
+# closes (the replay's yf.download("^NSEI") series, reindexed to the symbol's dates and forward-filled), fetched ONCE
+# per swing pass; no index -> no signal (fail closed).
+# NOT wired: oneil_rsscreen__top rs90 (PFnet 1.477 n=4158, OOS 1.098). Its RS rank was computed by the replay across
+# the loaded full-universe shard (~1/3 of 2184 NSE symbols, 12-month return percentile 1-99, every date), while the
+# live scan only holds the NIFTY-200 swing watchlist: RS >= 90 within 200 large caps selects a different set than
+# RS >= 90 within ~730 mixed-cap symbols, and _compute_minervini_rs_percentiles is a single last-bar value on another
+# lookback/scale (the screen needs the per-date series for its first-bar-of-run test). Matching the replay's
+# population would mean fetching the full universe every pass. Per the 2026-09-29 instruction recorded in
+# _run_swing_scan_pass ("require full backtest validation before wiring any future strategy the same way"), it stays
+# unwired until a replay ranks RS within the live watchlist population (backlog follow-up).
+ONEIL_DAILY_INDEX_SYMBOL = "^NSEI"
+ONEIL_DAILY_HOLD_BARS = 40
+ONEIL_LEADERS_1D_TAG = "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2"
+ONEIL_RSSCREEN_1D_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_srcmain__nonovl__v2"  # registered, NOT wired
+# tag -> ((family, variant, pkey), atr_mult, hold_bars, needs_index); order = priority (PFnet)
+ONEIL_RSSCREEN_1D_N200_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2"
+ONEIL_DAILY_CELLS = {
+    # B-1468: RS ranked inside the live watchlist (rs_universe=n200 replay run 41855872144: n 487, PFnet 1.747,
+    # OOS 1.087, avg hold 24.5 bars); key family oneil_rsscreen is evaluated from the pass RS matrix, not ext signals
+    ONEIL_RSSCREEN_1D_N200_TAG: (("oneil_rsscreen", "top", "rs90"), 2.0, ONEIL_DAILY_HOLD_BARS, False),
+    ONEIL_LEADERS_1D_TAG: (("oneil_leaders", "firsthigh", "na"), 2.0, ONEIL_DAILY_HOLD_BARS, True),
+}
+_ONEIL_DAILY_IDX = {"close": None}   # ^NSEI daily closes for the current swing pass (pd.Series by YYYY-MM-DD) or None
+_ONEIL_DAILY_SIG_CACHE: dict = {}    # per-pass memo: df fingerprint -> {key: bool at last bar}; cleared each pass
+_SWING_LIVE_PX: dict = {}            # symbol -> today's forming close seen by the current swing pass
+
+
+def _oneil_daily_dates(df) -> list:
+    return [str(x)[:10] for x in (df["Date"] if "Date" in df.columns else df.index)]
+
+
+def _oneil_daily_set_index(close_series) -> None:
+    """Store the pass's ^NSEI closes keyed by date string; anything unusable -> None (index cells fail closed)."""
+    _ONEIL_DAILY_SIG_CACHE.clear()
+    try:
+        s = pd.Series(np.asarray(close_series, float), index=[str(x)[:10] for x in close_series.index]).dropna()
+        s = s[~s.index.duplicated(keep="last")].sort_index()
+        _ONEIL_DAILY_IDX["close"] = s if len(s) else None
+    except Exception:
+        _ONEIL_DAILY_IDX["close"] = None
+
+
+def _oneil_daily_fetch_index() -> None:
+    """Once per swing pass. A forming index bar is harmless: the series is reindexed onto completed symbol dates."""
+    try:
+        d = fetch_ohlc(ONEIL_DAILY_INDEX_SYMBOL, "2y", "1d")
+        _oneil_daily_set_index(pd.Series(d["Close"].to_numpy(float), index=_oneil_daily_dates(d)))
+    except Exception as e:
+        print(f"[SWING] {ONEIL_DAILY_INDEX_SYMBOL} fetch failed (O'Neil 1d index cells skip this pass): {e}")
+        _ONEIL_DAILY_IDX["close"] = None
+        _ONEIL_DAILY_SIG_CACHE.clear()
+
+
+def _oneil_daily_last_bar_signals(df, idx_close) -> dict:
+    """{(family, variant, pkey): fired at the last bar} from ONE oneil_ext_signals call per df per pass (memoised)."""
+    dates = _oneil_daily_dates(df)
+    idx = None
+    if idx_close is not None:
+        idx = pd.Series(idx_close).reindex(dates).ffill().to_numpy(float)  # as the replay: reindex + ffill
+        if np.isnan(idx).all():
+            idx = None
+    key = (dates[0], dates[-1], len(df), hash(df["Close"].to_numpy(float).tobytes()), float(df["Volume"].iloc[-1]),
+           None if idx is None else hash(np.nan_to_num(idx).tobytes()))
+    hit = _ONEIL_DAILY_SIG_CACHE.get(key)
+    if hit is not None:
+        return hit
+    o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
+    sigs = oneil_ext_signals("long", "1d", o, h, l, c, v, idx, None)
+    out = {k: bool(np.asarray(a)[-1]) for k, a in sigs.items()}
+    out["_idx_ok"] = bool(idx is not None and np.isfinite(idx[-1]))
+    _ONEIL_DAILY_SIG_CACHE[key] = out
+    return out
+
+
+def oneil_daily_entry_signal(df: pd.DataFrame, tag: str, idx_close=None, live_px=None, today=None,
+                             symbol: str | None = None) -> dict | None:
+    """Live entry check for one wired ext 1d cell (see block comment). df = completed daily bars (last row = signal bar t).
+    idx_close: ^NSEI closes by date (default: the pass's fetched series). today: IST date (default now); the signal is
+    only valid on the first NSE session after t. Returns the swing signal dict (stop < entry always) or None."""
+    cell = ONEIL_DAILY_CELLS.get(tag)
+    if cell is None or df is None or len(df) < 260:
+        return None
+    key, atr_mult, _hold, needs_idx = cell
+    if idx_close is None:
+        idx_close = _ONEIL_DAILY_IDX["close"]
+    if needs_idx and idx_close is None:
+        return None  # fail closed: no index, no signal
+    sig_day = _oneil_daily_dates(df)[-1]
+    today = str(today or ist_now().strftime("%Y-%m-%d"))[:10]
+    try:
+        if _add_nse_trading_days(sig_day, 1) != today:
+            return None  # only the first session after the signal bar
+    except Exception:
+        return None
+    if key[0] == "oneil_rsscreen":
+        rs = _oneil_rs_for(symbol, "1d", _oneil_daily_dates(df))  # B-1468: no rank -> fail closed
+        if rs is None or not bool(oneil_rsscreen_signals(df["Close"].to_numpy(float), rs, "1d", "long")[-1]):
+            return None
+    else:
+        s = _oneil_daily_last_bar_signals(df, idx_close)
+        if (needs_idx and not s.get("_idx_ok")) or not s.get(key):
+            return None
+    h, l, c = (df[x].to_numpy(float) for x in ("High", "Low", "Close"))
+    atr = oneil_atr14(h, l, c)[-1]
+    px = float(live_px) if live_px is not None and float(live_px) > 0 else float(c[-1])
+    if not np.isfinite(atr) or atr <= 0 or not px > 0:
+        return None
+    stop = oneil_stop_price(px, float(atr), "long", "atr", atr_mult)
+    if not (0 < stop < px):
+        return None  # no trade without SL
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": float(atr), "risk": px - float(stop),
+            "direction": "long", "signal_day": sig_day}
+
+
+def oneil_daily_exit_reason(df: pd.DataFrame, entry_day: str, initial_stop: float, running_max_close,
+                            hold_bars: int = ONEIL_DAILY_HOLD_BARS):
+    """Frozen stop on every completed daily bar after entry_day (open or low at/below -> 'oneil_stop_hit'; the entry
+    session itself is covered by the resting SL), else the max hold: once `hold_bars` completed bars dated >= entry_day
+    exist (entry bar = bar 1) the close of bar 40 is in -> 'oneil_max_hold_timeout'. Returns (reason, new_running_max)."""
+    if df is None or len(df) == 0:
+        return None, running_max_close
+    new_running_max = max(float(running_max_close or 0.0), float(df["Close"].iloc[-1]))
+    ed = str(entry_day)[:10]
+    o = df["Open"].to_numpy(float)
+    lo = df["Low"].to_numpy(float)
+    held = 0
+    for k, d in enumerate(_oneil_daily_dates(df)):
+        if d < ed:
+            continue
+        held += 1
+        if d > ed and (o[k] <= float(initial_stop) or lo[k] <= float(initial_stop)):
+            return "oneil_stop_hit", new_running_max
+    if held >= int(hold_bars):
+        return "oneil_max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+def _oneil_daily_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag=None):
+    """Same signature as the other swing exit adapters."""
+    hold = ONEIL_DAILY_CELLS.get(tag, (None, None, ONEIL_DAILY_HOLD_BARS))[2]
+    return oneil_daily_exit_reason(df, entry_day, initial_stop, running_max_close, hold)
+
+
+def _oneil_daily_scan_signal(df, tag, symbol=None):
+    """Scan-only trigger evaluation (B-1274 stage 2); never an order."""
+    return oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol) if symbol else None, symbol=symbol)
+
+
+def _oneil_daily_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one O'Neil ext 1d position (first wired cell that fires, PFnet order); same paper row / trades row /
+    real mirror pattern as _oneil_swing_try_entry. The PFnet gate is inside _is_strategy_viable_for_real_money."""
+    for tag in ONEIL_DAILY_CELLS:
+        _record_strategy_scan(tag)
+        sig = oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol), today=today, symbol=symbol)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
+            continue
+        # never enter the same signal bar twice (e.g. stopped out on the entry session, then a later pass)
+        if conn.execute("SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND raw_payload LIKE ? AND raw_payload LIKE ?",
+                        (symbol, '%"entry_reason": "oneil_%__1d__%', f'%"signal_day": "{sig["signal_day"]}"%')).fetchone():
+            return False  # B-1468: spans every daily O'Neil cell, so a sibling cell never re-buys the same signal bar
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"],
+                         "signal_day": sig["signal_day"]})),
         )
         conn.commit()
         print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
@@ -20691,9 +21643,16 @@ def _prefetch_one_frame(symbol: str, period: str, interval: str):
     return (ts if ts is not None else t0), df
 
 
-def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
-                        workers: int | None = None, intervals=None, timeout: float | None = None,
-                        collect: dict | None = None) -> dict:
+def _prefetch_tick_ohlc(symbols, *args, **kwargs) -> dict:
+    """B-1447: same as _prefetch_tick_ohlc_impl, with the RSS before/after recorded under stage "tick_prefetch"
+    and a live-prefetch counter, so a swing-scan stage can say whether the 8 download threads overlapped it."""
+    with _stage_rss("tick_prefetch", prefetch=True):
+        return _prefetch_tick_ohlc_impl(symbols, *args, **kwargs)
+
+
+def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
+                             workers: int | None = None, intervals=None, timeout: float | None = None,
+                             collect: dict | None = None) -> dict:
     """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
     thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
     per-symbol scan then fetches (and reports) it itself exactly as before."""
@@ -22928,7 +23887,7 @@ def _scan_cell(tag: str, sig_fn=None, count: bool = True, blocked: bool = False)
     return sig
 
 
-def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, evaluate: bool = True):
+def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, evaluate: bool = True, symbol=None):
     """Every cell of the daily long-swing entry chain (power_play .. oneil). evaluate=False only marks the per-symbol set
     (flat symbols: the real chain evaluates and counts them itself; marking covers cells it never reaches once an earlier
     cell wins the symbol)."""
@@ -22943,14 +23902,15 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
         ("minervini_vcp_be3r", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
         (SWING_EXITINVAL_VP_TAG, lambda: volume_profile_poc_entry_signal(df)),
         (SWING_EXITINVAL_OB_TAG, lambda: order_block_entry_signal(df)),
-        (BRK20_SWING_TAG, lambda: brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)),
     ]
+    cells += [(t, lambda a=a, r=r: brk20_min_rr_entry_signal(df, "long", a, r)) for t, a, r in BRK20_LONG_SWING_CELLS]
     cells += [(t, lambda t=t: island_swing_entry_signal(df, t)) for t in ISLAND_ALL_TAGS]
     cells += [(t, lambda t=t: swingminrr_vcp_entry_signal(df, t, rs_percentile=rs)) for t in SWINGMINRR_TAGS]
     cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
     cells += [(t, lambda t=t: pl1d_long_entry_signal(df, t)) for t in PL1D_CELLS]
     cells += [(t, lambda t=t: gapfade_long_entry_signal(df, t)) for t in GAPFADE_TAGS]
-    cells += [(t, lambda t=t: _oneil_scan_signal(df, t)) for t in ONEIL_SWING_CELLS]
+    cells += [(t, lambda t=t: _oneil_scan_signal(df, t, symbol)) for t in ONEIL_SWING_CELLS]
+    cells += [(t, lambda t=t: _oneil_daily_scan_signal(df, t, symbol)) for t in ONEIL_DAILY_CELLS]
     for tag, fn in cells:
         _scan_cell(tag, fn if evaluate else None, count=count, blocked=evaluate)
 
@@ -24094,6 +25054,10 @@ def _run_swing_scan_pass(conn):
         print(f"[SWING] parallel prefetch failed (falling back to sequential): {e}")
         _prefetched = {}
 
+    _SWING_LIVE_PX.clear()
+    _oneil_daily_fetch_index()  # B-1463: ^NSEI once per pass for the O'Neil 1d/1w index cells (None -> fail closed)
+    # B-1468: RS ranks for the oneil_rsscreen cells, from the frames this pass already fetched (none -> fail closed)
+    _oneil_rs_set_for_pass({_s: _v[0] for _s, _v in _prefetched.items() if _v and _v[0] is not None})
     dfs = {}
     for symbol in _scan_visit(SWING_WATCHLIST):
         _record_swing_check(symbol)
@@ -24118,6 +25082,7 @@ def _run_swing_scan_pass(conn):
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
         try:
             if str(df.index[-1])[:10] == today and _nse_equity_market_open_now():
+                _SWING_LIVE_PX[symbol] = float(df["Close"].iloc[-1])  # B-1463: today's forming close = live entry ref
                 df = df.iloc[:-1]
         except Exception:
             pass
@@ -24136,7 +25101,7 @@ def _run_swing_scan_pass(conn):
         try:  # B-1274 stage 2 / B-1275: scan-only evaluation of every cell for a held / done-today symbol (no order, no row)
             _blocked_pre = symbol in _done_syms or conn.execute(
                 "SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone() is not None
-            _scan_only_swing_long_cells(df, rs_pct.get(symbol), count=_blocked_pre, evaluate=_blocked_pre)
+            _scan_only_swing_long_cells(df, rs_pct.get(symbol), count=_blocked_pre, evaluate=_blocked_pre, symbol=symbol)
         except Exception:
             pass
         if symbol in _done_syms:
@@ -24211,9 +25176,10 @@ def _run_swing_scan_pass(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
-            elif pos["strategy"] == BRK20_SWING_TAG:
+            elif pos["strategy"] in BRK20_LONG_SWING_ATR_OF_TAG:
                 reason, new_running_max = _brk20_swing_exit_adapter(
-                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    tag=pos["strategy"])
                 if not reason:
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
@@ -24228,6 +25194,14 @@ def _run_swing_scan_pass(conn):
             elif pos["strategy"] in ONEIL_SWING_CELLS:
                 reason, new_running_max = _oneil_swing_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
+            elif pos["strategy"] in ONEIL_DAILY_CELLS:
+                reason, new_running_max = _oneil_daily_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    tag=pos["strategy"])
                 if not reason:
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
@@ -24273,7 +25247,7 @@ def _run_swing_scan_pass(conn):
                     conn.commit()
             elif pos["strategy"] in _PATTERN_LIVE_TAGS:
                 reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
-            elif pos["strategy"] == SECTOR_ROT_TAG:
+            elif pos["strategy"] in SECTOR_ROT_CELLS:
                 reason = sector_rotation_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"])
             elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
                 new_running_max = max(float(pos["running_max_close"] or pos["entry_price"]), float(df["Close"].iloc[-1]))
@@ -24517,9 +25491,10 @@ def _run_swing_scan_pass(conn):
             else:
                 # B-798: brk20_min_rr LONG 1d atr4_rr4 checked LAST (after OB/VP), so it never crowds out a
                 # higher-PFnet setup. Reached only when no earlier setup fired / sized this symbol today.
-                _record_strategy_scan(BRK20_SWING_TAG)
+                for _bt in BRK20_LONG_SWING_TAGS:
+                    _record_strategy_scan(_bt)
                 _brk_entered = False
-                _bs = brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)
+                _btag, _bs = brk20_long_swing_entry_signal(df)  # B-1463: cascade, atr4_rr4 first
                 if _bs:
                     entry_price = _bs["entry_price"]
                     stop_loss = _bs["stop_loss"]  # entry - 4 x ATR: the real resting SL (no trade without SL)
@@ -24529,7 +25504,7 @@ def _run_swing_scan_pass(conn):
                             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
                             "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                            (symbol, BRK20_SWING_TAG, today, entry_price, stop_loss, None, qty, time.time(), fx,
+                            (symbol, _btag, today, entry_price, stop_loss, None, qty, time.time(), fx,
                              _bs["atr_at_entry"], entry_price),
                         )
                         apply_paper_trade(conn, symbol, "buy", qty, entry_price)
@@ -24537,14 +25512,14 @@ def _run_swing_scan_pass(conn):
                             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
                             (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
-                             json.dumps({"entry_reason": BRK20_SWING_TAG, "stop_loss": stop_loss,
+                             json.dumps({"entry_reason": _btag, "stop_loss": stop_loss,
                                          "atr_at_entry": _bs["atr_at_entry"]})),
                         )
                         conn.commit()
                         _brk_entered = True
-                        print(f"[SWING] entry {symbol} ({BRK20_SWING_TAG}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+                        print(f"[SWING] entry {symbol} ({_btag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
                         try:
-                            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, BRK20_SWING_TAG)
+                            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, _btag)
                         except Exception as e:
                             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
                 if not _brk_entered:
@@ -24570,6 +25545,11 @@ def _run_swing_scan_pass(conn):
                             _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] oneil entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # B-1463 O'Neil ext 1d LONG (leaders first high), after the 1w cells, i.e. LAST of all
+                        if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+                            _oneil_daily_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] oneil 1d entry eval failed for {symbol} (non-fatal): {e}")
             continue
         # WIRE-NEXT: swingminrr VCP-based long tags (registry-viable ones only) take the VCP signal first; if none
         # is viable/sized the existing minervini_vcp_be3r path below runs exactly as before.
@@ -24606,23 +25586,28 @@ def _run_swing_scan_pass(conn):
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
     try:  # sector rotation entries (after the per-symbol chain so a symbol never gets two entries)
-        _run_sector_rotation_entries(conn, dfs, capital, today)
+        with _stage_rss('swing_sector_rotation'):
+            _run_sector_rotation_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[SECTOR ROT] entry pass failed (non-fatal): {e}")
     try:
-        _run_pattern_cell_entries(conn, dfs, capital, today)
+        with _stage_rss('swing_pattern_cells'):
+            _run_pattern_cell_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[PATTERN] entry pass failed (non-fatal): {e}")
     try:  # B-871: short-swing engine (exits first, then entries; a long swing entry made this scan wins the symbol)
-        _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
+        with _stage_rss('swing_short_1d'):
+            _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT] pass failed (non-fatal): {e}")
     try:  # B-965: 1h leg (swingminrr brk20_gate short 1h); same engine tables, hourly bars
-        _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
+        with _stage_rss('swing_short_1h'):
+            _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT 1h] pass failed (non-fatal): {e}")
     try:  # B-984: 1h LONG leg (macddiv line cells); same long swing table, hourly bars
-        _run_long_swing_1h_pass(conn, _with_held_1h_long_symbols(conn, list(dfs)), capital, today, _done_syms)
+        with _stage_rss('swing_long_1h'):
+            _run_long_swing_1h_pass(conn, _with_held_1h_long_symbols(conn, list(dfs)), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING LONG 1h] pass failed (non-fatal): {e}")
 
@@ -24729,8 +25714,12 @@ def _bandcap_live_failed_tags() -> frozenset:
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in ONEIL_SWING_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row; main.py replay run 38517583883
+for _t in ONEIL_DAILY_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # B-1463: 1:1, main.py replay run 41847222200 (never merged)
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+for _t in BRK20_LONG_SWING_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # B-1463: 1:1, each cell its own main.py-replay registry row
 for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
@@ -26108,6 +27097,12 @@ SECTOR_ROT_BREADTH_HI = 0.6
 SECTOR_ROT_MIN_SECTOR = 5
 SECTOR_ROT_HOLD_DAYS = 20
 SECTOR_ROT_ATR_MULT = 6.0
+# B-1467: main.py replay (sector-rotation-backtest.yml run 41861798852, NIFTY 200, one position per symbol, stop on
+# close = live exit) validated N=3 (PFnet 1.327, OOS 1.141, n 1862) and N=5 (1.229 / OOS 1.048, n 2654). N=3 picks are
+# the top 3 of the N=5 picks, so the cells run as a cascade: the top 3 enter under the N=3 tag, picks 4-5 under N=5.
+SECTOR_ROT_N3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1"
+SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5}  # tag -> N; order = priority (PFnet)
+_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SECTOR_ROT_N3_TAG, SECTOR_ROT_N3_TAG)  # 1:1, main replay run 41861798852
 _sector_map_cache = None
 
 
@@ -26196,6 +27191,94 @@ def sector_rotation_fade_short_exit_reason(bars, stop: float, hold_bars: int, fi
     return None
 
 
+# ---- B-1467: sector rotation cell family, all four (variant, direction) combos (port; UNWIRED, research replay only) ----
+# Tags sector_rotation__<momentum|fade>[_n200]__<long|short>__<tf>__atr<k>_h<H>_l<L>_n<N>__v1 (scripts/sector_rotation_backtest.py).
+# The research rule ranks every sector (>= 5 symbols with an L-bar return) by breadth (share of L-bar returns > 0) and
+# mean L-bar return. STRONG side = highest-mean sector with breadth >= 0.6 -> its top-N by L-bar return (momentum LONG
+# buys them, fade SHORT shorts them; = sector_rotation_picks). WEAK side = lowest-mean sector with breadth <= 0.4 ->
+# its bottom-N by L-bar return (momentum SHORT shorts them, fade LONG buys them). Signal at the close of bar t (bars<=t
+# only), entry at the next bar open, fixed stop = entry -/+ k x ATR14(t) (k mandatory: None = no entry), exit at the
+# stop (low/high based, three fill models) or the close of the H-th bar. Constants verbatim from the research script.
+# NOT wired into any scan, paper or real path (no live entry calls these).
+SECTOR_ROT_BREADTH_LO = 0.4
+SECTOR_ROT_CELL_FILLS = ("stop", "gap_aware", "close")
+
+
+def sector_rotation_weak_picks(dfs: dict, L: int, N: int) -> list:
+    """Pure: the weakest-breadth sector's bottom-N symbols by L-bar return (breadth <= 0.4, >= 5 symbols, lowest
+    mean L-bar return). Mirror of sector_rotation_picks; uses only each frame's own bars (len(df) >= 20)."""
+    smap = _sector_of_symbol()
+    L, N = int(L), int(N)
+    by_sec: dict = {}
+    for sym, df in dfs.items():
+        sec = smap.get(sym)
+        if not sec or df is None or len(df) < 20:
+            continue
+        c = df["Close"].to_numpy(dtype=float)
+        if not (c[-1] > 0 and c[-1 - L] > 0):
+            continue
+        by_sec.setdefault(sec, []).append((sym, c[-1] / c[-1 - L] - 1))
+    worst, worst_mean = None, None
+    for sec, rows in by_sec.items():
+        if len(rows) < SECTOR_ROT_MIN_SECTOR:
+            continue
+        rets = [r for _, r in rows]
+        breadth, mean = sum(1 for r in rets if r > 0) / len(rets), sum(rets) / len(rets)
+        if breadth <= SECTOR_ROT_BREADTH_LO and (worst_mean is None or mean < worst_mean):
+            worst, worst_mean = sec, mean
+    if worst is None:
+        return []
+    return [s for s, _ in sorted(by_sec[worst], key=lambda t: t[1])[:N]]
+
+
+def sector_rotation_cell_side(variant: str, direction: str) -> str:
+    """'strong' (momentum long, fade short) or 'weak' (momentum short, fade long). variant may carry _n200."""
+    base = str(variant).split("_")[0]
+    if base not in ("momentum", "fade") or direction not in ("long", "short"):
+        raise ValueError(f"bad sector rotation cell {variant!r}/{direction!r}")
+    return "strong" if (base == "momentum") == (direction == "long") else "weak"
+
+
+def sector_rotation_cell_picks(dfs: dict, variant: str, direction: str, L: int, N: int) -> list:
+    """Symbols to enter (in `direction`) at the next bar open for this cell."""
+    if sector_rotation_cell_side(variant, direction) == "strong":
+        return sector_rotation_picks(dfs, L=L, N=N)
+    return sector_rotation_weak_picks(dfs, L, N)
+
+
+def sector_rotation_cell_stop(entry_price: float, atr_value: float, atr_mult: float, direction: str):
+    """Fixed stop k x ATR below (long) / above (short) entry. None = no valid stop (caller must NOT enter)."""
+    if direction == "short":
+        return sector_rotation_fade_short_stop(entry_price, atr_value, atr_mult)
+    if not atr_mult or atr_mult <= 0 or not atr_value or atr_value <= 0 or not entry_price or entry_price <= 0:
+        return None
+    stop = float(entry_price) - float(atr_mult) * float(atr_value)
+    return stop if stop > 0 else None
+
+
+def sector_rotation_cell_exit_reason(bars, stop: float, hold_bars: int, direction: str, fill: str = "gap_aware"):
+    """bars = OHLC from the ENTRY bar onward (row 0 = entry bar). (reason, exit_price, bars_held) or None while open.
+    Short = sector_rotation_fade_short_exit_reason. Long: low-based stop ('stop' fills at the stop, 'gap_aware' at
+    min(stop, open), 'close' tests the close), else the close of bar hold_bars."""
+    if direction == "short":
+        return sector_rotation_fade_short_exit_reason(bars, stop, hold_bars, fill)
+    if fill not in SECTOR_ROT_CELL_FILLS:
+        raise ValueError(f"fill must be one of {SECTOR_ROT_CELL_FILLS}")
+    o = np.asarray(bars["Open"], dtype=float)
+    lo = np.asarray(bars["Low"], dtype=float)
+    c = np.asarray(bars["Close"], dtype=float)
+    hb = int(hold_bars)
+    for q in range(min(len(c), hb)):
+        if fill == "close":
+            if c[q] <= stop:
+                return "stop_hit", float(c[q]), q + 1
+        elif lo[q] <= stop:
+            return "stop_hit", float(stop if fill == "stop" else min(stop, o[q])), q + 1
+    if len(c) >= hb and not np.isnan(c[hb - 1]):
+        return "max_hold_timeout", float(c[hb - 1]), hb
+    return None
+
+
 def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
     """Fixed disaster stop on close, or time exit after SECTOR_ROT_HOLD_DAYS trading days."""
     if len(df) == 0:
@@ -26208,11 +27291,16 @@ def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
 
 
 def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
-    _record_strategy_scan(SECTOR_ROT_TAG)
+    for _tag, _n in SECTOR_ROT_CELLS.items():
+        _run_sector_rotation_cell(conn, dfs, capital, today, _tag, _n)
+
+
+def _run_sector_rotation_cell(conn, dfs: dict, capital, today: str, tag: str = SECTOR_ROT_TAG, n: int = SECTOR_ROT_N):
+    _record_strategy_scan(tag)
     for _s in _scan_visit(list(dfs)):  # B-1274 stage 2: the cross-sectional cell is evaluated for every scanned symbol
-        _record_symbol_strategy_scan(SECTOR_ROT_TAG)
+        _record_symbol_strategy_scan(tag)
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
-    for sym in sector_rotation_picks(dfs):
+    for sym in sector_rotation_picks(dfs, N=n):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue
         df = dfs[sym]
@@ -26228,19 +27316,19 @@ def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
             "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (sym, SECTOR_ROT_TAG, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
+            (sym, tag, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
         )
         apply_paper_trade(conn, sym, "buy", qty, entry_price)
         conn.execute(
             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
             (time.time(), sym, qty, entry_price, 1.0, SWING_STRATEGY_TAG,
-             json.dumps({"entry_reason": SECTOR_ROT_TAG, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
         )
         conn.commit()
-        print(f"[SWING] entry {sym} (sector_rotation) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        print(f"[SWING] entry {sym} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
         try:
-            _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, SECTOR_ROT_TAG)
+            _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, tag)
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {sym} (non-fatal, paper entry already recorded): {e}")
 
@@ -29391,7 +30479,10 @@ _SWING_SL_RULES = {
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     **{_t: f"entry - {ONEIL_SWING_ATR_MULT:g}x weekly ATR14, frozen (exit at the close of weekly bar {ONEIL_SWING_HOLD_WEEKS})"
        for _t in ONEIL_SWING_CELLS},
-    BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
+    **{_t: f"entry - {_c[1]:g}xATR14(simple mean), frozen (exit at the close of daily bar {_c[2]}, entry bar = 1)"
+       for _t, _c in ONEIL_DAILY_CELLS.items()},
+    **{_t: f"entry - {_a:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
+       for _t, _a, _r in BRK20_LONG_SWING_CELLS},
     **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t in ISLAND_ALL_TAGS},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
@@ -29455,8 +30546,10 @@ def _strategy_hold_spec(tag):
         return int(CHAN_SHAPE_CELLS[tag][1]), tf
     if tag in _PATTERN_LIVE_TAGS:
         return int(_PATTERN_LIVE_TAGS[tag][2]), tf
-    if tag == SECTOR_ROT_TAG:
+    if tag in SECTOR_ROT_CELLS:
         return SECTOR_ROT_HOLD_DAYS, "1d"
+    if tag in ONEIL_DAILY_CELLS:
+        return int(ONEIL_DAILY_CELLS[tag][2]), tf
     if tag in GAPFADE_TAGS:
         return GAPFADE_MAX_HOLD_BARS, tf
     if tag in SWINGMINRR_TAGS:
@@ -29465,7 +30558,7 @@ def _strategy_hold_spec(tag):
         return MACDDIV_MAX_HOLD_BARS, tf
     if tag in SWINGMINRR_SHORT_1H_CELLS:
         return SWINGMINRR_GATE_SHORT_1H_MAX_HOLD, tf
-    if tag == BRK20_SWING_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
+    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
         return BRK20_MAX_HOLD_BARS, tf
     if len(parts) >= 5:
         m = re.search(r"(?:^|_)(?:h|hold)(\d+)(?:_|$)", parts[4])
@@ -30748,7 +31841,7 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[memory] trim failed (non-fatal): {e}")
     return {"memory_level": level, "memory_pct_now": pct, "memory_warn_pct": RSS_WARN_PCT,
-            "memory_trims": _MEMORY_STATE["trims"]}
+            "memory_trims": _MEMORY_STATE["trims"], "stage_rss": _stage_rss_snapshot()}
 
 
 def _rss_headroom(rss_mb=None) -> dict:
@@ -30768,6 +31861,50 @@ def _current_rss_mb() -> float | None:
         return round(pages * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)
     except Exception:
         return None
+
+
+# B-1447: RSS before/after each swing-scan stage and each tick prefetch, to find which stage drives the 85-87%
+# peaks (measure first, no blind constant change). Read-only bookkeeping: never trims, never blocks.
+_STAGE_RSS: dict = {}
+_PREFETCH_ACTIVE = {"n": 0}
+
+
+@contextlib.contextmanager
+def _stage_rss(stage: str, prefetch: bool = False):
+    before = _current_rss_mb()
+    overlap = _PREFETCH_ACTIVE["n"] > 0
+    if prefetch:
+        _PREFETCH_ACTIVE["n"] += 1
+    t0 = time.time()
+    try:
+        yield
+    finally:
+        if prefetch:
+            _PREFETCH_ACTIVE["n"] = max(0, _PREFETCH_ACTIVE["n"] - 1)
+        overlap = overlap or (not prefetch and _PREFETCH_ACTIVE["n"] > 0)
+        try:
+            after = _current_rss_mb()
+            delta = round(after - before, 1) if after is not None and before is not None else None
+            st = _STAGE_RSS.setdefault(stage, {"runs": 0, "max_delta_mb": None, "max_after_mb": None,
+                                               "overlap_runs": 0})
+            st["runs"] += 1
+            st["overlap_runs"] += 1 if overlap else 0
+            st.update(last_before_mb=before, last_after_mb=after, last_delta_mb=delta,
+                      last_seconds=round(time.time() - t0, 1), last_overlap_prefetch=overlap,
+                      last_ist=(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M:%S IST"))
+            if delta is not None and (st["max_delta_mb"] is None or delta > st["max_delta_mb"]):
+                st["max_delta_mb"] = delta
+            if after is not None and (st["max_after_mb"] is None or after > st["max_after_mb"]):
+                st["max_after_mb"] = after
+            if not prefetch and delta is not None and abs(delta) >= 50:
+                print(f"[memory] stage {stage}: rss {before} -> {after} MB ({delta:+} MB) "
+                      f"prefetch_overlap={overlap}")
+        except Exception:  # noqa: BLE001 (bookkeeping must never break a scan)
+            pass
+
+
+def _stage_rss_snapshot() -> dict:
+    return {k: dict(v) for k, v in _STAGE_RSS.items()}
 
 
 def _threadpool_status() -> dict:
