@@ -1625,3 +1625,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Fit / risk:** weekly options decay fast; holding under the trail adds theta and gap risk for no edge. Cost: a feed-high spike can trigger an exit the 30 s LTP would not; measure how often in live logs (event `trail_breached_exit`).
 - **Owed:** an option trail replay comparing "keep old stop" and "exit at market" net PFnet (fo-options-blackscholes-backtest-research.yml does not model the feed-high trail yet).
 - **Profit-booking / exit takeaway:** a trail that cannot rest is a hit stop: book it at market, never wait on a lower legacy stop.
+
+## B-1463 wiring audit: viable is not the same as wired (2026-11-04)
+- Mechanism: 2,755 registry tags clear PFnet > 1 but only ~310 were mapped to live engines. Most of the gap is research-harness evidence (not a replay calling main.py), so it cannot gate real money.
+- Fit: of 570 candidates in families with live code, only 5 qualified (brk20_min_rr long 1d, main replay run 38185670883); the rest were research-only, a 0.3% cost model (live is 0.8%), or duplicate entry signals of a wired cell.
+- Surprise: many "unwired viable" tags are IS/OOS splits, be1 breakeven twins or band-cap reruns of the same entry; counting tags overstates real new edges.
+- Reuse: to grow the wired set, port the research detector into main.py with parity tests, then run the main-calling non-overlap replay (done for 11 O'Neil ext families, tags ..._srcmain__nonovl__v2).
+- Profit-booking / exit takeaway: cascade looser-rr brk20 cells after the tighter one so they only add trades where the higher-PFnet cell stays silent; each keeps its own ATR stop and registry gate.
