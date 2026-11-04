@@ -1,0 +1,88 @@
+name: Sector rotation main.py replay (B-1467, viable unwired cells, one position per symbol, both directions)
+
+# Backlog B-1467. scripts/sector_rotation_main_replay.py: the viable-but-unwired sector_rotation__* registry cells (research
+# harness evidence, scripts/sector_rotation_backtest.py) re-measured by REAL main.py functions:
+# main.sector_rotation_cell_picks (strong = sector_rotation_picks, weak = sector_rotation_weak_picks), main._atr_series,
+# main.sector_rotation_cell_stop and main.sector_rotation_cell_exit_reason. Matrix derived at dispatch from
+# strategy_registry (viable now AND not scan-wired), one job per (tf, universe): 15m, 1d, 1d_n200, 1h, 4h (5 jobs).
+# Full universe main._load_nse_universe_from_file() (never NSE_FULL_UNIVERSE), sector-mapped symbols; strict one position
+# per symbol per cell; 0.8% round-trip cost; stop on every trade (atrnone cells re-measured only with ATR stops);
+# both directions of every (side, L, N) group; three stop-fill models; IS/OOS split at 70% of bars. New tags
+# sector_rotation__<variant>_main1p__...; the merge job uploads ONE results JSON (commit as
+# docs/backtest_data/sector_rotation_main_replay_run_<run id>.json). Research matrix: dispatch only when no Deploy
+# Gate / safety run is queued or running. Validation only; wires nothing, no kill switch.
+on:
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: entry fill model; signal_close = the live paper fill (own _ec1 tags)
+        required: false
+        default: next_open
+        type: choice
+        options: [next_open, signal_close]
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - id: p
+        run: |
+          python3 scripts/sector_rotation_main_replay.py plan > plan.txt
+          echo "matrix=$(tail -n1 plan.txt)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay
+        env:
+          TF: ${{ matrix.tf }}
+          UNI: ${{ matrix.uni }}
+          SECTOR_GROUPS: ${{ matrix.groups }}
+          ATRS: ${{ matrix.atrs }}
+          ENTRY: ${{ inputs.entry }}
+          NAME: ${{ matrix.name }}_${{ inputs.entry }}
+        run: python3 scripts/sector_rotation_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sector-main-replay-${{ matrix.name }}-${{ inputs.entry }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: sector-main-replay-*
+          merge-multiple: true
+      - run: python3 scripts/sector_rotation_main_replay.py merge shards sector_rotation_main_replay_all.json | tee sector_rotation_main_replay_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sector-rotation-main-replay-all
+          path: sector_rotation_main_replay_all.json
