@@ -3339,5 +3339,19 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "ITC.NS",
+    "exit_time_utc": 1793771869.6796646,
+    "entry_price_native": null,
+    "exit_price_native": 281.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 20.93,
+    "pnl_pct_of_capital": 0.005,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
