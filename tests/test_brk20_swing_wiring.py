@@ -59,9 +59,11 @@ def test_entry_fires_with_atr_stop_attached():
 def test_scan_chain_order_and_stop_is_real_sl():
     src = inspect.getsource(main._run_swing_scan_pass)
     i_ob = src.index("SWING_EXITINVAL_OB_TAG, order_block_entry_signal")
-    i_b = src.index('brk20_min_rr_entry_signal(df, "long"')
+    i_b = src.index("brk20_long_swing_entry_signal(df)")  # B-1463 cascade wraps brk20_min_rr_entry_signal
     assert i_b > i_ob  # checked after the existing setups
-    assert "_maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, BRK20_SWING_TAG)" in src
+    # B-1463: the long brk20 block is a cascade (BRK20_LONG_SWING_CELLS, atr4_rr4 first); the real mirror gets the
+    # tag of the cell that actually fired.
+    assert "_maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, _btag)" in src
     assert '_bs["stop_loss"]' in src
     assert "_brk20_swing_exit_adapter" in src
     assert "_maybe_place_real_swing_exit(conn, symbol, reason=" in src  # reason logged on exit

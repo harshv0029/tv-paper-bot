@@ -5350,9 +5350,36 @@ def brk20_min_rr_exit_reason(
 BRK20_SWING_ATR_MULT = 4.0
 BRK20_SWING_MIN_RR = 4.0
 BRK20_SWING_TAG = "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1"
+# B-1463 (2026-11-04): the other viable brk20 LONG 1d cells of the SAME main.py replay (brk20-min-rr-main-replay.yml
+# run 38185670883, scripts/brk20_replay.py calls the real brk20_min_rr_entry_signal/_exit_reason, 0.8% cost, full NSE),
+# wired as a cascade exactly like the short side's BRK20_SHORT_SWING_CELLS: the original atr4_rr4 cell first, then by
+# PFnet (2.290 n282 / 1.850 n406 / 1.762 n414 / 1.676 n580 / 1.377 n904). One long swing row per symbol: the first cell
+# whose signal fires opens, so a looser-rr cell only adds trades on bars where every tighter cell stayed silent. The
+# be1 (breakeven ratchet) and 1h cells are NOT wired: be1 shares the no-be cell's entry signal (duplicate) and the
+# long swing scan is daily only. Each cell is gated by its own registry row (PFnet > floor).
+BRK20_LONG_SWING_CELLS = (  # (tag, atr_mult, min_rr), cascade order
+    (BRK20_SWING_TAG, BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR),
+    ("brk20_min_rr__main_replay__long__1d__atr4_rr3d5__v1", 4.0, 3.5),
+    ("brk20_min_rr__main_replay__long__1d__atr4_rr3__v1", 4.0, 3.0),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr4__v1", 3.0, 4.0),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr3d5__v1", 3.0, 3.5),
+    ("brk20_min_rr__main_replay__long__1d__atr3_rr3__v1", 3.0, 3.0),
+)
+BRK20_LONG_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_LONG_SWING_CELLS}
+BRK20_LONG_SWING_TAGS = tuple(t for t, _a, _r in BRK20_LONG_SWING_CELLS)
 
 
-def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+def brk20_long_swing_entry_signal(df):
+    """First BRK20_LONG_SWING_CELLS cell that fires on the last bar -> (tag, signal) or (None, None). The stop is always
+    set by the signal (entry - atr_mult x ATR) and must sit below the entry (no trade without SL)."""
+    for tag, atr_mult, min_rr in BRK20_LONG_SWING_CELLS:
+        sig = brk20_min_rr_entry_signal(df, "long", atr_mult, min_rr)
+        if sig and sig["stop_loss"] < sig["entry_price"]:
+            return tag, sig
+    return None, None
+
+
+def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag=BRK20_SWING_TAG):
     """Same signature as the other swing exit fns. The research fills at the bar AFTER the signal bar,
     so the fill bar is the first bar dated after entry_day (the live entry is recorded on the signal day).
     Every completed bar since is replayed in order, so a skipped scan day cannot hide a stop / the exact
@@ -5363,7 +5390,7 @@ def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
     if "Date" not in d.columns:
         d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
     new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
-    entry_price = float(initial_stop) + BRK20_SWING_ATR_MULT * float(atr_at_entry or 0.0)
+    entry_price = float(initial_stop) + BRK20_LONG_SWING_ATR_OF_TAG.get(tag, BRK20_SWING_ATR_MULT) * float(atr_at_entry or 0.0)
     fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     dates = d["Date"].astype(str).str[:10].to_numpy()
     starts = np.flatnonzero(dates >= fill_day)
@@ -23188,8 +23215,8 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
         ("minervini_vcp_be3r", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
         (SWING_EXITINVAL_VP_TAG, lambda: volume_profile_poc_entry_signal(df)),
         (SWING_EXITINVAL_OB_TAG, lambda: order_block_entry_signal(df)),
-        (BRK20_SWING_TAG, lambda: brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)),
     ]
+    cells += [(t, lambda a=a, r=r: brk20_min_rr_entry_signal(df, "long", a, r)) for t, a, r in BRK20_LONG_SWING_CELLS]
     cells += [(t, lambda t=t: island_swing_entry_signal(df, t)) for t in ISLAND_ALL_TAGS]
     cells += [(t, lambda t=t: swingminrr_vcp_entry_signal(df, t, rs_percentile=rs)) for t in SWINGMINRR_TAGS]
     cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
@@ -24456,9 +24483,10 @@ def _run_swing_scan_pass(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
-            elif pos["strategy"] == BRK20_SWING_TAG:
+            elif pos["strategy"] in BRK20_LONG_SWING_ATR_OF_TAG:
                 reason, new_running_max = _brk20_swing_exit_adapter(
-                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    tag=pos["strategy"])
                 if not reason:
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
@@ -24762,9 +24790,10 @@ def _run_swing_scan_pass(conn):
             else:
                 # B-798: brk20_min_rr LONG 1d atr4_rr4 checked LAST (after OB/VP), so it never crowds out a
                 # higher-PFnet setup. Reached only when no earlier setup fired / sized this symbol today.
-                _record_strategy_scan(BRK20_SWING_TAG)
+                for _bt in BRK20_LONG_SWING_TAGS:
+                    _record_strategy_scan(_bt)
                 _brk_entered = False
-                _bs = brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)
+                _btag, _bs = brk20_long_swing_entry_signal(df)  # B-1463: cascade, atr4_rr4 first
                 if _bs:
                     entry_price = _bs["entry_price"]
                     stop_loss = _bs["stop_loss"]  # entry - 4 x ATR: the real resting SL (no trade without SL)
@@ -24774,7 +24803,7 @@ def _run_swing_scan_pass(conn):
                             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
                             "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                            (symbol, BRK20_SWING_TAG, today, entry_price, stop_loss, None, qty, time.time(), fx,
+                            (symbol, _btag, today, entry_price, stop_loss, None, qty, time.time(), fx,
                              _bs["atr_at_entry"], entry_price),
                         )
                         apply_paper_trade(conn, symbol, "buy", qty, entry_price)
@@ -24782,14 +24811,14 @@ def _run_swing_scan_pass(conn):
                             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
                             (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
-                             json.dumps({"entry_reason": BRK20_SWING_TAG, "stop_loss": stop_loss,
+                             json.dumps({"entry_reason": _btag, "stop_loss": stop_loss,
                                          "atr_at_entry": _bs["atr_at_entry"]})),
                         )
                         conn.commit()
                         _brk_entered = True
-                        print(f"[SWING] entry {symbol} ({BRK20_SWING_TAG}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+                        print(f"[SWING] entry {symbol} ({_btag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
                         try:
-                            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, BRK20_SWING_TAG)
+                            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, _btag)
                         except Exception as e:
                             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
                 if not _brk_entered:
@@ -24981,6 +25010,8 @@ for _t in ONEIL_SWING_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row; main.py replay run 38517583883
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+for _t in BRK20_LONG_SWING_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # B-1463: 1:1, each cell its own main.py-replay registry row
 for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
@@ -29641,7 +29672,8 @@ _SWING_SL_RULES = {
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     **{_t: f"entry - {ONEIL_SWING_ATR_MULT:g}x weekly ATR14, frozen (exit at the close of weekly bar {ONEIL_SWING_HOLD_WEEKS})"
        for _t in ONEIL_SWING_CELLS},
-    BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
+    **{_t: f"entry - {_a:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
+       for _t, _a, _r in BRK20_LONG_SWING_CELLS},
     **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t in ISLAND_ALL_TAGS},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
@@ -29715,7 +29747,7 @@ def _strategy_hold_spec(tag):
         return MACDDIV_MAX_HOLD_BARS, tf
     if tag in SWINGMINRR_SHORT_1H_CELLS:
         return SWINGMINRR_GATE_SHORT_1H_MAX_HOLD, tf
-    if tag == BRK20_SWING_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
+    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
         return BRK20_MAX_HOLD_BARS, tf
     if len(parts) >= 5:
         m = re.search(r"(?:^|_)(?:h|hold)(\d+)(?:_|$)", parts[4])
