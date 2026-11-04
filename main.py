@@ -21890,12 +21890,49 @@ ROC_RUNNING_PRICE_BUDGET_S = 4.0
 _roc_running_px_cache = {"at": 0.0, "px": {}, "syms": ()}
 
 
+def _roc_lots_matched_to_kotak(ledger_lots: list, ledger_start) -> list:
+    """B-1461 (user 2026-11-04: only real Kotak open positions and holdings): the open set is exactly what Kotak
+    shows open now (tracked_union, rewritten from Kotak positions()+holdings() on every 5-min reconcile). Per
+    trading symbol: ledger FIFO lots (Kotak fill prices) up to Kotak's qty, any remainder at Kotak's own avg price;
+    a ledger lot Kotak no longer shows open is dropped. Falls back to the ledger lots if tracked_union is unreadable."""
+    try:
+        with closing(get_db()) as conn:
+            ku = [dict(r) for r in conn.execute("SELECT kotak_trading_symbol, qty, is_short, entry_price FROM "
+                                                "tracked_union").fetchall()]
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] tracked_union unreadable, using ledger lots (non-fatal): {e}")
+        return ledger_lots
+    by = {}
+    for o in ledger_lots:
+        by.setdefault(o["symbol"], []).append(o)
+    out = []
+    for k in ku:
+        trd, side = k["kotak_trading_symbol"], "short" if k["is_short"] else "long"
+        need = float(k["qty"] or 0)
+        for o in sorted(by.get(trd, []), key=lambda o: o["entry_day"]):
+            if need <= 1e-9 or o["side"] != side:
+                continue
+            q = min(need, o["qty"])
+            out.append(dict(o, qty=q, entry_value_inr=round(q * o["entry_px"], 2), source="kotak_fill"))
+            need -= q
+        if need > 1e-9 and k.get("entry_price"):
+            seg = next((o.get("seg") for o in by.get(trd, [])), "nse_cm")
+            out.append({"symbol": trd, "side": side, "qty": need, "entry_px": float(k["entry_price"]),
+                        "entry_value_inr": round(need * float(k["entry_price"]), 2),
+                        "entry_day": ledger_start or ist_now().date().isoformat(), "seg": seg,
+                        "prod": "CNC", "source": "kotak_avg_price"})
+        elif need > 1e-9:
+            out.append({"symbol": trd, "side": side, "qty": need, "entry_px": None, "entry_value_inr": 0,
+                        "entry_day": ledger_start, "seg": "nse_cm", "prod": None, "source": "no_entry_price"})
+    return out
+
+
 def _roc_running_block(payload: dict) -> dict:
     """B-1461: View 4 running CAGR. Equity open lots (nse_cm/bse_cm, holdings and positions) are priced from the
     Kotak live feed first, else Yahoo, within a short budget; prices cached ROC_RUNNING_PRICE_TTL_S. F&O/MCX lots
     are left out (counted) until a live quote path for them exists. DISPLAY ONLY: no order path reads this."""
     import roc_kpis
-    lots = payload.get("open_lot_rows") or []
+    lots = _roc_lots_matched_to_kotak(payload.get("open_lot_rows") or [], payload.get("ledger_start"))
     eq = {o["symbol"]: _nse_symbol_from_trdsym(o["symbol"]) for o in lots
           if str(o.get("seg") or "nse_cm").endswith("_cm")}
     c = _roc_running_px_cache
