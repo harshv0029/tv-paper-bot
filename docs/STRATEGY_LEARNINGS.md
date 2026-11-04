@@ -1668,3 +1668,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Exits: state_exit trades carry the edge (PFnet 2.67, 89% of trades); 4xATR stops are all losers. Same shape as 1d.
 - Lesson: check the code before believing a backlog "no live path" note; the 1h long leg existed since B-984.
 - Profit-booking / exit takeaway: book on the mean-reversion state exit; do not tighten the 4xATR stop (tighter stops failed on 1d).
+
+## Minervini lab cells wired at h30/h40 (B-1469, 2026-11-05)
+- Cutting max hold from 60 to 30/40 bars brought three VCP cells under the 30-bar wiring bar and lifted their OOS (early_bull h40 OOS 1.196 vs h60 1.138). Shorter holds did not hurt pooled PFnet (about 1.30).
+- Exit = 8% hard stop (pct8_hard) + time exit; the trailing/MA exits that looked better pooled all failed OOS.
+- Profit-booking / exit takeaway: for VCP breakouts, a fixed 8% stop plus a 30-40 bar time exit beats every trailing exit out of sample; book on time, not on a trail.
