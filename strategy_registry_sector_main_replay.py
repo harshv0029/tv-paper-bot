@@ -13,6 +13,8 @@ SRC = "scripts/sector_rotation_main_replay.py"
 RUNS = {
     "sector_main_replay_1d_n200_next_open.json": 41861798852,
     "sector_main_replay_1d_next_open.json": 41861804507,
+    "sector_main_replay_4h_next_open.json": 41877626376,
+    "sector_main_replay_1h_next_open.json": 41877630594,
 }
 
 
@@ -33,12 +35,12 @@ def _defs(fn, run_id, seen):
         m0 = r["metrics"]
         for seg, m in (("pooled", m0), ("is", m0.get("is") or {}), ("oos", m0.get("oos") or {})):
             tag = r["tag"] if seg == "pooled" else _seg_tag(r["tag"], seg)
-            if tag in seen or not m.get("n"):
+            if tag in seen or (seg != "pooled" and not m.get("n")):  # pooled always kept, even n=0
                 continue
             seen.add(tag)
             cat = sr.TradeCategory.SHORT_SELL if r["direction"] == "short" else sr.TradeCategory.SWING
             ev = (f"B-1467 sector rotation main replay run {run_id} ({fn}) [{seg}]: n={m['n']} pfnet={m['pfnet']} "
-                  f"pfgross={m['pfgross']} win={m['win_pct']}% avg_hold={m['avg_held_bars']}bars "
+                  f"pfgross={m['pfgross']} win={m['win_pct']}% avg_hold={m['avg_held_bars']}bars (replay hours {m.get('avg_held_hours')}) "
                   f"avg_net={m.get('avg_net_pct')}%; source_tag={r.get('source_tag')}; "
                   f"exits={json.dumps(m.get('exit_reasons'), separators=(',', ':'))}")
             out.append(sr.StrategyDef(
@@ -47,7 +49,8 @@ def _defs(fn, run_id, seen):
                 metrics=sr.Metrics(pfnet=float(m["pfnet"] or 0.0), pfgross=float(m["pfgross"] or 0.0),
                                    win_rate_pct=float(m["win_pct"] or 0.0), n_trades=int(m["n"]),
                                    avg_held_bars=float(m["avg_held_bars"] or 0.0),
-                                   avg_held_hrs=float(m.get("avg_held_hours") or 0.0), universe=uni,
+                                   avg_held_hrs=float(m["avg_held_bars"] or 0.0) * sr.market_hours_per_bar(r["tf"]),
+                                   universe=uni,
                                    run_ref=f"sector-rotation-backtest.yml run {run_id}"),
                 source=SRC, evidence=ev,
                 notes=(f"sector_rotation main.py replay {r['tf']} {r.get('uni')} ({seg}); pooled/_segis/_segoos are separate "
