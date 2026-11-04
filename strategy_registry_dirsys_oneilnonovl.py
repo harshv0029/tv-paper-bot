@@ -59,7 +59,7 @@ def _elder(seen):
     return out
 
 
-def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref_id="B-831", ref=None):
+def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref_id="B-831", ref=None, min_n=30):
     ref = ref or _REF_O
     out = []
     d = _load(fn)
@@ -68,7 +68,7 @@ def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref
     uni = f"full NSE universe file, {d.get('fetched')} symbols fetched with data, strict FIFO, cost 0.008 round trip"
     for tag, r in d.get("results", {}).items():
         try:
-            if tag in seen or r.get("n", 0) < 30:
+            if tag in seen or r.get("n", 0) < min_n:
                 continue
             seen.add(tag)
             seg = "IS segment" if "_segis" in tag else ("OOS segment" if "_segoos" in tag else "pooled")
@@ -95,4 +95,10 @@ def build():
     seen = {x.name for x in sr.REGISTRY}
     return _elder(seen) + _oneil(seen) + _oneil(
         seen, "oneil_nonoverlap_results_1w.json", "1w", 5, "B-833",
-        "oneil non-overlap 1w (B-833; docs/backtest_data/oneil_nonoverlap_results_1w.json, strict FIFO, cost 0.008, run 38245037321; avg_hold in weekly bars)")
+        "oneil non-overlap 1w (B-833; docs/backtest_data/oneil_nonoverlap_results_1w.json, strict FIFO, cost 0.008, run 38245037321; avg_hold in weekly bars)") + _oneil(
+        seen, "oneil_ext_main_nonovl_1d.json", "1d", 1, "B-1463",
+        "oneil ext main.py-detector non-overlap 1d (B-1463; docs/backtest_data/oneil_ext_main_nonovl_1d.json, main.oneil_ext_signals + "
+        "main.oneil_stop_price/oneil_exit_bar, strict FIFO, cost 0.008, run 41847222200)", min_n=1) + _oneil(
+        seen, "oneil_ext_main_nonovl_1w.json", "1w", 5, "B-1463",
+        "oneil ext main.py-detector non-overlap 1w (B-1463; docs/backtest_data/oneil_ext_main_nonovl_1w.json, main.oneil_ext_signals + "
+        "main.oneil_stop_price/oneil_exit_bar, strict FIFO, cost 0.008; avg_hold in weekly bars)", min_n=1)
