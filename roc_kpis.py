@@ -269,7 +269,9 @@ def since_start_kpis(closed: list, open_lots: list, ledger_start, today: dt.date
     net = sum(t["net_pnl_inr"] for t in ts)
     avg = sum(dep.values()) / len(dep)
     days = len(dep)
-    out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2))
+    out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2),
+               gross_pnl_inr=round(sum(t["gross_pnl_inr"] for t in ts), 2),  # B-1460: before charges
+               charges_inr=round(sum(t["charges_inr"] for t in ts), 2))
     notes = []
     if avg > 0:
         r = net / avg

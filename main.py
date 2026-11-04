@@ -21867,6 +21867,11 @@ def _roc_kpis_payload(today=None) -> dict:
     out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
                           "holdings open when the ledger began come from tracked_union. App order tables are not used: "
                           "they miss exchange-triggered stop-loss exits, so they cannot give a trustworthy realised P&L.")
+    now = ist_now()  # B-1460: when this block was computed and when Kotak's fills were last fetched (IST)
+    out["as_of_ist"] = now.strftime("%Y-%m-%d %H:%M:%S")
+    fa = _real_trades_cache.get("fetched_at") or 0
+    out["kotak_fills_fetched_ist"] = ((dt.datetime.utcfromtimestamp(fa) + dt.timedelta(minutes=IST_OFFSET_MIN))
+                                      .strftime("%Y-%m-%d %H:%M:%S") if fa else None)
     out["definition"] = ("ROC % = net realised P&L of real trades exited in the period (after estimated statutory "
                          "charges; brokerage not included) / average daily deployed capital (entry value of every "
                          "position held on each calendar day, time-weighted over the period's covered days). IST "
