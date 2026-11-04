@@ -7064,6 +7064,84 @@ def oneil_rs_rank_for_swing_pass(frames: dict, tf: str = "1d") -> pd.DataFrame:
     return oneil_rs_rank_series(closes, tf)
 
 
+# B-1468 wiring: RS-population eligibility, matched to scripts/oneil_nonoverlap.py --rs_universe n200 (_shard): every
+# fetched bar series goes through scripts/oneil_research.clean_bars, then only symbols with >= CFG[tf]["min_bars"] clean
+# bars (300 daily / 120 weekly) join the rank population. Daily parity is exact: the live 2y daily prefetch (~495 bars)
+# answers "300+ clean daily bars" exactly as the replay's 5y fetch does. Weekly cannot be exact without an extra (10y)
+# fetch: a 2y prefetch resamples to ~104-105 weeks, so the replay's 120-week rule would exclude every symbol. Live
+# proxy = the symbol's clean weekly bars cover the whole 2y prefetch (>= ONEIL_RS_MIN_BARS_LIVE["1w"]); the only
+# residual mismatch is a symbol listed 2.0-2.3 years ago (in live, out of the replay population).
+ONEIL_RS_MIN_BARS = {"1d": 300, "1w": 120}        # scripts/oneil_research.CFG[tf]["min_bars"] (replay)
+ONEIL_RS_MIN_BARS_LIVE = {"1d": 300, "1w": 100}   # live: 1d exact; 1w proxy (see above)
+_ONEIL_RS_PASS: dict = {"1d": None, "1w": None}   # RS rank matrices for the current swing pass (computed once)
+
+
+def oneil_clean_bars(df: pd.DataFrame, max_move: float = 0.35) -> pd.DataFrame:
+    """Verbatim port of scripts/oneil_research.clean_bars (vendor-glitch bar filter)."""
+    o, h, l, c = df["Open"], df["High"], df["Low"], df["Close"]
+    ok = (o <= h * 1.001) & (o >= l * 0.999) & (c <= h * 1.001) & (c >= l * 0.999) & (l > 0) & ((h / l) < 1.6)
+    jump = (c / c.shift(1) - 1).abs() > max_move
+    return df[ok & ~jump.fillna(False)]
+
+
+def oneil_rs_eligible_closes(frames: dict, tf: str = "1d", min_bars: int | None = None) -> dict:
+    """{symbol: clean close Series} for the RS population (see block comment). 1d keyed by YYYY-MM-DD, 1w by W-FRI
+    period (oneil_weekly_from_daily per symbol). Bad/short frames are skipped, never raised."""
+    need = ONEIL_RS_MIN_BARS_LIVE[tf] if min_bars is None else int(min_bars)
+    out = {}
+    for sym, df in (frames or {}).items():
+        try:
+            if df is None or len(df) == 0 or not {"Open", "High", "Low", "Close"}.issubset(df.columns):
+                continue
+            if tf == "1w":
+                b = oneil_clean_bars(oneil_weekly_from_daily(df)[["Open", "High", "Low", "Close"]].astype(float).dropna())
+                s = b["Close"]
+            else:
+                d = df[["Open", "High", "Low", "Close"]].astype(float)
+                d.index = _oneil_daily_dates(df)
+                b = oneil_clean_bars(d.dropna())
+                s = b["Close"][~b.index.duplicated(keep="last")]
+            if len(s) >= need:
+                out[sym] = s
+        except Exception:
+            continue
+    return out
+
+
+def oneil_rs_rank_eligible(frames: dict, tf: str = "1d", min_bars: int | None = None) -> pd.DataFrame:
+    """RS rank matrix over the eligible population only (the n200 replay's rs_all)."""
+    closes = oneil_rs_eligible_closes(frames, tf, min_bars)
+    if not closes:
+        return pd.DataFrame()
+    return oneil_rs_rank_series(pd.DataFrame(closes).sort_index(), tf)
+
+
+def _oneil_rs_set_for_pass(frames: dict) -> None:
+    """ONCE per swing pass, from the frames the pass already holds (no fetch): daily + weekly RS matrices."""
+    for tf in ("1d", "1w"):
+        try:
+            m = oneil_rs_rank_eligible(frames, tf)
+            _ONEIL_RS_PASS[tf] = m if len(m.columns) else None
+        except Exception as e:
+            print(f"[SWING] O'Neil RS rank {tf} failed (rsscreen cells skip this pass): {e}")
+            _ONEIL_RS_PASS[tf] = None
+
+
+def _oneil_rs_for(symbol, tf: str, keys):
+    """The symbol's RS series aligned onto `keys` (daily date strings / weekly periods), or None (fail closed) when the
+    pass has no matrix, the symbol is outside the eligible population, or its rank at the last key is missing/NaN."""
+    m = _ONEIL_RS_PASS.get(tf)
+    if symbol is None or m is None or symbol not in m.columns:
+        return None
+    try:
+        rs = m[symbol].reindex(keys).to_numpy(float)
+    except Exception:
+        return None
+    if len(rs) == 0 or not np.isfinite(rs[-1]):
+        return None
+    return rs
+
+
 def oneil_ext_signals(direction: str, tf: str, o, h, l, c, v, idx=None, rs=None) -> dict:
     """All ext entry arrays for one direction: {(family, variant, pkey): bool array}. Short = mirror of the bullish
     detector; oneil_rsscreen (needs rs) is native on both sides with pkey rs90 (long) / rs20 (short)."""
@@ -7120,9 +7198,12 @@ ONEIL_PIVOT_TAG = "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
 # tag -> (family, chase or None, detector); detector None = classic oneil_signal_at, else ("ext", variant, pkey, needs_idx).
 # Order = priority, registry PFnet descending (one position per symbol: the first cell that fires owns it).
 ONEIL_EXT_1W_RSSCREEN_TAG = "oneil_rsscreen__top__long__1w__atr3_h26_rs90_srcmain__nonovl__v2"  # registered, NOT wired
+ONEIL_RSSCREEN_1W_N200_TAG = "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2"
 ONEIL_SWING_CELLS = {
     ONEIL_FLATBASE_TAG: ("oneil_flatbase", ONEIL_SWING_CHASE, None),  # 3.921
     "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2": ("oneil_hft", None, ("ext", "breakout", "na", False)),  # 3.831
+    # B-1468: RS ranked inside the live watchlist (rs_universe=n200 replay run 41855879111: n 445, OOS 3.463)
+    ONEIL_RSSCREEN_1W_N200_TAG: ("oneil_rsscreen", None, ("rs", "top", "rs90", False)),  # 3.179
     "oneil_tightarea__breakout__long__1w__atr3_h26_pr2_srcmain__nonovl__v2":
         ("oneil_tightarea", None, ("ext", "breakout", "r2", False)),  # 2.726
     "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2":
@@ -7189,7 +7270,7 @@ def _oneil_weekly_ext_last_bar_signals(wc: pd.DataFrame) -> dict:
     return out
 
 
-def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+def oneil_swing_entry_signal(df: pd.DataFrame, tag: str, symbol: str | None = None) -> dict | None:
     """Live entry check for one wired cell on the daily df (see block comment). Returns the swing-engine signal dict
     (entry_price/stop_loss/atr_at_entry) or None. Fires only while the latest daily bar is among the first two sessions
     of a week, using the previous completed week as the signal bar t; the next-open no-chase test uses the live daily
@@ -7210,6 +7291,11 @@ def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
     if detector is None:
         o2, h2, l2, c2, v2 = (np.append(a, px) for a in (o, h, l, c, v))
         if not oneil_signal_at(family, "long", "1w", t, o2, h2, l2, c2, v2, None, chase, None):
+            return None
+    elif detector[0] == "rs":
+        # B-1468: RS rank of `symbol` inside the pass's eligible watchlist population; no rank -> no signal
+        rs = _oneil_rs_for(symbol, "1w", wc.index)
+        if rs is None or not bool(oneil_rsscreen_signals(c, rs, "1w", "long")[-1]):
             return None
     else:
         _kind, variant, pkey, needs_idx = detector
@@ -7256,9 +7342,9 @@ def _oneil_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
     return oneil_swing_exit_reason(df, entry_day, initial_stop, running_max_close)
 
 
-def _oneil_scan_signal(df, tag):
+def _oneil_scan_signal(df, tag, symbol=None):
     """Scan-only trigger evaluation (B-1274 stage 2); never an order."""
-    return oneil_swing_entry_signal(df, tag)
+    return oneil_swing_entry_signal(df, tag, symbol)
 
 
 def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
@@ -7266,7 +7352,7 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
     mirror pattern as _gapfade_try_entry; the PFnet gate is inside _is_strategy_viable_for_real_money."""
     for tag in ONEIL_SWING_CELLS:
         _record_strategy_scan(tag)
-        sig = oneil_swing_entry_signal(df, tag)
+        sig = oneil_swing_entry_signal(df, tag, symbol)
         if not sig:
             continue
         if not _is_strategy_wired(tag):
@@ -7332,7 +7418,11 @@ ONEIL_DAILY_HOLD_BARS = 40
 ONEIL_LEADERS_1D_TAG = "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2"
 ONEIL_RSSCREEN_1D_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_srcmain__nonovl__v2"  # registered, NOT wired
 # tag -> ((family, variant, pkey), atr_mult, hold_bars, needs_index); order = priority (PFnet)
+ONEIL_RSSCREEN_1D_N200_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2"
 ONEIL_DAILY_CELLS = {
+    # B-1468: RS ranked inside the live watchlist (rs_universe=n200 replay run 41855872144: n 487, PFnet 1.747,
+    # OOS 1.087, avg hold 24.5 bars); key family oneil_rsscreen is evaluated from the pass RS matrix, not ext signals
+    ONEIL_RSSCREEN_1D_N200_TAG: (("oneil_rsscreen", "top", "rs90"), 2.0, ONEIL_DAILY_HOLD_BARS, False),
     ONEIL_LEADERS_1D_TAG: (("oneil_leaders", "firsthigh", "na"), 2.0, ONEIL_DAILY_HOLD_BARS, True),
 }
 _ONEIL_DAILY_IDX = {"close": None}   # ^NSEI daily closes for the current swing pass (pd.Series by YYYY-MM-DD) or None
@@ -7387,7 +7477,8 @@ def _oneil_daily_last_bar_signals(df, idx_close) -> dict:
     return out
 
 
-def oneil_daily_entry_signal(df: pd.DataFrame, tag: str, idx_close=None, live_px=None, today=None) -> dict | None:
+def oneil_daily_entry_signal(df: pd.DataFrame, tag: str, idx_close=None, live_px=None, today=None,
+                             symbol: str | None = None) -> dict | None:
     """Live entry check for one wired ext 1d cell (see block comment). df = completed daily bars (last row = signal bar t).
     idx_close: ^NSEI closes by date (default: the pass's fetched series). today: IST date (default now); the signal is
     only valid on the first NSE session after t. Returns the swing signal dict (stop < entry always) or None."""
@@ -7406,9 +7497,14 @@ def oneil_daily_entry_signal(df: pd.DataFrame, tag: str, idx_close=None, live_px
             return None  # only the first session after the signal bar
     except Exception:
         return None
-    s = _oneil_daily_last_bar_signals(df, idx_close)
-    if (needs_idx and not s.get("_idx_ok")) or not s.get(key):
-        return None
+    if key[0] == "oneil_rsscreen":
+        rs = _oneil_rs_for(symbol, "1d", _oneil_daily_dates(df))  # B-1468: no rank -> fail closed
+        if rs is None or not bool(oneil_rsscreen_signals(df["Close"].to_numpy(float), rs, "1d", "long")[-1]):
+            return None
+    else:
+        s = _oneil_daily_last_bar_signals(df, idx_close)
+        if (needs_idx and not s.get("_idx_ok")) or not s.get(key):
+            return None
     h, l, c = (df[x].to_numpy(float) for x in ("High", "Low", "Close"))
     atr = oneil_atr14(h, l, c)[-1]
     px = float(live_px) if live_px is not None and float(live_px) > 0 else float(c[-1])
@@ -7452,7 +7548,7 @@ def _oneil_daily_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
 
 def _oneil_daily_scan_signal(df, tag, symbol=None):
     """Scan-only trigger evaluation (B-1274 stage 2); never an order."""
-    return oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol) if symbol else None)
+    return oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol) if symbol else None, symbol=symbol)
 
 
 def _oneil_daily_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
@@ -7460,7 +7556,7 @@ def _oneil_daily_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
     real mirror pattern as _oneil_swing_try_entry. The PFnet gate is inside _is_strategy_viable_for_real_money."""
     for tag in ONEIL_DAILY_CELLS:
         _record_strategy_scan(tag)
-        sig = oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol), today=today)
+        sig = oneil_daily_entry_signal(df, tag, live_px=_SWING_LIVE_PX.get(symbol), today=today, symbol=symbol)
         if not sig:
             continue
         if not _is_strategy_wired(tag):
@@ -7468,8 +7564,8 @@ def _oneil_daily_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
             continue
         # never enter the same signal bar twice (e.g. stopped out on the entry session, then a later pass)
         if conn.execute("SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND raw_payload LIKE ? AND raw_payload LIKE ?",
-                        (symbol, f'%"entry_reason": "{tag}"%', f'%"signal_day": "{sig["signal_day"]}"%')).fetchone():
-            return False
+                        (symbol, '%"entry_reason": "oneil_%__1d__%', f'%"signal_day": "{sig["signal_day"]}"%')).fetchone():
+            return False  # B-1468: spans every daily O'Neil cell, so a sibling cell never re-buys the same signal bar
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
         if qty <= 0:
@@ -23512,7 +23608,7 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
     cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
     cells += [(t, lambda t=t: pl1d_long_entry_signal(df, t)) for t in PL1D_CELLS]
     cells += [(t, lambda t=t: gapfade_long_entry_signal(df, t)) for t in GAPFADE_TAGS]
-    cells += [(t, lambda t=t: _oneil_scan_signal(df, t)) for t in ONEIL_SWING_CELLS]
+    cells += [(t, lambda t=t: _oneil_scan_signal(df, t, symbol)) for t in ONEIL_SWING_CELLS]
     cells += [(t, lambda t=t: _oneil_daily_scan_signal(df, t, symbol)) for t in ONEIL_DAILY_CELLS]
     for tag, fn in cells:
         _scan_cell(tag, fn if evaluate else None, count=count, blocked=evaluate)
@@ -24659,6 +24755,8 @@ def _run_swing_scan_pass(conn):
 
     _SWING_LIVE_PX.clear()
     _oneil_daily_fetch_index()  # B-1463: ^NSEI once per pass for the O'Neil 1d/1w index cells (None -> fail closed)
+    # B-1468: RS ranks for the oneil_rsscreen cells, from the frames this pass already fetched (none -> fail closed)
+    _oneil_rs_set_for_pass({_s: _v[0] for _s, _v in _prefetched.items() if _v and _v[0] is not None})
     dfs = {}
     for symbol in _scan_visit(SWING_WATCHLIST):
         _record_swing_check(symbol)
