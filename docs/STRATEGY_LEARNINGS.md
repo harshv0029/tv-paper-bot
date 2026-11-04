@@ -1653,3 +1653,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Result (full NSE universe, run 41881365947, cost 0.8%): LONG 1d atr4 z2 Ve1e-3 PFnet 1.367, OOS 1.105, n 27,328, avg hold 6 bars, wired. Tighter stops fail (atr2.5 1.234/1.000, atr1.5 1.065/0.881). Every SHORT mirror fails (~0.84): fading strength does not pay on NSE daily bars.
 - Surprise: the state exit carries the whole edge (PFnet 2.2 on 26k trades); every stop-out is a full loss. A wide stop lets the mean-reversion finish.
 - Profit-booking / exit takeaway: on this mean-reversion family, book at the mean (state exit), not at a fixed target, and keep the stop wide (4×ATR); a tight stop turns a winning reversion into a stop-out.
+
+## Minervini lab main-replay LONG (B-1467, 2026-11-05)
+- Mechanism: real `main.minervini_vcp_entry_signal` (RS gate skipped) with 79 lab exit/filter variants ported into main.py, full universe 2053 symbols, 1d, max hold 60, cost 0.8%.
+- Result: the plain base cell is breakeven (PFnet 1.000, OOS 0.691). Most exit variants lift pooled PFnet to 1.4-1.6 but collapse OOS (< 0.95): the in-sample edge came from the 2021-24 bull run.
+- Only 3 cells hold OOS > 1 (early_bull_10_25_on, rs_blend_ge70_off, after_stopout_cluster_off), and all hold 30.6-37.5 bars on average, over the 30-bar wiring bar. Not wired.
+- Reuse: for VCP the regime filter (early bull) and the after-stop-out cluster filter are the only things that survive OOS; a shorter max hold (h30/h40) on those three is the next cheap test to bring hold under 30.
+- Profit-booking / exit takeaway: VCP winners need long holds; exits that cut them early (ma50 trail, breakeven after 1R) lose OOS, so book profit on time/regime, not tight trails.

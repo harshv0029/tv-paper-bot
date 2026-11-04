@@ -3111,6 +3111,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_smr.build())
         import strategy_registry_chan_kalman_main_replay as _ckm
         REGISTRY.extend(_ckm.build())
+        import strategy_registry_minervini_lab_main_replay as _mlm
+        REGISTRY.extend(_mlm.build())
         import strategy_registry_swingminrr as _sm
         REGISTRY.extend(_sm.build())
         import strategy_registry_swingminrr_1h as _sm1h

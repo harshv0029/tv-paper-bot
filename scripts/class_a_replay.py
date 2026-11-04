@@ -166,7 +166,7 @@ def build_plan(registry, wired_names):
                 skipped.append({"tag": n, "why": "non-1d (resample/intraday owed)" if c and c["tf"] != "1d" else "no stop (atrnone) or unparsable"})
                 continue
             groups.setdefault((c["L"], c["N"]), []).append(cell_token(c))
-        elif n.startswith("minervini_vcp__") and n.endswith("__long__1d__h60__v1"):
+        elif n.startswith("minervini_vcp__") and n.endswith("__long__1d__h60__v1") and "_srcmain" not in n:  # srcmain rows are already main replays (B-1467)
             inc.append({"mode": "minervini_lab", "name": n[len("minervini_vcp__"):-len("__long__1d__h60__v1")]})
         elif n == "minervini_vcp_breakeven_2r":
             inc.append({"mode": "minervini_be", "name": "2"})
