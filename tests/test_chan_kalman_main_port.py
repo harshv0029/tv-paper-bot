@@ -149,12 +149,19 @@ def test_tags_match_registry_grammar():
 def test_port_is_unwired():
     tags = set(main._STRATEGY_TAG_TO_REGISTRY_NAME) | set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
     # the v2 fl1515 tags (a different, already-wired family) are allowed; no v1 band / srcmain tag may be mapped
-    assert not any("band_srcmain" in t or (t.startswith("chan_kalman__band__") and t.endswith("__v1")) for t in tags)
+    # B-1467: only the replay-cleared CHAN_KALMAN_1D_CELLS tag is wired; every other v1 band / srcmain tag stays unmapped
+    wired = set(main.CHAN_KALMAN_1D_CELLS)
+    assert not any(("band_srcmain" in t or (t.startswith("chan_kalman__band__") and t.endswith("__v1"))) and t not in wired
+                   for t in tags)
     src = inspect.getsource(main)
     for fn in ("chan_kalman_band_v1_entry_signal", "chan_kalman_band_v1_exit_reason", "chan_kalman_band_v1_precompute"):
         # only the definition (and calls inside the port block itself) may mention it
         uses = [ln for ln in src.splitlines() if fn + "(" in ln and not ln.lstrip().startswith("def ")]
-        assert all("pre = chan_kalman_band_v1_precompute(df, interval, z, ve)" in ln for ln in uses), uses
+        allowed = ("pre = chan_kalman_band_v1_precompute(df, interval, z, ve)",
+                   'sig = chan_kalman_band_v1_entry_signal(df, "1d", "long", z=z, ve=ve, atr_mult=k)',
+                   'pre = chan_kalman_band_v1_precompute(df, "1d", z, ve)',
+                   'r = chan_kalman_band_v1_exit_reason(df, "long", start, float(initial_stop), hold, pos=j, pre=pre)')
+        assert all(any(a in ln for a in allowed) for ln in uses), uses
 
 
 def test_replay_job_synthetic_smoke(tmp_path, monkeypatch):

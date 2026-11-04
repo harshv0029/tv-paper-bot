@@ -1647,3 +1647,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Surprise:** a 2y daily prefetch resamples to ~104 weeks, below the replay's 120-week eligibility rule, so the live weekly population uses a 100-week proxy. The residual mismatch is stocks listed 2.0-2.3 years ago.
 - **Reuse:** any cross-sectional (relative) signal must be validated on the population the live path can actually rank, not the research universe.
 - **Profit-booking / exit takeaway:** the daily cell's OOS edge (1.09) is thin next to the weekly one (3.46): the weekly cell holds longer and keeps far more of the trend, so it sits high in its cascade while the daily one is only a top-of-list daily filler.
+
+## B-1467 chan_kalman v1 band, main.py replay (2026-11-05)
+- Mechanism: Kalman adaptive mean on log close; long when the error drops below -2·sqrtQ, exit when price crosses back to the mean, stop entry - 4×ATR14, max hold 40 bars.
+- Result (full NSE universe, run 41881365947, cost 0.8%): LONG 1d atr4 z2 Ve1e-3 PFnet 1.367, OOS 1.105, n 27,328, avg hold 6 bars, wired. Tighter stops fail (atr2.5 1.234/1.000, atr1.5 1.065/0.881). Every SHORT mirror fails (~0.84): fading strength does not pay on NSE daily bars.
+- Surprise: the state exit carries the whole edge (PFnet 2.2 on 26k trades); every stop-out is a full loss. A wide stop lets the mean-reversion finish.
+- Profit-booking / exit takeaway: on this mean-reversion family, book at the mean (state exit), not at a fixed target, and keep the stop wide (4×ATR); a tight stop turns a winning reversion into a stop-out.

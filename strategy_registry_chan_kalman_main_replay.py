@@ -12,6 +12,7 @@ SRC = "scripts/chan_kalman_main_replay_job.py"
 # results file -> GitHub Actions run id that produced it
 RUNS = {
     "chan_kalman_main_replay_1d.json": 41881365947,
+    "chan_kalman_main_replay_1h.json": 41886040481,
 }
 
 
