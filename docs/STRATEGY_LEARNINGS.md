@@ -1662,3 +1662,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Profit-booking / exit takeaway: VCP winners need long holds; exits that cut them early (ma50 trail, breakeven after 1R) lose OOS, so book profit on time/regime, not tight trails.
 - Short mirror (run 41888716565): only after_stopout_cluster_off passes (1.314 / OOS 1.573) and its IS is 0.555. That filter (and the long 2.934 cell) uses the lab's look-ahead cluster rule, so treat any stop-out-cluster number from scripts/minervini_lab.py as contaminated until re-run with the no-look-ahead `_nla_` variant (only trades exited before entry, matching the live `_swing_stopout_cluster`).
 - Profit-booking / exit takeaway: a portfolio-state filter (recent stop-outs) must be built from trades already closed at entry time, or it books phantom profit.
+
+## chan_kalman v1 band LONG 1h wired (B-1465, 2026-11-05)
+- Same Kalman band rule as the wired 1d cell, on completed 1h bars in the swing engine's 1h long leg. Replay 41886040481: PFnet 1.083, IS 1.127, OOS 1.002 (n 1681), avg hold 8.2 bars. The OOS margin is razor-thin, so the registry gate will close it automatically if a later re-measure lands at or below 1.00.
+- Exits: state_exit trades carry the edge (PFnet 2.67, 89% of trades); 4xATR stops are all losers. Same shape as 1d.
+- Lesson: check the code before believing a backlog "no live path" note; the 1h long leg existed since B-984.
+- Profit-booking / exit takeaway: book on the mean-reversion state exit; do not tighten the 4xATR stop (tighter stops failed on 1d).

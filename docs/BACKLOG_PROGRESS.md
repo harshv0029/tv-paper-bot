@@ -610,7 +610,7 @@ Total rows: 1226 | closed: 579 | not closed: 647
 | B-1453 | P2 | OPEN | 2026-11-03 00:35 IST |  |
 | B-1454 | P2 | OPEN | 2026-11-03 00:35 IST |  |
 | B-1464 | P2 | OPEN | 2026-11-04 |  |
-| B-1465 | P2 | OPEN | 2026-11-04 | follow-up |
+| B-1465 | P2 | OPEN | 2026-11-04 | needs, follow-up |
 | B-1466 | P2 | OPEN | 2026-11-04 |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1445 | P3 | ROC | 2026-11-02 | owed, verify |
