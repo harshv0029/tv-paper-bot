@@ -3107,6 +3107,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ep.build())
         import strategy_registry_dirsys_oneilnonovl as _dn
         REGISTRY.extend(_dn.build())
+        import strategy_registry_sector_main_replay as _smr
+        REGISTRY.extend(_smr.build())
         import strategy_registry_swingminrr as _sm
         REGISTRY.extend(_sm.build())
         import strategy_registry_swingminrr_1h as _sm1h
