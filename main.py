@@ -26756,6 +26756,94 @@ def sector_rotation_fade_short_exit_reason(bars, stop: float, hold_bars: int, fi
     return None
 
 
+# ---- B-1467: sector rotation cell family, all four (variant, direction) combos (port; UNWIRED, research replay only) ----
+# Tags sector_rotation__<momentum|fade>[_n200]__<long|short>__<tf>__atr<k>_h<H>_l<L>_n<N>__v1 (scripts/sector_rotation_backtest.py).
+# The research rule ranks every sector (>= 5 symbols with an L-bar return) by breadth (share of L-bar returns > 0) and
+# mean L-bar return. STRONG side = highest-mean sector with breadth >= 0.6 -> its top-N by L-bar return (momentum LONG
+# buys them, fade SHORT shorts them; = sector_rotation_picks). WEAK side = lowest-mean sector with breadth <= 0.4 ->
+# its bottom-N by L-bar return (momentum SHORT shorts them, fade LONG buys them). Signal at the close of bar t (bars<=t
+# only), entry at the next bar open, fixed stop = entry -/+ k x ATR14(t) (k mandatory: None = no entry), exit at the
+# stop (low/high based, three fill models) or the close of the H-th bar. Constants verbatim from the research script.
+# NOT wired into any scan, paper or real path (no live entry calls these).
+SECTOR_ROT_BREADTH_LO = 0.4
+SECTOR_ROT_CELL_FILLS = ("stop", "gap_aware", "close")
+
+
+def sector_rotation_weak_picks(dfs: dict, L: int, N: int) -> list:
+    """Pure: the weakest-breadth sector's bottom-N symbols by L-bar return (breadth <= 0.4, >= 5 symbols, lowest
+    mean L-bar return). Mirror of sector_rotation_picks; uses only each frame's own bars (len(df) >= 20)."""
+    smap = _sector_of_symbol()
+    L, N = int(L), int(N)
+    by_sec: dict = {}
+    for sym, df in dfs.items():
+        sec = smap.get(sym)
+        if not sec or df is None or len(df) < 20:
+            continue
+        c = df["Close"].to_numpy(dtype=float)
+        if not (c[-1] > 0 and c[-1 - L] > 0):
+            continue
+        by_sec.setdefault(sec, []).append((sym, c[-1] / c[-1 - L] - 1))
+    worst, worst_mean = None, None
+    for sec, rows in by_sec.items():
+        if len(rows) < SECTOR_ROT_MIN_SECTOR:
+            continue
+        rets = [r for _, r in rows]
+        breadth, mean = sum(1 for r in rets if r > 0) / len(rets), sum(rets) / len(rets)
+        if breadth <= SECTOR_ROT_BREADTH_LO and (worst_mean is None or mean < worst_mean):
+            worst, worst_mean = sec, mean
+    if worst is None:
+        return []
+    return [s for s, _ in sorted(by_sec[worst], key=lambda t: t[1])[:N]]
+
+
+def sector_rotation_cell_side(variant: str, direction: str) -> str:
+    """'strong' (momentum long, fade short) or 'weak' (momentum short, fade long). variant may carry _n200."""
+    base = str(variant).split("_")[0]
+    if base not in ("momentum", "fade") or direction not in ("long", "short"):
+        raise ValueError(f"bad sector rotation cell {variant!r}/{direction!r}")
+    return "strong" if (base == "momentum") == (direction == "long") else "weak"
+
+
+def sector_rotation_cell_picks(dfs: dict, variant: str, direction: str, L: int, N: int) -> list:
+    """Symbols to enter (in `direction`) at the next bar open for this cell."""
+    if sector_rotation_cell_side(variant, direction) == "strong":
+        return sector_rotation_picks(dfs, L=L, N=N)
+    return sector_rotation_weak_picks(dfs, L, N)
+
+
+def sector_rotation_cell_stop(entry_price: float, atr_value: float, atr_mult: float, direction: str):
+    """Fixed stop k x ATR below (long) / above (short) entry. None = no valid stop (caller must NOT enter)."""
+    if direction == "short":
+        return sector_rotation_fade_short_stop(entry_price, atr_value, atr_mult)
+    if not atr_mult or atr_mult <= 0 or not atr_value or atr_value <= 0 or not entry_price or entry_price <= 0:
+        return None
+    stop = float(entry_price) - float(atr_mult) * float(atr_value)
+    return stop if stop > 0 else None
+
+
+def sector_rotation_cell_exit_reason(bars, stop: float, hold_bars: int, direction: str, fill: str = "gap_aware"):
+    """bars = OHLC from the ENTRY bar onward (row 0 = entry bar). (reason, exit_price, bars_held) or None while open.
+    Short = sector_rotation_fade_short_exit_reason. Long: low-based stop ('stop' fills at the stop, 'gap_aware' at
+    min(stop, open), 'close' tests the close), else the close of bar hold_bars."""
+    if direction == "short":
+        return sector_rotation_fade_short_exit_reason(bars, stop, hold_bars, fill)
+    if fill not in SECTOR_ROT_CELL_FILLS:
+        raise ValueError(f"fill must be one of {SECTOR_ROT_CELL_FILLS}")
+    o = np.asarray(bars["Open"], dtype=float)
+    lo = np.asarray(bars["Low"], dtype=float)
+    c = np.asarray(bars["Close"], dtype=float)
+    hb = int(hold_bars)
+    for q in range(min(len(c), hb)):
+        if fill == "close":
+            if c[q] <= stop:
+                return "stop_hit", float(c[q]), q + 1
+        elif lo[q] <= stop:
+            return "stop_hit", float(stop if fill == "stop" else min(stop, o[q])), q + 1
+    if len(c) >= hb and not np.isnan(c[hb - 1]):
+        return "max_hold_timeout", float(c[hb - 1]), hb
+    return None
+
+
 def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
     """Fixed disaster stop on close, or time exit after SECTOR_ROT_HOLD_DAYS trading days."""
     if len(df) == 0:
