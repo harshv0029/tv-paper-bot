@@ -18323,7 +18323,91 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs440.25",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1528,
+   "ts": 1793764493.507557,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011293",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs165.37",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1529,
+   "ts": 1793764493.6387892,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011485",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs125.18",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1530,
+   "ts": 1793764493.712201,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011278",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs194.11",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1531,
+   "ts": 1793764493.9222023,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011292",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs158.47",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1532,
+   "ts": 1793764494.9566603,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261104000011365",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs279.25",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1533,
+   "ts": 1793764499.4705858,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261104000060466",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-XUAEZ across exchange across segment across product"
+  },
+  {
+   "id": 1534,
+   "ts": 1793764500.7643545,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261104000060466 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-11-04T03:54:56Z"
+ "synced_at_utc": "2026-11-04T03:55:04Z"
 }
