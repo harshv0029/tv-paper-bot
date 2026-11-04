@@ -12,6 +12,10 @@ Cells (--cells, default per --tf):
   leaders      1d long  oneil_leaders__firsthigh atr2/atr3 h40
   exit_six     1d long  pivot exit xmsix125 (atr3, h130)
   shake1w      1w short oneil_shakeout__plus3 pm2, atr2/atr3 h8                              (B-833)
+  ext_main     1d/1w long+short, B-1463: the O'Neil ext families with no prior main.py function (rsscreen, tightarea,
+               pullback, rsline, hns, volpct, trendline, hft, leaders, triple, shakeout), entry via
+               main.oneil_ext_signals and exit via main.oneil_stop_price/oneil_exit_bar, atr2/atr3 x every CFG hold,
+               tags carry srcmain (..._srcmain__nonovl__v2). --families narrows it.
   --mirror adds the opposite direction of every cell as its own tag (both-directions rule).
 Output per tag: PFnet net/gross, win %, avg hold (bars), n, raw signal trades before FIFO, exit reasons, top-5 trades,
 PFnet with the global top-5 winners removed (bad-bar guard), count of >100% trades; plus IS and OOS (entry-bar split)
@@ -50,6 +54,71 @@ CELL_SETS = {
     "shake1w": [("entry", "short", ("oneil_shakeout", "plus3", "m2"), 8, s) for s in (2.0, 3.0)],
 }
 DEFAULT_CELLS = {"1d": "pivot_tight,leaders,exit_six", "1w": "shake1w"}
+
+# B-1463: main.py-calling cells for the O'Neil extension families with no prior main.py function. Entry =
+# main.oneil_ext_signals (ported detectors; short = reciprocal mirror, rsscreen native both sides), exit =
+# main.oneil_stop_price + main.oneil_exit_bar (ATR stop on every trade, max-hold timeout). Spec:
+# ("mainentry", direction, (family, variant, pkey), hold_index into CFG holds, atr_mult). Tags carry param srcmain
+# so they never collide with the research-detector nonovl tags. pkey "rs" resolves to rs90 (long) / rs20 (short).
+EXT_MAIN_KEYS = [
+    ("oneil_rsscreen", "top", "rs"), ("oneil_tightarea", "breakout", "r2"), ("oneil_tightarea", "breakout", "r3"),
+    ("oneil_pullback", "buy", "na"), ("oneil_rsline", "newhigh", "na"), ("oneil_hns", "neckline", "na"),
+    ("oneil_volpct", "surge", "v3"), ("oneil_volpct", "surge", "v5"), ("oneil_trendline", "break", "na"),
+    ("oneil_hft", "breakout", "na"), ("oneil_leaders", "firsthigh", "na"), ("oneil_triple", "neckline", "na"),
+    ("oneil_shakeout", "plus3", "m1"), ("oneil_shakeout", "plus3", "m2"),
+]
+CELL_SETS["ext_main"] = [("mainentry", d, k, hi, s) for k in EXT_MAIN_KEYS for d in ("long", "short")
+                         for hi in (0, 1, 2) for s in (2.0, 3.0)]
+
+_APP = None
+
+
+def _app():
+    global _APP
+    if _APP is None:
+        import main as app
+        _APP = app
+    return _APP
+
+
+def resolve_key(key, d):
+    fam, var, pk = key
+    if pk == "rs":
+        pk = "rs90" if d == "long" else "rs20"
+    return fam, var, pk
+
+
+def main_trade_one(t, o, h, l, c, atr, hold, stopm, side, cost):
+    """One trade for signal bar t, exit decided by main.oneil_stop_price / main.oneil_exit_bar (same conventions as
+    simulate_x 'base': entry at o[t+1], full hold window required, gap-aware stop, timeout at the close)."""
+    app = _app()
+    n = len(c)
+    if t + 1 >= n or np.isnan(atr[t]) or atr[t] <= 0:
+        return None
+    e = t + 1
+    ent = o[e]
+    if not ent or np.isnan(ent):
+        return None
+    last = min(e + hold - 1, n - 1)
+    if last - e + 1 < hold:
+        return None
+    d = "long" if side == 1 else "short"
+    stop = app.oneil_stop_price(float(ent), float(atr[t]), d, "atr", stopm)
+    for j in range(e, last + 1):
+        r = app.oneil_exit_bar(d, o[j], h[j], l[j], c[j], j, last, stop, stop, None)
+        if r is not None:
+            reason, px = r
+            g = (px / ent - 1) * side
+            return {"entry_i": e, "exit_i": j, "net": g - cost, "gross": g, "hold": j - e + 1, "reason": reason}
+    return None
+
+
+def nonovl_trades_main(sig, o, h, l, c, atr, hold, stopm, side, cost):
+    """Independent main.py trade per signal bar, then the same strict FIFO as nonovl_trades."""
+    raw = [r for r in (main_trade_one(int(t), o, h, l, c, atr, hold, stopm, side, cost) for t in np.flatnonzero(sig)) if r]
+    shifted = [{**t, "entry_i": t["entry_i"] - 1} for t in raw]
+    kept = [{**t, "entry_i": t["entry_i"] + 1} for t in no.fifo_filter(shifted)]
+    return kept, len(raw)
 
 
 def _jsonable(o):
@@ -138,6 +207,16 @@ def summarize(a):
 def cell_tag(spec, tf, d, ex_cfg, holds):
     """(registry-style old tag, hold) for a cell spec in direction d."""
     kind = spec[0]
+    if kind == "mainentry":
+        fam, var, pk = resolve_key(spec[2], d)
+        hold = holds[spec[3]]
+        p = {"h": hold, "atr": spec[4], "src": "main"}
+        if pk != "na":
+            if pk.startswith("rs"):
+                p["rs"] = pk[2:]
+            else:
+                p["p"] = pk
+        return ox.ptag(fam, var, d, tf, p), hold
     if kind == "filter":
         base_h = holds[1]
         bt = ox.ptag("oneil_pivot", "breakout", d, tf, {"h": base_h, "atr": 3.0, "chase": 10})
@@ -155,7 +234,7 @@ def cell_tag(spec, tf, d, ex_cfg, holds):
 
 
 def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, raw_counts, split_date="", split_frac=0.6,
-               mirror=False):
+               mirror=False, families=None):
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     v = df["Volume"].to_numpy(float)
     rs = rs_series.reindex(df.index).to_numpy(float)
@@ -169,8 +248,28 @@ def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, ra
     sym = getattr(df, "name", "") or ""
     for d_native, side in (("long", 1), ("short", -1)):
         sigs = None
+        msigs = None
         for name in cells_sel:
             for spec in CELL_SETS[name]:
+                if spec[0] == "mainentry":
+                    if d_native != spec[1] or (families and spec[2][0] not in families):
+                        continue
+                    if msigs is None:
+                        app = _app()
+                        msigs = app.oneil_ext_signals(d_native, tf, o, h, l, c, v, idx, rs)
+                        matr = app.oneil_atr14(h, l, c)
+                    sg = msigs.get(resolve_key(spec[2], d_native))
+                    if sg is None or not np.asarray(sg).any():
+                        continue
+                    tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"])
+                    kept, nraw = nonovl_trades_main(sg, o, h, l, c, matr, hold, spec[4], side, cost)
+                    full = no.nonovl_tag(tag)
+                    add_trades(aggs.setdefault(full, new_agg()), kept, sym, df.index)
+                    ins, oos = no.segment_trades(kept, df.index, ts)
+                    add_trades(aggs.setdefault(no.seg_tag(tag, "is"), new_agg()), ins, sym, df.index)
+                    add_trades(aggs.setdefault(no.seg_tag(tag, "oos"), new_agg()), oos, sym, df.index)
+                    raw_counts[full] = raw_counts.get(full, 0) + nraw
+                    continue
                 if d_native != spec[1] and not mirror:
                     continue
                 if sigs is None:
@@ -242,11 +341,12 @@ def _shard(args):
     closes = pd.DataFrame({s: df["Close"] for s, df in data.items()})
     rs_all = orx.rs_rank_matrix(closes, cfg["rs_lb"])
     cells_sel = [x for x in (args.cells or DEFAULT_CELLS[tf]).split(",") if x]
+    fams = {x for x in (args.families or "").split(",") if x} or None
     aggs, raw_counts = {}, {}
     for i, (s, df) in enumerate(data.items()):
         try:
             run_symbol(df, idx_series, rs_all[s], cfg, ex, cost, tf, cells_sel, aggs, raw_counts, args.split_date,
-                       args.split_frac, args.mirror)
+                       args.split_frac, args.mirror, fams)
         except Exception as e:
             print("ERROR", s, e, file=sys.stderr)
         if i % 100 == 0:
@@ -281,6 +381,7 @@ def main(argv=None):
     r.add_argument("--nshards", type=int, default=3)
     r.add_argument("--cells", default="", help="comma list of " + ",".join(CELL_SETS))
     r.add_argument("--mirror", action="store_true", help="also run the opposite direction (separate tags)")
+    r.add_argument("--families", default="", help="ext_main only: comma list of O'Neil families (blank = all)")
     r.add_argument("--period", default="")
     r.add_argument("--maxsym", type=int, default=0)
     r.add_argument("--split_date", default="")

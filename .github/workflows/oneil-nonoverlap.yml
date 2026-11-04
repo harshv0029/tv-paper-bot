@@ -8,6 +8,9 @@ name: O'Neil non-overlap + IS/OOS re-run (B-831 / B-833)
 # Prepared dispatches (one at a time; matrix = 3 shards + 1 merge; check nothing urgent is queued first):
 #   B-831: interval=1d cells=pivot_tight,leaders,exit_six mirror=false
 #   B-833: interval=1w cells=shake1w mirror=false          (1w short oneil_shakeout plus3 pm2 h8, atr2/atr3)
+#   B-1463: interval=1d cells=ext_main mirror=false families=   (then interval=1w, same inputs). main.py-calling
+#           detectors (main.oneil_ext_signals) + exits (main.oneil_stop_price/oneil_exit_bar), long AND short listed
+#           explicitly (mirror flag not needed), atr2/atr3 x every hold; tags ..._srcmain__nonovl__v2.
 # Optional second pass for the both-directions rule: same inputs with mirror=true (separate tags).
 # Candle size: the rules are defined on daily/weekly bars (bar-count constants re-derived per timeframe in EX); 1m-4h
 # are not applicable and that is stated, not skipped silently.
@@ -23,6 +26,9 @@ on:
       mirror:
         description: "true = also run the opposite direction of every cell (separate tags)"
         default: "false"
+      families:
+        description: "ext_main only: comma list of O'Neil families to run (blank = all 11)"
+        default: ""
       split_date:
         description: "IS/OOS boundary YYYY-MM-DD (entry before = IS). Blank = split_frac"
         default: ""
@@ -49,7 +55,7 @@ jobs:
           set -o pipefail
           MIRROR=""
           if [ "${{ inputs.mirror }}" = "true" ]; then MIRROR="--mirror"; fi
-          python3 scripts/oneil_nonoverlap.py run --tf "${{ inputs.interval }}" --shard ${{ matrix.shard }} --nshards 3 --cells "${{ inputs.cells }}" $MIRROR --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
+          python3 scripts/oneil_nonoverlap.py run --tf "${{ inputs.interval }}" --shard ${{ matrix.shard }} --nshards 3 --cells "${{ inputs.cells }}" --families "${{ inputs.families }}" $MIRROR --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
       - uses: actions/upload-artifact@v4
         with:
           name: oneil-nonovl-${{ inputs.interval }}-${{ matrix.shard }}
