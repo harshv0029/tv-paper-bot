@@ -48,3 +48,36 @@ def test_payload_has_running_block(monkeypatch):
 def test_view4_shows_running_cagr():
     h = (Path(__file__).resolve().parents[1] / "static" / "trade-view4.html").read_text()
     assert 'id="runLine"' in h and "Running CAGR" in h and "refreshed every" in h
+
+
+def _union(monkeypatch, rows):
+    import main
+    import sqlite3
+
+    def fake_db():
+        c = sqlite3.connect(":memory:")
+        c.row_factory = sqlite3.Row
+        c.execute("CREATE TABLE tracked_union (kotak_trading_symbol TEXT, qty INTEGER, is_short INTEGER, entry_price REAL)")
+        c.executemany("INSERT INTO tracked_union VALUES (?,?,?,?)", rows)
+        return c
+    monkeypatch.setattr(main, "get_db", fake_db)
+    return main
+
+
+def test_open_set_is_exactly_kotak_open(monkeypatch):
+    main = _union(monkeypatch, [("A-EQ", 6, 0, 99.0), ("H-EQ", 4, 0, 50.0)])
+    ledger = [{"symbol": "A-EQ", "side": "long", "qty": 10, "entry_px": 100.0, "entry_value_inr": 1000.0,
+               "entry_day": "2026-11-02", "seg": "nse_cm", "prod": "CNC"},
+              {"symbol": "GONE-EQ", "side": "long", "qty": 3, "entry_px": 10.0, "entry_value_inr": 30.0,
+               "entry_day": "2026-11-02", "seg": "nse_cm", "prod": "CNC"}]
+    out = main._roc_lots_matched_to_kotak(ledger, "2026-11-02")
+    got = {(o["symbol"], o["qty"], o["entry_px"], o["source"]) for o in out}
+    assert got == {("A-EQ", 6, 100.0, "kotak_fill"), ("H-EQ", 4.0, 50.0, "kotak_avg_price")}
+
+
+def test_kotak_qty_above_ledger_fills_at_kotak_avg(monkeypatch):
+    main = _union(monkeypatch, [("A-EQ", 12, 0, 99.0)])
+    ledger = [{"symbol": "A-EQ", "side": "long", "qty": 10, "entry_px": 100.0, "entry_value_inr": 1000.0,
+               "entry_day": "2026-11-02", "seg": "nse_cm", "prod": "CNC"}]
+    out = main._roc_lots_matched_to_kotak(ledger, "2026-11-02")
+    assert sorted((o["qty"], o["entry_px"]) for o in out) == [(2.0, 99.0), (10, 100.0)]

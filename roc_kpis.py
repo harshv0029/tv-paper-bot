@@ -345,10 +345,10 @@ def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, char
             px = float(px) if px is not None else None
         except (TypeError, ValueError):
             px = None
-        if not px or px <= 0:
+        if not px or px <= 0 or not o.get("entry_px"):
             out["unpriced"].append(o["symbol"])
             continue
-        q, epx, long_ = o["qty"], o.get("entry_px") or (o["entry_value_inr"] / o["qty"] if o["qty"] else 0), o["side"] != "short"
+        q, epx, long_ = o["qty"], o["entry_px"], o["side"] != "short"
         buy_v, sell_v = (epx if long_ else px) * q, (px if long_ else epx) * q
         ch = float(charges_fn(o.get("seg"), o["symbol"], o.get("prod"), buy_v, sell_v)) if charges_fn else 0.0
         ug += sell_v - buy_v
@@ -368,7 +368,7 @@ def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, char
         else:
             notes.append("CAGR undefined: loss larger than the average deployed capital")
     if out["unpriced"]:
-        notes.append(f"{len(out['unpriced'])} open lot(s) had no live price and are left out")
+        notes.append(f"{len(out['unpriced'])} open lot(s) had no live price or entry price and are left out")
     if days < MIN_ANNUALISE_DAYS:
         notes.append(f"annualised from only {days} days; swings widely until {MIN_ANNUALISE_DAYS} days")
     out["reason"] = "; ".join(notes) or None
