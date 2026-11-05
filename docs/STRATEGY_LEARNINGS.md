@@ -1700,3 +1700,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: the generator rename exposed a latent orphan risk. The pattern exit only managed tags in the current entry list, so any regen that dropped a tag would leave open positions without their pattern exit. Fixed with a persistent exit_only list.
 - Caution: the combo in-sample half is best-of-thousands, so a combo pooled number still carries selection inflation; the 5,331 combos with no holdout run stay unregistered.
 - Profit-booking / exit takeaway: renaming or re-ranking live cells must never drop an exit path; exits are keyed by the tag a position was opened under, forever.
+
+## B-1478 (2026-11-05): re-test everything, not only what is wired
+- Mechanism: the 6-month re-test cycle covers every registry tag, including failed and never-wired ones.
+- Why: edges drift with the market. A 0.99 PFnet cell can cross 1.00 on fresh data; a wired 1.05 can decay. Only re-testing the whole pool catches both.
+- Profit-booking / exit takeaway: wiring is re-derived from the newest result each cycle, so profit comes from what works now, not what worked once.
