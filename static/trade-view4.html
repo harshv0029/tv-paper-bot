@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+#slBox th[data-arrow]::after{content:attr(data-arrow)}
   :root{--bg:#080b0f;--panel:#12181f;--panel-2:#161e27;--border:#232d3a;--text:#e7ecf2;--muted:#7c8a9c;--up:#22c55e;--down:#ef4444;--accent:#3b82f6;--warn:#f59e0b;--idle:#475569;--violet:#a78bfa;}
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
@@ -167,8 +168,8 @@
       <tbody id="rocRows"><tr><td colspan="11" class="dim">loading…</td></tr></tbody></table></details></div>
 <div class="box" id="slBox" style="margin:12px 0;overflow-x:auto"><h2>Active positions · SL check today (IST) <span class="n mono" id="slN"></span></h2>
   <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
-    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
-    <tbody id="slRows"><tr><td colspan="13" class="dim">loading…</td></tr></tbody></table>
+    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
+    <tbody id="slRows"><tr><td colspan="15" class="dim">loading…</td></tr></tbody></table>
   <div class="dim mono" id="slNote" style="font-size:10.5px;margin-top:4px"></div></div>
 <div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
 
@@ -454,6 +455,33 @@
 
   // B-1402: active positions with SL type and whether today's SL matches the strategy's own stop rule.
   const SLCAT = {buy: "Buy (intraday)", short_sell: "Short sell", swing: "Swing", swing_short: "Swing short"};
+  // B-1476: calendar days since entry (IST), non-trading days included, same day = 1.
+  function slDaysHeld(day) {
+    if (!day) return null;
+    const m = String(day).slice(0, 10).replace(/\//g, "-").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const ist = new Date(Date.now() + 330 * 60000);
+    const today = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
+    const d = Math.round((today - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 86400000);
+    return d < 0 ? null : Math.max(1, d);
+  }
+  // B-1476: click any column header to sort (click again to reverse); kept across the 10 s refresh.
+  let slSort = {col: null, dir: 1};
+  function slSortApply() {
+    if (slSort.col == null) return;
+    const tb = $("slRows"), rows = [...tb.querySelectorAll("tr")].filter(r => r.children.length > 1);
+    const key = r => { const td = r.children[slSort.col]; if (!td) return ""; const v = td.dataset.v;
+      return v !== undefined && v !== "" && !isNaN(Number(v)) ? Number(v) : (v === "" ? null : td.textContent.trim().toLowerCase()); };
+    rows.sort((a, b) => { const x = key(a), y = key(b);
+      if (x === y) return 0; if (x == null) return 1; if (y == null) return -1;
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * slSort.dir; });
+    rows.forEach(r => tb.appendChild(r));
+    document.querySelectorAll("#slBox thead th").forEach((th, i) => th.dataset.arrow = i === slSort.col ? (slSort.dir > 0 ? " ▲" : " ▼") : "");
+  }
+  document.querySelectorAll("#slBox thead th").forEach((th, i) => {
+    th.style.cursor = "pointer"; th.title = (th.title ? th.title + " · " : "") + "click to sort";
+    th.addEventListener("click", () => { slSort = {col: i, dir: slSort.col === i ? -slSort.dir : 1}; slSortApply(); });
+  });
   async function pollSlTable() {
     try {
       const d = await getJSON("/real-positions-sl-today");
@@ -463,16 +491,23 @@
         const c = p.sl_as_per_strategy === true ? "up" : p.sl_as_per_strategy === false ? "down" : "dim";
         const pc = p.profit_inr == null ? "dim" : p.profit_inr > 0 ? "up" : p.profit_inr < 0 ? "down" : "";
         const sl = `Kotak SL ${rs(p.kotak_sl_trigger)} · strategy stop ${rs(p.strategy_stop)}${p.last_sl_update_ist ? " · last update " + esc(p.last_sl_update_ist) + " IST" : ""}`;
-        return `<tr style="border-bottom:1px solid #8882"><td>${i + 1}</td><td>${esc(p.symbol)} <span class="dim">${esc(p.strategy || "")}</span></td><td>${rs(p.entry_price)}</td><td class="${pc}">${rs(p.current_price)}</td><td>${esc(p.qty)}</td>` +
-          `<td>${esc(SLCAT[p.category] || p.category)}</td><td>${p.target_price != null ? rs(p.target_price) : '<span class="dim">rule exit</span>'}</td>` +
+        // B-1476: calendar days held (non-trading days count: the money is tied up), same day = 1, and profit per day.
+        const days = slDaysHeld(p.entry_day), num = v => v == null || isNaN(Number(v)) ? "" : Number(v);
+        const rpd = days && p.profit_inr != null ? Number(p.profit_inr) / days : null;
+        const rpdPct = days && p.profit_pct != null ? Number(p.profit_pct) / days : null;
+        return `<tr style="border-bottom:1px solid #8882"><td data-v="${i + 1}">${i + 1}</td><td>${esc(p.symbol)} <span class="dim">${esc(p.strategy || "")}</span></td><td data-v="${num(p.entry_price)}">${rs(p.entry_price)}</td><td data-v="${num(p.current_price)}" class="${pc}">${rs(p.current_price)}</td><td data-v="${num(p.qty)}">${esc(p.qty)}</td>` +
+          `<td>${esc(SLCAT[p.category] || p.category)}</td><td data-v="${num(p.target_price)}">${p.target_price != null ? rs(p.target_price) : '<span class="dim">rule exit</span>'}</td>` +
           // B-1410: entry-day SL (Kotak's first SL that day, else the strategy's frozen initial stop) and profit at the last price.
-          `<td>${rs(p.entry_day_sl)}${p.entry_day_sl != null ? `<div class="dim" style="font-size:10px">${esc(p.entry_day || "")} · ${p.entry_day_sl_source === "kotak" ? "Kotak" : "strategy"}</div>` : ""}</td>` +
-          `<td class="${pc}">${p.profit_inr == null ? "-" : (p.profit_inr < 0 ? "-₹" : "₹") + Math.abs(Number(p.profit_inr)).toFixed(2)}</td>` +
-          `<td class="${pc}">${p.profit_pct == null ? "-" : (p.profit_pct > 0 ? "+" : "") + Number(p.profit_pct).toFixed(2) + "%"}</td>` +
+          `<td data-v="${num(p.entry_day_sl)}">${rs(p.entry_day_sl)}${p.entry_day_sl != null ? `<div class="dim" style="font-size:10px">${esc(p.entry_day || "")} · ${p.entry_day_sl_source === "kotak" ? "Kotak" : "strategy"}</div>` : ""}</td>` +
+          `<td data-v="${num(p.profit_inr)}" class="${pc}">${p.profit_inr == null ? "-" : (p.profit_inr < 0 ? "-₹" : "₹") + Math.abs(Number(p.profit_inr)).toFixed(2)}</td>` +
+          `<td data-v="${num(p.profit_pct)}" class="${pc}">${p.profit_pct == null ? "-" : (p.profit_pct > 0 ? "+" : "") + Number(p.profit_pct).toFixed(2) + "%"}</td>` +
+          `<td data-v="${days ?? ""}">${days ?? "-"}</td>` +
+          `<td data-v="${rpd ?? ""}" class="${pc}">${rpd == null ? "-" : (rpd < 0 ? "-₹" : "₹") + Math.abs(rpd).toFixed(2) + " INR/day" + (rpdPct == null ? "" : ` (${(rpdPct > 0 ? "+" : "") + rpdPct.toFixed(3)}% /day)`)}</td>` +
           `<td>${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td>` +
           // B-1425: the strategy's time stop (latest exit date); it can exit sooner on stop, target or its rule.
           `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td></tr>`;
-      }).join("") || '<tr><td colspan="13" class="dim">no active real positions</td></tr>';
+      }).join("") || '<tr><td colspan="15" class="dim">no active real positions</td></tr>';
+      slSortApply();
       $("slNote").textContent = d.note || "";
       // B-1420: capital card from the same poll
       const cp = d.capital || {}, inr = v => v == null ? "-" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
