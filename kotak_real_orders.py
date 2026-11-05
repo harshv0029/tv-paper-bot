@@ -652,9 +652,9 @@ def cancel_all_open_sells(kotak_trading_symbol: str) -> dict:
     Never raises."""
     def _open_sells():
         report = kotak_neo.login().order_report()
-        rows = report.get("data") if isinstance(report, dict) else None
-        if rows is None or not isinstance(rows, list):
-            raise ValueError("order_report returned no data list")
+        rows = order_rows_from_report(report)
+        if rows is None:
+            raise ValueError(f"order_report returned no data list: {str(report)[:160]}")
         return [r for r in rows if r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
                 and str(r.get("ordSt", "")).strip().lower() not in _TERMINAL_ORDER_STATUSES and r.get("nOrdNo")]
     try:
@@ -1309,6 +1309,26 @@ def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float,
 ORDER_BOOK_READ_RETRY_DELAYS_S = (0.5, 1.5)  # B-1462: a failed order-book read is retried before any fallback
 
 
+_EMPTY_BOOK_MARKERS = ("no data", "no order", "no record", "not found", "no trade")
+
+
+def order_rows_from_report(report):
+    """B-1481 (live 2026-11-05 09:15-09:17 IST: every overnight holding stayed without an SL for ~2 min because the
+    first read of the day returned no `data` list - Kotak's reply for a day with no orders yet - and B-1462 treated
+    that as 'unreadable, place nothing'). Returns the row list, [] for Kotak's empty-book reply (no `data` key plus
+    a 'no data'-style message or stCode 5203), or None when the reply is genuinely unreadable."""
+    if not isinstance(report, dict):
+        return None
+    rows = report.get("data")
+    if isinstance(rows, list):
+        return rows
+    if rows is None:
+        msg = " ".join(str(report.get(k) or "") for k in ("errMsg", "emsg", "message", "msg", "stat", "error")).lower()
+        if str(report.get("stCode")) == "5203" or any(m in msg for m in _EMPTY_BOOK_MARKERS):
+            return []
+    return None
+
+
 def _read_order_rows_with_retry(sleep=None):
     import time as _t
     sleep = sleep or _t.sleep
@@ -1318,10 +1338,10 @@ def _read_order_rows_with_retry(sleep=None):
             sleep(delay)
         try:
             report = kotak_neo.login().order_report()
-            rows = report.get("data") if isinstance(report, dict) else None
+            rows = order_rows_from_report(report)
             if isinstance(rows, list):
                 return rows, None
-            last = ValueError("order_report returned no data list")
+            last = ValueError(f"order_report returned no data list: {str(report)[:160]}")
         except Exception as e:  # noqa: BLE001
             last = e
     return None, last

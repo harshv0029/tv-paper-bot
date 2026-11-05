@@ -7969,6 +7969,250 @@ def oneil_pattern_signal_array(family: str, direction: str, tf: str, o, h, l, c,
     return sigs.get((family, "breakout", direction, chase, rsf), np.zeros(len(c), bool))
 
 
+# ---------------------------------------------------------------------------
+# Elder batch-3 detectors (B-1472 b). ADDITIVE, UNWIRED PORT of scripts/elder_batch3_research.py families
+# osc div_class (class b, osc rsi / macdh), osc reversal (rsi lo30/hi70) and chan pivot_tl_break (w3 / w5), with the
+# research simulator sim2's exit (ATR(14, Wilder) stop x mult from the SIGNAL bar, entry at the NEXT bar's open, gap-
+# aware stop fill, rule exit at the close (reversal only), 30-bar max hold) and the B-864 bad-bar guard (a trade whose
+# entry bar or any held bar is a corrupt print is dropped). Indicators, pivots, trendlines and divergence classes are
+# copied verbatim. One deliberate deviation: the macdh divergence tolerance (0.02 x median |MACD-H|) is the median of
+# the bars PASSED IN (the bars <= t on a walk-forward call), not of the whole 5y history as in the research, which
+# reads the future. No live scan, no real-order path, no kill switch; every trade carries a stop. Long and short are
+# separate tags (variant suffix "_mr" = main-replay cell).
+# ---------------------------------------------------------------------------
+ELDER_B3_MAX_HOLD = 30
+ELDER_B3_ATR_N = 14
+ELDER_B3_ATR_MULTS = (1.5, 2.0, 3.0)
+ELDER_B3_BAD_TICK_LO, ELDER_B3_BAD_TICK_HI = 0.5, 2.0
+# source -> (family, research variant, research params without atr)
+ELDER_B3_SOURCES = {
+    "div_kb_rsi": ("osc", "div_class", {"k": "b", "osc": "rsi"}),
+    "div_kb_macdh": ("osc", "div_class", {"k": "b", "osc": "macdh"}),
+    "rev_rsi_30_70": ("osc", "reversal", {"osc": "rsi", "lo": 30, "hi": 70}),
+    "ptl_w3": ("chan", "pivot_tl_break", {"w": 3}),
+    "ptl_w5": ("chan", "pivot_tl_break", {"w": 5}),
+}
+ELDER_B3_FAMILY_SOURCES = {"osc_div": ("div_kb_rsi", "div_kb_macdh"), "osc_rev": ("rev_rsi_30_70",),
+                           "chan_ptl": ("ptl_w3", "ptl_w5")}
+
+
+def _eb3_fmt(v) -> str:
+    if isinstance(v, float) and not v.is_integer():
+        return repr(round(v, 4)).replace(".", "d")
+    return str(int(v)) if isinstance(v, (int, float)) else str(v)
+
+
+def elder_b3_tag(source: str, direction: str, atr_mult: float, tf: str = "1d", mr: bool = True) -> str:
+    """Naming grammar tag; mr=False gives the research tag (scripts/elder_indicators_research.make_tag)."""
+    fam, var, params = ELDER_B3_SOURCES[source]
+    p = {**params, "atr": float(atr_mult)}
+    ps = "_".join(f"{k}{_eb3_fmt(p[k])}" for k in sorted(p))
+    return f"{fam}__{var}{'_mr' if mr else ''}__{direction}__{tf}__{ps}__v1"
+
+
+ELDER_B3_TAG_INFO = {elder_b3_tag(s, d, a): (s, d, a) for s in ELDER_B3_SOURCES for d in ("long", "short")
+                     for a in ELDER_B3_ATR_MULTS}
+ELDER_B3_ALL_TAGS = tuple(ELDER_B3_TAG_INFO)
+
+
+def _eb3_ema(s, n):
+    return pd.Series(s).ewm(span=n, adjust=False).mean()
+
+
+def _eb3_atr(df, n=ELDER_B3_ATR_N):
+    h, l, c = df["High"], df["Low"], df["Close"]
+    tr = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
+    return tr.ewm(alpha=1.0 / n, adjust=False).mean()
+
+
+def _eb3_rsi_wilder(close, n=14):
+    ch = close.diff()
+    up = ch.clip(lower=0).ewm(alpha=1.0 / n, adjust=False).mean()
+    dn = (-ch.clip(upper=0)).ewm(alpha=1.0 / n, adjust=False).mean()
+    return 100 - 100 / (1 + up / dn.replace(0, np.nan))
+
+
+def _eb3_macd_hist(close, fast=12, slow=26, sig=9):
+    m = _eb3_ema(close, fast) - _eb3_ema(close, slow)
+    return m - _eb3_ema(m, sig)
+
+
+def elder_b3_bad_bar_mask(o, c, h=None, l=None):
+    """B-864 guard (verbatim from elder_indicators_research.bad_bar_mask): Open/Close outside [0.5, 2] x prior Close,
+    or inconsistent OHLC."""
+    bad = np.zeros(len(c), dtype=bool)
+    if len(c) >= 2:
+        pc = c[:-1]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ro, rc = o[1:] / pc, c[1:] / pc
+        ok = ((ro >= ELDER_B3_BAD_TICK_LO) & (ro <= ELDER_B3_BAD_TICK_HI)
+              & (rc >= ELDER_B3_BAD_TICK_LO) & (rc <= ELDER_B3_BAD_TICK_HI))
+        bad[1:] = ~ok & ~(np.isnan(ro) | np.isnan(rc))
+    if h is not None and l is not None:
+        with np.errstate(invalid="ignore"):
+            bad |= (h < np.maximum(np.maximum(o, c), l)) | (l > np.minimum(np.minimum(o, c), h))
+    return bad
+
+
+def _eb3_pivot_list(x, w, kind):
+    """-> list of (confirmed_index, pivot_index, value); confirmation lags by w bars (no look-ahead)."""
+    s = pd.Series(x, dtype=float)
+    ref = s.rolling(2 * w + 1, center=True).max() if kind == "high" else s.rolling(2 * w + 1, center=True).min()
+    out, last = [], -10
+    for i in np.flatnonzero((s.to_numpy() == ref.to_numpy()) & ~np.isnan(ref.to_numpy())):
+        if i - last <= w:
+            continue
+        last = i
+        out.append((i + w, i, float(s.iloc[i])))
+    return out
+
+
+def _eb3_trendline_break(x, w=3):
+    """Down-trendline through the last two confirmed pivot highs (second lower) -> up_break on a close above it;
+    up-trendline through the last two pivot lows (second higher) -> dn_break."""
+    x = np.asarray(x, float)
+    n = len(x)
+    hi, lo = _eb3_pivot_list(x, w, "high"), _eb3_pivot_list(x, w, "low")
+    up, dn = np.zeros(n, bool), np.zeros(n, bool)
+    hc, lc = {c: (p, v) for c, p, v in hi}, {c: (p, v) for c, p, v in lo}
+    H, L = [], []
+    for i in range(1, n):
+        if i in hc:
+            H.append(hc[i])
+        if i in lc:
+            L.append(lc[i])
+        if len(H) >= 2 and H[-1][1] < H[-2][1] and H[-1][0] > H[-2][0]:
+            (p1, v1), (p2, v2) = H[-2], H[-1]
+            sl = (v2 - v1) / (p2 - p1)
+            line, prev = v2 + sl * (i - p2), v2 + sl * (i - 1 - p2)
+            if x[i] > line and x[i - 1] <= prev:
+                up[i] = True
+        if len(L) >= 2 and L[-1][1] > L[-2][1] and L[-1][0] > L[-2][0]:
+            (p1, v1), (p2, v2) = L[-2], L[-1]
+            sl = (v2 - v1) / (p2 - p1)
+            line, prev = v2 + sl * (i - p2), v2 + sl * (i - 1 - p2)
+            if x[i] < line and x[i - 1] >= prev:
+                dn[i] = True
+    return up, dn
+
+
+def _eb3_div_classes(price_hi, price_lo, osc, w=3, maxgap=40, tol=0.005, otol=1.0):
+    """Elder divergence classes A/B/C on price pivots; signal at pivot confirmation -> dict class -> (long, short)."""
+    n = len(osc)
+    osc = np.asarray(osc, float)
+    out = {k: (np.zeros(n, bool), np.zeros(n, bool)) for k in "abc"}
+    for kind, series, side in (("low", price_lo, 0), ("high", price_hi, 1)):
+        pv = _eb3_pivot_list(series, w, kind)
+        for a, b in zip(pv[:-1], pv[1:]):
+            (_, p1, v1), (c2, p2, v2) = a, b
+            if p2 - p1 > maxgap or c2 >= n or np.isnan(osc[p1]) or np.isnan(osc[p2]):
+                continue
+            o1, o2 = osc[p1], osc[p2]
+            sgn = 1 if side == 0 else -1
+            new_ext = sgn * (v1 - v2) > tol * v1
+            double = abs(v2 - v1) <= tol * v1
+            osc_less = sgn * (o2 - o1) > 0
+            osc_double = abs(o2 - o1) <= otol
+            if new_ext and osc_less:
+                out["a"][side][c2] = True
+            if double and osc_less:
+                out["b"][side][c2] = True
+            if new_ext and osc_double:
+                out["c"][side][c2] = True
+    return out
+
+
+def _eb3_bool(x):
+    return np.asarray(pd.Series(x).fillna(False), dtype=bool)
+
+
+def elder_b3_signal_arrays(df: pd.DataFrame, source: str) -> dict:
+    """Full signal arrays over df (long, short, exit_long, exit_short). Value at bar t uses bars <= t only (the macdh
+    tolerance is the median over ALL bars of df, so call it on df[:t+1] for a walk-forward decision)."""
+    if source not in ELDER_B3_SOURCES:
+        raise ValueError(f"unknown elder b3 source {source!r}")
+    _fam, var, p = ELDER_B3_SOURCES[source]
+    n = len(df)
+    z = np.zeros(n, bool)
+    c = df["Close"]
+    if var == "div_class":
+        x = _eb3_rsi_wilder(c, 14) if p["osc"] == "rsi" else _eb3_macd_hist(c)
+        otol = 1.0 if p["osc"] == "rsi" else 0.02 * float(np.nanmedian(np.abs(x)))
+        cls = _eb3_div_classes(df["High"].to_numpy(), df["Low"].to_numpy(), x.fillna(0).to_numpy(), 3, 40, otol=otol)
+        lg, sh = cls[p["k"]]
+        return {"long": _eb3_bool(lg), "short": _eb3_bool(sh), "exit_long": z, "exit_short": z}
+    if var == "reversal":
+        x = _eb3_rsi_wilder(c, 14)
+        lo, hi = p["lo"], p["hi"]
+        long = (x.shift(1) < lo) & (x >= lo)
+        short = (x.shift(1) > hi) & (x <= hi)
+        return {"long": _eb3_bool(long), "short": _eb3_bool(short), "exit_long": _eb3_bool(x > 50),
+                "exit_short": _eb3_bool(x < 50)}
+    up, dn = _eb3_trendline_break(c.to_numpy(float), p["w"])
+    return {"long": _eb3_bool(up), "short": _eb3_bool(dn), "exit_long": z, "exit_short": z}
+
+
+def elder_b3_last_bar_signals(df: pd.DataFrame, source: str) -> dict:
+    """Walk-forward: does the source fire long / short at the CLOSE of df's last bar (bars <= last only)?"""
+    if len(df) < 2:
+        return {"long": False, "short": False}
+    s = elder_b3_signal_arrays(df, source)
+    return {"long": bool(s["long"][-1]), "short": bool(s["short"][-1])}
+
+
+def elder_b3_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """Signal at the CLOSE of df's last bar for one tag. Entry is the NEXT bar's open; the stop is that open minus
+    (long) / plus (short) atr_mult x ATR14 of the signal bar (elder_b3_initial_stop). None = no trade."""
+    if tag not in ELDER_B3_TAG_INFO:
+        raise ValueError(f"unknown elder b3 tag {tag!r}")
+    source, direction, am = ELDER_B3_TAG_INFO[tag]
+    if not elder_b3_last_bar_signals(df, source)[direction]:
+        return None
+    a = float(_eb3_atr(df).iloc[-1])
+    if np.isnan(a) or a <= 0:
+        return None
+    return {"tag": tag, "direction": direction, "signal_i": len(df) - 1, "atr": a, "atr_mult": am,
+            "stop_distance": am * a}
+
+
+def elder_b3_initial_stop(entry_price: float, sig: dict) -> float | None:
+    """Stop for a fill at entry_price; None when the fill is unusable (research skips px <= 0 / inverted stop)."""
+    d = 1 if sig["direction"] == "long" else -1
+    if not entry_price > 0:
+        return None
+    stop = entry_price - d * sig["stop_distance"]
+    if (d == 1 and stop >= entry_price) or (d == -1 and stop <= entry_price):
+        return None
+    return stop
+
+
+def elder_b3_exit_reason(df: pd.DataFrame, tag: str, entry_i: int, entry_price: float, stop: float):
+    """Exit decision on df's LAST bar j (bars <= j only) for a trade filled at the open of bar entry_i.
+    -> (reason, exit_px) | (None, None). Order (verbatim sim2): bad_bar (px None: the trade is void), stop_loss (gap-
+    aware: a later bar opening through the stop fills at the open), rule_exit at the close (j > entry_i; reversal
+    only), max_hold_timeout at the close of bar entry_i + 30."""
+    source, direction, _am = ELDER_B3_TAG_INFO[tag]
+    d = 1 if direction == "long" else -1
+    j = len(df) - 1
+    if j < entry_i:
+        return None, None
+    tail = df.iloc[max(0, j - 1):j + 1]
+    o, h, l, c = (tail[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
+    if elder_b3_bad_bar_mask(o, c, h, l)[-1]:
+        return "bad_bar", None
+    oj, hj, lj, cj = o[-1], h[-1], l[-1], c[-1]
+    if (d == 1 and lj <= stop) or (d == -1 and hj >= stop):
+        if j > entry_i:
+            return "stop_loss", (min(oj, stop) if d == 1 else max(oj, stop))
+        return "stop_loss", stop
+    if j > entry_i and ELDER_B3_SOURCES[source][1] == "reversal":
+        if elder_b3_signal_arrays(df, source)["exit_" + direction][-1]:
+            return "rule_exit", cj
+    if j == entry_i + ELDER_B3_MAX_HOLD:
+        return "max_hold_timeout", cj
+    return None, None
+
+
 # ---- O'Neil 1w LONG cells wired into the live SWING scan (2026-10-14, user "go"; main.py replay run 38517583883) ----
 # The scan holds completed DAILY bars; weekly bars are resampled from them (W-FRI, same as scripts/oneil_replay.py's 1w
 # feed). Signal = last COMPLETED week, evaluated in the first 1-2 sessions of the next week (entry ~ that week's open).
@@ -34305,6 +34549,15 @@ def _open_protect_next_arm(now_ist: dt.datetime) -> dt.datetime:
     return nxt
 
 
+def _in_open_protect_window(now_ist: dt.datetime | None = None) -> bool:
+    """B-1481: 09:15:00-09:30 IST on a weekday. No resting SL survives the exchange's 15:15 IST purge, so in this window
+    an unreadable order book must not block an SL placement (B-1462's no-blind-place rule applies outside it)."""
+    now_ist = now_ist or _ist_now_aware()
+    if now_ist.weekday() >= 5:
+        return False
+    return (9, 15) <= (now_ist.hour, now_ist.minute) < (9, 30)
+
+
 def _open_protect_fire_at(day_ist: dt.datetime) -> dt.datetime:
     h, m, s, us = _OPEN_PROTECT_FIRE_HMS
     return day_ist.replace(hour=h, minute=m, second=s, microsecond=us)
@@ -34365,10 +34618,15 @@ def _open_protect_place(plan: dict) -> dict:
     ensure_resting_sl and its recent-placement memory stop a duplicate with the 5-min reconcile). DB writes and the
     reasoned order-log lines are serial, on this thread."""
     import kotak_neo
+    import kotak_real_orders
     rep = kotak_neo.order_report()
-    order_rows = rep.get("data") if isinstance(rep, dict) else None
-    if not isinstance(order_rows, list):
-        return {"ok": False, "error": "order_report unreadable", "pending": None}
+    order_rows = kotak_real_orders.order_rows_from_report(rep)
+    if order_rows is None:
+        # B-1481: at the open the exchange has already purged every resting order (15:15 IST), so an unreadable book
+        # must never hold the protect pass back; place against an empty book (ensure_resting_sl re-reads and falls
+        # back to a plain place; a duplicate is rejected harmlessly by Kotak RMS) and log the raw reply.
+        print(f"[open_protect] order book unreadable, protecting anyway: {str(rep)[:200]}")
+        order_rows = []
     pending = _open_protect_pending(plan, order_rows)
     results = []
     if pending:
@@ -35504,7 +35762,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             try:
                 return kotak_real_orders.ensure_resting_sl(_swing_missing_sl[i]["kotak_trading_symbol"],
                                                            _swing_missing_sl[i]["qty"], _bf_stops[i],
-                                                           allow_unchecked=False)  # B-1462
+                                                           allow_unchecked=_in_open_protect_window())  # B-1462/B-1481
             except Exception as e:  # noqa: BLE001
                 return {"ok": False, "detail": f"placement raised: {e}"}
         _bf_results = []
@@ -35596,7 +35854,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 trd = u["kotak_trading_symbol"]
                 try:
                     res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows,
-                                                   allow_unchecked=False)  # B-1462: periodic, never blind
+                                                   allow_unchecked=_in_open_protect_window())  # B-1462/B-1481
                 except Exception as e:  # noqa: BLE001
                     res = {"error": f"heal raised: {e}"}
                 return {"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),
