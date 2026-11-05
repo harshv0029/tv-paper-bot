@@ -74,6 +74,22 @@ for _r in _json.load(open(_B1427))["rows"]:
         for _n in (_r["off_tag"], _r["band_tag"]):
             if _n != main.GAP_AND_GO_XROC_LIVE_TAG:
                 VARIANT_OF_WIRED.setdefault(_n, main.GAP_AND_GO_XROC_LIVE_TAG)
+# B-1472 b (run 41958449455): O'Neil cup-family main.py replay rows. One wired 1d cell per pattern; the other viable 1d
+# rows of a wired pattern are its variants. double_bottom 1d (only rs80 cells pass, per-shard RS) and every 1w row (no
+# weekly pattern live path) have no wired sibling: owed by B-1483, listed explicitly, never silently skipped.
+OWED_B1483 = set()
+_B1472 = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "docs", "backtest_data",
+                       "oneil_pattern_replay_41958449455.json")
+_B1472_WIRED = {t.split("__")[0]: t for t in main.ONEIL_DAILY_CELLS if t.startswith("oneil_") and "srcmain" in t
+                and t.split("__")[0] in main.ONEIL_PATTERN_FAMILIES}
+for _r in _json.load(open(_B1472))["rows"]:
+    _fam, _tf = _r["tag"].split("__")[0], _r["tag"].split("__")[3]
+    if _r["tag"] in main.ONEIL_DAILY_CELLS:
+        continue
+    if _tf == "1d" and _fam in _B1472_WIRED:
+        VARIANT_OF_WIRED.setdefault(_r["tag"], _B1472_WIRED[_fam])
+    else:
+        OWED_B1483.add(_r["tag"])
 for _s in sr.REGISTRY:
     if _s.source.startswith("scripts/exit_family_research.py"):
         VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])
@@ -83,7 +99,7 @@ def test_every_viable_strategy_is_wired_or_explained():
     mapped = set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
     reg = sr.REGISTRY.values() if isinstance(sr.REGISTRY, dict) else sr.REGISTRY
     missing = [s.name for s in reg
-               if s.is_viable() and s.name not in mapped and s.name not in VARIANT_OF_WIRED
+               if s.is_viable() and s.name not in mapped and s.name not in VARIANT_OF_WIRED and s.name not in OWED_B1483
                and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
                and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/portfolio_overlay_oos.py', 'scripts/index_option_trigger_research (run 38218867644)', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/lunar_sweep.py', 'scripts/intraday_gap_and_go_research.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)', 'scripts/oneil_nonoverlap_research (B-833)', 'scripts/oneil_nonoverlap_research (B-1463)', 'scripts/oneil_nonoverlap_research (B-1468)', 'scripts/sector_rotation_main_replay.py', 'scripts/chan_kalman_main_replay_job.py', 'scripts/minervini_lab_main_replay_job.py', 'scripts/swing_min_rr_research (B-842)', 'scripts/island_main_replay.py', 'scripts/swing_short_main_replay.py')]  # B-336/B-343 research cells: live engine owed
     assert not missing, f"viable but not wired to a scan counter/engine: {missing}"
