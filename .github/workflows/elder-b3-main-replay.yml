@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 340
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 10
       matrix:
         family: ${{ fromJSON(needs.setup.outputs.families) }}
         shard: [0, 1, 2, 3]
