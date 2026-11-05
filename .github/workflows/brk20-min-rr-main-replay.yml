@@ -39,6 +39,9 @@ on:
       universe:
         description: "full (main._load_nse_universe_from_file) or fno (stock-futures underlyings only, B-1339; own tag variant main_replay_fno)"
         default: "full"
+      band_cap:
+        description: "B-1485: blank/off = unchanged; live or one swing_bandcap mode = single pass; trail = off + live + every trailing-stop overlay (each its own tag)"
+        default: ""
       cost_pct:
         description: "Round-trip cost % override (blank = main.ROUND_TRIP_COST_PCT 0.8); a value becomes its own tag param costX"
         default: ""
@@ -86,6 +89,7 @@ jobs:
           CELLS: ${{ matrix.cells }}
           UNIVERSE: ${{ inputs.universe }}
           COST_PCT: ${{ inputs.cost_pct }}
+          BAND_CAP: ${{ inputs.band_cap }}
         run: python3 scripts/brk20_replay.py
       - uses: actions/upload-artifact@v4
         with:

@@ -26,6 +26,15 @@ Env: TF = job name. Jobs to dispatch through .github/workflows/sector-rotation-b
      files offline (rows are per shard). SYMBOL_LIMIT=<n> caps the universe; SYNTHETIC=1 = offline smoke (NOT a result).
 Output: docs/backtest_data/chan_kalman_main_replay_<job>.json {rows: [{tag, source_tag, metrics{n, pfnet, pfgross,
 win_pct, avg_held_bars, avg_held_hours, exit_reasons, is{...}, oos{...}}}]}.
+
+B-1485 (B-1484 stage 2, user 2026-11-05 "backtest TRAILING SL rules on each wired FIXED SL strategy; wire the trail only
+if it beats the fixed one"): BAND_CAP=trail (or live, or a comma list of swing_bandcap modes) replays ONLY the WIRED live
+cells of the job's tf (main.CHAN_KALMAN_1D_CELLS for 1d, main.CHAN_KALMAN_1H_CELLS for 1h; per-direction long walk)
+under: off (the same-run fixed-stop baseline, the wired tag itself), live (Kotak resting stop with the 10% band floor) and
+every scripts/swing_bandcap.TRAIL_MODES overlay (the resting stop raised by the trail, checked intraday from the bar AFTER
+the fill, BEFORE main.chan_kalman_band_v1_exit_reason runs with its frozen stop). Each mode is its own tag
+(swing_bandcap.band_tag). Output: docs/backtest_data/chan_kalman_main_replay_<job>_bandcap.json. BAND_CAP unset/off = the
+original grid replay, bit-identical.
 """
 import json
 import os
@@ -42,6 +51,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
+import swing_bandcap as bc  # noqa: E402
 
 KS = (1.5, 2.5, 4.0)
 VES = (1e-4, 1e-3)
@@ -74,9 +84,11 @@ def parse_job(job):
     return m_.group(1), int(m_.group(2) or 0), int(m_.group(3) or 1)
 
 
-def walk(m, df, interval, pre, k, sides, hold=HOLD):
+def walk(m, df, interval, pre, k, sides, hold=HOLD, band=None):
     """One-position walk over df for the given sides ((1,) / (-1,) / (1, -1)) using ONLY main.py functions.
-    Returns [(side, signal_i, entry_i, exit_i, gross, reason)]. Boundary = research simulate (signal bar i < n-2)."""
+    Returns [(side, signal_i, entry_i, exit_i, gross, reason)]. Boundary = research simulate (signal bar i < n-2).
+    B-1485: band = bc.make_band(df, mode) (None = off, unchanged): the resting (band-floored, optionally trailed) stop is
+    checked on every bar AFTER the fill bar, before the real exit fn (which keeps the frozen stop)."""
     o = df["Open"].to_numpy(float)
     bars = {"Open": o, "High": df["High"].to_numpy(float), "Low": df["Low"].to_numpy(float),
             "Close": df["Close"].to_numpy(float)}
@@ -97,7 +109,14 @@ def walk(m, df, interval, pre, k, sides, hold=HOLD):
         if stop is None:
             continue
         res, xi = None, None
+        if band is not None:
+            bc.reset_trail()  # trail state is per trade
         for j in range(e, min(n, e + hold)):
+            if band is not None and j > e:
+                hit = bc.band_hit(band, df, j, stop, direction, ep)
+                if hit is not None:
+                    res, xi = (hit[1], hit[0]), j
+                    break
             res = m.chan_kalman_band_v1_exit_reason(bars, direction, e, stop, hold, pos=j, pre=pre)
             if res is not None:
                 xi = j
@@ -128,6 +147,76 @@ def symbol_rows(m, df, interval):
                         out.setdefault((variant, d, k, ve, z), []).append(
                             {"gross": g, "net": g - cost, "held": xi - e + 1, "reason": reason, "ts": int(ts[e])})
     return out
+
+
+def live_cells(m, interval):
+    """B-1485: {wired tag: (z, ve, k, hold, direction)} for the tf (1d / 1h); other tfs have no wired cell."""
+    cells = {"1d": getattr(m, "CHAN_KALMAN_1D_CELLS", {}), "1h": getattr(m, "CHAN_KALMAN_1H_CELLS", {})}.get(interval, {})
+    return {t: (z, ve, k, hold, t.split("__")[2]) for t, (z, ve, k, hold) in cells.items()}
+
+
+def run_modes(spec):
+    """BAND_CAP = off | live | trail (off + live + every live_<trail> mode) | a comma list of modes."""
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(bc.TRAIL_MODES)
+    mds = [bc.normalize_mode(x) for x in s.split(",") if x.strip()] or ["off"]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
+
+
+def symbol_rows_bandcap(m, df, interval, modes):
+    """B-1485: {(wired tag, mode): [trade dict]} for one symbol: every wired cell of the tf under every mode."""
+    cost = m.ROUND_TRIP_COST_PCT / 100.0
+    ts = pd.DatetimeIndex(df.index).asi8
+    out = {}
+    for tag, (z, ve, k, hold, d) in live_cells(m, interval).items():
+        pre = m.chan_kalman_band_v1_precompute(df, interval, z, ve)
+        for md in modes:
+            band = bc.make_band(df, md)
+            for _side, _i, e, xi, g, reason in walk(m, df, interval, pre, k, (1 if d == "long" else -1,), hold, band):
+                out.setdefault((tag, md), []).append(
+                    {"gross": g, "net": g - cost, "held": xi - e + 1, "reason": reason, "ts": int(ts[e])})
+    return out
+
+
+def run_job_bandcap(m, job, frames_iter, modes):
+    """B-1485: wired cells x band modes; every row carries the same-run fixed baseline (mode off) for comparison."""
+    interval, shard, nsh = parse_job(job)
+    cells = live_cells(m, interval)
+    if not cells:
+        raise SystemExit(f"no wired chan_kalman cell for tf {interval!r} (BAND_CAP needs 1d or 1h)")
+    acc, kept, seen, t_lo, t_hi = {}, 0, 0, None, None
+    for _s, df in frames_iter:
+        seen += 1
+        if not keep_frame(df):
+            continue
+        kept += 1
+        a = pd.DatetimeIndex(df.index).asi8
+        t_lo = a[0] if t_lo is None else min(t_lo, a[0])
+        t_hi = a[-1] if t_hi is None else max(t_hi, a[-1])
+        for key, tr in symbol_rows_bandcap(m, df, interval, modes).items():
+            acc.setdefault(key, []).extend(tr)
+    cutoff = int(t_lo + IS_FRAC * (t_hi - t_lo)) if t_lo is not None else 0
+    rows = []
+    for tag, (z, ve, k, hold, d) in cells.items():
+        base = cell_metrics(acc.get((tag, "off"), []), cutoff, BAR_HOURS[interval])
+        for md in modes:
+            mt = base if md == "off" else cell_metrics(acc.get((tag, md), []), cutoff, BAR_HOURS[interval])
+            rows.append({"tag": bc.band_tag(tag, md), "wired_tag": tag, "band_cap": md, "direction": d, "tf": interval,
+                         "atr": k, "ve": ve, "z": z, "hold_bars": hold, "walk": "per_direction", "metrics": mt,
+                         "fixed_baseline": {x: base.get(x) for x in ("n", "pfnet", "win_pct", "avg_held_bars")},
+                         "beats_fixed": (None if md == "off" or mt["pfnet"] is None or base["pfnet"] is None
+                                         else mt["pfnet"] > base["pfnet"])})
+    return {"job": job, "tf": interval, "shard": shard, "nshards": nsh, "symbols_seen": seen, "symbols_kept": kept,
+            "band_cap_modes": modes,
+            "is_oos_cutoff_utc": str(pd.Timestamp(cutoff, tz="UTC")) if cutoff else None,
+            "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT, "synthetic": os.environ.get("SYNTHETIC") == "1",
+            "universe_requested": "main._load_nse_universe_from_file()",
+            "functions": ["main.chan_kalman_band_v1_precompute", "main.chan_kalman_band_v1_entry_signal",
+                          "main.chan_kalman_band_v1_stop", "main.chan_kalman_band_v1_exit_reason",
+                          "scripts/swing_bandcap.band_hit (resting stop + trail)"],
+            "note": "B-1485 trail overlay on the wired chan_kalman cells; off = same-run fixed-stop baseline",
+            "rows": rows}
 
 
 def synthetic_frames(interval, count):
@@ -251,17 +340,22 @@ def main_():
     interval, shard, nsh = parse_job(job)
     lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     t0 = time.time()
-    res = run_job(m, job, iter_frames(m, interval, shard, nsh, lim))
+    modes = run_modes(os.environ.get("BAND_CAP"))
+    if modes != ["off"]:
+        res = run_job_bandcap(m, job, iter_frames(m, interval, shard, nsh, lim), modes)
+    else:
+        res = run_job(m, job, iter_frames(m, interval, shard, nsh, lim))
     res["elapsed_s"] = round(time.time() - t0, 1)
     out_dir = os.environ.get("OUT_DIR", os.path.join(ROOT, "docs", "backtest_data"))
     os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, f"chan_kalman_main_replay_{job}.json")
+    path = os.path.join(out_dir, f"chan_kalman_main_replay_{job}{'_bandcap' if modes != ['off'] else ''}.json")
     with open(path, "w") as f:
         json.dump(res, f, indent=1, default=str)
     for r in sorted(res["rows"], key=lambda x: -(x["metrics"]["pfnet"] or 0)):
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "win", mt["win_pct"], "oos", mt["oos"]["pfnet"],
-              "research", r["research_pfnet"], flush=True)
+              "hold", mt["avg_held_bars"], "research", r.get("research_pfnet"), "exits", mt.get("exit_reasons"),
+              flush=True)
     print("wrote", path, "kept", res["symbols_kept"], "elapsed_s", res["elapsed_s"])
     return path
 
