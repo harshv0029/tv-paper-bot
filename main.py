@@ -7080,8 +7080,72 @@ MINERVINI_LAB_LIVE_CELLS = {
     "minervini_vcp__pct8_hard_f_updown_vol_pos_off_srcmain__long__1d__h30__v1": ("updown_vol_pos", False, 30),
     # run 41891143316 (h30): PFnet 1.104, IS 1.071, OOS 1.324 (n 42), n 270, avg hold 15.7 bars
     "minervini_vcp__pct8_hard_f_ext_le5_off_srcmain__long__1d__h30__v1": ("ext_le5", False, 30),
+    # B-1471 (user 2026-11-05: "Keep pooled information to decide about wiring"): wiring decided on POOLED PFnet > 1,
+    # n >= 30, avg hold <= 30 bars, no look-ahead (stopout_cluster lab rule excluded), population rule (rs_blend and
+    # breadth_nhnl_ok are cross-sectional: excluded). OOS is shown for the record only. One cell per entry signal
+    # (feature, on/off): the best pooled variant/hold, shorter hold on a tie within 0.02. Appended after the 3 cells
+    # above (pooled PFnet descending), the unfiltered VCP cell LAST so every filtered cell gets first claim on a signal.
+    # B-1471 run 41891148569 (h40): PFnet 1.411, IS 1.698, OOS 0.587 (n 120), n 527, avg hold 23.7 bars
+    "minervini_vcp__pct8_hard_f_dryup_on_srcmain__long__1d__h40__v1": ('dryup', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.382, IS 1.494, OOS 0.828 (n 101), n 621, avg hold 16.8 bars
+    "minervini_vcp__pct8_hard_f_ext_le3_off_srcmain__long__1d__h30__v1": ('ext_le3', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.371, IS 1.504, OOS 0.826 (n 89), n 567, avg hold 19.1 bars
+    "minervini_vcp__pct8_hard_f_held_up_vs_index_off_srcmain__long__1d__h30__v1": ('held_up_vs_index', False, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.326, IS 1.473, OOS 0.776 (n 390), n 1915, avg hold 29.8 bars
+    "minervini_vcp__pct8_hard_f_pivot_vol2x_on_srcmain__long__1d__h60__v1": ('pivot_vol2x', True, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.319, IS 1.520, OOS 0.805 (n 307), n 1226, avg hold 20.9 bars
+    "minervini_vcp__pct8_hard_f_tight_closes5_on_srcmain__long__1d__h30__v1": ('tight_closes5', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.302, IS 2.005, OOS 0.575 (n 358), n 847, avg hold 29.5 bars
+    "minervini_vcp__pct8_hard_f_early_bull_10_25_off_srcmain__long__1d__h60__v1": ('early_bull_10_25', False, 60),
+    # B-1471 run 41891148569 (h40): PFnet 1.297, IS 1.464, OOS 0.834 (n 233), n 991, avg hold 24.5 bars
+    "minervini_vcp__pct8_hard_f_pivot_vol2x_off_srcmain__long__1d__h40__v1": ('pivot_vol2x', False, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.293, IS 1.439, OOS 0.732 (n 125), n 689, avg hold 17.7 bars
+    "minervini_vcp__pct8_hard_f_near_52w_high10_off_srcmain__long__1d__h30__v1": ('near_52w_high10', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.289, IS 1.461, OOS 0.826 (n 277), n 1095, avg hold 20.7 bars
+    "minervini_vcp__pct8_hard_f_base_depth_le25_on_srcmain__long__1d__h30__v1": ('base_depth_le25', True, 30),
+    # B-1471 run 41891148569 (h40): PFnet 1.288, IS 1.426, OOS 0.785 (n 407), n 2028, avg hold 23.2 bars
+    "minervini_vcp__pct8_hard_f_leaders_lead_off_srcmain__long__1d__h40__v1": ('leaders_lead', False, 40),
+    # B-1471 run 41891148569 (h40): PFnet 1.268, IS 1.405, OOS 0.761 (n 431), n 2122, avg hold 23.1 bars
+    "minervini_vcp__pct8_hard_f_ma200_rising_100d_on_srcmain__long__1d__h40__v1": ('ma200_rising_100d', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.266, IS 1.368, OOS 0.638 (n 237), n 1853, avg hold 19.1 bars
+    "minervini_vcp__pct8_hard_f_index_within5_of_high_on_srcmain__long__1d__h30__v1": ('index_within5_of_high', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.255, IS 1.359, OOS 0.826 (n 292), n 1551, avg hold 27.8 bars
+    "minervini_vcp__pct8_hard_f_base_depth_le25_off_srcmain__long__1d__h60__v1": ('base_depth_le25', False, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.253, IS 1.382, OOS 0.809 (n 458), n 2177, avg hold 18.7 bars
+    "minervini_vcp__pct8_hard_f_dryup_off_srcmain__long__1d__h30__v1": ('dryup', False, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.249, IS 1.365, OOS 0.769 (n 298), n 1621, avg hold 27.6 bars
+    "minervini_vcp__pct8_hard_f_tight_closes5_off_srcmain__long__1d__h60__v1": ('tight_closes5', False, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.246, IS 1.396, OOS 0.759 (n 523), n 2383, avg hold 18.9 bars
+    "minervini_vcp__pct8_hard_f_ext_le5_on_srcmain__long__1d__h30__v1": ('ext_le5', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.242, IS 1.380, OOS 0.778 (n 546), n 2527, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_stage2_30pct_off_low_on_srcmain__long__1d__h30__v1": ('stage2_30pct_off_low', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.235, IS 1.383, OOS 0.745 (n 497), n 2289, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_updown_vol_pos_on_srcmain__long__1d__h30__v1": ('updown_vol_pos', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.231, IS 1.352, OOS 0.819 (n 492), n 2191, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_held_up_vs_index_on_srcmain__long__1d__h30__v1": ('held_up_vs_index', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.219, IS 1.328, OOS 0.845 (n 449), n 2024, avg hold 18.9 bars
+    "minervini_vcp__pct8_hard_f_near_52w_high10_on_srcmain__long__1d__h30__v1": ('near_52w_high10', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.218, IS 1.404, OOS 0.956 (n 349), n 805, avg hold 17.9 bars
+    "minervini_vcp__pct8_hard_f_index_within5_of_high_off_srcmain__long__1d__h30__v1": ('index_within5_of_high', False, 30),
+    # B-1471 run 41891148569 (h40): PFnet 1.208, IS 1.349, OOS 0.755 (n 471), n 2123, avg hold 23.4 bars
+    "minervini_vcp__pct8_hard_f_ext_le3_on_srcmain__long__1d__h40__v1": ('ext_le3', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.174, IS 1.364, OOS 0.717 (n 108), n 395, avg hold 17.9 bars
+    "minervini_vcp__pct8_hard_f_ma200_rising_100d_off_srcmain__long__1d__h30__v1": ('ma200_rising_100d', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.083, IS 1.244, OOS 0.691 (n 181), n 638, avg hold 18.2 bars
+    "minervini_vcp__pct8_hard_f_leaders_lead_on_srcmain__long__1d__h30__v1": ('leaders_lead', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.445, IS 1.641, OOS 0.756 (n 513), n 2352, avg hold 28.3 bars
+    "minervini_vcp__ma50_trail_srcmain__long__1d__h60__v1": (None, None, 60),
 }
-MINERVINI_LAB_LIVE_VARIANT = "pct8_hard"
+MINERVINI_LAB_LIVE_VARIANT = "pct8_hard"  # default exit/stop variant; per-cell overrides parsed from the tag
+MINERVINI_LAB_INDEX_FEATURES = frozenset({"early_bull_10_25", "held_up_vs_index", "leaders_lead", "index_within5_of_high"})
+
+
+def _minervini_lab_cell_variant(tag: str) -> str:
+    """Exit/stop variant of a live lab cell, from its tag ('minervini_vcp__<variant>[_f_<feat>_<on|off>]_srcmain__...')."""
+    try:
+        return minervini_lab_parse_variant(tag.split("__")[1][: -len("_srcmain")])[0]
+    except Exception:
+        return MINERVINI_LAB_LIVE_VARIANT
 MINERVINI_LAB_LIVE_MIN_BARS = 260  # features look back 252 bars
 
 
@@ -7105,20 +7169,21 @@ def minervini_lab_live_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
     sig = minervini_vcp_entry_signal(df, rs_percentile=None)
     if not sig:
         return None
-    idx = _minervini_lab_live_index(df) if feat == "early_bull_10_25" else None
-    if feat == "early_bull_10_25" and (idx is None or not np.isfinite(idx[-1])):
+    idx = _minervini_lab_live_index(df) if feat in MINERVINI_LAB_INDEX_FEATURES else None
+    if feat in MINERVINI_LAB_INDEX_FEATURES and (idx is None or not np.isfinite(idx[-1])):
         return None  # no index -> no signal (fail closed)
-    try:
-        f = minervini_lab_features(df, len(df) - 1, idx, None, False)
-    except Exception:
-        return None
-    if feat not in f or bool(f[feat]) != want:
-        return None
+    if feat is not None:  # B-1471: feat None = the unfiltered VCP entry
+        try:
+            f = minervini_lab_features(df, len(df) - 1, idx, None, False)
+        except Exception:
+            return None
+        if feat not in f or bool(f[feat]) != want:
+            return None
     px = float(df["Close"].iloc[-1])
     stop0 = float(sig["stop_loss"])
     if not (0 < stop0 < px):
         return None  # lab: stop on the wrong side of the entry -> no trade
-    stop = minervini_lab_initial_stop(MINERVINI_LAB_LIVE_VARIANT, px, stop0, "long")
+    stop = minervini_lab_initial_stop(_minervini_lab_cell_variant(tag), px, stop0, "long")
     if not (0 < stop < px):
         return None
     return {"entry_price": px, "stop_loss": float(stop), "stop0": stop0, "atr_at_entry": float(sig.get("atr_at_entry") or 0.0),
@@ -7140,10 +7205,12 @@ def _minervini_lab_live_exit_adapter(df, entry_day, initial_stop, atr_at_entry, 
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     ma20, ma50, ma200 = minervini_lab_moving_averages(c)
     st = float(initial_stop)
-    pos = {"entry": float(c[start - 1]) if start > 0 else st, "stop": st, "R": 0.0, "extreme": float(c[start - 1]) if start > 0 else st,
+    variant = _minervini_lab_cell_variant(tag)
+    _ent = float(c[start - 1]) if start > 0 else st
+    pos = {"entry": _ent, "stop": st, "R": abs(_ent - st), "extreme": float(c[start - 1]) if start > 0 else st,
            "atr": float(atr_at_entry or 0.0), "entry_idx": start}
     for j in range(start, len(df)):
-        reason, _px = minervini_lab_exit_reason(MINERVINI_LAB_LIVE_VARIANT, pos, j, o, h, l, c, ma20, ma50, ma200, "long", maxh)
+        reason, _px = minervini_lab_exit_reason(variant, pos, j, o, h, l, c, ma20, ma50, ma200, "long", maxh)
         if reason:
             return "minervini_lab_" + reason, new_running_max
     return None, new_running_max
@@ -30856,7 +30923,9 @@ _SWING_SL_RULES = {
        for _t, (_r, k, h) in PL1D_CELLS.items()},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of bar {h})"
        for _t, (_z, _v, k, h) in CHAN_KALMAN_1D_CELLS.items()},
-    **{_t: f"entry x 0.92 (8% hard stop), frozen (exit also on the close of bar {h} after entry)"
+    **{_t: (f"entry x 0.92 (8% hard stop), frozen (exit also on the close of bar {h} after entry)"
+            if _minervini_lab_cell_variant(_t) == "pct8_hard" else
+            f"VCP structural stop (the signal's own stop_loss), frozen; exit on a close below MA50 or the close of bar {h} after entry")
        for _t, (_f, _w, h) in MINERVINI_LAB_LIVE_CELLS.items()},
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},

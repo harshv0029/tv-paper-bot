@@ -1686,3 +1686,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Pooled main replay PFnet up to 1.71 (n 1112), but every 1h long cell's OOS segment sits at 0.63-0.80; the IS half (up to 2.10) carries the whole pooled number.
 - Not wired. Lesson: a pooled PFnet far above 1 on 1h with an IS/OOS split this lopsided is regime-specific, not an edge; always read the _oos row before wiring.
 - Profit-booking / exit takeaway: the wider rr4 targets are what inflated IS; in OOS they are rarely reached, so the breakout's pay-off depended on a trending sample.
+
+### 2026-11-05: wiring bar moved to pooled PFnet (B-1471, user instruction)
+- Rule now: pooled full-universe PFnet > 1.00 decides wiring; the OOS segment is recorded and shown, never a veto. Other bars unchanged (n >= 30, avg hold <= 30 bars daily, live path, no look-ahead, n200 population rule).
+- Minervini lab: 25 more cells wired (VCP + one filter each, plus the unfiltered VCP with an MA50 trail last). Together the on/off filter pairs cover nearly every VCP signal, so the live book now trades almost every VCP breakout; the cascade only decides which cell's hold/exit applies. Their OOS segments are mostly 0.6-0.9 (the recent period lost money for most of them), which is the risk accepted with this rule.
+- Watch: if the live Kotak trade book for these tags runs below breakeven over a meaningful sample, that is the OOS warning coming true; record it here and re-decide.
+- Profit-booking / exit takeaway: the unfiltered VCP entry is best with an MA50 close trail (1.445 pooled), well above the 8% hard stop (1.246); trend-following exits suit VCP breakouts.
