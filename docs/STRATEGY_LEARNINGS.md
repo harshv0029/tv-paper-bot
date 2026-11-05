@@ -1744,3 +1744,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - On 2026-11-05 the bot made 0 real-entry attempts in every category. Scans ran normally; only the sub-floor chan_shape mom_mr 1d cells fired, and the PFnet gate blocked all 342 of those triggers.
 - Lesson: on a quiet day, read /entry-funnel first. "no setup fired" vs "blocked" vs "failed" separates a market with no setups from a bug in seconds.
 - Profit-booking / exit takeaway: a day without entries is the PFnet gate doing its job, not missed profit. Do not loosen the floor because of a quiet day.
+
+### 2026-11-05: how often does a no-entry day happen? (B-1489)
+- The git order journal (docs/real_order_log.json) shows real entries on only 3 of the last 10 trading days, so a no-entry day is the usual case for a floor-gated system, not a fault.
+- Per-tag fire counts reset daily and are not journaled, so a quiet-day comparison across days needs the git order journal, not /entry-funnel.
+- Profit-booking / exit takeaway: no entry also means no cost. Never loosen the PFnet floor to "get a trade in" on a quiet day.
