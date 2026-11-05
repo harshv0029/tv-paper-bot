@@ -10,19 +10,20 @@ import strategy_registry as sr
 TAGS = [
     "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
     "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
+    "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve1d0e4_z2d0__v1",  # B-1471 pooled bar
 ]
 
 
 def test_cells_appended_after_5m_and_registered_viable():
     cells = list(main.CHAN_LONG_CELLS)
-    assert cells[-2:] == TAGS
-    assert all(main.CHAN_LONG_CELL_INTERVAL[t] == "5m" for t in cells[:-2])
+    assert cells[-3:] == TAGS
+    assert all(main.CHAN_LONG_CELL_INTERVAL[t] == "5m" for t in cells[:-3])
     by = {d.name: d for d in sr.REGISTRY}
     for t in TAGS:
         assert main.CHAN_LONG_CELL_INTERVAL[t] == "15m"
-        assert main.CHAN_LONG_CELLS[t] == (4.0, 1e-3, 2.0 if "z2d0" in t else 1.0)
+        assert main.CHAN_LONG_CELLS[t] == (4.0, 1e-3 if "ve10d0e4" in t else 1e-4, 2.0 if "z2d0" in t else 1.0)
         assert by[t].metrics.pfnet > 1.0 and by[t].metrics.n_trades >= 30
-        assert by[t.replace("__v1", "_segoos__v1")].metrics.pfnet > 1.0
+        assert t.replace("__v1", "_segoos__v1") in by  # OOS for the record (B-1471: pooled decides)
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         assert t in main.CHAN_INTRADAY_LONG_TAGS
 

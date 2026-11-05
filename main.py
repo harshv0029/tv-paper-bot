@@ -13342,7 +13342,8 @@ CHAN_LONG_CELLS = {_chan_long_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_
 # for each z). Same Kalman band rule as the 5m cells; scanned on the 15m frame from the 5m tick (B-980 short pattern),
 # appended AFTER every 5m cell so the 5m cascade is unchanged; stop = close - 4xATR14 on EVERY trade, flat by 15:10 IST.
 # The 5m/15m SHORT srcmain cells are NOT wired: the identical signal already trades live as the band_mr v2 cells (B-918/B-980).
-_CHAN_LONG_15M_SPECS = ((4.0, 1e-3, 2.0), (4.0, 1e-3, 1.0))
+# B-1471 (pooled bar): + ve1e-4 z2 atr4 (PFnet 1.058, n 4989; a different Kalman ve = its own entry signal), appended LAST.
+_CHAN_LONG_15M_SPECS = ((4.0, 1e-3, 2.0), (4.0, 1e-3, 1.0), (4.0, 1e-4, 2.0))
 
 
 def _chan_long_srcmain_15m_tag(atr_mult, ve, z):
@@ -27621,8 +27622,15 @@ SECTOR_ROT_ATR_MULT = 6.0
 # close = live exit) validated N=3 (PFnet 1.327, OOS 1.141, n 1862) and N=5 (1.229 / OOS 1.048, n 2654). N=3 picks are
 # the top 3 of the N=5 picks, so the cells run as a cascade: the top 3 enter under the N=3 tag, picks 4-5 under N=5.
 SECTOR_ROT_N3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1"
-SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5}  # tag -> N; order = priority (PFnet)
-_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SECTOR_ROT_N3_TAG, SECTOR_ROT_N3_TAG)  # 1:1, main replay run 41861798852
+# B-1471 (user 2026-11-05: pooled PFnet decides wiring): two more entry signals from the same main replay (NIFTY 200,
+# stop on close, h20 n5), lookback L=5 (PFnet 1.186, n 1990, avg hold 19.8 bars) and L=3 (1.143, n 2318, 19.8 bars);
+# atr6 is the best stop for each, OOS < 1 for both (record only). Appended after the L=1 cells (lower pooled PFnet).
+SECTOR_ROT_L5_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l5_n5__v1"
+SECTOR_ROT_L3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1"
+SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5, SECTOR_ROT_L5_TAG: 5, SECTOR_ROT_L3_TAG: 5}  # tag -> N; order = priority (PFnet)
+SECTOR_ROT_CELL_L = {SECTOR_ROT_L5_TAG: 5, SECTOR_ROT_L3_TAG: 3}  # tag -> lookback L (default SECTOR_ROT_L)
+for _t in (SECTOR_ROT_N3_TAG, SECTOR_ROT_L5_TAG, SECTOR_ROT_L3_TAG):
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, main replay rows
 _sector_map_cache = None
 
 
@@ -27820,7 +27828,7 @@ def _run_sector_rotation_cell(conn, dfs: dict, capital, today: str, tag: str = S
     for _s in _scan_visit(list(dfs)):  # B-1274 stage 2: the cross-sectional cell is evaluated for every scanned symbol
         _record_symbol_strategy_scan(tag)
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
-    for sym in sector_rotation_picks(dfs, N=n):
+    for sym in sector_rotation_picks(dfs, L=SECTOR_ROT_CELL_L.get(tag, SECTOR_ROT_L), N=n):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue
         df = dfs[sym]

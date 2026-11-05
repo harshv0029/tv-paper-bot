@@ -15,7 +15,7 @@ def test_registry_gate_and_order():
     m = names[N3].metrics
     assert m.pfnet > 1.0 and m.n_trades >= 30 and m.avg_held_bars <= 30
     assert names[N3[:-4] + "_segoos__v1"].metrics.pfnet > 1.0
-    assert list(main.SECTOR_ROT_CELLS) == [N3, main.SECTOR_ROT_TAG]
+    assert list(main.SECTOR_ROT_CELLS)[:2] == [N3, main.SECTOR_ROT_TAG]  # B-1471: L5/L3 cells appended
     assert main.SECTOR_ROT_CELLS[N3] == 3 and main.SECTOR_ROT_CELLS[main.SECTOR_ROT_TAG] == 5
     assert main._STRATEGY_TAG_TO_REGISTRY_NAME[N3] == N3 and N3 not in main.REPLAY_OWED_TAGS
     assert main._is_strategy_viable_for_real_money(N3, check_switch=False) is True
