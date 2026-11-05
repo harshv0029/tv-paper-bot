@@ -19415,7 +19415,55 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1620,
+   "ts": 1793872755.5633152,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1619,
+   "ts": 1793872755.595695,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1621,
+   "ts": 1793872756.162658,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 1622,
+   "ts": 1793872756.198496,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-05T09:59:19Z"
+ "synced_at_utc": "2026-11-05T09:59:28Z"
 }
