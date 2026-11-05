@@ -30,7 +30,7 @@ def test_chan_entries_evaluated_and_get_gate_flag():
     # B-1378: chan paths are no longer skipped while the gate is closed; they get the flag and count blocked triggers.
     c = _core()
     assert "not agg_blocked" not in c
-    assert c.count("agg_blocked=agg_blocked") == 2
+    assert c.count("agg_blocked=agg_blocked") == 3  # B-1470: + the 15m chan long call
 
 
 def test_blocked_line_explains_risk_not_unknown_need():

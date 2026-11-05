@@ -7080,8 +7080,72 @@ MINERVINI_LAB_LIVE_CELLS = {
     "minervini_vcp__pct8_hard_f_updown_vol_pos_off_srcmain__long__1d__h30__v1": ("updown_vol_pos", False, 30),
     # run 41891143316 (h30): PFnet 1.104, IS 1.071, OOS 1.324 (n 42), n 270, avg hold 15.7 bars
     "minervini_vcp__pct8_hard_f_ext_le5_off_srcmain__long__1d__h30__v1": ("ext_le5", False, 30),
+    # B-1471 (user 2026-11-05: "Keep pooled information to decide about wiring"): wiring decided on POOLED PFnet > 1,
+    # n >= 30, avg hold <= 30 bars, no look-ahead (stopout_cluster lab rule excluded), population rule (rs_blend and
+    # breadth_nhnl_ok are cross-sectional: excluded). OOS is shown for the record only. One cell per entry signal
+    # (feature, on/off): the best pooled variant/hold, shorter hold on a tie within 0.02. Appended after the 3 cells
+    # above (pooled PFnet descending), the unfiltered VCP cell LAST so every filtered cell gets first claim on a signal.
+    # B-1471 run 41891148569 (h40): PFnet 1.411, IS 1.698, OOS 0.587 (n 120), n 527, avg hold 23.7 bars
+    "minervini_vcp__pct8_hard_f_dryup_on_srcmain__long__1d__h40__v1": ('dryup', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.382, IS 1.494, OOS 0.828 (n 101), n 621, avg hold 16.8 bars
+    "minervini_vcp__pct8_hard_f_ext_le3_off_srcmain__long__1d__h30__v1": ('ext_le3', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.371, IS 1.504, OOS 0.826 (n 89), n 567, avg hold 19.1 bars
+    "minervini_vcp__pct8_hard_f_held_up_vs_index_off_srcmain__long__1d__h30__v1": ('held_up_vs_index', False, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.326, IS 1.473, OOS 0.776 (n 390), n 1915, avg hold 29.8 bars
+    "minervini_vcp__pct8_hard_f_pivot_vol2x_on_srcmain__long__1d__h60__v1": ('pivot_vol2x', True, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.319, IS 1.520, OOS 0.805 (n 307), n 1226, avg hold 20.9 bars
+    "minervini_vcp__pct8_hard_f_tight_closes5_on_srcmain__long__1d__h30__v1": ('tight_closes5', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.302, IS 2.005, OOS 0.575 (n 358), n 847, avg hold 29.5 bars
+    "minervini_vcp__pct8_hard_f_early_bull_10_25_off_srcmain__long__1d__h60__v1": ('early_bull_10_25', False, 60),
+    # B-1471 run 41891148569 (h40): PFnet 1.297, IS 1.464, OOS 0.834 (n 233), n 991, avg hold 24.5 bars
+    "minervini_vcp__pct8_hard_f_pivot_vol2x_off_srcmain__long__1d__h40__v1": ('pivot_vol2x', False, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.293, IS 1.439, OOS 0.732 (n 125), n 689, avg hold 17.7 bars
+    "minervini_vcp__pct8_hard_f_near_52w_high10_off_srcmain__long__1d__h30__v1": ('near_52w_high10', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.289, IS 1.461, OOS 0.826 (n 277), n 1095, avg hold 20.7 bars
+    "minervini_vcp__pct8_hard_f_base_depth_le25_on_srcmain__long__1d__h30__v1": ('base_depth_le25', True, 30),
+    # B-1471 run 41891148569 (h40): PFnet 1.288, IS 1.426, OOS 0.785 (n 407), n 2028, avg hold 23.2 bars
+    "minervini_vcp__pct8_hard_f_leaders_lead_off_srcmain__long__1d__h40__v1": ('leaders_lead', False, 40),
+    # B-1471 run 41891148569 (h40): PFnet 1.268, IS 1.405, OOS 0.761 (n 431), n 2122, avg hold 23.1 bars
+    "minervini_vcp__pct8_hard_f_ma200_rising_100d_on_srcmain__long__1d__h40__v1": ('ma200_rising_100d', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.266, IS 1.368, OOS 0.638 (n 237), n 1853, avg hold 19.1 bars
+    "minervini_vcp__pct8_hard_f_index_within5_of_high_on_srcmain__long__1d__h30__v1": ('index_within5_of_high', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.255, IS 1.359, OOS 0.826 (n 292), n 1551, avg hold 27.8 bars
+    "minervini_vcp__pct8_hard_f_base_depth_le25_off_srcmain__long__1d__h60__v1": ('base_depth_le25', False, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.253, IS 1.382, OOS 0.809 (n 458), n 2177, avg hold 18.7 bars
+    "minervini_vcp__pct8_hard_f_dryup_off_srcmain__long__1d__h30__v1": ('dryup', False, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.249, IS 1.365, OOS 0.769 (n 298), n 1621, avg hold 27.6 bars
+    "minervini_vcp__pct8_hard_f_tight_closes5_off_srcmain__long__1d__h60__v1": ('tight_closes5', False, 60),
+    # B-1471 run 41891143316 (h30): PFnet 1.246, IS 1.396, OOS 0.759 (n 523), n 2383, avg hold 18.9 bars
+    "minervini_vcp__pct8_hard_f_ext_le5_on_srcmain__long__1d__h30__v1": ('ext_le5', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.242, IS 1.380, OOS 0.778 (n 546), n 2527, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_stage2_30pct_off_low_on_srcmain__long__1d__h30__v1": ('stage2_30pct_off_low', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.235, IS 1.383, OOS 0.745 (n 497), n 2289, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_updown_vol_pos_on_srcmain__long__1d__h30__v1": ('updown_vol_pos', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.231, IS 1.352, OOS 0.819 (n 492), n 2191, avg hold 18.6 bars
+    "minervini_vcp__pct8_hard_f_held_up_vs_index_on_srcmain__long__1d__h30__v1": ('held_up_vs_index', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.219, IS 1.328, OOS 0.845 (n 449), n 2024, avg hold 18.9 bars
+    "minervini_vcp__pct8_hard_f_near_52w_high10_on_srcmain__long__1d__h30__v1": ('near_52w_high10', True, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.218, IS 1.404, OOS 0.956 (n 349), n 805, avg hold 17.9 bars
+    "minervini_vcp__pct8_hard_f_index_within5_of_high_off_srcmain__long__1d__h30__v1": ('index_within5_of_high', False, 30),
+    # B-1471 run 41891148569 (h40): PFnet 1.208, IS 1.349, OOS 0.755 (n 471), n 2123, avg hold 23.4 bars
+    "minervini_vcp__pct8_hard_f_ext_le3_on_srcmain__long__1d__h40__v1": ('ext_le3', True, 40),
+    # B-1471 run 41891143316 (h30): PFnet 1.174, IS 1.364, OOS 0.717 (n 108), n 395, avg hold 17.9 bars
+    "minervini_vcp__pct8_hard_f_ma200_rising_100d_off_srcmain__long__1d__h30__v1": ('ma200_rising_100d', False, 30),
+    # B-1471 run 41891143316 (h30): PFnet 1.083, IS 1.244, OOS 0.691 (n 181), n 638, avg hold 18.2 bars
+    "minervini_vcp__pct8_hard_f_leaders_lead_on_srcmain__long__1d__h30__v1": ('leaders_lead', True, 30),
+    # B-1471 run 41897578023 (h60): PFnet 1.445, IS 1.641, OOS 0.756 (n 513), n 2352, avg hold 28.3 bars
+    "minervini_vcp__ma50_trail_srcmain__long__1d__h60__v1": (None, None, 60),
 }
-MINERVINI_LAB_LIVE_VARIANT = "pct8_hard"
+MINERVINI_LAB_LIVE_VARIANT = "pct8_hard"  # default exit/stop variant; per-cell overrides parsed from the tag
+MINERVINI_LAB_INDEX_FEATURES = frozenset({"early_bull_10_25", "held_up_vs_index", "leaders_lead", "index_within5_of_high"})
+
+
+def _minervini_lab_cell_variant(tag: str) -> str:
+    """Exit/stop variant of a live lab cell, from its tag ('minervini_vcp__<variant>[_f_<feat>_<on|off>]_srcmain__...')."""
+    try:
+        return minervini_lab_parse_variant(tag.split("__")[1][: -len("_srcmain")])[0]
+    except Exception:
+        return MINERVINI_LAB_LIVE_VARIANT
 MINERVINI_LAB_LIVE_MIN_BARS = 260  # features look back 252 bars
 
 
@@ -7105,20 +7169,21 @@ def minervini_lab_live_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
     sig = minervini_vcp_entry_signal(df, rs_percentile=None)
     if not sig:
         return None
-    idx = _minervini_lab_live_index(df) if feat == "early_bull_10_25" else None
-    if feat == "early_bull_10_25" and (idx is None or not np.isfinite(idx[-1])):
+    idx = _minervini_lab_live_index(df) if feat in MINERVINI_LAB_INDEX_FEATURES else None
+    if feat in MINERVINI_LAB_INDEX_FEATURES and (idx is None or not np.isfinite(idx[-1])):
         return None  # no index -> no signal (fail closed)
-    try:
-        f = minervini_lab_features(df, len(df) - 1, idx, None, False)
-    except Exception:
-        return None
-    if feat not in f or bool(f[feat]) != want:
-        return None
+    if feat is not None:  # B-1471: feat None = the unfiltered VCP entry
+        try:
+            f = minervini_lab_features(df, len(df) - 1, idx, None, False)
+        except Exception:
+            return None
+        if feat not in f or bool(f[feat]) != want:
+            return None
     px = float(df["Close"].iloc[-1])
     stop0 = float(sig["stop_loss"])
     if not (0 < stop0 < px):
         return None  # lab: stop on the wrong side of the entry -> no trade
-    stop = minervini_lab_initial_stop(MINERVINI_LAB_LIVE_VARIANT, px, stop0, "long")
+    stop = minervini_lab_initial_stop(_minervini_lab_cell_variant(tag), px, stop0, "long")
     if not (0 < stop < px):
         return None
     return {"entry_price": px, "stop_loss": float(stop), "stop0": stop0, "atr_at_entry": float(sig.get("atr_at_entry") or 0.0),
@@ -7140,10 +7205,12 @@ def _minervini_lab_live_exit_adapter(df, entry_day, initial_stop, atr_at_entry, 
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     ma20, ma50, ma200 = minervini_lab_moving_averages(c)
     st = float(initial_stop)
-    pos = {"entry": float(c[start - 1]) if start > 0 else st, "stop": st, "R": 0.0, "extreme": float(c[start - 1]) if start > 0 else st,
+    variant = _minervini_lab_cell_variant(tag)
+    _ent = float(c[start - 1]) if start > 0 else st
+    pos = {"entry": _ent, "stop": st, "R": abs(_ent - st), "extreme": float(c[start - 1]) if start > 0 else st,
            "atr": float(atr_at_entry or 0.0), "entry_idx": start}
     for j in range(start, len(df)):
-        reason, _px = minervini_lab_exit_reason(MINERVINI_LAB_LIVE_VARIANT, pos, j, o, h, l, c, ma20, ma50, ma200, "long", maxh)
+        reason, _px = minervini_lab_exit_reason(variant, pos, j, o, h, l, c, ma20, ma50, ma200, "long", maxh)
         if reason:
             return "minervini_lab_" + reason, new_running_max
     return None, new_running_max
@@ -12333,7 +12400,7 @@ def _auto_signal_core(
                 # B-960: chan_kalman long is managed by its own tag-keyed rules (fixed stop, state exit, max hold,
                 # 15:10 flatten); it never touches the trailing/target/staged-ladder machinery below.
                 _why = (_chan_gap_manage(row, df, mins_now, exit_price, halted) if row["strategy"] in CHAN_GAP_LONG_CELLS
-                        else _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted))
+                        else _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted, symbol=symbol))
                 if _why:
                     _qty, _fx = row["qty"], row["fx_to_inr"]
                     _pnl_inr = (exit_price - row["entry_price"]) * _qty * _fx
@@ -12641,6 +12708,18 @@ def _auto_signal_core(
                                            agg_blocked=agg_blocked)
             if _chan_l is not None:
                 return _chan_l
+            # B-1470: 15m cells, scanned on the 15m frame from the same 5m tick (cascade: 5m cells first).
+            try:
+                _df15l, _ts15l = _chan_short_df_for(symbol, "15m")
+            except Exception:
+                _df15l = None
+            if _df15l is not None and len(_df15l):
+                _chan_l = _chan_long_try_entry(conn, symbol, _df15l, _ts15l, last_close, today_str, "15m", capital,
+                                               risk_per_trade_pct, fx_to_inr, currency, result,
+                                               require_real_tradability=require_real_tradability,
+                                               agg_blocked=agg_blocked)
+                if _chan_l is not None:
+                    return _chan_l
         # B-982: chan_gap buy-on-gap (09:20-10:15 IST, top-10 ranked at the first completed bar); paper always, real gated.
         if interval == "5m":
             _gap_l = _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
@@ -13258,13 +13337,29 @@ def _chan_long_cell_tag(atr_mult, ve, z):
 
 
 CHAN_LONG_CELLS = {_chan_long_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_CELL_SPECS}
+# B-1470: chan_kalman v1 band LONG 15m cells (main.py replay run 41899822245, full NSE universe, 0.8% cost): ve1e-3 z2 atr4
+# PFnet 1.332 / OOS 1.338, n 268; ve1e-3 z1 atr4 1.180 / OOS 1.031, n 3529. One cell per entry signal (atr4 is the best stop
+# for each z). Same Kalman band rule as the 5m cells; scanned on the 15m frame from the 5m tick (B-980 short pattern),
+# appended AFTER every 5m cell so the 5m cascade is unchanged; stop = close - 4xATR14 on EVERY trade, flat by 15:10 IST.
+# The 5m/15m SHORT srcmain cells are NOT wired: the identical signal already trades live as the band_mr v2 cells (B-918/B-980).
+# B-1471 (pooled bar): + ve1e-4 z2 atr4 (PFnet 1.058, n 4989; a different Kalman ve = its own entry signal), appended LAST.
+_CHAN_LONG_15M_SPECS = ((4.0, 1e-3, 2.0), (4.0, 1e-3, 1.0), (4.0, 1e-4, 2.0))
+
+
+def _chan_long_srcmain_15m_tag(atr_mult, ve, z):
+    f = lambda x: f"{x:.1f}".replace(".", "d")  # noqa: E731
+    return f"chan_kalman__band_srcmain__long__15m__atr{f(atr_mult)}_hold40_ve{f(ve * 1e4)}e4_z{f(z)}__v1"
+
+
+CHAN_LONG_CELLS.update({_chan_long_srcmain_15m_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_15M_SPECS})
+CHAN_LONG_CELL_INTERVAL = {_t: ("15m" if "__long__15m__" in _t else "5m") for _t in CHAN_LONG_CELLS}
 CHAN_LONG_HOLD_BARS = 40
 CHAN_LONG_ENTRY_CUTOFF_MIN = CHAN_SHORT_ENTRY_CUTOFF_MIN
 CHAN_LONG_FLATTEN_START_MIN = CHAN_SHORT_FLATTEN_START_MIN
 CHAN_LONG_FLATTEN_END_MIN = CHAN_SHORT_FLATTEN_END_MIN
 
 
-def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
+def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted, symbol=None):
     """Exit reason for an open chan long, or None. Order: halt, stop, flatten (15:10+), state/max-hold/bar-stop."""
     if halted:
         return "daily_loss_cap_hit"
@@ -13274,6 +13369,12 @@ def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
         return "flatten_1515"
     try:
         ve = CHAN_LONG_CELLS[row["strategy"]][1]
+        _iv = CHAN_LONG_CELL_INTERVAL.get(row["strategy"], interval)
+        if _iv != interval:  # B-1470: a 15m cell is managed on 15m bars even though the scan runs on 5m
+            if not symbol:
+                return None
+            df, ts_utc = _chan_short_df_for(symbol, _iv)
+            interval = _iv
         dfc = _chan_short_frame(df, ts_utc)
         entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
         entry_pos = min(entry_pos, len(dfc) - 1)
@@ -13297,6 +13398,8 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
         dfc = _chan_short_frame(df, ts_utc)
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
+            if CHAN_LONG_CELL_INTERVAL[_t] != interval:
+                continue
             _record_strategy_scan(_t)  # B-1244: this cell is evaluated on this symbol/bar (feeds scans_today)
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
@@ -25324,7 +25427,7 @@ def _run_swing_scan_pass(conn):
                 _SWING_LAST_CLOSE[symbol] = float(df["Close"].iloc[-1])
             except Exception:
                 pass
-            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS:
+            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS:
                 continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
             # chandelier-trail exit as the base minervini_vcp entry (see
@@ -26890,6 +26993,93 @@ def _chan_kalman_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0
     return None
 
 
+# ---- B-1471: brk20_min_rr LONG 1h in the SWING engine's 1h leg, wired on the POOLED bar (user 2026-11-05: pooled decides
+# wiring). main.py replay (scripts/brk20_replay.py, full NSE universe, 1h 730d, 0.8% cost): atr4_rr4 PFnet 1.700, n 1112,
+# avg hold 15.3 market hours (OOS 0.721 for the record). One cell per entry signal: rr4 is the pooled best; the be1 twin
+# (1.708) shares the entry and differs only by a breakeven ratchet, so it is not wired. Signal = close above the prior
+# 20-bar high with >= 4R of room; stop = entry - 4xATR on EVERY trade; exit on the gap-aware stop, the EMA13 rule exit or
+# the close of bar 30 after the fill. Appended after chan_kalman in the 1h chain; no new switch.
+BRK20_1H_LONG_TAG = "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1"
+BRK20_1H_LONG_CELLS = {BRK20_1H_LONG_TAG: (4.0, 4.0, BRK20_MAX_HOLD_BARS)}  # tag -> (ATR stop multiple, min R:R, hold bars)
+for _t in BRK20_1H_LONG_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
+
+
+def brk20_1h_long_entry_signal(df1h: pd.DataFrame, tag: str) -> dict | None:
+    """Last completed 1h bar signal for a BRK20_1H_LONG_CELLS tag; None when no signal, unknown tag or no valid stop."""
+    cfg = BRK20_1H_LONG_CELLS.get(tag)
+    if cfg is None or df1h is None or len(df1h) == 0:
+        return None
+    k, rr, _hold = cfg
+    sig = brk20_min_rr_entry_signal(df1h, "long", atr_mult=k, min_rr=rr)
+    if not sig:
+        return None
+    px, stop = float(sig["entry_price"]), float(sig["stop_loss"])
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": stop, "atr_at_entry": float(sig["atr_at_entry"]), "risk": px - stop,
+            "direction": "long"}
+
+
+def _brk20_long_1h_exit(df, pos):
+    """(reason, exit_px) via the real brk20_min_rr_exit_reason, replayed bar by bar from the first bar after the signal
+    bar (entry_day = the signal bar's Date); None while open."""
+    cfg = BRK20_1H_LONG_CELLS.get(pos["strategy"])
+    if cfg is None or len(df) == 0:
+        return None
+    _k, _rr, hold = cfg
+    dates = df["Date"].astype(str).to_numpy()
+    idx = np.flatnonzero(dates <= str(pos["entry_day"]))
+    if len(idx) == 0 or int(idx[-1]) + 1 >= len(df):
+        return None
+    start = int(idx[-1]) + 1
+    fill = str(dates[start])
+    for j in range(start, len(df)):
+        r, px = brk20_min_rr_exit_reason(df.iloc[: j + 1], fill, float(pos["entry_price"]), float(pos["initial_stop_loss"]),
+                                         "long", be_r=None, max_hold_bars=hold)
+        if r:
+            return "brk20_" + r, float(px)
+    return None
+
+
+def _brk20_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -> str | None:
+    """Opens at most one brk20 1h long position (scan recorded; gate checked only after a trigger)."""
+    for tag in BRK20_1H_LONG_CELLS:
+        _record_strategy_scan(tag)
+        sig = brk20_1h_long_entry_signal(df1h, tag)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, str(df1h["Date"].iloc[-1]), entry_price, stop_loss, None, qty, time.time(), fx,
+             sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 1h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
 def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
     """The 1h long-swing cells (macddiv, envelope, cup-cheat) on an already-fetched hourly frame."""
     for t in MACDDIV_LONG_LIVE_CELLS:
@@ -26900,6 +27090,8 @@ def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
         _scan_cell(t, (lambda t=t: cup_cheat_3c_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
     for t in CHAN_KALMAN_1H_CELLS:
         _scan_cell(t, (lambda t=t: chan_kalman_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+    for t in BRK20_1H_LONG_CELLS:
+        _scan_cell(t, (lambda t=t: brk20_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
 
 
 def _with_held_1h_long_symbols(conn, symbols: list) -> list:
@@ -26907,7 +27099,7 @@ def _with_held_1h_long_symbols(conn, symbols: list) -> list:
     (NIFTY-200), so a held symbol outside it (GSEC5IETF, an ETF) never had its strategy exit evaluated."""
     out, seen = list(symbols), set(symbols)
     try:
-        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS)
+        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
         for r in conn.execute("SELECT symbol, strategy FROM signal_state_swing").fetchall():
             if r[1] in cells and r[0] not in seen:
                 out.append(r[0])
@@ -26924,7 +27116,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
     for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS) \
+            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS and pos["strategy"] not in BRK20_1H_LONG_CELLS) \
                     or (pos is None and symbol in done_syms):
                 try:  # B-1275: another engine's position / done today: every 1h cell still scanned + trigger evaluated, no order
                     _df_scan = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
@@ -26945,6 +27137,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                     ex = _cup_cheat_long_1h_exit(df, pos)
                 elif pos["strategy"] in CHAN_KALMAN_1H_CELLS:
                     ex = _chan_kalman_long_1h_exit(df, pos)
+                elif pos["strategy"] in BRK20_1H_LONG_CELLS:
+                    ex = _brk20_long_1h_exit(df, pos)
                 else:
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
@@ -26955,7 +27149,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
             if _macddiv_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:
                 if _envelope_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1264
                     if _cup_cheat_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1266
-                        _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1465: LAST of the 1h chain
+                        if _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1465
+                            _brk20_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1471: LAST of the 1h chain
         except Exception as e:
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
@@ -27427,8 +27622,15 @@ SECTOR_ROT_ATR_MULT = 6.0
 # close = live exit) validated N=3 (PFnet 1.327, OOS 1.141, n 1862) and N=5 (1.229 / OOS 1.048, n 2654). N=3 picks are
 # the top 3 of the N=5 picks, so the cells run as a cascade: the top 3 enter under the N=3 tag, picks 4-5 under N=5.
 SECTOR_ROT_N3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1"
-SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5}  # tag -> N; order = priority (PFnet)
-_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SECTOR_ROT_N3_TAG, SECTOR_ROT_N3_TAG)  # 1:1, main replay run 41861798852
+# B-1471 (user 2026-11-05: pooled PFnet decides wiring): two more entry signals from the same main replay (NIFTY 200,
+# stop on close, h20 n5), lookback L=5 (PFnet 1.186, n 1990, avg hold 19.8 bars) and L=3 (1.143, n 2318, 19.8 bars);
+# atr6 is the best stop for each, OOS < 1 for both (record only). Appended after the L=1 cells (lower pooled PFnet).
+SECTOR_ROT_L5_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l5_n5__v1"
+SECTOR_ROT_L3_TAG = "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1"
+SECTOR_ROT_CELLS = {SECTOR_ROT_N3_TAG: 3, SECTOR_ROT_TAG: 5, SECTOR_ROT_L5_TAG: 5, SECTOR_ROT_L3_TAG: 5}  # tag -> N; order = priority (PFnet)
+SECTOR_ROT_CELL_L = {SECTOR_ROT_L5_TAG: 5, SECTOR_ROT_L3_TAG: 3}  # tag -> lookback L (default SECTOR_ROT_L)
+for _t in (SECTOR_ROT_N3_TAG, SECTOR_ROT_L5_TAG, SECTOR_ROT_L3_TAG):
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, main replay rows
 _sector_map_cache = None
 
 
@@ -27626,7 +27828,7 @@ def _run_sector_rotation_cell(conn, dfs: dict, capital, today: str, tag: str = S
     for _s in _scan_visit(list(dfs)):  # B-1274 stage 2: the cross-sectional cell is evaluated for every scanned symbol
         _record_symbol_strategy_scan(tag)
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
-    for sym in sector_rotation_picks(dfs, N=n):
+    for sym in sector_rotation_picks(dfs, L=SECTOR_ROT_CELL_L.get(tag, SECTOR_ROT_L), N=n):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue
         df = dfs[sym]
@@ -28512,7 +28714,7 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     if _orphan_1h_state_last_day == today:
         return []
     fetch = fetch or fetch_ohlc
-    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS)
+    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
     orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
                if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
     if not orphans:
@@ -30821,12 +31023,16 @@ _SWING_SL_RULES = {
        for _t, (_r, k, h) in PL1D_CELLS.items()},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of bar {h})"
        for _t, (_z, _v, k, h) in CHAN_KALMAN_1D_CELLS.items()},
-    **{_t: f"entry x 0.92 (8% hard stop), frozen (exit also on the close of bar {h} after entry)"
+    **{_t: (f"entry x 0.92 (8% hard stop), frozen (exit also on the close of bar {h} after entry)"
+            if _minervini_lab_cell_variant(_t) == "pct8_hard" else
+            f"VCP structural stop (the signal's own stop_loss), frozen; exit on a close below MA50 or the close of bar {h} after entry")
        for _t, (_f, _w, h) in MINERVINI_LAB_LIVE_CELLS.items()},
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of 1h bar {h})"
        for _t, (_z, _v, k, h) in CHAN_KALMAN_1H_CELLS.items()},
+    **{_t: f"entry - {k:g}xATR, frozen (exit also on the EMA13 rule exit or the close of 1h bar {h} after the fill)"
+       for _t, (k, _rr, h) in BRK20_1H_LONG_CELLS.items()},
 }
 
 
@@ -30880,6 +31086,8 @@ def _strategy_hold_spec(tag):
         return int(MINERVINI_LAB_LIVE_CELLS[tag][2]), tf
     if tag in CHAN_KALMAN_1H_CELLS:
         return int(CHAN_KALMAN_1H_CELLS[tag][3]), tf
+    if tag in BRK20_1H_LONG_CELLS:
+        return int(BRK20_1H_LONG_CELLS[tag][2]), tf
     if tag in CHAN_SHAPE_CELLS:
         return int(CHAN_SHAPE_CELLS[tag][1]), tf
     if tag in _PATTERN_LIVE_TAGS:

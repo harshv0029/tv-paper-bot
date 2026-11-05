@@ -125,4 +125,4 @@ def test_core_passes_gate_flag_to_both_chan_paths():
     import inspect
     src = inspect.getsource(main._auto_signal_core)
     assert "not agg_blocked" not in src
-    assert src.count("agg_blocked=agg_blocked") == 2
+    assert src.count("agg_blocked=agg_blocked") == 3  # B-1470: + the 15m chan long call

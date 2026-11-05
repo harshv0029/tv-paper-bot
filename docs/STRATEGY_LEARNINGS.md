@@ -1673,3 +1673,22 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Cutting max hold from 60 to 30/40 bars brought three VCP cells under the 30-bar wiring bar and lifted their OOS (early_bull h40 OOS 1.196 vs h60 1.138). Shorter holds did not hurt pooled PFnet (about 1.30).
 - Exit = 8% hard stop (pct8_hard) + time exit; the trailing/MA exits that looked better pooled all failed OOS.
 - Profit-booking / exit takeaway: for VCP breakouts, a fixed 8% stop plus a 30-40 bar time exit beats every trailing exit out of sample; book on time, not on a trail.
+
+### 2026-11-05: chan_kalman v1 band intraday (B-1470), wiring check before wiring
+- Mechanism: Kalman adaptive mean on close; enter against an err beyond z*sqrtQ, exit on the mean cross, stop 4xATR14, flat by 15:10 IST.
+- Result (main.py replay, full NSE universe, 0.8% cost): 5m SHORT atr4 z2 1.730 / OOS 2.171 (n 992); 15m SHORT 1.348 / 1.586; 15m LONG z2 1.332 / 1.338 (n 268), z1 1.180 / 1.031 (n 3529).
+- Surprise: the two SHORT cells were already live under the band_mr v2 tags (same signal, same atr/ve/z). The new replay is independent confirmation, not a new strategy to wire; a second tag on the same signal would only act as a fallback behind the first.
+- Wired: the two 15m LONG cells (no 15m long scan existed), via the B-980 pattern (15m frame fetched from the 5m tick, 15m cells after every 5m cell).
+- Reuse: before wiring a "new" replay row, grep the live cell dicts for the same (signal, atr, ve, z); the family name in the tag (band_srcmain vs band_mr) can differ while the live code is identical.
+- Profit-booking / exit takeaway: the 15m long edge sits in the z2 band (fewer, stronger stretches); z1 trades 13x more often for a thinner OOS margin (1.03), so it is cascaded after z2.
+
+### 2026-11-05: brk20_min_rr LONG 1h fails out of sample (B-1465)
+- Pooled main replay PFnet up to 1.71 (n 1112), but every 1h long cell's OOS segment sits at 0.63-0.80; the IS half (up to 2.10) carries the whole pooled number.
+- Not wired. Lesson: a pooled PFnet far above 1 on 1h with an IS/OOS split this lopsided is regime-specific, not an edge; always read the _oos row before wiring.
+- Profit-booking / exit takeaway: the wider rr4 targets are what inflated IS; in OOS they are rarely reached, so the breakout's pay-off depended on a trending sample.
+
+### 2026-11-05: wiring bar moved to pooled PFnet (B-1471, user instruction)
+- Rule now: pooled full-universe PFnet > 1.00 decides wiring; the OOS segment is recorded and shown, never a veto. Other bars unchanged (n >= 30, avg hold <= 30 bars daily, live path, no look-ahead, n200 population rule).
+- Minervini lab: 25 more cells wired (VCP + one filter each, plus the unfiltered VCP with an MA50 trail last). Together the on/off filter pairs cover nearly every VCP signal, so the live book now trades almost every VCP breakout; the cascade only decides which cell's hold/exit applies. Their OOS segments are mostly 0.6-0.9 (the recent period lost money for most of them), which is the risk accepted with this rule.
+- Watch: if the live Kotak trade book for these tags runs below breakeven over a meaningful sample, that is the OOS warning coming true; record it here and re-decide.
+- Profit-booking / exit takeaway: the unfiltered VCP entry is best with an MA50 close trail (1.445 pooled), well above the 8% hard stop (1.246); trend-following exits suit VCP breakouts.
