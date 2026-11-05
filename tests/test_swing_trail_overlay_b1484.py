@@ -87,3 +87,19 @@ def test_driver_modes_and_fixed_families():
     assert sbr.run_modes("live,live_tr2") == ["off", "live", "live_tr2"]
     fams = sbr.parse_families("fixed")
     assert "power_play" not in fams and "primary_base" not in fams and "island" in fams
+
+
+def test_half_r_and_ltp_trails_b1484b():
+    ep, s0 = 100.0, 90.0  # R = 10
+    bc.trailed_stop("live_tr0d5", "long", s0, 100.0, ep)
+    assert bc.trailed_stop("live_tr0d5", "long", s0, 110.0, ep) == pytest.approx(105.0)  # 110 - 0.5R
+    bc.reset_trail()
+    # LTP trail: the current bar's high is NEVER used; it counts from the next call on
+    assert bc.trailed_stop("live_lt1", "long", s0, 100.0, ep, bar_high=130.0) == pytest.approx(90.0)
+    assert bc.trailed_stop("live_lt1", "long", s0, 101.0, ep, bar_high=104.0) == pytest.approx(120.0)  # 130 - 10
+    assert bc.trailed_stop("live_lt1", "long", s0, 101.0, ep, bar_high=101.0) == pytest.approx(120.0)
+    bc.reset_trail()
+    bc.trailed_stop("live_lt0d5", "short", 110.0, 100.0, ep, bar_low=80.0)
+    assert bc.trailed_stop("live_lt0d5", "short", 110.0, 99.0, ep, bar_low=95.0) == pytest.approx(85.0)  # 80 + 5
+    assert bc.band_tag("gap__runaway__long__1d__atr4_h20__v1", "live_lt1") == \
+        "gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp1r__v1"

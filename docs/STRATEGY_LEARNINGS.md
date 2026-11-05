@@ -1737,3 +1737,5 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: gross PF sits near 1.0-1.05, so the 0.8% cost alone sinks them; stops lose, timeouts win (PFnet ~30 on max-hold exits), the same shape as other swing cells here.
 - Reuse: a huge research PFnet on a narrow universe before the bad-bar guard is not evidence; always re-run on the full universe with main.py ports before believing it.
 - Profit-booking / exit takeaway: the timeout winners suggest a longer hold or a wider stop is the only lever worth a sweep here; a tight trail would cut the only profitable exit.
+- B-1484 b addendum (user 11:55 IST): the trail set now includes 0.5R steps and LTP-based trails (peak of completed-bar highs - N x R, the per-tick LTP view the live orphan trail uses). Expect LTP trails to stop out sooner than close trails at the same N because highs run above closes; that only pays if winners give back a lot after an intraday peak.
+- Profit-booking / exit takeaway: compare LTP and close trails at the same R before choosing; a tighter-feeling LTP trail is not automatically more profit.

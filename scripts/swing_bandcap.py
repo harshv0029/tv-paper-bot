@@ -25,10 +25,15 @@ BAND_PARAM = "rsbandfloor"  # same param token B-1413 used for its band-live reg
 # PREVIOUS-SESSION close since entry (the same daily-close running max the live swing engine stores), so no look-ahead:
 #   trN   stop = max(stop0, peak - N x R)                       (chandelier in R units; N=1 ratchets from the first gain)
 #   beN   stop = max(stop0, entry x (1 + cost)) once peak >= entry + N x R   (net breakeven, cost = 0.8% round trip)
-TRAIL_RULES = {"tr1": ("chand", 1.0), "tr1d5": ("chand", 1.5), "tr2": ("chand", 2.0), "tr3": ("chand", 3.0),
-               "be1": ("be", 1.0), "be2": ("be", 2.0)}
-TRAIL_PARAM = {"tr1": "trailr1", "tr1d5": "trailr1d5", "tr2": "trailr2", "tr3": "trailr3",
-               "be1": "trailbe1r", "be2": "trailbe2r"}
+#   ltN   (B-1484 b, user: "trailing SL can be 0.5R, 1.0R ... multiplied by LTP checked recently") stop = max(stop0,
+#         peak LTP - N x R), peak LTP = the highest HIGH of the bars already completed since entry (the price the live
+#         per-tick LTP trail would have seen; the current bar's own high is never used, so no look-ahead)
+TRAIL_RULES = {"tr0d5": ("chand", 0.5), "tr1": ("chand", 1.0), "tr1d5": ("chand", 1.5), "tr2": ("chand", 2.0),
+               "tr3": ("chand", 3.0), "be1": ("be", 1.0), "be2": ("be", 2.0),
+               "lt0d5": ("ltp", 0.5), "lt1": ("ltp", 1.0), "lt1d5": ("ltp", 1.5), "lt2": ("ltp", 2.0)}
+TRAIL_PARAM = {"tr0d5": "trailr0d5", "tr1": "trailr1", "tr1d5": "trailr1d5", "tr2": "trailr2", "tr3": "trailr3",
+               "be1": "trailbe1r", "be2": "trailbe2r",
+               "lt0d5": "trailltp0d5r", "lt1": "trailltp1r", "lt1d5": "trailltp1d5r", "lt2": "trailltp2r"}
 TRAIL_MODES = tuple(f"live_{k}" for k in TRAIL_RULES)
 MODES = ("off", "live") + TRAIL_MODES
 BE_COST = 0.008  # == main.ROUND_TRIP_COST_PCT / 100 (asserted in tests/test_swing_trail_overlay_b1484.py)
@@ -44,7 +49,7 @@ def trail_rule(mode):
     return TRAIL_RULES[m[5:]] if m.startswith("live_") else None
 
 
-def trailed_stop(mode, side, strat_stop, prev_close, entry_price):
+def trailed_stop(mode, side, strat_stop, prev_close, entry_price, bar_high=None, bar_low=None):
     """The strategy stop raised (long) / lowered (short) by the trail rule of a live_<trail> mode; strat_stop unchanged
     otherwise. Stateful per trade, keyed by (side, entry price); the FIRST prev_close seen for a trade is never used (on
     1h bars it is the session before the entry day, on daily bars it is the entry bar itself and the peak starts at the
@@ -58,13 +63,24 @@ def trailed_stop(mode, side, strat_stop, prev_close, entry_price):
     key = (side, round(ep, 8))
     st = _TRAIL_STATE.get(key)
     if st is None:
-        st = _TRAIL_STATE[key] = {"stop0": float(strat_stop), "first_prev": prev_close, "peak": ep}
-    elif prev_close is not None and np.isfinite(prev_close) and prev_close != st["first_prev"]:
-        st["peak"] = max(st["peak"], float(prev_close)) if side == "long" else min(st["peak"], float(prev_close))
+        st = _TRAIL_STATE[key] = {"stop0": float(strat_stop), "first_prev": prev_close, "peak": ep, "pk_ltp": ep,
+                                  "pend_hi": None, "pend_lo": None}
+    else:
+        if prev_close is not None and np.isfinite(prev_close) and prev_close != st["first_prev"]:
+            st["peak"] = max(st["peak"], float(prev_close)) if side == "long" else min(st["peak"], float(prev_close))
+        # the PREVIOUS call's bar is complete now: its high (long) / low (short) joins the peak LTP
+        if side == "long" and st["pend_hi"] is not None:
+            st["pk_ltp"] = max(st["pk_ltp"], st["pend_hi"])
+        if side != "long" and st["pend_lo"] is not None:
+            st["pk_ltp"] = min(st["pk_ltp"], st["pend_lo"])
+    st["pend_hi"] = float(bar_high) if bar_high is not None and np.isfinite(bar_high) else None
+    st["pend_lo"] = float(bar_low) if bar_low is not None and np.isfinite(bar_low) else None
     r = abs(ep - st["stop0"])
     if r <= 0:
         return strat_stop
     kind, nmul = rule
+    if kind == "ltp":
+        kind, st = "chand", dict(st, peak=st["pk_ltp"])
     if side == "long":
         lvl = st["peak"] - nmul * r if kind == "chand" else (ep * (1 + BE_COST) if st["peak"] >= ep + nmul * r else None)
         return float(strat_stop) if lvl is None else max(float(strat_stop), lvl)
@@ -114,7 +130,7 @@ def resting_stop_exit(mode, side, strat_stop, prev_close, bar_open, bar_low, bar
         return None
     if strat_stop is None or not np.isfinite(strat_stop):
         return None
-    eff = trailed_stop(mode, side, strat_stop, prev_close, entry_price)
+    eff = trailed_stop(mode, side, strat_stop, prev_close, entry_price, bar_high, bar_low)
     trailed = eff != float(strat_stop)
     trig, banded = resting_trigger(eff, prev_close, side)
     why = "band_floor_stop_hit" if banded else ("trail_stop_hit" if trailed else "resting_stop_hit")
