@@ -8,6 +8,10 @@ name: O'Neil replay harness (B-776)
 # never-average-down NEGATIVE CONTROL, not a live rule).
 # Output: full table (n, win %, avg hold bars, PFnet net+gross, PFnet ex top-5 trades, exit reasons, universe size).
 # Dispatch order per CLAUDE.md: matrix, so only when no gate/safety run is queued. 4 shards + 1 merge.
+# B-1472 b: `families` (e.g. cup = cup_handle,saucer,cup_nohandle,double_bottom) replays the O'Neil chart-pattern
+# grid through main.py's oneil_pattern_signals (both directions, chase 5/10, rs none/80 (+qual1 for cup_handle), the
+# candle size's research holds, `pattern_exits`), at every candle size in `interval` (comma list, blank = 1d,1w).
+# Blank `families` = unchanged behaviour. RS rank = 12-month return percentile across the symbols loaded in the shard.
 on:
   workflow_dispatch:
     inputs:
@@ -25,6 +29,14 @@ on:
         default: ""
       period:
         description: "yfinance period override (blank = 1w: 10y, 1d: 5y)"
+        required: false
+        default: ""
+      families:
+        description: "B-1472 b pattern grid: cup (all 4) or comma list of cup_handle,saucer,cup_nohandle,double_bottom (blank = off)"
+        required: false
+        default: ""
+      pattern_exits:
+        description: "Exits for the pattern grid (blank = atr2,atr3,pct7,pct8,tgt20,trl3)"
         required: false
         default: ""
       crosscheck:
@@ -53,6 +65,8 @@ jobs:
           INTERVAL: ${{ inputs.interval }}
           PERIOD: ${{ inputs.period }}
           CROSSCHECK: ${{ inputs.crosscheck }}
+          FAMILIES: ${{ inputs.families }}
+          PATTERN_EXITS: ${{ inputs.pattern_exits }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "4"
         run: |
@@ -86,4 +100,5 @@ jobs:
           name: oneil-replay-results
           path: |
             docs/oneil_replay_results.json
+            docs/oneil_replay_rows.json
             replay_table.txt

@@ -7288,6 +7288,16 @@ def oneil_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c, v,
                     chase=None, rs_thr=None) -> bool:
     """True if the setup fires at the CLOSE of bar t (bars <= t only; o[t+1] only for the no-chase test, i.e. the
     'is the next open still near the pivot' check made at the next open). rs_thr: None/'none' = no RS filter."""
+    if family in ONEIL_PATTERN_FAMILIES:  # B-1472 b: bars <= t, plus o[t+1] for the chase test
+        if t < 1 or t + 1 >= len(c):
+            return False
+
+        def cut(a):
+            return None if a is None else np.asarray(a, float)[:t + 2]
+
+        arr = oneil_pattern_signal_array(family, direction, tf, cut(o), cut(h), cut(l), cut(c), cut(v), cut(rs),
+                                         chase, rs_thr)
+        return bool(arr[t])
     cfg = ONEIL_CFG[tf]
     side = 1 if direction == "long" else -1
     vol_n = cfg["vol"]
@@ -7372,7 +7382,7 @@ def oneil_exit_bar(direction: str, o_j: float, h_j: float, l_j: float, c_j: floa
 def oneil_entry_signal(df, tf: str, family: str, direction: str, rs_thr=None, rs=None, atr_mult: float = 3.0):
     """Live-style entry check on the LAST bar of df (signal at its close; entry would be the next open). The no-chase
     test needs the next open, so it is left to the caller at that open. NOT wired into any scan."""
-    if tf not in ONEIL_CFG or family not in ONEIL_FAMILIES:
+    if tf not in ONEIL_CFG or family not in ONEIL_FAMILIES + ONEIL_PATTERN_FAMILIES:
         return None
     o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
     t = len(c) - 1
@@ -7746,6 +7756,217 @@ def oneil_ext_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c
         if fam == family and pk == pkey:
             return bool(arr[t])
     return False
+
+
+# ---------------------------------------------------------------------------
+# O'Neil CHART-PATTERN detectors (B-1472 b). ADDITIVE, UNWIRED PORT of scripts/oneil_patterns.py (detect_cup,
+# detect_double_bottom, base_stage, quality_ok, pattern_signals) for families cup_handle / saucer / cup_nohandle /
+# double_bottom, as used by scripts/oneil_research.entry_signals. Constants and arithmetic copied verbatim; the bar-count
+# windows (cupmin..dbmax) are oneil_research.CFG's per-candle-size values. Short = the research's reciprocal-price
+# mirror (h'=1/l, l'=1/h, c'=1/c, same volume; o stays raw for the chase test, exactly as the research). Every array
+# value at bar t uses bars <= t only, except the chase test, which reads o[t+1] (the next open, i.e. made AT the entry
+# open). rs = cross-sectional RS rank (population-dependent, supplied by the caller). No live scan, no real-order path,
+# no kill switch; exits reuse oneil_stop_price / oneil_trail_stop / oneil_exit_bar.
+# ---------------------------------------------------------------------------
+ONEIL_PATTERN_CFG = {
+    "1d": dict(vol=50, cupmin=35, cupmax=250, saucer_min=100, hmin=5, hmax=20, dbmin=20, dbmax=120),
+    "1w": dict(vol=10, cupmin=7, cupmax=65, saucer_min=20, hmin=1, hmax=4, dbmin=5, dbmax=30),
+}
+ONEIL_CUP_DEPTH = (0.12, 0.33)
+ONEIL_SAUCER_DEPTH = (0.08, 0.20)
+ONEIL_HANDLE_MAX_DROP = 0.15
+ONEIL_PATTERN_CHASES = (0.05, 0.10)
+ONEIL_PATTERN_RS_FILTERS = ("none", "80")
+ONEIL_PATTERN_FAMILIES = ("oneil_cup_handle", "oneil_saucer", "oneil_cup_nohandle", "oneil_double_bottom")
+
+
+def _oneil_cup_core(h, l, c, t, cupmin, cupmax, depth_rng):
+    """(ip, P, B, ib) for a cup ending before t, or None. Left lip = highest high in the window."""
+    lo = max(0, t - cupmax)
+    seg_h = h[lo:t]
+    if len(seg_h) < cupmin:
+        return None
+    ip = lo + int(np.argmax(seg_h))
+    span = t - ip
+    if span < cupmin:
+        return None
+    P = h[ip]
+    seg_l = l[ip + 1:t]
+    if len(seg_l) < 3:
+        return None
+    ib = ip + 1 + int(np.argmin(seg_l))
+    B = l[ib]
+    depth = (P - B) / P
+    if not (depth_rng[0] <= depth <= depth_rng[1]):
+        return None
+    pos = (ib - ip) / span
+    if not (0.25 <= pos <= 0.75):
+        return None
+    return ip, P, B, ib
+
+
+def oneil_detect_cup(h, l, c, v, cfg, handle=True, saucer=False):
+    """Cup (with/without handle) or saucer breakout. Returns (signal bool array, pivot price array)."""
+    n = len(c)
+    sig = np.zeros(n, bool)
+    piv = np.full(n, np.nan)
+    cupmin = cfg["cupmin"]
+    cupmax = cfg["cupmax"]
+    depth_rng = ONEIL_SAUCER_DEPTH if saucer else ONEIL_CUP_DEPTH
+    if saucer:
+        cupmin = max(cupmin, cfg["saucer_min"])
+    hmin, hmax = cfg["hmin"], cfg["hmax"]
+    vavg = np.full(n, np.nan)
+    k = cfg["vol"]
+    cs = np.cumsum(np.nan_to_num(v))
+    for t in range(k + 1, n):
+        vavg[t] = (cs[t - 1] - cs[t - 1 - k]) / k
+    for t in range(cupmin + hmin + 2, n):
+        if not (v[t] >= 1.5 * vavg[t]):
+            continue
+        if handle:
+            found = None
+            for hl in range(hmin, hmax + 1):
+                cup = _oneil_cup_core(h, l, c, t - hl, cupmin, cupmax, depth_rng)
+                if cup is None:
+                    continue
+                ip, P, B, ib = cup
+                hh = h[t - hl:t].max()
+                hlow = l[t - hl:t].min()
+                if hh > P * 1.0001 or hh < B + 0.5 * (P - B):
+                    continue
+                if (hh - hlow) / hh > ONEIL_HANDLE_MAX_DROP or hlow < B + 0.5 * (P - B):
+                    continue
+                if c[t] > hh:
+                    found = hh
+                    break
+            if found is not None:
+                sig[t] = True
+                piv[t] = found
+        else:
+            cup = _oneil_cup_core(h, l, c, t, cupmin, cupmax, depth_rng)
+            if cup is None:
+                continue
+            ip, P, B, ib = cup
+            if c[t] > P and c[t - 1] <= P:
+                sig[t] = True
+                piv[t] = P
+    return sig, piv
+
+
+def oneil_detect_double_bottom(h, l, c, v, cfg):
+    """Double bottom with a 0-3% undercut, close through the middle peak. Returns (signal, pivot)."""
+    n = len(c)
+    sig = np.zeros(n, bool)
+    piv = np.full(n, np.nan)
+    dbmin, dbmax = cfg["dbmin"], cfg["dbmax"]
+    vavg = np.full(n, np.nan)
+    k = cfg["vol"]
+    cs = np.cumsum(np.nan_to_num(v))
+    for t in range(k + 1, n):
+        vavg[t] = (cs[t - 1] - cs[t - 1 - k]) / k
+    for t in range(dbmin + 15, n):
+        if not (v[t] >= 1.5 * vavg[t]):
+            continue
+        lo = max(0, t - dbmax)
+        seg = l[lo:t - 3]
+        if len(seg) < dbmin:
+            continue
+        w2 = l[t - 10:t]
+        i2 = t - 10 + int(np.argmin(w2))
+        B2 = l[i2]
+        older = l[lo:i2 - dbmin + 1] if i2 - dbmin + 1 > lo else None
+        if older is None or len(older) == 0:
+            continue
+        i1 = lo + int(np.argmin(older))
+        B1 = l[i1]
+        if not (B1 * 0.97 <= B2 <= B1):
+            continue
+        M = h[i1:i2].max()
+        if (M - B1) / M < 0.10:
+            continue
+        if c[t] > M and c[t - 1] <= M:
+            sig[t] = True
+            piv[t] = M
+    return sig, piv
+
+
+def oneil_base_stage(sig):
+    """Count of earlier distinct signal clusters (a cluster = signals closer than 20 bars); stage 1 = first base."""
+    stage = np.zeros(len(sig), int)
+    count, last = 0, -10 ** 9
+    for t in np.flatnonzero(sig):
+        if t - last > 20:
+            count += 1
+        stage[t] = count
+        last = t
+    return stage
+
+
+def oneil_quality_ok(sig):
+    """B-461: 1st/2nd base only (stage <= 2)."""
+    return sig & (oneil_base_stage(sig) <= 2)
+
+
+def oneil_pattern_signals(o, h, l, c, v, rs, tf: str, chases=ONEIL_PATTERN_CHASES,
+                          rs_filters=ONEIL_PATTERN_RS_FILTERS, families=None) -> dict:
+    """{(family, 'breakout', dir, chase, rsf): bool array} for the 4 pattern families x long/short, plus 'qual1' for
+    cup_handle. Same keys/values as scripts/oneil_patterns.pattern_signals(o,h,l,c,v,rs,CFG[tf],chases,rs_filters);
+    a (family, dir) with no detection is omitted (as in the research). chase None (main.py extension, not emitted by
+    the research) = no chase filter. rs None = all-NaN (rs80 then never passes long). families: optional subset."""
+    o, h, l, c, v = (np.asarray(a, float) for a in (o, h, l, c, v))
+    cfg = ONEIL_PATTERN_CFG[tf]
+    n = len(c)
+    nxt_o = np.append(o[1:], np.nan)
+    out = {}
+    rsv = np.full(n, np.nan) if rs is None else np.asarray(rs, float)
+    ok_l = {"none": np.ones(n, bool), "80": np.nan_to_num(rsv) >= 80, "qual1": np.ones(n, bool)}
+    ok_s = {"none": np.ones(n, bool), "80": np.nan_to_num(rsv, nan=100) <= 30, "qual1": np.ones(n, bool)}
+    with np.errstate(invalid="ignore", divide="ignore"):
+        inv = (1.0 / l, 1.0 / h, 1.0 / c)
+        dets = {
+            "cup_handle": lambda hh, ll, cc: oneil_detect_cup(hh, ll, cc, v, cfg, handle=True),
+            "saucer": lambda hh, ll, cc: oneil_detect_cup(hh, ll, cc, v, cfg, handle=True, saucer=True),
+            "cup_nohandle": lambda hh, ll, cc: oneil_detect_cup(hh, ll, cc, v, cfg, handle=False),
+            "double_bottom": lambda hh, ll, cc: oneil_detect_double_bottom(hh, ll, cc, v, cfg),
+        }
+        for fam, fn in dets.items():
+            if families is not None and "oneil_" + fam not in families:
+                continue
+            for d, (hh, ll, cc) in (("long", (h, l, c)), ("short", inv)):
+                sg, pv = fn(hh, ll, cc)
+                if not sg.any():
+                    continue
+                if d == "long":
+                    chase_ok = lambda ch: (nxt_o / pv - 1) <= ch  # noqa: E731
+                    ok = ok_l
+                else:  # pv is a reciprocal-price pivot; the short entry sits below 1/pv
+                    chase_ok = lambda ch: (1 - nxt_o * pv) <= ch  # noqa: E731
+                    ok = ok_s
+                for ch in chases:
+                    cm = (np.ones(n, bool) if ch is None
+                          else np.nan_to_num(chase_ok(ch).astype(float)).astype(bool))
+                    for rsf in rs_filters:
+                        out[("oneil_" + fam, "breakout", d, ch, rsf)] = sg & cm & ok[rsf]
+                    if fam == "cup_handle":
+                        out[("oneil_" + fam, "breakout", d, ch, "qual1")] = oneil_quality_ok(sg) & cm
+    return {k: np.nan_to_num(np.asarray(m, float)).astype(bool) for k, m in out.items()}
+
+
+def oneil_pattern_signal_array(family: str, direction: str, tf: str, o, h, l, c, v, rs=None, chase=None,
+                               rs_thr=None) -> np.ndarray:
+    """One full signal array (all-False when the research would emit no key). rs_thr None/'none' = no filter, '80' =
+    RS filter (short: RS<=30), 'qual1' = 1st/2nd-base filter (cup_handle only, as in the research)."""
+    if family not in ONEIL_PATTERN_FAMILIES or tf not in ONEIL_PATTERN_CFG or direction not in ("long", "short"):
+        raise ValueError(f"unsupported O'Neil pattern {family}/{direction}/{tf}")
+    rsf = "none" if rs_thr in (None, "", "none") else str(rs_thr)
+    if rsf not in ("none", "80", "qual1"):
+        raise ValueError(f"unsupported pattern rs filter {rs_thr!r}")
+    if rsf == "qual1" and family != "oneil_cup_handle":
+        raise ValueError("qual1 exists only for oneil_cup_handle")
+    rfs = ("none",) if rsf == "qual1" else (rsf,)
+    sigs = oneil_pattern_signals(o, h, l, c, v, rs, tf, (chase,), rfs, families=(family,))
+    return sigs.get((family, "breakout", direction, chase, rsf), np.zeros(len(c), bool))
 
 
 # ---- O'Neil 1w LONG cells wired into the live SWING scan (2026-10-14, user "go"; main.py replay run 38517583883) ----
