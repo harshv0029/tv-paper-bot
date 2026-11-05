@@ -15,7 +15,7 @@ Total rows: 1237 | closed: 587 | not closed: 650
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 47 |
+| OPEN | 48 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -26,8 +26,8 @@ Total rows: 1237 | closed: 587 | not closed: 650
 | P1 | 8 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
-| IN | 7 |
 | OPEN-PARKED | 6 |
+| IN | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
@@ -89,8 +89,8 @@ Total rows: 1237 | closed: 587 | not closed: 650
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 120 | 65 |
-| P1 | 479 | 261 |
-| P2 | 489 | 236 |
+| P1 | 478 | 260 |
+| P2 | 490 | 237 |
 | P3 | 120 | 63 |
 | Info | 1 | 0 |
 | P? | 28 | 25 |
@@ -548,7 +548,6 @@ Total rows: 1237 | closed: 587 | not closed: 650
 | B-1463 | P1 | IN | 2026-11-04 IST | owed, owner, awaiting, waiting |
 | B-1467 | P1 | IN | 2026-11-04 | open:, pending, owner |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, follow-up |
-| B-1479 | P1 | IN | 2026-11-05 | awaiting, waiting |
 | B-1480 | P1 | IN | 2026-11-05 |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
@@ -615,6 +614,7 @@ Total rows: 1237 | closed: 587 | not closed: 650
 | B-1466 | P2 | OPEN | 2026-11-04 |  |
 | B-1475 | P2 | OPEN | 2026-11-05 |  |
 | B-1477 | P2 | OPEN | 2026-11-05 | needs, follow-up |
+| B-1479 | P2 | OPEN | 2026-11-05 | owed, remaining, pending, awaiting, waiting |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1445 | P3 | ROC | 2026-11-02 | owed, verify |
 | B-1455 | P3 | OPEN | 2026-11-03 00:35 IST | verify |
