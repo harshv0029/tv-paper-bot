@@ -1,0 +1,2131 @@
+{
+ "rows": [
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr1d5_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 783,
+    "win_pct": 11.37,
+    "pfnet": 0.23858211427933856,
+    "pfgross": 0.37693354847288546,
+    "avg_net_pct": -1.9882,
+    "avg_gross_pct": -1.1882,
+    "avg_held_bars": 38.49,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 670,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 23.9
+     },
+     "max_hold_timeout": {
+      "n": 113,
+      "pfnet": 11.818949423796004,
+      "win_pct": 78.76,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 9.62,
+    "is": {
+     "n": 616,
+     "win_pct": 10.88,
+     "pfnet": 0.22396199070010755,
+     "pfgross": 0.3559971579239271,
+     "avg_net_pct": -2.0261,
+     "avg_gross_pct": -1.2261,
+     "avg_held_bars": 37.77,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 531,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 23.8
+      },
+      "max_hold_timeout": {
+       "n": 85,
+       "pfnet": 16.34690988363905,
+       "win_pct": 78.82,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 9.44
+    },
+    "oos": {
+     "n": 167,
+     "win_pct": 13.17,
+     "pfnet": 0.2924711013078204,
+     "pfgross": 0.45355506074114627,
+     "avg_net_pct": -1.8486,
+     "avg_gross_pct": -1.0486,
+     "avg_held_bars": 41.14,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 139,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 24.25
+      },
+      "max_hold_timeout": {
+       "n": 28,
+       "pfnet": 6.633073631729598,
+       "win_pct": 78.57,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 10.29
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr1d5_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 783,
+    "win_pct": 11.37,
+    "pfnet": 0.2185630357226449,
+    "pfgross": 0.3349289359576237,
+    "avg_net_pct": -2.2274,
+    "avg_gross_pct": -1.4274,
+    "avg_held_bars": 38.49,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 670,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 23.9
+     },
+     "max_hold_timeout": {
+      "n": 113,
+      "pfnet": 11.818949423796004,
+      "win_pct": 78.76,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 9.62,
+    "is": {
+     "n": 616,
+     "win_pct": 10.88,
+     "pfnet": 0.2038597150056388,
+     "pfgross": 0.3135919593536642,
+     "avg_net_pct": -2.2835,
+     "avg_gross_pct": -1.4835,
+     "avg_held_bars": 37.77,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 531,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 23.8
+      },
+      "max_hold_timeout": {
+       "n": 85,
+       "pfnet": 16.34690988363905,
+       "win_pct": 78.82,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 9.44
+    },
+    "oos": {
+     "n": 167,
+     "win_pct": 13.17,
+     "pfnet": 0.2744301397602862,
+     "pfgross": 0.4162929673101033,
+     "avg_net_pct": -2.0203,
+     "avg_gross_pct": -1.2203,
+     "avg_held_bars": 41.14,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 139,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 24.25
+      },
+      "max_hold_timeout": {
+       "n": 28,
+       "pfnet": 6.633073631729598,
+       "win_pct": 78.57,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 10.29
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr1d5_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 755,
+    "win_pct": 16.69,
+    "pfnet": 0.335995808276639,
+    "pfgross": 0.49358929370858956,
+    "avg_net_pct": -1.9705,
+    "avg_gross_pct": -1.1705,
+    "avg_held_bars": 50.7,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 582,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 28.62
+     },
+     "max_hold_timeout": {
+      "n": 173,
+      "pfnet": 9.798538938645038,
+      "win_pct": 72.83,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 12.68,
+    "is": {
+     "n": 593,
+     "win_pct": 16.19,
+     "pfnet": 0.33544386192546793,
+     "pfgross": 0.4912070741564516,
+     "avg_net_pct": -1.9824,
+     "avg_gross_pct": -1.1824,
+     "avg_held_bars": 50.04,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 461,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 28.57
+      },
+      "max_hold_timeout": {
+       "n": 132,
+       "pfnet": 11.102168137239461,
+       "win_pct": 72.73,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 12.51
+    },
+    "oos": {
+     "n": 162,
+     "win_pct": 18.52,
+     "pfnet": 0.3380665318111701,
+     "pfgross": 0.5025375920475762,
+     "avg_net_pct": -1.9266,
+     "avg_gross_pct": -1.1266,
+     "avg_held_bars": 53.13,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 121,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 28.78
+      },
+      "max_hold_timeout": {
+       "n": 41,
+       "pfnet": 6.818232078099708,
+       "win_pct": 73.17,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 13.28
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr2d5_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 723,
+    "win_pct": 18.12,
+    "pfnet": 0.3385436148552867,
+    "pfgross": 0.4858168365690732,
+    "avg_net_pct": -2.1048,
+    "avg_gross_pct": -1.3048,
+    "avg_held_bars": 61.82,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 505,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 34.55
+     },
+     "max_hold_timeout": {
+      "n": 218,
+      "pfnet": 3.8215866302120984,
+      "win_pct": 60.09,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 15.46,
+    "is": {
+     "n": 561,
+     "win_pct": 18.0,
+     "pfnet": 0.34770579593243384,
+     "pfgross": 0.49888515571209846,
+     "avg_net_pct": -2.0592,
+     "avg_gross_pct": -1.2592,
+     "avg_held_bars": 62.28,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 391,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 35.02
+      },
+      "max_hold_timeout": {
+       "n": 170,
+       "pfnet": 4.056106434558043,
+       "win_pct": 59.41,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 15.57
+    },
+    "oos": {
+     "n": 162,
+     "win_pct": 18.52,
+     "pfnet": 0.3079052799573522,
+     "pfgross": 0.4424678697779131,
+     "avg_net_pct": -2.2626,
+     "avg_gross_pct": -1.4626,
+     "avg_held_bars": 60.23,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 114,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 32.96
+      },
+      "max_hold_timeout": {
+       "n": 48,
+       "pfnet": 3.1367186930498296,
+       "win_pct": 62.5,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 15.06
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr2d5_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 723,
+    "win_pct": 18.12,
+    "pfnet": 0.31881012721919905,
+    "pfgross": 0.4508252781377513,
+    "avg_net_pct": -2.3018,
+    "avg_gross_pct": -1.5018,
+    "avg_held_bars": 61.82,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 505,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 34.55
+     },
+     "max_hold_timeout": {
+      "n": 218,
+      "pfnet": 3.8215866302120984,
+      "win_pct": 60.09,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 15.46,
+    "is": {
+     "n": 561,
+     "win_pct": 18.0,
+     "pfnet": 0.32404991897896507,
+     "pfgross": 0.4569755759061478,
+     "avg_net_pct": -2.2897,
+     "avg_gross_pct": -1.4897,
+     "avg_held_bars": 62.28,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 391,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 35.02
+      },
+      "max_hold_timeout": {
+       "n": 170,
+       "pfnet": 4.056106434558043,
+       "win_pct": 59.41,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 15.57
+    },
+    "oos": {
+     "n": 162,
+     "win_pct": 18.52,
+     "pfnet": 0.3004635526502985,
+     "pfgross": 0.42921994773076355,
+     "avg_net_pct": -2.3436,
+     "avg_gross_pct": -1.5436,
+     "avg_held_bars": 60.23,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 114,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 32.96
+      },
+      "max_hold_timeout": {
+       "n": 48,
+       "pfnet": 3.1367186930498296,
+       "win_pct": 62.5,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 15.06
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr2d5_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 700,
+    "win_pct": 21.29,
+    "pfnet": 0.3653973255588404,
+    "pfgross": 0.5077245829205582,
+    "avg_net_pct": -2.2143,
+    "avg_gross_pct": -1.4143,
+    "avg_held_bars": 71.95,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 443,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 41.18
+     },
+     "max_hold_timeout": {
+      "n": 257,
+      "pfnet": 3.4823586255179113,
+      "win_pct": 57.98,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 17.99,
+    "is": {
+     "n": 542,
+     "win_pct": 20.85,
+     "pfnet": 0.37709739425920047,
+     "pfgross": 0.5223046137332144,
+     "avg_net_pct": -2.1661,
+     "avg_gross_pct": -1.3661,
+     "avg_held_bars": 71.98,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 343,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 41.22
+      },
+      "max_hold_timeout": {
+       "n": 199,
+       "pfnet": 3.6040776936436125,
+       "win_pct": 56.78,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 18.0
+    },
+    "oos": {
+     "n": 158,
+     "win_pct": 22.78,
+     "pfnet": 0.3258587569461496,
+     "pfgross": 0.4587141639398764,
+     "avg_net_pct": -2.3796,
+     "avg_gross_pct": -1.5796,
+     "avg_held_bars": 71.85,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 100,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 41.03
+      },
+      "max_hold_timeout": {
+       "n": 58,
+       "pfnet": 3.07608430390431,
+       "win_pct": 62.07,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 17.96
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr4d0_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 664,
+    "win_pct": 23.34,
+    "pfnet": 0.36000880080634967,
+    "pfgross": 0.4958005719664372,
+    "avg_net_pct": -2.3508,
+    "avg_gross_pct": -1.5508,
+    "avg_held_bars": 85.17,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 349,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 49.21
+     },
+     "max_hold_timeout": {
+      "n": 315,
+      "pfnet": 1.8852768462653013,
+      "win_pct": 49.21,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 21.29,
+    "is": {
+     "n": 510,
+     "win_pct": 23.33,
+     "pfnet": 0.3873057532094864,
+     "pfgross": 0.5322344428658047,
+     "avg_net_pct": -2.2029,
+     "avg_gross_pct": -1.4029,
+     "avg_held_bars": 86.17,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 264,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 49.99
+      },
+      "max_hold_timeout": {
+       "n": 246,
+       "pfnet": 1.9538438858726552,
+       "win_pct": 48.37,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 21.54
+    },
+    "oos": {
+     "n": 154,
+     "win_pct": 23.38,
+     "pfnet": 0.27731796552588944,
+     "pfgross": 0.3871122091964022,
+     "avg_net_pct": -2.8405,
+     "avg_gross_pct": -2.0405,
+     "avg_held_bars": 81.83,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 85,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 46.79
+      },
+      "max_hold_timeout": {
+       "n": 69,
+       "pfnet": 1.6415522259647992,
+       "win_pct": 52.17,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 20.46
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr4d0_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 664,
+    "win_pct": 23.34,
+    "pfnet": 0.3452805766442717,
+    "pfgross": 0.47176807197459386,
+    "avg_net_pct": -2.5074,
+    "avg_gross_pct": -1.7074,
+    "avg_held_bars": 85.17,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 349,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 49.21
+     },
+     "max_hold_timeout": {
+      "n": 315,
+      "pfnet": 1.8852768462653013,
+      "win_pct": 49.21,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 21.29,
+    "is": {
+     "n": 510,
+     "win_pct": 23.33,
+     "pfnet": 0.36871865941834725,
+     "pfgross": 0.501903060365636,
+     "avg_net_pct": -2.3841,
+     "avg_gross_pct": -1.5841,
+     "avg_held_bars": 86.17,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 264,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 49.99
+      },
+      "max_hold_timeout": {
+       "n": 246,
+       "pfnet": 1.9538438858726552,
+       "win_pct": 48.37,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 21.54
+    },
+    "oos": {
+     "n": 154,
+     "win_pct": 23.38,
+     "pfnet": 0.27210280965118694,
+     "pfgross": 0.37854687262718856,
+     "avg_net_pct": -2.9159,
+     "avg_gross_pct": -2.1159,
+     "avg_held_bars": 81.83,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 85,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 46.79
+      },
+      "max_hold_timeout": {
+       "n": 69,
+       "pfnet": 1.6415522259647992,
+       "win_pct": 52.17,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 20.46
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr4d0_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 642,
+    "win_pct": 26.01,
+    "pfnet": 0.39109053708223407,
+    "pfgross": 0.5339152555653544,
+    "avg_net_pct": -2.2669,
+    "avg_gross_pct": -1.4669,
+    "avg_held_bars": 93.32,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 289,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 54.63
+     },
+     "max_hold_timeout": {
+      "n": 353,
+      "pfnet": 1.679853794293314,
+      "win_pct": 47.31,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 23.33,
+    "is": {
+     "n": 492,
+     "win_pct": 26.42,
+     "pfnet": 0.42845057989796514,
+     "pfgross": 0.5833447029711484,
+     "avg_net_pct": -2.074,
+     "avg_gross_pct": -1.274,
+     "avg_held_bars": 95.0,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 215,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 56.35
+      },
+      "max_hold_timeout": {
+       "n": 277,
+       "pfnet": 1.7676205589887295,
+       "win_pct": 46.93,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 23.75
+    },
+    "oos": {
+     "n": 150,
+     "win_pct": 24.67,
+     "pfnet": 0.2807987489255684,
+     "pfgross": 0.38985689575504706,
+     "avg_net_pct": -2.8996,
+     "avg_gross_pct": -2.0996,
+     "avg_held_bars": 87.82,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 74,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 49.64
+      },
+      "max_hold_timeout": {
+       "n": 76,
+       "pfnet": 1.372814313413538,
+       "win_pct": 48.68,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 21.95
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr6d0_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 621,
+    "win_pct": 29.47,
+    "pfnet": 0.41129152866080415,
+    "pfgross": 0.562475663513946,
+    "avg_net_pct": -2.1873,
+    "avg_gross_pct": -1.3873,
+    "avg_held_bars": 103.85,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 197,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 58.32
+     },
+     "max_hold_timeout": {
+      "n": 424,
+      "pfnet": 1.1142173171650487,
+      "win_pct": 43.16,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 25.96,
+    "is": {
+     "n": 477,
+     "win_pct": 29.77,
+     "pfnet": 0.45366544173186907,
+     "pfgross": 0.6199792632125741,
+     "avg_net_pct": -1.9522,
+     "avg_gross_pct": -1.1522,
+     "avg_held_bars": 105.21,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 147,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 60.79
+      },
+      "max_hold_timeout": {
+       "n": 330,
+       "pfnet": 1.193981083195635,
+       "win_pct": 43.03,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 26.3
+    },
+    "oos": {
+     "n": 144,
+     "win_pct": 28.47,
+     "pfnet": 0.29148101675078397,
+     "pfgross": 0.40340857067609737,
+     "avg_net_pct": -2.966,
+     "avg_gross_pct": -2.166,
+     "avg_held_bars": 99.33,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 94,
+       "pfnet": 0.861072203325573,
+       "win_pct": 43.62,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 50,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 51.08
+      }
+     },
+     "avg_held_hours": 24.83
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr6d0_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 621,
+    "win_pct": 29.47,
+    "pfnet": 0.4031753719816824,
+    "pfgross": 0.5495134461422724,
+    "avg_net_pct": -2.2621,
+    "avg_gross_pct": -1.4621,
+    "avg_held_bars": 103.85,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 197,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 58.32
+     },
+     "max_hold_timeout": {
+      "n": 424,
+      "pfnet": 1.1142173171650487,
+      "win_pct": 43.16,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 25.96,
+    "is": {
+     "n": 477,
+     "win_pct": 29.77,
+     "pfnet": 0.4426481567851138,
+     "pfgross": 0.6023112954200155,
+     "avg_net_pct": -2.0411,
+     "avg_gross_pct": -1.2411,
+     "avg_held_bars": 105.21,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 147,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 60.79
+      },
+      "max_hold_timeout": {
+       "n": 330,
+       "pfnet": 1.193981083195635,
+       "win_pct": 43.03,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 26.3
+    },
+    "oos": {
+     "n": 144,
+     "win_pct": 28.47,
+     "pfnet": 0.28954828400011084,
+     "pfgross": 0.40032747745144837,
+     "avg_net_pct": -2.9939,
+     "avg_gross_pct": -2.1939,
+     "avg_held_bars": 99.33,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 94,
+       "pfnet": 0.861072203325573,
+       "win_pct": 43.62,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 50,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 51.08
+      }
+     },
+     "avg_held_hours": 24.83
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__fade_main1p__long__15m__atr6d0_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__fade__long__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "fade",
+   "direction": "long",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 613,
+    "win_pct": 30.83,
+    "pfnet": 0.42581971192941515,
+    "pfgross": 0.5816591778154435,
+    "avg_net_pct": -2.1279,
+    "avg_gross_pct": -1.3279,
+    "avg_held_bars": 108.65,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 162,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 63.15
+     },
+     "max_hold_timeout": {
+      "n": 451,
+      "pfnet": 1.0200422428734164,
+      "win_pct": 41.91,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 27.16,
+    "is": {
+     "n": 470,
+     "win_pct": 31.49,
+     "pfnet": 0.473072692715135,
+     "pfgross": 0.6465957974540006,
+     "avg_net_pct": -1.8654,
+     "avg_gross_pct": -1.0654,
+     "avg_held_bars": 110.36,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 116,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 65.67
+      },
+      "max_hold_timeout": {
+       "n": 354,
+       "pfnet": 1.072657272123803,
+       "win_pct": 41.81,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 27.59
+    },
+    "oos": {
+     "n": 143,
+     "win_pct": 28.67,
+     "pfnet": 0.2964765075816187,
+     "pfgross": 0.4076765453961854,
+     "avg_net_pct": -2.9906,
+     "avg_gross_pct": -2.1906,
+     "avg_held_bars": 103.06,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 97,
+       "pfnet": 0.8400663203644847,
+       "win_pct": 42.27,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 46,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 56.78
+      }
+     },
+     "avg_held_hours": 25.77
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr1d5_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 769,
+    "win_pct": 19.9,
+    "pfnet": 0.5324208284094476,
+    "pfgross": 0.8285798490810952,
+    "avg_net_pct": -1.0916,
+    "avg_gross_pct": -0.2916,
+    "avg_held_bars": 42.64,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 594,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 18.38
+     },
+     "max_hold_timeout": {
+      "n": 175,
+      "pfnet": 47.071814298360756,
+      "win_pct": 87.43,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 10.66,
+    "is": {
+     "n": 598,
+     "win_pct": 20.4,
+     "pfnet": 0.5638009566082527,
+     "pfgross": 0.8820946138278123,
+     "avg_net_pct": -0.9949,
+     "avg_gross_pct": -0.1949,
+     "avg_held_bars": 43.94,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 457,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 18.93
+      },
+      "max_hold_timeout": {
+       "n": 141,
+       "pfnet": 43.874543575055625,
+       "win_pct": 86.52,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 10.98
+    },
+    "oos": {
+     "n": 171,
+     "win_pct": 18.13,
+     "pfnet": 0.43320235794113415,
+     "pfgross": 0.66315288473316,
+     "avg_net_pct": -1.4298,
+     "avg_gross_pct": -0.6298,
+     "avg_held_bars": 38.1,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 34,
+       "pfnet": 67.23339987572506,
+       "win_pct": 91.18,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 137,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 16.53
+      }
+     },
+     "avg_held_hours": 9.53
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr1d5_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 769,
+    "win_pct": 19.9,
+    "pfnet": 0.47758909288588747,
+    "pfgross": 0.7157895452106736,
+    "avg_net_pct": -1.3596,
+    "avg_gross_pct": -0.5596,
+    "avg_held_bars": 42.64,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 594,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 18.38
+     },
+     "max_hold_timeout": {
+      "n": 175,
+      "pfnet": 47.071814298360756,
+      "win_pct": 87.43,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 10.66,
+    "is": {
+     "n": 598,
+     "win_pct": 20.4,
+     "pfnet": 0.50101733343831,
+     "pfgross": 0.752041563014821,
+     "avg_net_pct": -1.2807,
+     "avg_gross_pct": -0.4807,
+     "avg_held_bars": 43.94,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 457,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 18.93
+      },
+      "max_hold_timeout": {
+       "n": 141,
+       "pfnet": 43.874543575055625,
+       "win_pct": 86.52,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 10.98
+    },
+    "oos": {
+     "n": 171,
+     "win_pct": 18.13,
+     "pfnet": 0.40051945019684637,
+     "pfgross": 0.5973826182189214,
+     "avg_net_pct": -1.6356,
+     "avg_gross_pct": -0.8356,
+     "avg_held_bars": 38.1,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 34,
+       "pfnet": 67.23339987572506,
+       "win_pct": 91.18,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 137,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 16.53
+      }
+     },
+     "avg_held_hours": 9.53
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr1d5_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr1d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "1d5",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 732,
+    "win_pct": 26.91,
+    "pfnet": 0.566277794923471,
+    "pfgross": 0.8166201002285153,
+    "avg_net_pct": -1.2034,
+    "avg_gross_pct": -0.4034,
+    "avg_held_bars": 54.47,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 510,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 23.77
+     },
+     "max_hold_timeout": {
+      "n": 222,
+      "pfnet": 56.55593878135085,
+      "win_pct": 88.74,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 13.62,
+    "is": {
+     "n": 571,
+     "win_pct": 27.32,
+     "pfnet": 0.5872320386300507,
+     "pfgross": 0.8506588583588381,
+     "avg_net_pct": -1.12,
+     "avg_gross_pct": -0.32,
+     "avg_held_bars": 55.74,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 394,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 24.62
+      },
+      "max_hold_timeout": {
+       "n": 177,
+       "pfnet": 49.81155105807657,
+       "win_pct": 88.14,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 13.94
+    },
+    "oos": {
+     "n": 161,
+     "win_pct": 25.47,
+     "pfnet": 0.4988771410374614,
+     "pfgross": 0.7089590771442765,
+     "avg_net_pct": -1.4992,
+     "avg_gross_pct": -0.6992,
+     "avg_held_bars": 49.99,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 45,
+       "pfnet": 116.04782139117522,
+       "win_pct": 91.11,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 116,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 20.89
+      }
+     },
+     "avg_held_hours": 12.5
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr2d5_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 707,
+    "win_pct": 31.68,
+    "pfnet": 0.6502487609085011,
+    "pfgross": 0.9299630232710366,
+    "avg_net_pct": -0.9534,
+    "avg_gross_pct": -0.1534,
+    "avg_held_bars": 65.56,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 438,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 29.06
+     },
+     "max_hold_timeout": {
+      "n": 269,
+      "pfnet": 19.749413933917527,
+      "win_pct": 83.27,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 16.39,
+    "is": {
+     "n": 548,
+     "win_pct": 32.3,
+     "pfnet": 0.6765494133940398,
+     "pfgross": 0.9768436336889836,
+     "avg_net_pct": -0.8485,
+     "avg_gross_pct": -0.0485,
+     "avg_held_bars": 66.06,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 336,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 28.87
+      },
+      "max_hold_timeout": {
+       "n": 212,
+       "pfnet": 21.04219985866271,
+       "win_pct": 83.49,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 16.52
+    },
+    "oos": {
+     "n": 159,
+     "win_pct": 29.56,
+     "pfnet": 0.573051979104162,
+     "pfgross": 0.7959000610487363,
+     "avg_net_pct": -1.3151,
+     "avg_gross_pct": -0.5151,
+     "avg_held_bars": 63.86,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 57,
+       "pfnet": 16.282818019234863,
+       "win_pct": 82.46,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 102,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 29.69
+      }
+     },
+     "avg_held_hours": 15.96
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr2d5_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 707,
+    "win_pct": 31.68,
+    "pfnet": 0.6036329257191384,
+    "pfgross": 0.8484332750908745,
+    "avg_net_pct": -1.164,
+    "avg_gross_pct": -0.364,
+    "avg_held_bars": 65.56,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 438,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 29.06
+     },
+     "max_hold_timeout": {
+      "n": 269,
+      "pfnet": 19.749413933917527,
+      "win_pct": 83.27,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 16.39,
+    "is": {
+     "n": 548,
+     "win_pct": 32.3,
+     "pfnet": 0.6198674006389638,
+     "pfgross": 0.8764480795775841,
+     "avg_net_pct": -1.0884,
+     "avg_gross_pct": -0.2884,
+     "avg_held_bars": 66.06,
+     "exit_reasons": {
+      "stop_hit": {
+       "n": 336,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 28.87
+      },
+      "max_hold_timeout": {
+       "n": 212,
+       "pfnet": 21.04219985866271,
+       "win_pct": 83.49,
+       "avg_held_bars": 125.0
+      }
+     },
+     "avg_held_hours": 16.52
+    },
+    "oos": {
+     "n": 159,
+     "win_pct": 29.56,
+     "pfnet": 0.5534076016323689,
+     "pfgross": 0.7628511133306385,
+     "avg_net_pct": -1.4245,
+     "avg_gross_pct": -0.6245,
+     "avg_held_bars": 63.86,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 57,
+       "pfnet": 16.282818019234863,
+       "win_pct": 82.46,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 102,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 29.69
+      }
+     },
+     "avg_held_hours": 15.96
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr2d5_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr2d5_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "2d5",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 676,
+    "win_pct": 40.38,
+    "pfnet": 0.76488825323189,
+    "pfgross": 1.0588033324550572,
+    "avg_net_pct": -0.6617,
+    "avg_gross_pct": 0.1383,
+    "avg_held_bars": 80.05,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 333,
+      "pfnet": 16.416638450379182,
+      "win_pct": 81.98,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 343,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 36.42
+     }
+    },
+    "avg_held_hours": 20.01,
+    "is": {
+     "n": 527,
+     "win_pct": 39.09,
+     "pfnet": 0.7479064548216636,
+     "pfgross": 1.0454063232749522,
+     "avg_net_pct": -0.6961,
+     "avg_gross_pct": 0.1039,
+     "avg_held_bars": 79.12,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 255,
+       "pfnet": 15.949750402905481,
+       "win_pct": 80.78,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 272,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 36.11
+      }
+     },
+     "avg_held_hours": 19.78
+    },
+    "oos": {
+     "n": 149,
+     "win_pct": 44.97,
+     "pfnet": 0.8201015695392012,
+     "pfgross": 1.1009943808539542,
+     "avg_net_pct": -0.5403,
+     "avg_gross_pct": 0.2597,
+     "avg_held_bars": 83.34,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 78,
+       "pfnet": 17.976963150271697,
+       "win_pct": 85.9,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 71,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 37.58
+      }
+     },
+     "avg_held_hours": 20.84
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr4d0_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 652,
+    "win_pct": 42.94,
+    "pfnet": 0.7919948570254677,
+    "pfgross": 1.0838790133185017,
+    "avg_net_pct": -0.5964,
+    "avg_gross_pct": 0.2036,
+    "avg_held_bars": 88.64,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 369,
+      "pfnet": 8.069827739089849,
+      "win_pct": 75.88,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 283,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 41.22
+     }
+    },
+    "avg_held_hours": 22.16,
+    "is": {
+     "n": 507,
+     "win_pct": 41.22,
+     "pfnet": 0.7459740268240266,
+     "pfgross": 1.0291346035431561,
+     "avg_net_pct": -0.7295,
+     "avg_gross_pct": 0.0705,
+     "avg_held_bars": 86.88,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 277,
+       "pfnet": 8.571486409757318,
+       "win_pct": 75.45,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 230,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.97
+      }
+     },
+     "avg_held_hours": 21.72
+    },
+    "oos": {
+     "n": 145,
+     "win_pct": 48.97,
+     "pfnet": 0.9540258270068688,
+     "pfgross": 1.2727908966254795,
+     "avg_net_pct": -0.1311,
+     "avg_gross_pct": 0.6689,
+     "avg_held_bars": 94.79,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 92,
+       "pfnet": 6.950015715438474,
+       "win_pct": 77.17,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 53,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 42.34
+      }
+     },
+     "avg_held_hours": 23.7
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr4d0_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 652,
+    "win_pct": 42.94,
+    "pfnet": 0.7619613433099178,
+    "pfgross": 1.0356523765196208,
+    "avg_net_pct": -0.7094,
+    "avg_gross_pct": 0.0906,
+    "avg_held_bars": 88.64,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 369,
+      "pfnet": 8.069827739089849,
+      "win_pct": 75.88,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 283,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 41.22
+     }
+    },
+    "avg_held_hours": 22.16,
+    "is": {
+     "n": 507,
+     "win_pct": 41.22,
+     "pfnet": 0.7118822543133273,
+     "pfgross": 0.9737928796982515,
+     "avg_net_pct": -0.867,
+     "avg_gross_pct": -0.067,
+     "avg_held_bars": 86.88,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 277,
+       "pfnet": 8.571486409757318,
+       "win_pct": 75.45,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 230,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.97
+      }
+     },
+     "avg_held_hours": 21.72
+    },
+    "oos": {
+     "n": 145,
+     "win_pct": 48.97,
+     "pfnet": 0.9449709398194307,
+     "pfgross": 1.2587618310037534,
+     "avg_net_pct": -0.1584,
+     "avg_gross_pct": 0.6416,
+     "avg_held_bars": 94.79,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 92,
+       "pfnet": 6.950015715438474,
+       "win_pct": 77.17,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 53,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 42.34
+      }
+     },
+     "avg_held_hours": 23.7
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr4d0_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr4d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "4d0",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 627,
+    "win_pct": 47.85,
+    "pfnet": 0.8947250769907233,
+    "pfgross": 1.2163544369730506,
+    "avg_net_pct": -0.29,
+    "avg_gross_pct": 0.51,
+    "avg_held_bars": 99.21,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 413,
+      "pfnet": 6.427128407903585,
+      "win_pct": 72.64,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 214,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 49.43
+     }
+    },
+    "avg_held_hours": 24.8,
+    "is": {
+     "n": 488,
+     "win_pct": 46.52,
+     "pfnet": 0.8679040310603965,
+     "pfgross": 1.189936697239679,
+     "avg_net_pct": -0.3598,
+     "avg_gross_pct": 0.4402,
+     "avg_held_bars": 98.34,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 314,
+       "pfnet": 6.7195470973817075,
+       "win_pct": 72.29,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 174,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 50.23
+      }
+     },
+     "avg_held_hours": 24.59
+    },
+    "oos": {
+     "n": 139,
+     "win_pct": 52.52,
+     "pfnet": 0.9843154327186219,
+     "pfgross": 1.3024517384973786,
+     "avg_net_pct": -0.0449,
+     "avg_gross_pct": 0.7551,
+     "avg_held_bars": 102.24,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 99,
+       "pfnet": 5.696947752590068,
+       "win_pct": 73.74,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 40,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 45.92
+      }
+     },
+     "avg_held_hours": 25.56
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr6d0_flstop_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "stop",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 612,
+    "win_pct": 50.49,
+    "pfnet": 0.9325511802062393,
+    "pfgross": 1.266172623619918,
+    "avg_net_pct": -0.182,
+    "avg_gross_pct": 0.618,
+    "avg_held_bars": 106.45,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 463,
+      "pfnet": 3.3879364294472243,
+      "win_pct": 66.74,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 149,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 48.83
+     }
+    },
+    "avg_held_hours": 26.61,
+    "is": {
+     "n": 472,
+     "win_pct": 49.79,
+     "pfnet": 0.9216341793461618,
+     "pfgross": 1.2635938553099497,
+     "avg_net_pct": -0.2063,
+     "avg_gross_pct": 0.5937,
+     "avg_held_bars": 106.07,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 353,
+       "pfnet": 3.453065956563532,
+       "win_pct": 66.57,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 119,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 49.93
+      }
+     },
+     "avg_held_hours": 26.52
+    },
+    "oos": {
+     "n": 140,
+     "win_pct": 52.86,
+     "pfnet": 0.9656890831283423,
+     "pfgross": 1.2738367027687507,
+     "avg_net_pct": -0.1003,
+     "avg_gross_pct": 0.6997,
+     "avg_held_bars": 107.74,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 110,
+       "pfnet": 3.2124083026296293,
+       "win_pct": 67.27,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 30,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 44.43
+      }
+     },
+     "avg_held_hours": 26.93
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr6d0_flgap_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "gap_aware",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 612,
+    "win_pct": 50.49,
+    "pfnet": 0.9067346188840631,
+    "pfgross": 1.2256065086594197,
+    "avg_net_pct": -0.2589,
+    "avg_gross_pct": 0.5411,
+    "avg_held_bars": 106.45,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 463,
+      "pfnet": 3.3879364294472243,
+      "win_pct": 66.74,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 149,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 48.83
+     }
+    },
+    "avg_held_hours": 26.61,
+    "is": {
+     "n": 472,
+     "win_pct": 49.79,
+     "pfnet": 0.8891327848792225,
+     "pfgross": 1.2118258728445677,
+     "avg_net_pct": -0.3025,
+     "avg_gross_pct": 0.4975,
+     "avg_held_bars": 106.07,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 353,
+       "pfnet": 3.453065956563532,
+       "win_pct": 66.57,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 119,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 49.93
+      }
+     },
+     "avg_held_hours": 26.52
+    },
+    "oos": {
+     "n": 140,
+     "win_pct": 52.86,
+     "pfnet": 0.9618996666361099,
+     "pfgross": 1.2681204070679049,
+     "avg_net_pct": -0.1118,
+     "avg_gross_pct": 0.6882,
+     "avg_held_bars": 107.74,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 110,
+       "pfnet": 3.2124083026296293,
+       "win_pct": 67.27,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 30,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 44.43
+      }
+     },
+     "avg_held_hours": 26.93
+    },
+    "is_oos_split_bar": 1050
+   }
+  },
+  {
+   "tag": "sector_rotation__momentum_main1p__short__15m__atr6d0_flclose_h125_l1_n1__v1",
+   "source_tag": "sector_rotation__momentum__short__15m__atr6d0_h125_l1_n1__v1",
+   "variant": "momentum",
+   "direction": "short",
+   "tf": "15m",
+   "uni": "full",
+   "atr": "6d0",
+   "fill": "close",
+   "hold_bars": 125,
+   "L": 1,
+   "N": 1,
+   "entry": "next_open",
+   "one_position_per_symbol": true,
+   "metrics": {
+    "n": 600,
+    "win_pct": 53.33,
+    "pfnet": 1.0663794374805216,
+    "pfgross": 1.4524806960544687,
+    "avg_net_pct": 0.1649,
+    "avg_gross_pct": 0.9649,
+    "avg_held_bars": 112.29,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 494,
+      "pfnet": 2.935330908878981,
+      "win_pct": 64.78,
+      "avg_held_bars": 125.0
+     },
+     "stop_hit": {
+      "n": 106,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 53.04
+     }
+    },
+    "avg_held_hours": 28.07,
+    "is": {
+     "n": 465,
+     "win_pct": 52.47,
+     "pfnet": 1.033536754156931,
+     "pfgross": 1.4177952651703114,
+     "avg_net_pct": 0.0828,
+     "avg_gross_pct": 0.8828,
+     "avg_held_bars": 111.96,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 379,
+       "pfnet": 2.9384815102800013,
+       "win_pct": 64.38,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 86,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 54.48
+      }
+     },
+     "avg_held_hours": 27.99
+    },
+    "oos": {
+     "n": 135,
+     "win_pct": 56.3,
+     "pfnet": 1.1766047270576063,
+     "pfgross": 1.5672546264220641,
+     "avg_net_pct": 0.4477,
+     "avg_gross_pct": 1.2477,
+     "avg_held_bars": 113.42,
+     "exit_reasons": {
+      "max_hold_timeout": {
+       "n": 115,
+       "pfnet": 2.926081905667668,
+       "win_pct": 66.09,
+       "avg_held_bars": 125.0
+      },
+      "stop_hit": {
+       "n": 20,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 46.85
+      }
+     },
+     "avg_held_hours": 28.36
+    },
+    "is_oos_split_bar": 1050
+   }
+  }
+ ],
+ "universe_size": 2103,
+ "bars": 1500,
+ "first_bar": "2026-08-10 09:15:00+05:30",
+ "last_bar": "2026-11-04 15:15:00+05:30",
+ "tf": "15m",
+ "uni": "full",
+ "entry": "next_open",
+ "cost_round_trip_pct": 0.8,
+ "synthetic": false,
+ "bars_dropped_glitch": 4,
+ "universe_requested": "main._load_nse_universe_from_file()",
+ "picks_source": "main.sector_rotation_cell_picks (real; strong=sector_rotation_picks, weak=sector_rotation_weak_picks)",
+ "atr_source": "main._atr_series (real, 14 bars of this tf, read at signal bar t)",
+ "exit_source": "main.sector_rotation_cell_stop + main.sector_rotation_cell_exit_reason (real)",
+ "bar_count_note": "hold H and lookback L are in BARS of this tf"
+}
