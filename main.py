@@ -25426,7 +25426,7 @@ def _run_swing_scan_pass(conn):
                 _SWING_LAST_CLOSE[symbol] = float(df["Close"].iloc[-1])
             except Exception:
                 pass
-            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS:
+            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS:
                 continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
             # chandelier-trail exit as the base minervini_vcp entry (see
@@ -26992,6 +26992,93 @@ def _chan_kalman_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0
     return None
 
 
+# ---- B-1471: brk20_min_rr LONG 1h in the SWING engine's 1h leg, wired on the POOLED bar (user 2026-11-05: pooled decides
+# wiring). main.py replay (scripts/brk20_replay.py, full NSE universe, 1h 730d, 0.8% cost): atr4_rr4 PFnet 1.700, n 1112,
+# avg hold 15.3 market hours (OOS 0.721 for the record). One cell per entry signal: rr4 is the pooled best; the be1 twin
+# (1.708) shares the entry and differs only by a breakeven ratchet, so it is not wired. Signal = close above the prior
+# 20-bar high with >= 4R of room; stop = entry - 4xATR on EVERY trade; exit on the gap-aware stop, the EMA13 rule exit or
+# the close of bar 30 after the fill. Appended after chan_kalman in the 1h chain; no new switch.
+BRK20_1H_LONG_TAG = "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1"
+BRK20_1H_LONG_CELLS = {BRK20_1H_LONG_TAG: (4.0, 4.0, BRK20_MAX_HOLD_BARS)}  # tag -> (ATR stop multiple, min R:R, hold bars)
+for _t in BRK20_1H_LONG_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
+
+
+def brk20_1h_long_entry_signal(df1h: pd.DataFrame, tag: str) -> dict | None:
+    """Last completed 1h bar signal for a BRK20_1H_LONG_CELLS tag; None when no signal, unknown tag or no valid stop."""
+    cfg = BRK20_1H_LONG_CELLS.get(tag)
+    if cfg is None or df1h is None or len(df1h) == 0:
+        return None
+    k, rr, _hold = cfg
+    sig = brk20_min_rr_entry_signal(df1h, "long", atr_mult=k, min_rr=rr)
+    if not sig:
+        return None
+    px, stop = float(sig["entry_price"]), float(sig["stop_loss"])
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": stop, "atr_at_entry": float(sig["atr_at_entry"]), "risk": px - stop,
+            "direction": "long"}
+
+
+def _brk20_long_1h_exit(df, pos):
+    """(reason, exit_px) via the real brk20_min_rr_exit_reason, replayed bar by bar from the first bar after the signal
+    bar (entry_day = the signal bar's Date); None while open."""
+    cfg = BRK20_1H_LONG_CELLS.get(pos["strategy"])
+    if cfg is None or len(df) == 0:
+        return None
+    _k, _rr, hold = cfg
+    dates = df["Date"].astype(str).to_numpy()
+    idx = np.flatnonzero(dates <= str(pos["entry_day"]))
+    if len(idx) == 0 or int(idx[-1]) + 1 >= len(df):
+        return None
+    start = int(idx[-1]) + 1
+    fill = str(dates[start])
+    for j in range(start, len(df)):
+        r, px = brk20_min_rr_exit_reason(df.iloc[: j + 1], fill, float(pos["entry_price"]), float(pos["initial_stop_loss"]),
+                                         "long", be_r=None, max_hold_bars=hold)
+        if r:
+            return "brk20_" + r, float(px)
+    return None
+
+
+def _brk20_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -> str | None:
+    """Opens at most one brk20 1h long position (scan recorded; gate checked only after a trigger)."""
+    for tag in BRK20_1H_LONG_CELLS:
+        _record_strategy_scan(tag)
+        sig = brk20_1h_long_entry_signal(df1h, tag)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, str(df1h["Date"].iloc[-1]), entry_price, stop_loss, None, qty, time.time(), fx,
+             sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 1h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
 def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
     """The 1h long-swing cells (macddiv, envelope, cup-cheat) on an already-fetched hourly frame."""
     for t in MACDDIV_LONG_LIVE_CELLS:
@@ -27002,6 +27089,8 @@ def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
         _scan_cell(t, (lambda t=t: cup_cheat_3c_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
     for t in CHAN_KALMAN_1H_CELLS:
         _scan_cell(t, (lambda t=t: chan_kalman_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+    for t in BRK20_1H_LONG_CELLS:
+        _scan_cell(t, (lambda t=t: brk20_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
 
 
 def _with_held_1h_long_symbols(conn, symbols: list) -> list:
@@ -27009,7 +27098,7 @@ def _with_held_1h_long_symbols(conn, symbols: list) -> list:
     (NIFTY-200), so a held symbol outside it (GSEC5IETF, an ETF) never had its strategy exit evaluated."""
     out, seen = list(symbols), set(symbols)
     try:
-        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS)
+        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
         for r in conn.execute("SELECT symbol, strategy FROM signal_state_swing").fetchall():
             if r[1] in cells and r[0] not in seen:
                 out.append(r[0])
@@ -27026,7 +27115,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
     for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS) \
+            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS and pos["strategy"] not in BRK20_1H_LONG_CELLS) \
                     or (pos is None and symbol in done_syms):
                 try:  # B-1275: another engine's position / done today: every 1h cell still scanned + trigger evaluated, no order
                     _df_scan = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
@@ -27047,6 +27136,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                     ex = _cup_cheat_long_1h_exit(df, pos)
                 elif pos["strategy"] in CHAN_KALMAN_1H_CELLS:
                     ex = _chan_kalman_long_1h_exit(df, pos)
+                elif pos["strategy"] in BRK20_1H_LONG_CELLS:
+                    ex = _brk20_long_1h_exit(df, pos)
                 else:
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
@@ -27057,7 +27148,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
             if _macddiv_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:
                 if _envelope_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1264
                     if _cup_cheat_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1266
-                        _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1465: LAST of the 1h chain
+                        if _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1465
+                            _brk20_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1471: LAST of the 1h chain
         except Exception as e:
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
@@ -28614,7 +28706,7 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     if _orphan_1h_state_last_day == today:
         return []
     fetch = fetch or fetch_ohlc
-    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS)
+    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
     orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
                if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
     if not orphans:
@@ -30931,6 +31023,8 @@ _SWING_SL_RULES = {
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the Kalman state exit or the close of 1h bar {h})"
        for _t, (_z, _v, k, h) in CHAN_KALMAN_1H_CELLS.items()},
+    **{_t: f"entry - {k:g}xATR, frozen (exit also on the EMA13 rule exit or the close of 1h bar {h} after the fill)"
+       for _t, (k, _rr, h) in BRK20_1H_LONG_CELLS.items()},
 }
 
 
@@ -30984,6 +31078,8 @@ def _strategy_hold_spec(tag):
         return int(MINERVINI_LAB_LIVE_CELLS[tag][2]), tf
     if tag in CHAN_KALMAN_1H_CELLS:
         return int(CHAN_KALMAN_1H_CELLS[tag][3]), tf
+    if tag in BRK20_1H_LONG_CELLS:
+        return int(BRK20_1H_LONG_CELLS[tag][2]), tf
     if tag in CHAN_SHAPE_CELLS:
         return int(CHAN_SHAPE_CELLS[tag][1]), tf
     if tag in _PATTERN_LIVE_TAGS:
