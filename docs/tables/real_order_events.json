@@ -18851,7 +18851,115 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1572,
+   "ts": 1793850404.6665986,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1573,
+   "ts": 1793850404.8582292,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1574,
+   "ts": 1793850404.8690798,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1575,
+   "ts": 1793850412.985,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1580,
+   "ts": 1793850413.0302796,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1577,
+   "ts": 1793850413.0399635,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1578,
+   "ts": 1793850413.0949247,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1576,
+   "ts": 1793850413.097037,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1579,
+   "ts": 1793850413.1497986,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "skipped",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
   }
  ],
- "synced_at_utc": "2026-11-05T03:46:48Z"
+ "synced_at_utc": "2026-11-05T03:47:06Z"
 }
