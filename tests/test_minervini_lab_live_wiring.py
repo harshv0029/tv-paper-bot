@@ -23,11 +23,11 @@ def _frame(n=300, end="2026-10-30"):
 
 def test_registry_owner_bar_and_gate():
     names = {s.name: s for s in sr.REGISTRY}
-    assert len(CELLS) == 3
+    assert len(CELLS) == 28  # B-1471: 3 (pooled + OOS) + 25 on the pooled bar
     for t, (_f, _w, maxh) in CELLS.items():
         m = names[t].metrics
         assert m.pfnet > 1.0 and m.n_trades >= 30 and m.avg_held_bars <= 30, t
-        assert names[t.replace("__v1", "_segoos__v1")].metrics.pfnet > 1.0, t
+        assert t.replace("__v1", "_segoos__v1") in names, t  # OOS kept for the record; pooled decides (B-1471)
         assert f"__h{maxh}__" in t and main._strategy_hold_spec(t)[0] == maxh
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t and t not in main.REPLAY_OWED_TAGS
         assert main._is_strategy_viable_for_real_money(t, check_switch=False) is True
@@ -91,4 +91,4 @@ def test_blocked_trigger_when_gate_closed(monkeypatch):
                         lambda df, t: {"entry_price": 10.0, "stop_loss": 9.2, "atr_at_entry": 0.25})
     monkeypatch.setattr(main, "_is_strategy_wired", lambda t, check_switch=True: False)
     assert main._minervini_lab_live_try_entry(None, "X.NS", None, 1e5, 0.01, "2026-10-30", 1.0) is False
-    assert sum(main._strategy_blocked_triggers.get(t, 0) for t in CELLS) == 3
+    assert sum(main._strategy_blocked_triggers.get(t, 0) for t in CELLS) == len(CELLS)

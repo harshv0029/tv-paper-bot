@@ -20,8 +20,8 @@ def _prep(monkeypatch):
 def test_chan_long_cells_record_scans(monkeypatch):
     df = _prep(monkeypatch)
     main._chan_long_try_entry(None, "X.NS", df, 0, 1.0, "2026-10-14", "5m", 1e5, 1.0, 1.0, "INR", {})
-    for t in main.CHAN_LONG_CELLS:
-        assert main._strategy_scan_counts.get(t) == 1
+    for t in main.CHAN_LONG_CELLS:  # B-1470: 15m cells are scanned on the 15m frame only
+        assert main._strategy_scan_counts.get(t) == (1 if main.CHAN_LONG_CELL_INTERVAL[t] == "5m" else None)
 
 
 def test_chan_short_cells_record_scans_for_their_interval(monkeypatch):

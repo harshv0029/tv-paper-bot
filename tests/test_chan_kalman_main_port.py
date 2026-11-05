@@ -150,7 +150,7 @@ def test_port_is_unwired():
     tags = set(main._STRATEGY_TAG_TO_REGISTRY_NAME) | set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
     # the v2 fl1515 tags (a different, already-wired family) are allowed; no v1 band / srcmain tag may be mapped
     # B-1467: only the replay-cleared CHAN_KALMAN_1D_CELLS tag is wired; every other v1 band / srcmain tag stays unmapped
-    wired = set(main.CHAN_KALMAN_1D_CELLS) | set(main.CHAN_KALMAN_1H_CELLS)  # B-1465: + the 1h cell
+    wired = set(main.CHAN_KALMAN_1D_CELLS) | set(main.CHAN_KALMAN_1H_CELLS) | {t for t in main.CHAN_LONG_CELLS if "band_srcmain" in t}  # B-1465 1h; B-1470 15m long
     assert not any(("band_srcmain" in t or (t.startswith("chan_kalman__band__") and t.endswith("__v1"))) and t not in wired
                    for t in tags)
     src = inspect.getsource(main)
