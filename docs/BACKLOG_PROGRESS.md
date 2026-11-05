@@ -551,7 +551,7 @@ Total rows: 1244 | closed: 589 | not closed: 655
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, follow-up |
 | B-1482 | P1 | OPEN | 2026-11-05 | needs, follow-up |
 | B-1484 | P1 | IN | 2026-11-05 | needs |
-| B-1485 | P1 | OPEN | 2026-11-05 |  |
+| B-1485 | P1 | OPEN | 2026-11-05 | owed |
 | B-1486 | P1 | OPEN | 2026-11-05 |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
