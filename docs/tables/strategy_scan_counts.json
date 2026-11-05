@@ -17168,7 +17168,7 @@
   {
    "day": "2026-11-05",
    "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-   "n": 74
+   "n": 75
   },
   {
    "day": "2026-11-05",
@@ -17258,147 +17258,147 @@
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16975
+   "n": 16980
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16971
+   "n": 16976
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16927
+   "n": 16932
   },
   {
    "day": "2026-11-05",
    "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16927
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16927
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16968
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16927
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16946
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16949
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16967
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16946
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 16949
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 16968
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 16949
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
-   "n": 16968
-  },
-  {
-   "day": "2026-11-05",
-   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
    "n": 16972
   },
   {
    "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "n": 16932
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "n": 16972
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "n": 16932
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "n": 16972
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "n": 16973
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "n": 16932
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "n": 16972
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "n": 16972
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "n": 16951
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "n": 16954
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "n": 16972
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "n": 16951
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "n": 16954
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "n": 16973
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "n": 16954
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
+   "n": 16973
+  },
+  {
+   "day": "2026-11-05",
+   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "n": 16977
+  },
+  {
+   "day": "2026-11-05",
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve1d0e4_z2d0__v1",
-   "n": 16967
+   "n": 16972
   },
   {
    "day": "2026-11-05",
@@ -18493,7 +18493,7 @@
   {
    "day": "2026-11-05",
    "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
-   "n": 74
+   "n": 75
   },
   {
    "day": "2026-11-05",
@@ -19143,7 +19143,7 @@
   {
    "day": "2026-11-05",
    "tag": "sma_crossover__gc__long__1d__atrnone__v1",
-   "n": 74
+   "n": 75
   },
   {
    "day": "2026-11-05",
@@ -19386,5 +19386,5 @@
    "n": 26
   }
  ],
- "synced_at_utc": "2026-11-05T12:16:45Z"
+ "synced_at_utc": "2026-11-05T12:17:53Z"
 }
