@@ -26548,6 +26548,10 @@ def _bandcap_live_failed_tags() -> frozenset:
             d = _j.load(open(f))
             rid = int(d.get("run_id") or 0)
             for r in d.get("rows", []):
+                # B-1484: trail-overlay rows (band_cap live_<rule>) share the base tag; only the live FIXED row
+                # (band_cap "live") re-measures the tag as it trades today, so a losing trail never closes the gate.
+                if (r.get("band_cap") or "live") != "live":
+                    continue
                 m = r.get("live") or {}
                 if m.get("pfnet") is None or int(m.get("n") or 0) < 1:
                     continue
