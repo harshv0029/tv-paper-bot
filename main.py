@@ -1274,6 +1274,21 @@ def init_db():
             )
             """
         )
+        # B-1486 (2026-11-05): peak-LTP trail state of the swing cells in SWING_PEAK_LTP_TRAIL_CELLS (long: highest HIGH)
+        # and SHORT_SWING_PEAK_LTP_TRAIL_CELLS (short: lowest LOW) of the COMPLETED daily bars after entry_day. Written by
+        # the daily swing pass (only ever tightens for the same entry_day), read by every SL re-place path. Upstash T1.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS swing_trail_peak (
+                symbol TEXT NOT NULL,
+                side TEXT NOT NULL,        -- 'long' | 'short'
+                entry_day TEXT NOT NULL,   -- the position this peak belongs to (a stale row never applies)
+                peak REAL NOT NULL,
+                updated_at REAL,
+                PRIMARY KEY (symbol, side)
+            )
+            """
+        )
         # B-1443 (2026-11-02): durable Kotak fill ledger for View 4's ROC KPIs. Kotak positions() is today-only, so
         # each IST day's filled buy/sell qty and value per trading symbol + product is upserted here from Kotak's own
         # numbers (never shrinks within a day), plus one-time 'opening' rows for holdings open when the ledger began
@@ -22746,7 +22761,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
-    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger",
+    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -22765,7 +22780,7 @@ _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
 # strategy_viable_stack have their own dedicated mirrors and are not in this generic loop.
 _GENERIC_MIRROR_T1 = ("trading_control", "real_trading_control", "positions", "signal_state", "signal_state_short",
                       "real_fo_positions", "option_state", "signal_state_swing_short", "real_positions_swing_short",
-                      "swing_entry_stop")
+                      "swing_entry_stop", "swing_trail_peak")
 _GENERIC_MIRROR_UPSTASH_TABLES = tuple(sorted((t for t in _GENERIC_MIRROR_TABLES if t not in _GENERIC_MIRROR_GIT_TIER),
                                               key=lambda t: 0 if t in _GENERIC_MIRROR_T1 else 1))  # stable: T1 first
 # B-1302: loud /health alarm when the mirror itself gets an auth/suspension answer (401/403) from Upstash, separate
@@ -25938,6 +25953,20 @@ def _run_swing_scan_pass(conn):
                 pass
             if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS:
                 continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
+            # B-1486: peak-LTP trail cells. The resting stop (checked intraday, BEFORE the strategy's own exit, as the
+            # band_cap replay does) is the trailed level; walk every completed bar since entry, persist the peak, and on
+            # a trail hit let the strategy's own exit pre-empt it only on an EARLIER bar (df cut before the hit bar).
+            _pk_hit = None
+            if pos["strategy"] in SWING_PEAK_LTP_TRAIL_CELLS:
+                try:
+                    _pw = peak_ltp_trail_walk(df, pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"],
+                                              SWING_PEAK_LTP_TRAIL_CELLS[pos["strategy"]][0], "long")
+                    _swing_trail_peak_put(conn, symbol, "long", pos["entry_day"], _pw["peak"])
+                    if _pw["hit_idx"] is not None:
+                        _pk_hit = _pw
+                        df = df.iloc[:_pw["hit_idx"]]
+                except Exception as e:
+                    print(f"[SWING] B-1486 peak-LTP trail walk failed for {symbol} (non-fatal, fixed stop applies): {e}")
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
             # chandelier-trail exit as the base minervini_vcp entry (see
             # strategy_registry.py's own minervini_vcp_livermore_confirmed
@@ -26096,8 +26125,12 @@ def _run_swing_scan_pass(conn):
                 reason = gap_and_go_exit_reason(df, pos["entry_day"], trail_stop, trail_stop)
             else:
                 reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
+            if _pk_hit is not None and not reason:
+                reason = "peak_ltp_trail_stop_hit"
             if reason:
                 exit_price = float(df["Close"].iloc[-1])
+                if reason == "peak_ltp_trail_stop_hit":
+                    exit_price = float(_pk_hit["hit_price"])  # min(open, trailed stop) of the hit bar, as the replay
                 fx = pos["fx_to_inr"]
                 gross_pnl_native = (exit_price - pos["entry_price"]) * pos["qty"]
                 apply_paper_trade(conn, symbol, "sell", pos["qty"], exit_price)
@@ -26108,6 +26141,7 @@ def _run_swing_scan_pass(conn):
                      json.dumps({"exit_reason": reason, "gross_pnl_native": gross_pnl_native, "strategy": pos["strategy"]})),
                 )
                 conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
+                _swing_trail_peak_clear(conn, symbol, "long")  # B-1486
                 conn.commit()
                 _sync_signal_state_swing_external(conn)
                 print(f"[SWING] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
@@ -26914,6 +26948,7 @@ def _short_swing_close_paper(conn, symbol, pos, exit_price, reason):
         (time.time(), symbol, pos["qty"], pos["entry_price"], exit_price, pos["fx_to_inr"], pnl, reason, pos["strategy"]),
     )
     conn.execute("DELETE FROM signal_state_swing_short WHERE symbol = ?", (symbol,))
+    _swing_trail_peak_clear(conn, symbol, "short")  # B-1486
     conn.execute("INSERT OR IGNORE INTO swing_done_today (day, symbol) VALUES (?, ?)",
                  (ist_now().strftime("%Y-%m-%d"), symbol))
     conn.commit()
@@ -27822,10 +27857,23 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
                     if ex:
                         _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
                     continue
-                reason = _short_swing_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"],
+                _xdf, _pk_hit = df, None
+                if pos["strategy"] in SHORT_SWING_PEAK_LTP_TRAIL_CELLS:  # B-1486 short mirror (trough LOW + N x R)
+                    try:
+                        _pw = peak_ltp_trail_walk(df, pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"],
+                                                  SHORT_SWING_PEAK_LTP_TRAIL_CELLS[pos["strategy"]][0], "short")
+                        _swing_trail_peak_put(conn, symbol, "short", pos["entry_day"], _pw["peak"])
+                        if _pw["hit_idx"] is not None:
+                            _pk_hit, _xdf = _pw, df.iloc[:_pw["hit_idx"]]
+                    except Exception as e:
+                        print(f"[SWING SHORT] B-1486 trail walk failed for {symbol} (non-fatal, fixed stop applies): {e}")
+                reason = _short_swing_exit_reason(_xdf, pos["entry_day"], pos["initial_stop_loss"],
                                                   pos["atr_at_entry"], pos["strategy"])
                 if reason:
-                    _short_swing_close_paper(conn, symbol, pos, float(df["Close"].iloc[-1]), reason)
+                    _short_swing_close_paper(conn, symbol, pos, float(_xdf["Close"].iloc[-1]), reason)
+                elif _pk_hit is not None:
+                    _short_swing_close_paper(conn, symbol, pos, float(_pk_hit["hit_price"]),
+                                             "short_swing_peak_ltp_trail_stop_hit")
                 continue
             if symbol in done_syms:
                 continue
@@ -28091,8 +28139,13 @@ def _heal_real_swing_short_sl(conn, order_rows) -> list:
     for row in conn.execute("SELECT * FROM real_positions_swing_short WHERE sl_order_id IS NULL").fetchall():
         entry = {"symbol": row["symbol"], "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
                  "qty": row["qty"], "side": "short", "table": "real_positions_swing_short"}
+        _stop = float(row["stop_loss"])
+        _tr = _swing_short_peak_trail_level(conn, row["symbol"])  # B-1486: only ever LOWERS a short's BUY stop
+        _ltp = _swing_live_ltp(row["symbol"])
+        if _tr is not None and _tr < _stop and _ltp > 0 and _tr > _ltp * 1.001:  # never at/below the market
+            _stop = _tr
         try:
-            sl = _ensure_resting_short_sl(row["kotak_trading_symbol"], int(row["qty"]), round(float(row["stop_loss"]), 2))
+            sl = _ensure_resting_short_sl(row["kotak_trading_symbol"], int(row["qty"]), round(_stop, 2))
         except Exception as e:
             sl = {"ok": False, "detail": str(e)}
         if sl.get("ok"):
@@ -28101,7 +28154,9 @@ def _heal_real_swing_short_sl(conn, order_rows) -> list:
             _log_real_order_event(conn, row["symbol"], "short_sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
                                   order_id=sl["order_id"], prev_state="none",
                                   new_state=f"resting BUY trigger Rs{sl['trigger_price']:.2f}",
-                                  reason="short-swing position had no resting stop-loss; placed at its stored stop (5-min governance heal)")
+                                  reason=("short-swing position had no resting stop-loss; placed at its "
+                                          + ("B-1486 peak-LTP trailed stop" if _stop < float(row["stop_loss"]) else "stored stop")
+                                          + " (5-min governance heal)"))
             entry["sl_placed"] = True
         else:
             _log_real_order_event(conn, row["symbol"], "short_sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -28548,17 +28603,174 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
             break
 
 
+# ---- B-1486 (2026-11-05 IST): peak-LTP trailing stop on the fixed-stop swing cells where it beat the fixed stop -------
+# Evidence: swing-bandcap-replay.yml run 41978699531 (band_cap=trail, full NSE, real main.py fns, 0.8% cost), pooled PFnet
+# of the live resting-stop model, fixed stop -> trailltp<N>r. Rule = scripts/swing_bandcap.py trailed_stop "ltp" kind:
+# R = |entry - initial stop|; long stop = max(initial stop, peak - N x R), peak = max(entry, HIGH of every COMPLETED daily
+# bar dated AFTER the entry day); short mirror min(initial stop, trough + N x R) on the LOWs. The replay's fill bar never
+# joins the peak (trailed_stop's first call is the bar after the fill and only PREVIOUS calls' bars count), and the live
+# entry is recorded on entry_day, so live excludes the entry_day bar and the still-forming bar the same way. Kotak raises
+# the level to the 10% band floor at placement (_preclamp_long_stop), the replay's band model. A trail only tightens.
+# The live tag is KEPT (its exit fn, ATR map, scan counter and open positions all key off it); only the stop rule
+# changes, and the validated trailed variant's own registry tag is recorded here for the registry / gate mapping.
+# NOT wired: "gap_and_go" (1.101 -> 1.463): new gap_and_go entries open under GAP_AND_GO_XROC_LIVE_TAG, so the legacy tag
+# is exit-only; the brk20/island/swingminrr cascade siblings were not in the trail-beats-fixed list and stay fixed.
+SWING_PEAK_LTP_TRAIL_CELLS = {  # long live tag -> (N in R units, validated trailed registry tag)
+    BRK20_SWING_TAG: (0.5, "brk20_min_rr__main_replay__long__1d__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),
+    SWINGMINRR_GATE4_TAG: (1.5, "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4_rsbandfloor_trailltp1d5r__v1"),
+    ISLAND_GAP05_TAGS[0]: (0.5, "reversal__island_gap05__long__1d__atr1d5_rsbandfloor_trailltp0d5r_within8__nonovl__v2"),
+    GAP_RUNAWAY_TAG: (0.5, "gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1"),
+    STARC_FULL_TAG: (1.5, "starc__fade_full__long__1d__atr2d5_h20_rsbandfloor_trailltp1d5r__v1"),
+}
+SHORT_SWING_PEAK_LTP_TRAIL_CELLS = {  # short-swing live tag -> (N, validated trailed registry tag)
+    BRK20_SHORT_SWING_CELLS[0][0]: (0.5, "brk20_min_rr__main_replay__short__1d__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),
+}
+
+
+def peak_ltp_trail_level(side, entry_price, initial_stop, peak, nmul):
+    """B-1486: the peak-LTP trailed stop. Long max(initial, peak - N x R), short min(initial, trough + N x R),
+    R = |entry - initial|. The initial stop unchanged when R <= 0 or the peak/entry is missing or unusable."""
+    try:
+        stop0 = float(initial_stop)
+    except (TypeError, ValueError):
+        return initial_stop
+    try:
+        ep, pk, n = float(entry_price), float(peak), float(nmul)
+    except (TypeError, ValueError):
+        return stop0
+    r = abs(ep - stop0)
+    if not (np.isfinite(ep) and np.isfinite(pk) and np.isfinite(r)) or r <= 0 or ep <= 0:
+        return stop0
+    if side == "long":
+        return max(stop0, max(pk, ep) - n * r)
+    return min(stop0, min(pk, ep) + n * r)
+
+
+def peak_ltp_trail_walk(df, entry_day, entry_price, initial_stop, nmul, side="long"):
+    """B-1486: walks every completed bar of df dated after entry_day in order (a skipped scan day cannot hide a hit).
+    The level in force on each bar is peak_ltp_trail_level off the peak of the bars BEFORE it; a hit is a bar whose low
+    (long) / high (short) reaches a level the trail set (strictly tighter than the initial stop: a plain initial-stop
+    hit stays with the strategy's own exit fn). Returns {peak, level, hit_idx, hit_price}: peak = entry combined with
+    every walked bar before the hit (all bars when none), level = the stop in force for the NEXT bar (or on the hit bar),
+    hit_idx = positional index of the hit bar in df (None), hit_price = min(open, level) long / max(open, level) short."""
+    ep = float(entry_price)
+    stop0 = float(initial_stop)
+    out = {"peak": ep, "level": stop0, "hit_idx": None, "hit_price": None}
+    if df is None or len(df) == 0:
+        return out
+    if "Date" in df.columns:
+        dates = df["Date"].astype(str).str[:10].to_numpy()
+    else:
+        dates = pd.DatetimeIndex(df.index).strftime("%Y-%m-%d").to_numpy()
+    o, h, lo = (df[k].to_numpy(dtype=float) for k in ("Open", "High", "Low"))
+    peak = ep
+    for j in np.flatnonzero(dates > str(entry_day)[:10]):
+        lvl = peak_ltp_trail_level(side, ep, stop0, peak, nmul)
+        if side == "long":
+            if lvl > stop0 and np.isfinite(lo[j]) and lo[j] <= lvl:
+                out.update(peak=peak, level=lvl, hit_idx=int(j), hit_price=float(min(o[j], lvl)))
+                return out
+            if np.isfinite(h[j]):
+                peak = max(peak, float(h[j]))
+        else:
+            if lvl < stop0 and np.isfinite(h[j]) and h[j] >= lvl:
+                out.update(peak=peak, level=lvl, hit_idx=int(j), hit_price=float(max(o[j], lvl)))
+                return out
+            if np.isfinite(lo[j]):
+                peak = min(peak, float(lo[j]))
+    out.update(peak=peak, level=peak_ltp_trail_level(side, ep, stop0, peak, nmul))
+    return out
+
+
+def _swing_trail_peak_get(conn, symbol, side, entry_day):
+    """B-1486: the stored completed-bar peak (long) / trough (short) of the position opened on entry_day; None when
+    absent or the row belongs to an earlier position (a different entry_day). Never raises."""
+    try:
+        r = conn.execute("SELECT peak, entry_day FROM swing_trail_peak WHERE symbol = ? AND side = ?",
+                         (symbol, side)).fetchone()
+        if r and r[0] is not None and str(r[1])[:10] == str(entry_day)[:10]:
+            return float(r[0])
+    except Exception:
+        pass
+    return None
+
+
+def _swing_trail_peak_put(conn, symbol, side, entry_day, peak):
+    """B-1486: persists the peak, only ever tightening it for the same position (max for a long, min for a short); a
+    row from an earlier position is replaced. swing_trail_peak is in the Upstash generic mirror (T1). Never raises."""
+    try:
+        pk = float(peak)
+        old = _swing_trail_peak_get(conn, symbol, side, entry_day)
+        if old is not None:
+            pk = max(pk, old) if side == "long" else min(pk, old)
+        conn.execute("INSERT OR REPLACE INTO swing_trail_peak (symbol, side, entry_day, peak, updated_at) "
+                     "VALUES (?, ?, ?, ?, ?)", (symbol, side, str(entry_day)[:10], pk, time.time()))
+        conn.commit()
+        return pk
+    except Exception as e:
+        print(f"[SWING] B-1486 trail peak store failed for {symbol} (non-fatal): {e}")
+        return None
+
+
+def _swing_trail_peak_clear(conn, symbol, side):
+    try:
+        conn.execute("DELETE FROM swing_trail_peak WHERE symbol = ? AND side = ?", (symbol, side))
+    except Exception:
+        pass
+
+
+def _swing_peak_trail_level(conn, symbol):
+    """B-1486: the current peak-LTP trailed stop of a LONG swing row on a SWING_PEAK_LTP_TRAIL_CELLS tag, from the
+    stored completed-bar peak; None for any other tag, no stored peak, or a trail not above the initial stop."""
+    try:
+        st = conn.execute("SELECT strategy, initial_stop_loss, entry_price, entry_day FROM signal_state_swing "
+                          "WHERE symbol = ?", (symbol,)).fetchone()
+        if not st or st[0] not in SWING_PEAK_LTP_TRAIL_CELLS or st[1] is None:
+            return None
+        pk = _swing_trail_peak_get(conn, symbol, "long", st[3])
+        if pk is None:
+            return None
+        lvl = float(peak_ltp_trail_level("long", st[2], st[1], pk, SWING_PEAK_LTP_TRAIL_CELLS[st[0]][0]))
+        return lvl if lvl > float(st[1]) else None
+    except Exception:
+        return None
+
+
+def _swing_short_peak_trail_level(conn, symbol):
+    """B-1486 short mirror: the trailed BUY-stop of a short-swing row on a SHORT_SWING_PEAK_LTP_TRAIL_CELLS tag (below
+    its initial stop), else None."""
+    try:
+        st = conn.execute("SELECT strategy, initial_stop_loss, entry_price, entry_day FROM signal_state_swing_short "
+                          "WHERE symbol = ?", (symbol,)).fetchone()
+        if not st or st[0] not in SHORT_SWING_PEAK_LTP_TRAIL_CELLS or st[1] is None:
+            return None
+        pk = _swing_trail_peak_get(conn, symbol, "short", st[3])
+        if pk is None:
+            return None
+        lvl = float(peak_ltp_trail_level("short", st[2], st[1], pk, SHORT_SWING_PEAK_LTP_TRAIL_CELLS[st[0]][0]))
+        return lvl if lvl < float(st[1]) else None
+    except Exception:
+        return None
+
+
 _swing_sl_trail_last_day = None
 
 
-def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close, entry_price=None):
+def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close, entry_price=None,
+                               peak_ltp=None):
     """The stop a swing position's OWN strategy exit rule is currently using:
     chandelier strategies = max(initial stop, peak close - mult x frozen ATR)
     (same arithmetic as minervini_vcp_exit_reason & co.); gap_and_go (and any
     unknown tag) = its frozen initial stop. Pure; never guesses a multiplier
     for an unrecognised strategy. B-1438: minervini_vcp_be3r (breakeven ratchet,
     minervini_vcp_exit_reason_breakeven) = entry once the peak close gained 3R,
-    only when entry_price is passed (else its initial stop, as before)."""
+    only when entry_price is passed (else its initial stop, as before). B-1486: a SWING_PEAK_LTP_TRAIL_CELLS tag =
+    peak_ltp_trail_level off `peak_ltp` (the stored completed-bar peak high); its initial stop when no peak is passed."""
+    _pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+    if _pl is not None:
+        if peak_ltp is None or entry_price is None:
+            return float(initial_stop)
+        return float(peak_ltp_trail_level("long", entry_price, initial_stop, peak_ltp, _pl[0]))
     if strategy == "minervini_vcp_be3r":
         try:
             ep, ist = float(entry_price), float(initial_stop)
@@ -28946,10 +29158,17 @@ def _sync_swing_resting_sl_to_strategy(conn):
             continue
         target = round(_swing_strategy_stop_level(
             st["strategy"], st["initial_stop_loss"], st["atr_at_entry"], st["running_max_close"],
-            entry_price=st["entry_price"]), 2)
+            entry_price=st["entry_price"],
+            peak_ltp=_swing_trail_peak_get(conn, r["symbol"], "long", st["entry_day"])), 2)  # B-1486
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05:
             continue
+        if st["strategy"] in SWING_PEAK_LTP_TRAIL_CELLS:
+            # B-1486: the tight peak-LTP trail is never sent at/above the market (no live LTP -> wait); a breached
+            # trail is closed by _swing_entry_stop_breach_sweep's existing cancel-then-market-sell path instead.
+            _l = _swing_live_ltp(r["symbol"])
+            if not (_l > 0 and target < _l * 0.999):
+                continue
         res = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], target)
         if not res.get("ok"):
             print(f"[REAL SWING] SL trail to {target} failed for {r['kotak_trading_symbol']} "
@@ -31565,6 +31784,15 @@ _SWING_SL_RULES = {
     **{_t: f"entry - {k:g}xATR, frozen (exit also on the EMA13 rule exit or the close of 1h bar {h} after the fill)"
        for _t, (k, _rr, h) in BRK20_1H_LONG_CELLS.items()},
 }
+# B-1486: the peak-LTP trail cells state the trail first, then the initial stop / exit they already carried.
+_SWING_SL_RULES.update({
+    _t: (f"peak-LTP trail: highest completed-day high since entry - {_n:g}R, never below the initial stop "
+         f"(initial: {_SWING_SL_RULES.get(_t, 'the signal stop').replace(', frozen', '')})")
+    for _t, (_n, _rt) in SWING_PEAK_LTP_TRAIL_CELLS.items()})
+_SWING_SL_RULES.update({
+    _t: (f"peak-LTP trail: lowest completed-day low since entry + {_n:g}R, never above the initial stop "
+         f"(initial: entry + {BRK20_SHORT_SWING_ATR_OF_TAG[_t]:g}xATR(Wilder); exit also on the EMA13 rule or 30-bar max hold)")
+    for _t, (_n, _rt) in SHORT_SWING_PEAK_LTP_TRAIL_CELLS.items()})
 
 
 def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
@@ -33439,7 +33667,7 @@ def _swing_stop_floored(conn, symbol: str, stop) -> float:
 SWING_TRAILING_STOP_TAGS = frozenset({
     "minervini_vcp", "minervini_vcp_livermore", "primary_base", "minervini_vcp_be3r", "power_play",
     "order_block_delta", "volume_profile_poc", ORPHAN_SWING_STRATEGY_TAG,
-})
+}) | frozenset(SWING_PEAK_LTP_TRAIL_CELLS)  # B-1486: peak-LTP trail (completed-bar peak high - N x R)
 _SWING_LAST_CLOSE: dict = {}  # symbol -> last COMPLETED daily close seen by the swing exit loop (in-memory)
 _SWING_TRAIL_SKIP_LOGGED: dict = {}  # symbol -> IST day the "trail not above the market" skip was printed
 
@@ -33458,7 +33686,7 @@ def _swing_trail_floor(conn, symbol: str):
     With no reference price at all, a B-1427 exitfamily cell keeps its B-1427 level (its previous behaviour) and every
     other tag keeps its stored stop. Never raises."""
     try:
-        st = conn.execute("SELECT strategy, initial_stop_loss, atr_at_entry, running_max_close, entry_price "
+        st = conn.execute("SELECT strategy, initial_stop_loss, atr_at_entry, running_max_close, entry_price, entry_day "
                           "FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
         if not st or st[1] is None:
             return None
@@ -33466,7 +33694,9 @@ def _swing_trail_floor(conn, symbol: str):
         cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(st[0])
         if _swing_is_trailing_tag(st[0]):
             atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], cell) if cell is not None else st[2]
-            lvl = float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3], entry_price=st[4]))
+            lvl = float(_swing_strategy_stop_level(
+                st[0], st[1], atr or None, st[3], entry_price=st[4],
+                peak_ltp=_swing_trail_peak_get(conn, symbol, "long", st[5])))  # B-1486 peak-LTP cells
         # B-1440 (WIPRO 2026-11-02: re-placed at 175.12 -> band 179.01 although Friday's LTP-trailed stop was 192.89):
         # a REAL row on the orphan LTP trail (_sync_swing_ltp_trail: peak live LTP - 1R, peak persisted in
         # swing_ltp_peak) re-places at that trailed level, whatever strategy the paper row carries.
@@ -33483,6 +33713,13 @@ def _swing_trail_floor(conn, symbol: str):
         if lvl is None or not lvl > float(st[1]):
             return None
         refs = [p for p in (_SWING_LAST_CLOSE.get(symbol), _swing_live_ltp(symbol)) if p and float(p) > 0]
+        if st[0] in SWING_PEAK_LTP_TRAIL_CELLS:
+            # B-1486: the replay rests the trail even when it sits above the previous close (a high-then-fade day) and
+            # fills at the open only when the open is through it, so the live LTP alone is the "never above the
+            # market" reference here; the previous close is only the fallback when no live price is available.
+            _ltp_ref = _swing_live_ltp(symbol)
+            if _ltp_ref and float(_ltp_ref) > 0:
+                refs = [_ltp_ref]
         if not refs:
             return lvl if cell is not None else None
         ref = min(float(p) for p in refs)
@@ -33509,7 +33746,7 @@ def _swing_live_ltp(symbol: str) -> float:
         return 0.0
 
 
-def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float) -> bool:
+def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label: str = "entry-day stop") -> bool:
     """B-1367/B-1369: the market is at/below the fixed entry-day stop, so the stop has been hit. Owner rule (26-Oct):
     close immediately - (1) read Kotak holdings + the whole live order book, (2) cancel every open sell on the symbol
     (the current SL included), (3) only then a market SELL for Kotak's held qty. Never lowers the stop. Returns True
@@ -33525,7 +33762,7 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float) -> boo
         return False
     import kotak_real_orders
     trd = row["kotak_trading_symbol"]
-    why = f"entry-day stop Rs{stop:.2f} breached (live Rs{ltp:.2f}); the stop is never lowered, so the holding is sold"
+    why = f"{label} Rs{stop:.2f} breached (live Rs{ltp:.2f}); the stop is never lowered, so the holding is sold"
     held = _kotak_holdings_open_by_trdsym()  # step 1: Kotak first
     if held is None:
         _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
@@ -33558,11 +33795,17 @@ def _swing_entry_stop_breach_sweep(conn) -> list:
     for r in conn.execute("SELECT symbol FROM real_positions_swing").fetchall():
         sym = r["symbol"]
         stop = _swing_entry_stop(conn, sym)
+        # B-1486: a peak-LTP trail cell's breach level is its trailed stop (only ever above the entry-day stop): the
+        # replay fills at the open when the open is through the trail, so a market already through it is closed here.
+        _tr = _swing_peak_trail_level(conn, sym)
+        _lbl = "entry-day stop"
+        if _tr is not None and _tr > float(stop or 0.0):
+            stop, _lbl = _tr, "peak-LTP trailed stop (B-1486)"
         if not stop:
             continue
         ltp = _swing_live_ltp(sym)
         try:
-            if _swing_stop_breached_exit(conn, sym, stop, ltp):
+            if _swing_stop_breached_exit(conn, sym, stop, ltp, label=_lbl):
                 out.append(sym)
         except Exception as e:  # noqa: BLE001
             print(f"[REAL SWING] breach sweep failed for {sym} (non-fatal): {e}")
