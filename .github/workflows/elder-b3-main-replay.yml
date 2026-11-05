@@ -1,0 +1,90 @@
+name: Elder batch-3 main.py-function replay (B-1472 b)
+
+# Backlog B-1472 (b). Replays the Elder batch-3 cells osc div_class kb (rsi/macdh), osc reversal rsi 30/70 and
+# chan pivot_tl_break (w3/w5), LONG and SHORT, ATR 1.5/2/3 (30 "_mr" tags) by IMPORTING and CALLING the real
+# main.elder_b3_last_bar_signals / elder_b3_entry_signal / elder_b3_initial_stop / elder_b3_exit_reason bar by bar
+# on the FULL universe (main._load_nse_universe_from_file(), not main.NSE_FULL_UNIVERSE), 1d 5y, cost =
+# main.ROUND_TRIP_COST_PCT (0.8%), B-864 bad-bar guard on. Compared to the research numbers of run 38211452647
+# (NIFTY200+ETF, pre-guard). Validation only; wires nothing, no kill switch. Big matrix: dispatch last.
+# Matrix = family (osc_div, osc_rev, chan_ptl; blank input = all) x shard (4) = up to 12 jobs + setup + merge.
+# Output: elder-b3-main-replay-results artifact -> elder_b3_main_replay_rows.json (per tag: n, win %, PFnet
+# gross/net, avg hold bars + hours, exit-reason breakdown, dropped bad-bar trades). ~1-1.5 h per job.
+on:
+  workflow_dispatch:
+    inputs:
+      families:
+        description: "Comma-separated families (osc_div, osc_rev, chan_ptl); blank = all"
+        required: false
+        default: ""
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      families: ${{ steps.f.outputs.families }}
+    steps:
+      - id: f
+        env:
+          FAMS: ${{ inputs.families }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          allf = ["osc_div", "osc_rev", "chan_ptl"]
+          got = [f.strip() for f in os.environ.get("FAMS", "").split(",") if f.strip()] or allf
+          bad = [f for f in got if f not in allf]
+          if bad:
+              raise SystemExit(f"unknown families {bad}")
+          print("families=" + json.dumps(got))
+          PY
+
+  replay:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        family: ${{ fromJSON(needs.setup.outputs.families) }}
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          FAMILY: ${{ matrix.family }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "4"
+          INTERVAL: "1d"
+          PERIOD: "5y"
+        run: python3 scripts/elder_b3_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-b3-main-replay-${{ matrix.family }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: elder-b3-main-replay-*
+          merge-multiple: true
+      - run: python3 scripts/elder_b3_main_replay.py merge shards elder_b3_main_replay_rows.json | tee elder_b3_main_replay_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-b3-main-replay-results
+          path: |
+            elder_b3_main_replay_rows.json
+            elder_b3_main_replay_table.txt
