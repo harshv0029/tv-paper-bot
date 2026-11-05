@@ -1715,3 +1715,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What we checked: the 6xATR order-block chandelier sits ~20 points under the peak close on BANKINDIA/UNIONBANK, below the band-floored resting SL, so "not trailing yet" is correct, not a bug. macddiv 1h and gap_runaway cells were validated with frozen stops plus a max hold, so they never trail.
 - Open question: frozen stops give back open gains (IOC +7.8%, UNIONBANK +7.4% today). A trailing or breakeven variant is a separate tag to backtest, never a live change without the pooled-PFnet evidence.
 - Profit-booking / exit takeaway: check each position against ITS OWN strategy's stop rule (main._SWING_SL_RULES) before calling a stop stuck; then test whether a trail would have booked more, as its own variant.
+
+## B-1472 b: O'Neil cup-family patterns, main.py replay (2026-11-05 IST)
+- Mechanism: cup with handle, cup without handle, saucer, double bottom; 1d breakout above the pivot, chase limit 5% or 10% on the next open, ATR or percent stop, max hold 20/40/60 bars, optional RS >= 80 or 1st/2nd-base (qual1) filter. Run 41958449455: 1,296 cells, full NSE, cost 0.8%, signals from main.py.
+- Result: cup_handle is the strongest (best non-rs80 1.541 n1396, robust ex-top5 1.425); cup_nohandle 1.269 n1009; saucer only 1.134 n131 and collapses to 0.796 without its top 5 trades; double_bottom fails everywhere except thin rs80 cells.
+- Surprise: the 1st/2nd-base filter (qual1) beat plain cells, and long holds (h60) beat short ones, so the edge is from riding the post-breakout trend, not a quick pop. Stops lose (about -7%), timeouts win (about +7%), the same shape as other swing breakouts here.
+- Fit: frozen ATR stop + max hold maps onto the existing ONEIL_DAILY_CELLS path with no new machinery; the chase test needs today's open, so live uses the live price and fails closed without one.
+- Reuse: when a replay ranks a cross-sectional factor (RS) per shard, do not wire those cells; re-run with the live population rank first (B-1483).
+- Profit-booking / exit takeaway: these winners come from time in the trade (timeout exits), so do not add a tight trail or early target to them without a sweep; watch saucer live, since its edge rests on a few big winners.

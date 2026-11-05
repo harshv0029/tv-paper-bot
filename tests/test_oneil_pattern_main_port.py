@@ -224,5 +224,6 @@ def test_not_wired_live():
     src = (R / "main.py").read_text()
     for fam in app.ONEIL_PATTERN_FAMILIES:
         assert fam not in repr(getattr(app, "ONEIL_SWING_CELLS", ())), fam
-    # the only callers of the pattern port are oneil_signal_at / oneil_entry_signal and the port itself
-    assert src.count("oneil_pattern_signals(") == 2 and src.count("oneil_pattern_signal_array(") == 2
+    # callers of the pattern port: oneil_signal_at, the port itself and (B-1472 b) oneil_daily_entry_signal, which
+    # serves only the 1d cells in ONEIL_DAILY_CELLS (never the weekly ONEIL_SWING_CELLS)
+    assert src.count("oneil_pattern_signals(") == 2 and src.count("oneil_pattern_signal_array(") == 3
