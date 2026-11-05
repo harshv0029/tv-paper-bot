@@ -21,7 +21,9 @@ import strategy_registry as sr
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
 # (backlog id, run id); each run's raw RESULTS_JSON is docs/backtest_data/swing_bandcap_run_<run id>.json
-RUNS = (("B-1417", "40952500265"), ("B-1426", "40990174070"))
+# B-1484 (2026-11-05 IST): run 41978699531 adds the 11 trail overlays (trailr*/trailltp*r/trailbe*r) per wired fixed-SL tag;
+# its already-registered rsbandfloor fixed rows are skipped by name (first registration kept), the raw JSON keeps them all.
+RUNS = (("B-1417", "40952500265", "2026-10-30"), ("B-1426", "40990174070", "2026-10-30"), ("B-1484", "41978699531", "2026-11-05"))
 _SRC = "scripts/swing_bandcap_replay.py + scripts/swing_bandcap.py (band_cap=live resting-stop model) over the family's main.py fns"
 
 
@@ -38,15 +40,15 @@ def _tf(row: dict) -> str:
 
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
-    for bid, rid in RUNS:
-        out.extend(_build_run(bid, rid, seen))
+    for bid, rid, day in RUNS:
+        out.extend(_build_run(bid, rid, seen, day))
     return out
 
 
-def _build_run(bid: str, rid: str, seen: set):
+def _build_run(bid: str, rid: str, seen: set, day: str = "2026-10-30"):
     out = []
     _FN = f"swing_bandcap_run_{rid}.json"
-    _REF = f"swing-bandcap-replay.yml run {rid} (2026-10-30 IST, band_cap=live, full NSE, cost 0.8%, REAL main.py fns)"
+    _REF = f"swing-bandcap-replay.yml run {rid} ({day} IST, band_cap=live, full NSE, cost 0.8%, REAL main.py fns)"
     try:
         d = json.load(open(os.path.join(_DIR, _FN)))
     except Exception:
