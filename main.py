@@ -8459,11 +8459,20 @@ ONEIL_LEADERS_1D_TAG = "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__no
 ONEIL_RSSCREEN_1D_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_srcmain__nonovl__v2"  # registered, NOT wired
 # tag -> ((family, variant, pkey), atr_mult, hold_bars, needs_index); order = priority (PFnet)
 ONEIL_RSSCREEN_1D_N200_TAG = "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2"
+ONEIL_CUP_HANDLE_1D_TAG = "oneil_cup_handle__breakout__long__1d__atr2_chase10_h60_rsqual1_srcmain__v2"
+ONEIL_CUP_NOHANDLE_1D_TAG = "oneil_cup_nohandle__breakout__long__1d__atr3_chase5_h40_rsnone_srcmain__v2"
+ONEIL_SAUCER_1D_TAG = "oneil_saucer__breakout__long__1d__atr2_chase10_h40_rsnone_srcmain__v2"
 ONEIL_DAILY_CELLS = {
     # B-1468: RS ranked inside the live watchlist (rs_universe=n200 replay run 41855872144: n 487, PFnet 1.747,
     # OOS 1.087, avg hold 24.5 bars); key family oneil_rsscreen is evaluated from the pass RS matrix, not ext signals
     ONEIL_RSSCREEN_1D_N200_TAG: (("oneil_rsscreen", "top", "rs90"), 2.0, ONEIL_DAILY_HOLD_BARS, False),
     ONEIL_LEADERS_1D_TAG: (("oneil_leaders", "firsthigh", "na"), 2.0, ONEIL_DAILY_HOLD_BARS, True),
+    # B-1472 b: O'Neil cup-family patterns, main.py replay run 41958449455 (full NSE, pooled full period, cost 0.8%).
+    # One cell per pattern (entry signal): best pooled PFnet with n >= 30, avg hold <= 30 bars, ATR stop, no rs80
+    # (per-shard RS rank in the replay). key = (family, 'breakout', chase, rs filter).
+    ONEIL_CUP_HANDLE_1D_TAG: (("oneil_cup_handle", "breakout", 0.10, "qual1"), 2.0, 60, False),   # 1.541 n1396 29.9 bars
+    ONEIL_CUP_NOHANDLE_1D_TAG: (("oneil_cup_nohandle", "breakout", 0.05, "none"), 3.0, 40, False),  # 1.269 n1009 28.2
+    ONEIL_SAUCER_1D_TAG: (("oneil_saucer", "breakout", 0.10, "none"), 2.0, 40, False),          # 1.134 n131 26.8
 }
 _ONEIL_DAILY_IDX = {"close": None}   # ^NSEI daily closes for the current swing pass (pd.Series by YYYY-MM-DD) or None
 _ONEIL_DAILY_SIG_CACHE: dict = {}    # per-pass memo: df fingerprint -> {key: bool at last bar}; cleared each pass
@@ -8537,7 +8546,19 @@ def oneil_daily_entry_signal(df: pd.DataFrame, tag: str, idx_close=None, live_px
             return None  # only the first session after the signal bar
     except Exception:
         return None
-    if key[0] == "oneil_rsscreen":
+    px_live = float(live_px) if live_px is not None and float(live_px) > 0 else None
+    if key[0] in ONEIL_PATTERN_FAMILIES:
+        # B-1472 b: the replay fires at the close of bar t and tests the chase on o[t+1] (entry = next open). Live, bar
+        # t is the last completed bar and the next bar is today's session: the live price stands in for that open (no
+        # live price -> no chase test possible -> no signal, fail closed).
+        if px_live is None:
+            return None
+        o, h, l, c, v = (np.append(df[x].to_numpy(float), y) for x, y in
+                         (("Open", px_live), ("High", px_live), ("Low", px_live), ("Close", px_live), ("Volume", 0.0)))
+        arr = oneil_pattern_signal_array(key[0], "long", "1d", o, h, l, c, v, None, key[2], key[3])
+        if not bool(arr[-2]):
+            return None
+    elif key[0] == "oneil_rsscreen":
         rs = _oneil_rs_for(symbol, "1d", _oneil_daily_dates(df))  # B-1468: no rank -> fail closed
         if rs is None or not bool(oneil_rsscreen_signals(df["Close"].to_numpy(float), rs, "1d", "long")[-1]):
             return None

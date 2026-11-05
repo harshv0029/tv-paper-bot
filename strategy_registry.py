@@ -3184,6 +3184,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_b1427.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_b1472oneil as _b1472o  # B-1472 b: O'Neil cup-family main.py replay, run 41958449455
+        REGISTRY.extend(_b1472o.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
