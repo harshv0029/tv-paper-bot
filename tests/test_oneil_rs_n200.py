@@ -88,7 +88,7 @@ def test_n200_shard_fetches_whole_watchlist_trades_own_slice(monkeypatch, tmp_pa
     monkeypatch.setattr(main, "_load_nse_universe_from_file", no_full)
     seen = []
 
-    def spy(df, idx_series, rs_series, *a):
+    def spy(df, idx_series, rs_series, *a, **_kw):
         seen.append((df.name, a[-1], int(rs_series.notna().sum())))
 
     monkeypatch.setattr(on, "run_symbol", spy)

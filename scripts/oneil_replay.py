@@ -36,6 +36,10 @@ INTERVAL (1d|1w: re-tag every spec to that candle size, B-786), PERIOD (yfinance
 FAMILIES (B-1472 b: cup | comma list of cup_handle,saucer,cup_nohandle,double_bottom -> full pattern grid via main.py
 oneil_pattern_signals; INTERVAL is then a comma list, blank = 1d,1w), PATTERN_EXITS (default atr2,atr3,pct7,pct8,tgt20,trl3).
 RS rank (rs80 filters) is the 12-month return percentile across the symbols loaded in the shard (as in the research).
+B-1485 (B-1484 stage 2 trailing-stop overlay): BAND_CAP = off (default, unchanged) | one swing_bandcap mode (single pass,
+as before) | trail (off + live + every swing_bandcap.TRAIL_MODES pass of every spec in ONE run, each its own tag via
+swing_bandcap.band_tag, so the same-run fixed-stop baseline sits next to every trail) | a comma list. 1d specs only.
+Wired cup cells: TAGS=<main.ONEIL_CUP_HANDLE_1D_TAG>,<ONEIL_CUP_NOHANDLE_1D_TAG>,<ONEIL_SAUCER_1D_TAG> BAND_CAP=trail CROSSCHECK=0.
 """
 import json
 import os
@@ -304,6 +308,8 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap=
         else:
             stop = ent - side * val * atr[t]
         init_stop = stop
+        if band:
+            bc.reset_trail()  # B-1485: trail state is per trade (no effect on the plain live mode)
         target = ent * (1 + side * val / 100.0) if mode == "tgt" else None
         add_px = ent - side * 1.5 * atr[t] if mode == "avg" else None
         add_done = False
@@ -528,6 +534,18 @@ def _crosscheck(sp, sym, df, rs_series, cost, trades):
     return []
 
 
+def run_modes(spec):
+    """B-1485: [modes] for BAND_CAP. A single mode keeps the pre-B-1485 single-pass behaviour; trail = off + live + every
+    live_<trail> mode; a comma list = off + those modes."""
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(bc.TRAIL_MODES)
+    if "," not in s:
+        return [bc.normalize_mode(s)]
+    mds = [bc.normalize_mode(x) for x in s.split(",") if x.strip()]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
+
+
 def main_run():
     import main as app
     tags = [t.strip() for t in os.environ.get("TAGS", "").split(",") if t.strip()]
@@ -541,12 +559,11 @@ def main_run():
     if interval:   # B-786: replay the same rules at another candle size, each its own tag; bar counts mean BARS
         tags = [retag_tf(t, interval) for t in tags]
     use_main = os.environ.get("USE_MAIN", "1") != "0"
-    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live (1d specs only)
+    # B-1417: off (default, unchanged) | live (1d specs only). B-1485: trail / comma list = several modes per spec
+    modes = run_modes(os.environ.get("BAND_CAP"))
     if use_main:   # B-1070: the main.py-calling run is a NEW tag set (v1 -> v2); v1 results stay untouched
         tags = [re.sub(r"__v1$", "__v2", t) for t in tags]
-    specs = [parse_tag(t) for t in tags]
-    for sp in specs:
-        sp["band_cap"] = band_cap
+    specs = [dict(parse_tag(t), band_cap=md) for t in tags for md in modes]
     period_override = (os.environ.get("PERIOD") or "").strip()
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0

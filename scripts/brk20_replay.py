@@ -14,6 +14,10 @@ Modes (argv[1]):
          n, win_pct, pfnet, pfgross, avg_net_pct, avg_gross_pct, avg_held_bars, exit_reasons breakdown.
 Bar-count constants (20-bar breakout, 60-bar room, EMA13, 30-bar max hold, ATR14) are in BARS: on 1h/15m
 they mean hours/quarter-hours, not days (stated in every output).
+B-1485 (B-1484 stage 2 trailing-stop overlay): env BAND_CAP = off (default, unchanged) | one swing_bandcap mode (live,
+live_tr1, ...: a single-mode run exactly as before) | trail (off + live + every swing_bandcap.TRAIL_MODES pass in ONE run,
+each its own tag via swing_bandcap.band_tag, so the same-run fixed-stop baseline sits next to every trail) | a comma list.
+Wired 1h cell to replay: INTERVAL=1h DIRECTION=long CELLS=[{"atr":4,"rr":4,"be":null}] BAND_CAP=trail.
 """
 import glob
 import json
@@ -145,6 +149,8 @@ def replay_symbol(m, df, direction, atr, rr, be, cost, band_cap="off"):
     out, pos = [], None
     for k in range(MIN_BARS - 1, n):
         sub = df.iloc[:k + 1]
+        if pos is not None and band and k == pos["idx"]:
+            bc.reset_trail()  # B-1485: trail state is per trade (no effect on the plain live mode)
         if pos is not None and band and k > pos["idx"]:
             hit = bc.resting_stop_exit(band_cap, direction, pos["stop0"], prevc[k], opens[k], lows[k], highs[k],
                                        entry_price=pos["ep"])
@@ -223,6 +229,18 @@ def load_frames(m, interval, shard, nshards, limit=None, universe="full"):
     return out
 
 
+def run_modes(spec):
+    """B-1485: [modes] for BAND_CAP. A single mode keeps the pre-B-1485 single-pass behaviour; trail = off + live + every
+    live_<trail> mode; a comma list = off + those modes."""
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(bc.TRAIL_MODES)
+    if "," not in s:
+        return [bc.normalize_mode(s)]
+    mds = [bc.normalize_mode(x) for x in s.split(",") if x.strip()]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
+
+
 def run():
     import main as m
     interval = os.environ.get("INTERVAL", "1d")
@@ -234,25 +252,29 @@ def run():
     cost_override = float(os.environ["COST_PCT"]) if os.environ.get("COST_PCT") else None
     cost_pct = cost_override if cost_override is not None else m.ROUND_TRIP_COST_PCT
     cost = cost_pct / 100.0
-    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live; live results carry the rsbandfloor param
+    # B-1417: off (default, unchanged) | live; live results carry the rsbandfloor param. B-1485: trail / comma list
+    modes = run_modes(os.environ.get("BAND_CAP"))
+    band_cap = modes[0] if len(modes) == 1 else ",".join(modes)
     frames = load_frames(m, interval, shard, nshards, limit, universe)
-    tag = lambda c: bc.band_tag(make_tag(direction, interval, c["atr"], c["rr"], c.get("be"), universe, cost_override), band_cap)
-    aggs = {tag(c): agg_new() for c in cells}
+    base_tag = lambda c: make_tag(direction, interval, c["atr"], c["rr"], c.get("be"), universe, cost_override)
+    tag = lambda c, md: bc.band_tag(base_tag(c), md)
+    aggs = {tag(c, md): agg_new() for md in modes for c in cells}
+    cell_of = {tag(c, md): {**c, **({"band_cap": md} if len(modes) > 1 else {})} for md in modes for c in cells}
     for sym, df in frames.items():
-        for c in cells:
-            try:
-                trades = replay_symbol(m, df, direction, c["atr"], c["rr"], c.get("be"), cost, band_cap)
-            except Exception as ex:
-                print("ERROR", sym, c, ex)
-                continue
-            agg_add(aggs[tag(c)], trades)
+        for md in modes:
+            for c in cells:
+                try:
+                    trades = replay_symbol(m, df, direction, c["atr"], c["rr"], c.get("be"), cost, md)
+                except Exception as ex:
+                    print("ERROR", sym, c, md, ex)
+                    continue
+                agg_add(aggs[tag(c, md)], trades)
     res = {"interval": interval, "direction": direction, "shard": shard, "nshards": nshards,
            "n_symbols": len(frames), "cost_round_trip_pct": cost_pct, "universe": universe, "band_cap": band_cap,
            "period": PERIOD_BY_INTERVAL[interval], "synthetic": os.environ.get("SYNTHETIC") == "1",
            "bar_constants_in_bars": {k: getattr(m, k) for k in dir(m) if k.startswith("BRK20_") and k.isupper()},
            "note": "bar-count constants are BARS of this interval (1h/15m: hours/quarter-hours, not days)",
-           "cells": {t: {"cell": next(c for c in cells if tag(c) == t),
-                         "raw": a} for t, a in aggs.items()}}
+           "cells": {t: {"cell": cell_of[t], "raw": a} for t, a in aggs.items()}}
     os.makedirs("out", exist_ok=True)
     path = f"out/brk20_{interval}_{direction}_s{shard}.json"
     json.dump(res, open(path, "w"), indent=1)
