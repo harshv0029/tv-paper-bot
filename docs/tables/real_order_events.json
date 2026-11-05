@@ -18815,7 +18815,43 @@
    "prev_state": null,
    "new_state": null,
    "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1569,
+   "ts": 1793850404.5658782,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1570,
+   "ts": 1793850404.6415892,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
+  },
+  {
+   "id": 1571,
+   "ts": 1793850404.6546452,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
   }
  ],
- "synced_at_utc": "2026-11-05T03:45:50Z"
+ "synced_at_utc": "2026-11-05T03:46:48Z"
 }
