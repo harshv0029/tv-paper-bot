@@ -18,7 +18,7 @@ EXPECTED = [
 
 
 def test_nine_cells_in_pfnet_order_and_failing_cells_absent():
-    assert list(main.CHAN_LONG_CELLS) == EXPECTED
+    assert [t for t in main.CHAN_LONG_CELLS if main.CHAN_LONG_CELL_INTERVAL[t] == "5m"] == EXPECTED  # B-1470: 15m appended after
     assert not any("ve1d0e4_z1d0" in t for t in main.CHAN_LONG_CELLS)
     pf = {d.name: d.metrics.pfnet for d in sr.REGISTRY if d.metrics}
     vals = [pf[t] for t in EXPECTED]
