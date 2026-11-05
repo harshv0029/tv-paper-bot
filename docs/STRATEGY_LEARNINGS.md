@@ -1723,3 +1723,17 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Fit: frozen ATR stop + max hold maps onto the existing ONEIL_DAILY_CELLS path with no new machinery; the chase test needs today's open, so live uses the live price and fails closed without one.
 - Reuse: when a replay ranks a cross-sectional factor (RS) per shard, do not wire those cells; re-run with the live population rank first (B-1483).
 - Profit-booking / exit takeaway: these winners come from time in the trade (timeout exits), so do not add a tight trail or early target to them without a sweep; watch saucer live, since its edge rests on a few big winners.
+
+
+## B-1484: trailing-SL overlay on every wired fixed-stop strategy (2026-11-05 IST)
+- Mechanism: the user's rule: try trailing stops on each fixed-stop cell; keep the trail only if it beats the fixed stop. Six rules, all in R units of the cell's own initial stop so ATR stops and the 8% Minervini stop are compared alike: chandelier peak close - 1R / 1.5R / 2R / 3R, and net breakeven (entry + 0.8%) after +1R or +2R.
+- Fit: it is layered on the live resting-stop model (band floor), and the peak is the previous session's close, the same daily running max the live swing engine stores, so a winning rule maps onto the existing trail path with no new machinery. A trail only ever raises the stop.
+- Design note: one shared hook (swing_bandcap.resting_stop_exit) serves 14 families' real main.py replays, so a new stop idea is a one-file change plus one argument per call site. FIFO matters: an earlier trail exit frees the slot, so n can rise against the fixed row.
+- Prior evidence to weigh: the O'Neil cup family, gap_and_go and the swing breakouts here earn from timeout exits, not stops (B-1472), so tight trails (1R) may cut winners; wider trails (2-3R) or breakeven are the likely candidates. Results pending (run to be recorded in B-1484).
+- Profit-booking / exit takeaway: test a trail before believing it books more profit; a trail that converts timeout winners into early exits can lower PFnet even though it feels safer.
+
+## B-1480: Elder batch 3 (channel pivot-trendline break, oscillator divergence and reversal), main.py replay (2026-11-05 IST)
+- Result: run 41966382565, 30 cells, full NSE, cost 0.8%, signals from the real main.py ports: best pooled PFnet 0.961 (chan pivot_tl_break atr3 w3, n52282); the earlier 2.4 PFnet osc divergence cells (run 38211452647, NIFTY200+ETF, pre bad-bar guard) collapsed to 0.92-0.95. Nothing wired; all 30 registered research-only.
+- Surprise: gross PF sits near 1.0-1.05, so the 0.8% cost alone sinks them; stops lose, timeouts win (PFnet ~30 on max-hold exits), the same shape as other swing cells here.
+- Reuse: a huge research PFnet on a narrow universe before the bad-bar guard is not evidence; always re-run on the full universe with main.py ports before believing it.
+- Profit-booking / exit takeaway: the timeout winners suggest a longer hold or a wider stop is the only lever worth a sweep here; a tight trail would cut the only profitable exit.

@@ -63,7 +63,7 @@ def replay_symbol(m, df, tag, spec, cost, fill="signal_close", band_cap="off"):
     out, pos, blocked = [], None, -1
     for k in range(MIN_BARS - 1, n):
         if pos is not None and k > pos["sig"]:
-            hit = bc.band_hit(band, df, k, pos["stop0"], "short")
+            hit = bc.band_hit(band, df, k, pos["stop0"], "short", pos["ep"])
             if hit:
                 g = -(hit[0] - pos["ep"]) / pos["ep"]
                 out.append({"gross": g, "net": g - cost, "held": k - pos["sig"], "reason": hit[1]})

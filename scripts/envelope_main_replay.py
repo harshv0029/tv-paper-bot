@@ -65,7 +65,7 @@ def envelope_trade(m, df, k, sig, tag, cost, band=None):
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     sgn = 1.0 if direction == "long" else -1.0
     for j in range(k + 1, n):
-        hit = bc.band_hit(band, df, j, stop0, direction)
+        hit = bc.band_hit(band, df, j, stop0, direction, ep)
         if hit:
             return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j, sgn)
         res = m.envelope_fade_exit_reason(df.iloc[:j + 1], direction, k, stop0, hold)

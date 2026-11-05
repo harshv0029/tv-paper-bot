@@ -3095,6 +3095,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_etc.build())
         import strategy_registry_elderb3r2 as _eb3r
         REGISTRY.extend(_eb3r.build())
+        import strategy_registry_elderb3main as _eb3m  # B-1480: run 41966382565, main.py ports
+        REGISTRY.extend(_eb3m.build())
         import strategy_registry_pfovl as _pv
         REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk

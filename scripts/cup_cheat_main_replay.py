@@ -86,7 +86,7 @@ def cup_trade(m, df, k, sig, tag, cost, direction="long", band=None):
     _kmult, hold = cells[tag]
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     for j in range(k + 1, n):
-        hit = bc.band_hit(band, df, j, stop0, direction)
+        hit = bc.band_hit(band, df, j, stop0, direction, ep)
         if hit:
             return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j, direction)
         res = exit_fn(df.iloc[:j + 1], k, stop0, hold)

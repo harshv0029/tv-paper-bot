@@ -102,7 +102,8 @@ def replay_symbol(m, df, family, tag, cost, band_cap="off"):
         if pos is not None:
             if band and i > pos["idx"]:
                 strat_stop = m._swing_strategy_stop_level(tag, pos["stop"], pos["atr"], pos["rmc"])
-                hit = bc.resting_stop_exit(band_cap, "long", strat_stop, prevc[i], opens[i], lows[i], highs[i])
+                hit = bc.resting_stop_exit(band_cap, "long", strat_stop, prevc[i], opens[i], lows[i], highs[i],
+                                             entry_price=pos["ep"])
                 if hit:
                     out.append(_fin(pos, hit[0], i, hit[1], cost))
                     pos = None

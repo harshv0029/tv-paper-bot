@@ -310,7 +310,8 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap=
         exitp, jx, reason = c[last], last, "timeout"
         for j in range(e, last + 1):
             if band and j > e:
-                hit = bc.resting_stop_exit(band_cap, spec["dir"], stop, c[j - 1], o[j], l[j], h[j])
+                hit = bc.resting_stop_exit(band_cap, spec["dir"], stop, c[j - 1], o[j], l[j], h[j],
+                                             entry_price=ent)
                 if hit:
                     exitp, jx, reason = hit[0], j, hit[1]
                     break
