@@ -34549,6 +34549,15 @@ def _open_protect_next_arm(now_ist: dt.datetime) -> dt.datetime:
     return nxt
 
 
+def _in_open_protect_window(now_ist: dt.datetime | None = None) -> bool:
+    """B-1481: 09:15:00-09:30 IST on a weekday. No resting SL survives the exchange's 15:15 IST purge, so in this window
+    an unreadable order book must not block an SL placement (B-1462's no-blind-place rule applies outside it)."""
+    now_ist = now_ist or _ist_now_aware()
+    if now_ist.weekday() >= 5:
+        return False
+    return (9, 15) <= (now_ist.hour, now_ist.minute) < (9, 30)
+
+
 def _open_protect_fire_at(day_ist: dt.datetime) -> dt.datetime:
     h, m, s, us = _OPEN_PROTECT_FIRE_HMS
     return day_ist.replace(hour=h, minute=m, second=s, microsecond=us)
@@ -34609,10 +34618,15 @@ def _open_protect_place(plan: dict) -> dict:
     ensure_resting_sl and its recent-placement memory stop a duplicate with the 5-min reconcile). DB writes and the
     reasoned order-log lines are serial, on this thread."""
     import kotak_neo
+    import kotak_real_orders
     rep = kotak_neo.order_report()
-    order_rows = rep.get("data") if isinstance(rep, dict) else None
-    if not isinstance(order_rows, list):
-        return {"ok": False, "error": "order_report unreadable", "pending": None}
+    order_rows = kotak_real_orders.order_rows_from_report(rep)
+    if order_rows is None:
+        # B-1481: at the open the exchange has already purged every resting order (15:15 IST), so an unreadable book
+        # must never hold the protect pass back; place against an empty book (ensure_resting_sl re-reads and falls
+        # back to a plain place; a duplicate is rejected harmlessly by Kotak RMS) and log the raw reply.
+        print(f"[open_protect] order book unreadable, protecting anyway: {str(rep)[:200]}")
+        order_rows = []
     pending = _open_protect_pending(plan, order_rows)
     results = []
     if pending:
@@ -35748,7 +35762,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             try:
                 return kotak_real_orders.ensure_resting_sl(_swing_missing_sl[i]["kotak_trading_symbol"],
                                                            _swing_missing_sl[i]["qty"], _bf_stops[i],
-                                                           allow_unchecked=False)  # B-1462
+                                                           allow_unchecked=_in_open_protect_window())  # B-1462/B-1481
             except Exception as e:  # noqa: BLE001
                 return {"ok": False, "detail": f"placement raised: {e}"}
         _bf_results = []
@@ -35840,7 +35854,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 trd = u["kotak_trading_symbol"]
                 try:
                     res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows,
-                                                   allow_unchecked=False)  # B-1462: periodic, never blind
+                                                   allow_unchecked=_in_open_protect_window())  # B-1462/B-1481
                 except Exception as e:  # noqa: BLE001
                     res = {"error": f"heal raised: {e}"}
                 return {"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),

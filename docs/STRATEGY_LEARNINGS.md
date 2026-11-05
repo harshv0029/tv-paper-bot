@@ -1705,3 +1705,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Mechanism: the 6-month re-test cycle covers every registry tag, including failed and never-wired ones.
 - Why: edges drift with the market. A 0.99 PFnet cell can cross 1.00 on fresh data; a wired 1.05 can decay. Only re-testing the whole pool catches both.
 - Profit-booking / exit takeaway: wiring is re-derived from the newest result each cycle, so profit comes from what works now, not what worked once.
+
+## B-1481 (2026-11-05): an empty order book is not an unreadable one
+- What broke: a safety rule added the day before (never place an SL when the order book cannot be read) met Kotak's start-of-day reply for an empty book and blocked every 09:15 IST SL for ~2 minutes.
+- Lesson: every "refuse when unsure" guard must be tested against the first minute of the trading day, when the book is legitimately empty and no SL can already exist (exchange purge at 15:15 IST).
+- Profit-booking / exit takeaway: at the open, protection beats duplicate-avoidance; a duplicate SL is rejected harmlessly by RMS, a naked holding is real money at risk.
