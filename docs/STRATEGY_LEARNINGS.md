@@ -1692,3 +1692,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Minervini lab: 25 more cells wired (VCP + one filter each, plus the unfiltered VCP with an MA50 trail last). Together the on/off filter pairs cover nearly every VCP signal, so the live book now trades almost every VCP breakout; the cascade only decides which cell's hold/exit applies. Their OOS segments are mostly 0.6-0.9 (the recent period lost money for most of them), which is the risk accepted with this rule.
 - Watch: if the live Kotak trade book for these tags runs below breakeven over a meaningful sample, that is the OOS warning coming true; record it here and re-decide.
 - Profit-booking / exit takeaway: the unfiltered VCP entry is best with an MA50 close trail (1.445 pooled), well above the 8% hard stop (1.246); trend-following exits suit VCP breakouts.
+
+## B-1472 (2026-11-05): pooled PFnet from in-sample + symbol-holdout halves
+- Mechanism: pattern_validate / combo_validate re-ran each cell on 417-425 non-NIFTY-200 stocks, a disjoint SYMBOL holdout, not a later period. Two disjoint trade sets pool exactly: per side L = n*avg_net/(PF-1), W = PF*L; pooled PF = sum W / sum L. A side with PF ~1.00 (or PF and avg of opposite sign) cannot be decomposed and is skipped, not guessed.
+- Fit: user rule 2026-11-05, pooled PFnet > 1.00 decides wiring and OOS never vetoes. Registered as new `_pool` variant tags; old rows keep their holdout-gated numbers (data intact).
+- Result: 84 pooled tags, all > 1.00 (e.g. gap__runaway_pool 1.166 n3474 where the holdout alone was 1.019). 22 cells newly wired, 62 renamed to their pooled twin.
+- Surprise: the generator rename exposed a latent orphan risk. The pattern exit only managed tags in the current entry list, so any regen that dropped a tag would leave open positions without their pattern exit. Fixed with a persistent exit_only list.
+- Caution: the combo in-sample half is best-of-thousands, so a combo pooled number still carries selection inflation; the 5,331 combos with no holdout run stay unregistered.
+- Profit-booking / exit takeaway: renaming or re-ranking live cells must never drop an exit path; exits are keyed by the tag a position was opened under, forever.

@@ -27893,6 +27893,22 @@ def _load_pattern_live_cells():
 
 _PATTERN_LIVE_CELLS = _load_pattern_live_cells()
 _PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
+
+
+def _load_pattern_exit_only_cells():
+    """B-1472: tags that left the entry list keep their exit/hold rule (never entries), so an open position under a
+    renamed or dropped tag is still exited by its own pattern rule."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "pattern_live_cells.json")) as f:
+            rows = json.load(f).get("exit_only", [])
+        return {r[0]: (r[0], r[1], int(r[2]), float(r[3])) for r in rows}
+    except Exception as e:
+        print(f"[PATTERN] exit-only cell list unreadable: {e}")
+        return {}
+
+
+for _t, _c in _load_pattern_exit_only_cells().items():
+    _PATTERN_LIVE_TAGS.setdefault(_t, _c)
 for _c in _PATTERN_LIVE_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_c[0], _c[0])  # PFnet gate resolves each variant to its own registry row
 PATTERN_MAX_NEW_PER_DAY = 3

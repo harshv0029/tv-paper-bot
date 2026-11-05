@@ -3892,6 +3892,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__breakout_pullback_x_kama_cross__long__1d__atr6_h20__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atr6_h20 | swing | 1.042 | 48.0 | 0.022 | 252 | 124.0 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__breakout_pullback_x_kama_cross__long__1d__atrnone_h10__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_kama_cross__long__1d__atrnone_h20__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__breakout_pullback_x_kama_cross_pool__long__1d__atr6_h20__v1 | combo | breakout_pullback_x_kama_cross_pool | long | 1d | atr6_h20 | swing | 1.371 | 51.1 | 0.181 | 604 | 124.0 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__breakout_pullback_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | breakout_pullback_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | breakout_pullback_x_keltner_raschke_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_keltner_raschke_break__long__1d__atrnone_h10__v1 | combo | breakout_pullback_x_keltner_raschke_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4094,6 +4095,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atr6_h20 | swing | 1.037 | 46.7 | 0.020 | 600 | 123.625 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_fib_382_bounce_pool__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce_pool | long | 1d | atr6_h20 | swing | 1.324 | 50.0 | 0.162 | 986 | 123.72 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atr6_h20 | swing | 1.034 | 46.0 | 0.018 | 3976 | 123.875 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4102,6 +4104,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_four_pct_reversal_pool__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal_pool | long | 1d | atr6_h20 | swing | 1.240 | 48.3 | 0.124 | 5244 | 123.97 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atr6_h20 | swing | 1.185 | 46.2 | 0.100 | 938 | 124.1875 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4110,6 +4113,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_gap_exhaustion_fade_pool__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade_pool | long | 1d | atr6_h20 | swing | 1.418 | 48.9 | 0.214 | 1243 | 124.2 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atr6_h20 | swing | 1.254 | 48.2 | 0.132 | 1474 | 122.0 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4118,6 +4122,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_hammer_hanging__short__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_hammer_hanging_pool__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging_pool | long | 1d | atr6_h20 | swing | 1.497 | 50.9 | 0.244 | 2191 | 122.63 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__cci20_extreme_reversal_x_harami__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_harami | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_harami__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_harami | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_harami__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4308,6 +4313,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_weekly_reversal__short__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_weekly_reversal__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_weekly_reversal__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_weekly_reversal_pool__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal_pool | long | 1d | atr6_h20 | swing | 1.161 | 48.9 | 0.082 | 1249 | 123.78 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__cci20_extreme_reversal_x_willr14_extreme_reversal__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_willr14_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_willr14_extreme_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_willr14_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_willr14_extreme_reversal__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_willr14_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4340,6 +4346,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_break_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.244 | 50.1 | 0.122 | 1174 | 122.93 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_2wk_break_x_donchian_4wk_break__long__1d__atr6_h10__v1 | combo | donchian_2wk_break_x_donchian_4wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_donchian_4wk_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_break_x_donchian_4wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_donchian_4wk_break__long__1d__atrnone_h10__v1 | combo | donchian_2wk_break_x_donchian_4wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4690,6 +4697,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.478 | 50.5 | 0.237 | 1928 | 122.85 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_2wk_fade_x_donchian_4wk_fade__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_donchian_4wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_donchian_4wk_fade__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_donchian_4wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_donchian_4wk_fade__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_donchian_4wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4726,6 +4734,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_envelope_0d03_break__short__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_break__short__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_break__short__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_envelope_0d03_break_pool__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break_pool | long | 1d | atr6_h10 | swing | 1.402 | 51.0 | 0.197 | 2951 | 62.21 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
+| combo__donchian_2wk_fade_x_envelope_0d03_break_pool__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break_pool | long | 1d | atr6_h20 | swing | 1.350 | 49.0 | 0.179 | 2857 | 123.16 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4738,6 +4748,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atr6_h20 | swing | 0.986 | 44.2 | -0.008 | 996 | 122.81249999999999 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_envelope_0d05_break_pool__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break_pool | long | 1d | atr6_h10 | swing | 1.390 | 52.1 | 0.187 | 1328 | 62.25 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
+| combo__donchian_2wk_fade_x_envelope_0d05_break_pool__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break_pool | long | 1d | atr6_h20 | swing | 1.275 | 48.3 | 0.142 | 1303 | 122.75 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_2wk_fade_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -4830,6 +4842,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atr6_h20 | swing | 1.199 | 49.2 | 0.101 | 443 | 123.6875 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_kicking__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_kicking__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_kicking_pool__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_kicking_pool | long | 1d | atr6_h20 | swing | 1.408 | 49.5 | 0.206 | 794 | 123.72 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_2wk_fade_x_liq_sweep_20__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_liq_sweep_20 | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_liq_sweep_20__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_liq_sweep_20 | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_liq_sweep_20__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_liq_sweep_20 | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -5330,6 +5343,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_4wk_fade_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.526 | 51.0 | 0.258 | 1853 | 122.89 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_4wk_fade_x_donchian_2wk_fade__long__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_donchian_2wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_donchian_2wk_fade__long__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_donchian_2wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -5522,6 +5536,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_4wk_fade_x_starc_fade__short__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_starc_fade__short__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_starc_fade__short__1d__atrnone_h20__v1 | combo | donchian_4wk_fade_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_4wk_fade_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.657 | 53.8 | 0.304 | 2303 | 119.42 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_4wk_fade_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -5858,6 +5873,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.748 | 53.4 | 0.349 | 1446 | 123.2 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_8wk_fade_x_donchian_2wk_fade__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_donchian_2wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_donchian_2wk_fade__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_donchian_2wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -5898,6 +5914,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__short__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_envelope_0d05_fade_pool__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.442 | 51.1 | 0.216 | 7103 | 123.07 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_8wk_fade_x_gap_exhaustion_fade__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_gap_exhaustion_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_gap_exhaustion_fade__short__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_gap_exhaustion_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_gap_exhaustion_fade__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_gap_exhaustion_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
@@ -6000,6 +6017,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_starc_fade__short__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_starc_fade__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_starc_fade__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.713 | 55.3 | 0.319 | 1724 | 120.68 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__donchian_8wk_fade_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -6032,6 +6050,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__short__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_willr14_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.547 | 52.4 | 0.260 | 2315 | 122.99 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__ema_9_21_cross_x_base_double_bottom_top__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_base_double_bottom_top | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_base_double_bottom_top__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_base_double_bottom_top | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_base_double_bottom_top__short__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_base_double_bottom_top | short | 1d | atr6_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
@@ -6042,6 +6061,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.031 | 44.3 | 0.017 | 655 | 123.125 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__ema_9_21_cross_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.288 | 47.7 | 0.151 | 962 | 123.22 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__ema_9_21_cross_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_donchian_2wk_break__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_donchian_2wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_donchian_2wk_break__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_donchian_2wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -6172,6 +6192,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ema_9_21_cross_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__ema_9_21_cross_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.536 | 52.0 | 0.257 | 2115 | 123.38 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__ema_9_21_cross_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -6582,6 +6603,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__engulfing_x_donchian_8wk_fade__short__1d__atr6_h20__v1 | combo | engulfing_x_donchian_8wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | engulfing_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | engulfing_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__engulfing_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | engulfing_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.204 | 48.1 | 0.106 | 1176 | 123.92 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__engulfing_x_ema_9_21_cross__long__1d__atr6_h10__v1 | combo | engulfing_x_ema_9_21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_ema_9_21_cross__long__1d__atr6_h20__v1 | combo | engulfing_x_ema_9_21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_ema_9_21_cross__long__1d__atrnone_h10__v1 | combo | engulfing_x_ema_9_21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7068,6 +7090,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atr6_h20 | swing | 0.923 | 42.2 | -0.045 | 1950 | 122.24999999999999 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_break_x_invhammer_shootstar_pool__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar_pool | long | 1d | atr6_h20 | swing | 1.131 | 44.4 | 0.073 | 2346 | 122.45 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d03_break_x_kama_cross__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_kama_cross__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_kama_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_kama_cross__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7144,6 +7167,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atr6_h20 | swing | 0.921 | 42.6 | -0.045 | 1352 | 124.3125 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_break_x_matching_low_high_pool__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_matching_low_high_pool | long | 1d | atr6_h20 | swing | 1.177 | 44.6 | 0.098 | 1900 | 123.77 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d03_break_x_obv_breakout__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_obv_breakout | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_obv_breakout__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_obv_breakout | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_obv_breakout__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_obv_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7360,6 +7384,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_envelope_0d03_break__short__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d03_break__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d03_break__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_envelope_0d03_break_pool__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break_pool | long | 1d | atr6_h10 | swing | 1.443 | 52.0 | 0.213 | 2131 | 62.36 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
+| combo__envelope_0d03_fade_x_envelope_0d03_break_pool__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break_pool | long | 1d | atr6_h20 | swing | 1.363 | 49.1 | 0.185 | 2044 | 124.2 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d03_fade_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7520,6 +7546,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__short__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_ma_4_9_18_align_pool__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align_pool | long | 1d | atr6_h20 | swing | 1.320 | 49.2 | 0.163 | 1296 | 123.74 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d03_fade_x_matching_low_high__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_matching_low_high | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_matching_low_high__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_matching_low_high | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_matching_low_high__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_matching_low_high | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7592,6 +7619,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_starc_fade__short__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_starc_fade__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_starc_fade__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.621 | 54.0 | 0.286 | 2635 | 119.55 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d03_fade_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -7956,6 +7984,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__short__1d__atr6_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__short__1d__atrnone_h10__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__short__1d__atrnone_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_break_x_vp_ema_poc_pullback_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback_pool | long | 1d | atr6_h20 | swing | 1.179 | 46.3 | 0.096 | 1553 | 123.44 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_break_x_vp_poc_reversion__long__1d__atr6_h10__v1 | combo | envelope_0d05_break_x_vp_poc_reversion | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_poc_reversion__long__1d__atr6_h20__v1 | combo | envelope_0d05_break_x_vp_poc_reversion | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_poc_reversion__long__1d__atrnone_h10__v1 | combo | envelope_0d05_break_x_vp_poc_reversion | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8024,6 +8053,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.435 | 51.0 | 0.213 | 7324 | 123.1 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_fade_x_engulfing__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_engulfing | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_engulfing__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_engulfing | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_engulfing__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_engulfing | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8064,6 +8094,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_four_pct_reversal__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_four_pct_reversal__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_four_pct_reversal__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_four_pct_reversal_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal_pool | long | 1d | atr6_h20 | swing | 1.294 | 48.8 | 0.151 | 4676 | 124.16 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_fade_x_fvg_valid_retest__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_fvg_valid_retest | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_fvg_valid_retest__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_fvg_valid_retest | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_fvg_valid_retest__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_fvg_valid_retest | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8128,6 +8159,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_keltner_raschke_pullback_pool__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback_pool | long | 1d | atr6_h10 | swing | 1.139 | 48.4 | 0.072 | 1370 | 62.39 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
+| combo__envelope_0d05_fade_x_keltner_raschke_pullback_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback_pool | long | 1d | atr6_h20 | swing | 1.194 | 46.4 | 0.104 | 1328 | 124.44 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_fade_x_key_reversal__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_key_reversal | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_key_reversal__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_key_reversal | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_key_reversal__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_key_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8184,6 +8217,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_lwma21_cross__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lwma21_cross__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_lwma21_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lwma21_cross__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_lwma21_cross_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross_pool | long | 1d | atr6_h20 | swing | 1.229 | 47.1 | 0.121 | 1534 | 124.09 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_fade_x_matching_low_high__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_matching_low_high | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_matching_low_high__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_matching_low_high | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_matching_low_high__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_matching_low_high | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8244,6 +8278,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_starc_fade__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_starc_fade__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_starc_fade__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.676 | 54.3 | 0.309 | 2426 | 119.68 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__envelope_0d05_fade_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8328,6 +8363,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fib_382_bounce_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__fib_382_bounce_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.253 | 48.6 | 0.130 | 1743 | 123.7 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__fib_382_bounce_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | fib_382_bounce_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_donchian_2wk_break__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_donchian_2wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_donchian_2wk_break__long__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_donchian_2wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -8418,6 +8454,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fib_382_bounce_x_envelope_0d05_fade__short__1d__atr6_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__fib_382_bounce_x_envelope_0d05_fade_pool__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.057 | 44.6 | 0.032 | 1995 | 123.83 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__fib_382_bounce_x_fib_500_bounce__long__1d__atr6_h10__v1 | combo | fib_382_bounce_x_fib_500_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_fib_500_bounce__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_fib_500_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_fib_500_bounce__long__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_fib_500_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9196,6 +9233,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.267 | 48.5 | 0.138 | 6818 | 123.69 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__four_pct_reversal_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_break__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_break__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9212,6 +9250,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_donchian_2wk_fade__short__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_fade__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_fade__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_donchian_2wk_fade_pool__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade_pool | long | 1d | atr6_h20 | swing | 1.370 | 48.7 | 0.190 | 6986 | 123.8 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__four_pct_reversal_x_donchian_4wk_break__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_4wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_4wk_break__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_4wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_4wk_break__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_4wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9244,6 +9283,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_donchian_8wk_fade__short__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.542 | 50.9 | 0.266 | 3653 | 124.08 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__four_pct_reversal_x_ema_9_21_cross__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_ema_9_21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_ema_9_21_cross__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_ema_9_21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_ema_9_21_cross__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_ema_9_21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9340,6 +9380,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_hammer_hanging__short__1d__atr6_h20__v1 | combo | four_pct_reversal_x_hammer_hanging | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_hammer_hanging__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_hammer_hanging | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_hammer_hanging__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_hammer_hanging | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_hammer_hanging_pool__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_hammer_hanging_pool | long | 1d | atr6_h20 | swing | 1.572 | 51.0 | 0.280 | 2465 | 122.94 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__four_pct_reversal_x_harami__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_harami | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_harami__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_harami | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_harami__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9428,6 +9469,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_longleg_trend__short__1d__atr6_h20__v1 | combo | four_pct_reversal_x_longleg_trend | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_longleg_trend__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_longleg_trend | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_longleg_trend__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_longleg_trend | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_longleg_trend_pool__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_longleg_trend_pool | long | 1d | atr6_h20 | swing | 1.104 | 46.1 | 0.056 | 2558 | 123.83 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__four_pct_reversal_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -9976,6 +10018,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fvg_valid_retest_x_three_outside__short__1d__atr6_h20__v1 | combo | fvg_valid_retest_x_three_outside | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_outside__short__1d__atrnone_h10__v1 | combo | fvg_valid_retest_x_three_outside | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_outside__short__1d__atrnone_h20__v1 | combo | fvg_valid_retest_x_three_outside | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__fvg_valid_retest_x_three_outside_pool__long__1d__atr6_h20__v1 | combo | fvg_valid_retest_x_three_outside_pool | long | 1d | atr6_h20 | swing | 1.207 | 47.0 | 0.110 | 704 | 123.49 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__fvg_valid_retest_x_volume_confirmed_breakout__long__1d__atr6_h10__v1 | combo | fvg_valid_retest_x_volume_confirmed_breakout | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_volume_confirmed_breakout__long__1d__atr6_h20__v1 | combo | fvg_valid_retest_x_volume_confirmed_breakout | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_volume_confirmed_breakout__long__1d__atrnone_h10__v1 | combo | fvg_valid_retest_x_volume_confirmed_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10128,6 +10171,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__hammer_hanging_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__hammer_hanging_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.515 | 50.1 | 0.257 | 1403 | 122.11 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__hammer_hanging_x_donchian_2wk_fade__long__1d__atr6_h10__v1 | combo | hammer_hanging_x_donchian_2wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_donchian_2wk_fade__long__1d__atrnone_h10__v1 | combo | hammer_hanging_x_donchian_2wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10184,6 +10228,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__hammer_hanging_x_envelope_0d05_fade__short__1d__atr6_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | hammer_hanging_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__hammer_hanging_x_envelope_0d05_fade_pool__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.321 | 50.2 | 0.160 | 3616 | 121.91 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__hammer_hanging_x_fib_382_bounce__long__1d__atr6_h10__v1 | combo | hammer_hanging_x_fib_382_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_fib_382_bounce__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_fib_382_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_fib_382_bounce__long__1d__atrnone_h10__v1 | combo | hammer_hanging_x_fib_382_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10512,6 +10557,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_ma10_x_obv_breakout__long__1d__atr6_h20__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atr6_h20 | swing | 0.763 | 39.9 | -0.142 | 504 | 123.875 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_ma10_x_obv_breakout__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_obv_breakout__long__1d__atrnone_h20__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__harami_ma10_x_obv_breakout_pool__long__1d__atr6_h20__v1 | combo | harami_ma10_x_obv_breakout_pool | long | 1d | atr6_h20 | swing | 1.074 | 46.0 | 0.040 | 821 | 123.75 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__harami_ma10_x_retrace_40_60_trend__long__1d__atr6_h10__v1 | combo | harami_ma10_x_retrace_40_60_trend | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_retrace_40_60_trend__long__1d__atr6_h20__v1 | combo | harami_ma10_x_retrace_40_60_trend | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_retrace_40_60_trend__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_retrace_40_60_trend | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10538,6 +10584,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_ma10_x_starc_fade__short__1d__atr6_h20__v1 | combo | harami_ma10_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_starc_fade__short__1d__atrnone_h10__v1 | combo | harami_ma10_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_starc_fade__short__1d__atrnone_h20__v1 | combo | harami_ma10_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__harami_ma10_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | harami_ma10_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.457 | 52.2 | 0.218 | 816 | 123.31 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__harami_ma10_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | harami_ma10_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | harami_ma10_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10698,6 +10745,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_four_pct_reversal__short__1d__atr6_h20__v1 | combo | harami_x_four_pct_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_four_pct_reversal__short__1d__atrnone_h10__v1 | combo | harami_x_four_pct_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_four_pct_reversal__short__1d__atrnone_h20__v1 | combo | harami_x_four_pct_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__harami_x_four_pct_reversal_pool__long__1d__atr6_h20__v1 | combo | harami_x_four_pct_reversal_pool | long | 1d | atr6_h20 | swing | 1.240 | 47.8 | 0.125 | 3279 | 124.36 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__harami_x_fvg_valid_retest__long__1d__atr6_h10__v1 | combo | harami_x_fvg_valid_retest | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_fvg_valid_retest__long__1d__atr6_h20__v1 | combo | harami_x_fvg_valid_retest | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_fvg_valid_retest__long__1d__atrnone_h10__v1 | combo | harami_x_fvg_valid_retest | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10746,6 +10794,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_keltner_raschke_break__short__1d__atr6_h20__v1 | combo | harami_x_keltner_raschke_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_break__short__1d__atrnone_h10__v1 | combo | harami_x_keltner_raschke_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_break__short__1d__atrnone_h20__v1 | combo | harami_x_keltner_raschke_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__harami_x_keltner_raschke_break_pool__long__1d__atr6_h20__v1 | combo | harami_x_keltner_raschke_break_pool | long | 1d | atr6_h20 | swing | 1.385 | 51.8 | 0.186 | 2284 | 123.95 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__harami_x_keltner_raschke_pullback__long__1d__atr6_h10__v1 | combo | harami_x_keltner_raschke_pullback | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_pullback__long__1d__atr6_h20__v1 | combo | harami_x_keltner_raschke_pullback | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_pullback__long__1d__atrnone_h10__v1 | combo | harami_x_keltner_raschke_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -10890,6 +10939,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_starc_fade__short__1d__atr6_h20__v1 | combo | harami_x_starc_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_starc_fade__short__1d__atrnone_h10__v1 | combo | harami_x_starc_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_starc_fade__short__1d__atrnone_h20__v1 | combo | harami_x_starc_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__harami_x_starc_fade_pool__long__1d__atr6_h20__v1 | combo | harami_x_starc_fade_pool | long | 1d | atr6_h20 | swing | 1.458 | 52.3 | 0.218 | 817 | 123.31 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__harami_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | harami_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | harami_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__harami_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | harami_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -11262,6 +11312,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__kama_cross_x_envelope_0d05_break__short__1d__atr6_h20__v1 | combo | kama_cross_x_envelope_0d05_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_break__short__1d__atrnone_h10__v1 | combo | kama_cross_x_envelope_0d05_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_break__short__1d__atrnone_h20__v1 | combo | kama_cross_x_envelope_0d05_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__kama_cross_x_envelope_0d05_break_pool__long__1d__atr6_h20__v1 | combo | kama_cross_x_envelope_0d05_break_pool | long | 1d | atr6_h20 | swing | 1.140 | 45.6 | 0.076 | 4463 | 123.87 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__kama_cross_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | kama_cross_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | kama_cross_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | kama_cross_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -11690,6 +11741,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__keltner_raschke_break_x_harami__long__1d__atr6_h20__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atr6_h20 | swing | 0.976 | 44.9 | -0.013 | 1130 | 123.6875 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__keltner_raschke_break_x_harami__long__1d__atrnone_h10__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_harami__long__1d__atrnone_h20__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__keltner_raschke_break_x_harami_pool__long__1d__atr6_h20__v1 | combo | keltner_raschke_break_x_harami_pool | long | 1d | atr6_h20 | swing | 1.265 | 49.7 | 0.133 | 2068 | 123.52 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__keltner_raschke_break_x_kama_cross__long__1d__atr6_h10__v1 | combo | keltner_raschke_break_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_kama_cross__long__1d__atr6_h20__v1 | combo | keltner_raschke_break_x_kama_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_kama_cross__long__1d__atrnone_h10__v1 | combo | keltner_raschke_break_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -12788,6 +12840,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.701 | 53.7 | 0.325 | 561 | 124.0 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__kicking_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__kicking_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__kicking_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | kicking_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.850 | 53.6 | 0.394 | 872 | 123.91 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__kicking_x_ema_9_21_cross__long__1d__atr6_h10__v1 | combo | kicking_x_ema_9_21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__kicking_x_ema_9_21_cross__long__1d__atr6_h20__v1 | combo | kicking_x_ema_9_21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__kicking_x_ema_9_21_cross__long__1d__atrnone_h10__v1 | combo | kicking_x_ema_9_21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -13720,6 +13773,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.551 | 50.1 | 0.275 | 3063 | 123.86 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_donchian_2wk_break__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_donchian_2wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_donchian_2wk_break__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_donchian_2wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -13776,6 +13830,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_ema_9_21_cross__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_ema_9_21_cross__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_ema_9_21_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_ema_9_21_cross__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_ema_9_21_cross_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross_pool | long | 1d | atr6_h20 | swing | 1.357 | 49.2 | 0.181 | 1950 | 123.08 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_engulfing__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_engulfing | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_engulfing__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_engulfing | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_engulfing__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_engulfing | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -13856,6 +13911,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_four_pct_reversal__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_four_pct_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_four_pct_reversal__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_four_pct_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_four_pct_reversal__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_four_pct_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_four_pct_reversal_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_four_pct_reversal_pool | long | 1d | atr6_h20 | swing | 1.598 | 50.8 | 0.294 | 5095 | 123.86 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_fvg_valid_retest__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_fvg_valid_retest | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_fvg_valid_retest__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_fvg_valid_retest | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_fvg_valid_retest__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_fvg_valid_retest | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -13908,6 +13964,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_kama_cross__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_kama_cross | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kama_cross__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_kama_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kama_cross__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_kama_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_kama_cross_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kama_cross_pool | long | 1d | atr6_h20 | swing | 1.432 | 49.9 | 0.216 | 6119 | 123.54 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_keltner_raschke_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_keltner_raschke_break__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_keltner_raschke_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -13940,6 +13997,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_kicking__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_kicking | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kicking__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kicking__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_kicking_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kicking_pool | long | 1d | atr6_h20 | swing | 1.634 | 52.7 | 0.300 | 2892 | 123.75 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_liq_sweep_20__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_liq_sweep_20 | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_liq_sweep_20__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_liq_sweep_20 | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_liq_sweep_20__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_liq_sweep_20 | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -14104,6 +14162,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_three_outside__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_three_outside_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_three_outside_pool | long | 1d | atr6_h20 | swing | 1.192 | 47.0 | 0.102 | 1128 | 123.23 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atr6_h20 | swing | 1.024 | 44.3 | 0.013 | 1627 | 122.6875 |  | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -14112,6 +14171,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_volume_confirmed_breakout__short__1d__atr6_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_volume_confirmed_breakout_pool__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout_pool | long | 1d | atr6_h20 | swing | 1.291 | 47.3 | 0.153 | 2482 | 122.73 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lunar_full_new_x_vp_ema_poc_pullback__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_vp_ema_poc_pullback | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_vp_ema_poc_pullback__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_vp_ema_poc_pullback | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_vp_ema_poc_pullback__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_vp_ema_poc_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -14312,6 +14372,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lwma21_cross_x_hammer_hanging__short__1d__atr6_h20__v1 | combo | lwma21_cross_x_hammer_hanging | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_hammer_hanging__short__1d__atrnone_h10__v1 | combo | lwma21_cross_x_hammer_hanging | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_hammer_hanging__short__1d__atrnone_h20__v1 | combo | lwma21_cross_x_hammer_hanging | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__lwma21_cross_x_hammer_hanging_pool__long__1d__atr6_h20__v1 | combo | lwma21_cross_x_hammer_hanging_pool | long | 1d | atr6_h20 | swing | 1.458 | 48.7 | 0.235 | 2795 | 122.38 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__lwma21_cross_x_harami__long__1d__atr6_h10__v1 | combo | lwma21_cross_x_harami | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_harami__long__1d__atr6_h20__v1 | combo | lwma21_cross_x_harami | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_harami__long__1d__atrnone_h10__v1 | combo | lwma21_cross_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -14738,6 +14799,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ma_4_9_18_align_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | ma_4_9_18_align_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__ma_4_9_18_align_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.417 | 50.2 | 0.208 | 3989 | 123.16 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__ma_4_9_18_align_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | ma_4_9_18_align_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | ma_4_9_18_align_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | ma_4_9_18_align_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -15638,6 +15700,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box1pct_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | pnf_box1pct_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | pnf_box1pct_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | pnf_box1pct_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__pnf_box1pct_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | pnf_box1pct_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.479 | 52.1 | 0.229 | 5084 | 123.2 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__pnf_box1pct_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | pnf_box1pct_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | pnf_box1pct_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | pnf_box1pct_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -15909,6 +15972,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box2pct_x_harami__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_harami | long | 1d | atr6_h20 | swing | 0.999 | 45.6 | -0.001 | 1360 | 124.0 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__pnf_box2pct_x_harami__long__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_harami__long__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_harami | long | 1d | atrnone_h20 | swing |  |  |  |  |  |  | n/a |  |  |
+| combo__pnf_box2pct_x_harami_pool__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_harami_pool | long | 1d | atr6_h20 | swing | 1.259 | 48.9 | 0.132 | 2158 | 123.79 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__pnf_box2pct_x_kama_cross__long__1d__atr6_h10__v1 | combo | pnf_box2pct_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_kama_cross__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_kama_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_kama_cross__long__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -15957,6 +16021,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box2pct_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | pnf_box2pct_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__pnf_box2pct_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.479 | 51.8 | 0.231 | 3254 | 123.42 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__pnf_box2pct_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | pnf_box2pct_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -16225,6 +16290,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_di_x_keltner_raschke_break__short__1d__atr6_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_break__short__1d__atrnone_h10__v1 | combo | psar_flip_di_x_keltner_raschke_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_break__short__1d__atrnone_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__psar_flip_di_x_keltner_raschke_break_pool__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break_pool | long | 1d | atr6_h20 | swing | 1.343 | 46.8 | 0.182 | 1988 | 122.2 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__psar_flip_di_x_keltner_raschke_pullback__long__1d__atr6_h10__v1 | combo | psar_flip_di_x_keltner_raschke_pullback | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_pullback__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_keltner_raschke_pullback | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_pullback__long__1d__atrnone_h10__v1 | combo | psar_flip_di_x_keltner_raschke_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -16297,6 +16363,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_di_x_pnf_box2pct__short__1d__atr6_h20__v1 | combo | psar_flip_di_x_pnf_box2pct | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box2pct__short__1d__atrnone_h10__v1 | combo | psar_flip_di_x_pnf_box2pct | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box2pct__short__1d__atrnone_h20__v1 | combo | psar_flip_di_x_pnf_box2pct | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__psar_flip_di_x_pnf_box2pct_pool__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_pnf_box2pct_pool | long | 1d | atr6_h20 | swing | 1.269 | 47.8 | 0.140 | 2398 | 123.72 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__psar_flip_di_x_psar_flip__long__1d__atr6_h10__v1 | combo | psar_flip_di_x_psar_flip | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_psar_flip__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_psar_flip | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_psar_flip__long__1d__atrnone_h10__v1 | combo | psar_flip_di_x_psar_flip | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -16631,6 +16698,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_x_keltner_raschke_break__short__1d__atr6_h20__v1 | combo | psar_flip_x_keltner_raschke_break | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_break__short__1d__atrnone_h10__v1 | combo | psar_flip_x_keltner_raschke_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_break__short__1d__atrnone_h20__v1 | combo | psar_flip_x_keltner_raschke_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__psar_flip_x_keltner_raschke_break_pool__long__1d__atr6_h20__v1 | combo | psar_flip_x_keltner_raschke_break_pool | long | 1d | atr6_h20 | swing | 1.394 | 47.3 | 0.208 | 2063 | 121.88 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__psar_flip_x_keltner_raschke_pullback__long__1d__atr6_h10__v1 | combo | psar_flip_x_keltner_raschke_pullback | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_pullback__long__1d__atr6_h20__v1 | combo | psar_flip_x_keltner_raschke_pullback | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_pullback__long__1d__atrnone_h10__v1 | combo | psar_flip_x_keltner_raschke_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -16735,6 +16803,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_x_pnf_box2pct__short__1d__atr6_h20__v1 | combo | psar_flip_x_pnf_box2pct | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box2pct__short__1d__atrnone_h10__v1 | combo | psar_flip_x_pnf_box2pct | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box2pct__short__1d__atrnone_h20__v1 | combo | psar_flip_x_pnf_box2pct | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__psar_flip_x_pnf_box2pct_pool__long__1d__atr6_h20__v1 | combo | psar_flip_x_pnf_box2pct_pool | long | 1d | atr6_h20 | swing | 1.313 | 48.3 | 0.162 | 2633 | 123.71 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__psar_flip_x_psar_flip_di__long__1d__atr6_h10__v1 | combo | psar_flip_x_psar_flip_di | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_psar_flip_di__long__1d__atr6_h20__v1 | combo | psar_flip_x_psar_flip_di | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_psar_flip_di__long__1d__atrnone_h10__v1 | combo | psar_flip_x_psar_flip_di | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -17497,6 +17566,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__roc12_zero_cross_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | roc12_zero_cross_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__roc12_zero_cross_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.426 | 50.5 | 0.211 | 5967 | 123.54 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__roc12_zero_cross_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | roc12_zero_cross_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | roc12_zero_cross_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | roc12_zero_cross_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -18319,6 +18389,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__soldiers_crows_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | soldiers_crows_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | soldiers_crows_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | soldiers_crows_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__soldiers_crows_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | soldiers_crows_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.608 | 53.3 | 0.284 | 4031 | 123.49 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__soldiers_crows_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | soldiers_crows_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | soldiers_crows_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | soldiers_crows_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -18831,6 +18902,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__starc_fade_x_donchian_8wk_fade__short__1d__atr6_h20__v1 | combo | starc_fade_x_donchian_8wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | starc_fade_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | starc_fade_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__starc_fade_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | starc_fade_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.693 | 55.2 | 0.310 | 1704 | 120.66 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__starc_fade_x_envelope_0d03_fade__long__1d__atr6_h10__v1 | combo | starc_fade_x_envelope_0d03_fade | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d03_fade__long__1d__atr6_h20__v1 | combo | starc_fade_x_envelope_0d03_fade | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d03_fade__long__1d__atrnone_h10__v1 | combo | starc_fade_x_envelope_0d03_fade | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -18847,6 +18919,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__starc_fade_x_envelope_0d05_fade__short__1d__atr6_h20__v1 | combo | starc_fade_x_envelope_0d05_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | starc_fade_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | starc_fade_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__starc_fade_x_envelope_0d05_fade_pool__long__1d__atr6_h20__v1 | combo | starc_fade_x_envelope_0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.653 | 54.1 | 0.300 | 2345 | 119.7 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__starc_fade_x_key_reversal__short__1d__atr6_h10__v1 | combo | starc_fade_x_key_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_key_reversal__short__1d__atr6_h20__v1 | combo | starc_fade_x_key_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_key_reversal__short__1d__atrnone_h10__v1 | combo | starc_fade_x_key_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
@@ -19350,6 +19423,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__three_inside_x_lunar_full_new__short__1d__atr6_h20__v1 | combo | three_inside_x_lunar_full_new | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | three_inside_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | three_inside_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__three_inside_x_lunar_full_new_pool__long__1d__atr6_h20__v1 | combo | three_inside_x_lunar_full_new_pool | long | 1d | atr6_h20 | swing | 1.264 | 49.3 | 0.134 | 2362 | 123.59 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__three_inside_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | three_inside_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | three_inside_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | three_inside_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21540,6 +21614,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_donchian_8wk_fade__short__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_donchian_8wk_fade_pool__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.375 | 49.0 | 0.191 | 1763 | 123.47 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__vp_value_area_reject_x_engulfing__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_engulfing | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_engulfing__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_engulfing | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_engulfing__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_engulfing | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21668,6 +21743,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_kicking__short__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_kicking | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_kicking__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_kicking__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_kicking_pool__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_kicking_pool | long | 1d | atr6_h20 | swing | 1.081 | 44.0 | 0.045 | 1715 | 123.39 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__vp_value_area_reject_x_liq_sweep_20__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_liq_sweep_20 | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_liq_sweep_20__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_liq_sweep_20 | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_liq_sweep_20__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_liq_sweep_20 | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21780,6 +21856,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_star_doji__short__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_star_doji | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_star_doji__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_star_doji | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_star_doji__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_star_doji | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_star_doji_pool__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_star_doji_pool | long | 1d | atr6_h20 | swing | 1.011 | 43.6 | 0.006 | 1243 | 123.68 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__vp_value_area_reject_x_support_resistance_bounce__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_support_resistance_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_support_resistance_bounce__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_support_resistance_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_support_resistance_bounce__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_support_resistance_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21836,6 +21913,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__weekly_reversal_x_cci20_extreme_reversal__short__1d__atr6_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_cci20_extreme_reversal__short__1d__atrnone_h10__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_cci20_extreme_reversal__short__1d__atrnone_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_cci20_extreme_reversal_pool__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal_pool | long | 1d | atr6_h20 | swing | 1.168 | 48.2 | 0.087 | 3827 | 123.45 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__weekly_reversal_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_break__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_2wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_break__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_donchian_2wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21852,6 +21930,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__weekly_reversal_x_donchian_2wk_fade__short__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_fade__short__1d__atrnone_h10__v1 | combo | weekly_reversal_x_donchian_2wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_fade__short__1d__atrnone_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_donchian_2wk_fade_pool__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade_pool | long | 1d | atr6_h20 | swing | 2.151 | 55.7 | 0.510 | 1314 | 123.86 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__weekly_reversal_x_donchian_4wk_break__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_donchian_4wk_break | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_4wk_break__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_4wk_break | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_4wk_break__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_donchian_4wk_break | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -21920,6 +21999,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__weekly_reversal_x_envelope_0d05_fade__short__1d__atr6_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | weekly_reversal_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_envelope_0d05_fade_pool__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.227 | 48.4 | 0.117 | 3637 | 123.78 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | combo__weekly_reversal_x_fib_382_bounce__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_fib_382_bounce | long | 1d | atr6_h10 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_fib_382_bounce | long | 1d | atr6_h20 | swing |  |  |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_fib_382_bounce__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_fib_382_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  |  |  | n/a |  |  |
@@ -23626,6 +23706,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | donchian__8wk_fade_full__short__1d__atrnone_h20__v1 | donchian | 8wk_fade_full | short | 1d | atrnone_h20 | short_sell | 0.597 | 47.7 | -0.211 | 27763 | 125.0 |  | no | full_nse | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade_full__short__1d__atrnone_h3__v1 | donchian | 8wk_fade_full | short | 1d | atrnone_h3 | short_sell | 0.671 | 45.2 | -0.180 | 49413 | 18.75 |  | no | full_nse | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade_full__short__1d__atrnone_h5__v1 | donchian | 8wk_fade_full | short | 1d | atrnone_h5 | short_sell | 0.710 | 47.5 | -0.152 | 43064 | 31.25 |  | no | full_nse | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| donchian__8wk_fade_pool__long__1d__atr6_h20__v1 | donchian | 8wk_fade_pool | long | 1d | atr6_h20 | swing | 1.280 | 47.8 | 0.146 | 8103 | 118.05 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | donchian_breakout__cl__long__15m__atr1d5__v1 | donchian_breakout | cl | long | 15m | atr1d5 | futures | 0.297 | 19.4 | -0.567 | 72 | 4.89 |  | no | mcx_proxy_single_symbol | sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%) |
 | donchian_breakout__cl__long__15m__atr2d5__v1 | donchian_breakout | cl | long | 15m | atr2d5 | futures | 0.353 | 23.6 | -0.494 | 72 | 6.07 |  | no | mcx_proxy_single_symbol | sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%) |
 | donchian_breakout__cl__long__15m__atrnone__v1 | donchian_breakout | cl | long | 15m | atrnone | futures | 0.359 | 26.4 | -0.472 | 72 | 6.68 |  | no | mcx_proxy_single_symbol | sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%) |
@@ -24909,6 +24990,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | envelope__0d05_fade_mr__short__1h__atr4_h30__v1 | envelope | 0d05_fade_mr | short | 1h | atr4_h30 | short_sell | 0.643 | 44.0 | -0.200 | 68797 | 23.25 | 23.25 | no | NSE full universe | envelope-main-replay.yml run 38550666361 (1h, 730d, full NSE universe, cost ROUND_TRIP_COST_PCT, main.envelope_fade_entry_signal/exit_reason, ATR stop attached) |
 | envelope__0d05_fade_mr__short__1h__atr6_h18__v1 | envelope | 0d05_fade_mr | short | 1h | atr6_h18 | short_sell | 0.598 | 46.0 | -0.217 | 64797 | 16.58 | 16.58 | no | NSE full universe | envelope-main-replay.yml run 38550666361 (1h, 730d, full NSE universe, cost ROUND_TRIP_COST_PCT, main.envelope_fade_entry_signal/exit_reason, ATR stop attached) |
 | envelope__0d05_fade_mr__short__1h__atr6_h30__v1 | envelope | 0d05_fade_mr | short | 1h | atr6_h30 | short_sell | 0.643 | 46.9 | -0.190 | 60941 | 26.23 | 26.23 | no | NSE full universe | envelope-main-replay.yml run 38550666361 (1h, 730d, full NSE universe, cost ROUND_TRIP_COST_PCT, main.envelope_fade_entry_signal/exit_reason, ATR stop attached) |
+| envelope__0d05_fade_pool__long__1d__atr6_h20__v1 | envelope | 0d05_fade_pool | long | 1d | atr6_h20 | swing | 1.155 | 47.1 | 0.082 | 13166 | 123.28 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | failed_breakout_short | (legacy) |  |  | 1d |  | short_sell | 0.657 | 34.9 | -0.223 | 20879 | 102.5 | 16.4 | no | full_2680 (2366/2680 fetched) | failed-breakout-short-validation-replay.yml run 36712440006 (2026-09-30, calls the real main.py functions) |
 | fib__382_bounce__long__15m__atr2d5_h125__v1 | fib | 382_bounce | long | 15m | atr2d5_h125 | swing | 0.255 | 15.1 | -0.633 | 2729 | 11.5525 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | fib__382_bounce__long__15m__atr2d5_h25__v1 | fib | 382_bounce | long | 15m | atr2d5_h25 | swing | 0.171 | 19.4 | -0.668 | 4515 | 4.415 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
@@ -25760,6 +25842,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | gap__runaway_full__short__1d__atrnone_h5__v1 | gap | runaway_full | short | 1d | atrnone_h5 | short_sell | 0.536 | 44.2 | -0.259 | 11487 | 31.25 |  | no | full_nse | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway_mr__long__1d__atr4_h20__v1 | gap | runaway_mr | long | 1d | atr4_h20 | swing | 1.203 | 46.2 | 0.109 | 12898 | 116.5 |  | yes | NSE full universe | pl1d-main-replay.yml run 38506928246 (1d, cost 0.8%, main.py functions pl1d_long_entry_signal/pl1d_exit_reason, ATR stop attached) |
 | gap__runaway_mr__short__1d__atr4_h20__v1 | gap | runaway_mr | short | 1d | atr4_h20 | short_sell | 0.525 | 42.9 | -0.271 | 9861 | 112.6 |  | no | NSE full universe | pl1d-short-main-replay.yml run 38501324353 (1d, cost 0.8%, main.py functions; PARTIAL: 2 cells from the job log) |
+| gap__runaway_pool__long__1d__atr6_h20__v1 | gap | runaway_pool | long | 1d | atr6_h20 | swing | 1.166 | 48.0 | 0.086 | 3474 | 122.63 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | gap_and_go__exitchand__long__1d__atr2d5_hold30_trail3d0__v1 | gap_and_go | exitchand | long | 1d | atr2d5_hold30_trail3d0 | swing | 1.089 | 38.9 | 0.054 | 11572 | 107.43750000000001 |  | yes | full_2680 | exit-family-research.yml run 38140914889 (2026-10-11 IST, daily/5y, full universe, cost 0.8%) |
 | gap_and_go__exitchand__long__1d__atr2d5_hold30_trail3d0__v2 | gap_and_go | exitchand | long | 1d | atr2d5_hold30_trail3d0 | swing | 1.131 | 38.5 | 0.081 | 10604 | 107.9375 |  | yes | full_2680 | exit-family-research.yml run 40951289638 (2026-10-30 IST, daily/5y, full universe, cost 0.8%, B-1416 v2 replay-matching sim) |
 | gap_and_go__exitchand__long__1d__atr2d5_hold30_trail6d0__v1 | gap_and_go | exitchand | long | 1d | atr2d5_hold30_trail6d0 | swing | 1.073 | 38.9 | 0.044 | 11572 | 133.1875 |  | yes | full_2680 | exit-family-research.yml run 38140914889 (2026-10-11 IST, daily/5y, full universe, cost 0.8%) |
@@ -44706,6 +44789,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | starc__fade_full__short__1d__atrnone_h5__v1 | starc | fade_full | short | 1d | atrnone_h5 | short_sell | 0.755 | 49.9 | -0.123 | 23236 | 31.25 |  | no | full_nse | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | starc__fade_full_mr__long__1d__atr2d5_h20__v1 | starc | fade_full_mr | long | 1d | atr2d5_h20 | swing | 1.222 | 43.2 | 0.126 | 9093 | 90.4 |  | yes | NSE full universe | pl1d-main-replay.yml run 38506928246 (1d, cost 0.8%, main.py functions pl1d_long_entry_signal/pl1d_exit_reason, ATR stop attached) |
 | starc__fade_full_mr__short__1d__atr2d5_h20__v1 | starc | fade_full_mr | short | 1d | atr2d5_h20 | short_sell | 0.592 | 35.1 | -0.264 | 24082 | 75.3 |  | no | NSE full universe | pl1d-short-main-replay.yml run 38501324353 (1d, cost 0.8%, main.py functions; PARTIAL: 2 cells from the job log) |
+| starc__fade_pool__long__1d__atr6_h20__v1 | starc | fade_pool | long | 1d | atr6_h20 | swing | 1.615 | 53.0 | 0.289 | 2596 | 119.24 |  | yes | n200_plus_holdout_pooled | B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate) |
 | stoch14__cross__long__15m__atr2d5_h125__v1 | stoch14 | cross | long | 15m | atr2d5_h125 | swing | 0.266 | 16.0 | -0.617 | 4474 | 11.965 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | stoch14__cross__long__15m__atr2d5_h25__v1 | stoch14 | cross | long | 15m | atr2d5_h25 | swing | 0.176 | 20.8 | -0.653 | 8196 | 4.4525 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | stoch14__cross__long__15m__atr2d5_h75__v1 | stoch14 | cross | long | 15m | atr2d5_h75 | swing | 0.275 | 19.1 | -0.587 | 5433 | 9.12 |  | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
