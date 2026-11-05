@@ -32,7 +32,9 @@ Usage:
   TAGS="tag1,tag2" SHARD=0 NSHARDS=4 python3 scripts/oneil_replay.py            # writes docs/oneil_replay_s<shard>.json
   python3 scripts/oneil_replay.py --merge docs/oneil_replay_s*.json             # pools shards, prints the full table
 Env: TAGS (comma list, default DEFAULT_TAGS), SHARD, NSHARDS, MAXSYM (debug), SLIP_PCT, CROSSCHECK,
-INTERVAL (1d|1w: re-tag every spec to that candle size, B-786), PERIOD (yfinance period override, B-786).
+INTERVAL (1d|1w: re-tag every spec to that candle size, B-786), PERIOD (yfinance period override, B-786),
+FAMILIES (B-1472 b: cup | comma list of cup_handle,saucer,cup_nohandle,double_bottom -> full pattern grid via main.py
+oneil_pattern_signals; INTERVAL is then a comma list, blank = 1d,1w), PATTERN_EXITS (default atr2,atr3,pct7,pct8,tgt20,trl3).
 RS rank (rs80 filters) is the 12-month return percentile across the symbols loaded in the shard (as in the research).
 """
 import json
@@ -83,6 +85,8 @@ def parse_tag(tag):
         k, v = m.group(1), m.group(2)
         if k == "rs":
             p["rs"] = v
+        elif k == "rsqual":  # B-1472 b: research tag token rsqual1 = cup_handle 1st/2nd-base filter
+            p["rs"] = "qual" + v
         else:
             p[k] = float(v.replace("d", ".")) if v else 1.0
     if "h" not in p:
@@ -183,7 +187,68 @@ def _main_app():
     return app
 
 
-def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap="off"):
+# ---------- B-1472 b: O'Neil chart-pattern families (cup_handle / saucer / cup_nohandle / double_bottom) ----------
+PATTERN_FAMILIES = ("oneil_cup_handle", "oneil_saucer", "oneil_cup_nohandle", "oneil_double_bottom")
+PATTERN_FAMILY_ALIASES = {"cup": PATTERN_FAMILIES, "patterns": PATTERN_FAMILIES, "all": PATTERN_FAMILIES}
+PATTERN_EXITS_DEFAULT = "atr2,atr3,pct7,pct8,tgt20,trl3"   # oneil_research EXITS_BASE minus the avg-down control
+PATTERN_CHASES = (0.05, 0.10)
+
+
+def _parse_exit(tok):
+    import re as _re
+    m = _re.fullmatch(r"(atr|pct|tgt|trl|avg)(\d+(?:\.\d+)?)", tok.strip())
+    if not m:
+        raise ValueError(f"bad pattern exit {tok!r} (use atr<k>|pct<k>|tgt<k>|trl<k>|avg<k>)")
+    return m.group(1), float(m.group(2))
+
+
+def pattern_family_tags(families, intervals, exits=PATTERN_EXITS_DEFAULT):
+    """FAMILIES env (B-1472 b): every (family x long/short x chase 5/10 x rs none/80 (+qual1 for cup_handle) x the
+    candle size's research holds x exits) cell as a research-grammar v1 tag (main_run re-versions it to v2)."""
+    fams = []
+    for f in (x.strip() for x in families.split(",") if x.strip()):
+        if f in PATTERN_FAMILY_ALIASES:
+            fams += list(PATTERN_FAMILY_ALIASES[f])
+        else:
+            f = f if f.startswith("oneil_") else "oneil_" + f
+            if f not in PATTERN_FAMILIES:
+                raise ValueError(f"unknown pattern family {f}; one of {PATTERN_FAMILIES} or {sorted(PATTERN_FAMILY_ALIASES)}")
+            fams.append(f)
+    fams = list(dict.fromkeys(fams))
+    exs = [_parse_exit(e) for e in exits.split(",") if e.strip()]
+    tags = []
+    for tf in (x.strip() for x in intervals.split(",") if x.strip()):
+        if tf not in CFG:
+            raise ValueError(f"pattern replay supports {sorted(CFG)}, got {tf}")
+        for fam in fams:
+            rsfs = ("none", "80", "qual1") if fam == "oneil_cup_handle" else ("none", "80")
+            for d in ("long", "short"):
+                for ch in PATTERN_CHASES:
+                    for rsf in rsfs:
+                        for hold in CFG[tf]["holds"]:
+                            for mode, val in exs:
+                                tags.append(orx.tag_for(fam, "breakout", d, tf, ch, rsf, mode, val, hold))
+    return list(dict.fromkeys(tags))
+
+
+def _pattern_sig(spec, o, h, l, c, v, rs, use_main, cache):
+    """Full signal array for a pattern spec, computed ONCE per (symbol, family) and cached: via main.py's
+    oneil_pattern_signals (use_main) or the research scripts/oneil_patterns.pattern_signals (v1)."""
+    fam = spec["family"]
+    if cache is None:
+        cache = {}
+    if fam not in cache:
+        if use_main:
+            cache[fam] = _main_app().oneil_pattern_signals(o, h, l, c, v, rs, spec["tf"], families=(fam,))
+        else:
+            import oneil_patterns as op
+            cache[fam] = {k: m for k, m in op.pattern_signals(o, h, l, c, v, rs, CFG[spec["tf"]], orx.CHASES,
+                                                               orx.RS_FILTERS).items() if k[0] == fam}
+    key = (fam, "breakout", spec["dir"], spec["chase"], spec["rs"])
+    return cache[fam].get(key, np.zeros(len(c), bool))
+
+
+def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap="off", sig_cache=None):
     """band_cap (B-1417): "off" = unchanged. "live" = the resting stop Kotak holds, raised to the 10% DAILY band floor,
     checked intraday from the bar after entry - only meaningful on daily bars, so a 1w spec refuses it (the live 1w
     O'Neil cells are replayed on daily bars by scripts/swing_classic_main_replay.py FAMILY=oneil instead).
@@ -204,11 +269,22 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap=
                          "use scripts/swing_classic_main_replay.py FAMILY=oneil")
     rs_thr = None if spec["rs"] in ("none", "") else spec["rs"]
     out, t, n = [], 0, len(c)
+    pat = spec["family"] in PATTERN_FAMILIES
+    if pat:  # B-1472 b: precomputed full array (each value uses bars <= t, plus o[t+1] for the chase test)
+        if spec["chase"] is None:
+            raise ValueError(f"pattern tags need chase5/chase10: {spec['tag']}")
+        psig = _pattern_sig(spec, o, h, l, c, v, rs, use_main, sig_cache)
+        pidx = np.flatnonzero(psig)
     while t < n - 1:
+        if pat:  # jump to the next signal bar (identical result to stepping bar by bar)
+            k = int(np.searchsorted(pidx, t))
+            if k >= len(pidx) or pidx[k] >= n - 1:
+                break
+            t = int(pidx[k])
         if np.isnan(atr[t]) or atr[t] <= 0:
             t += 1
             continue
-        fired = (app.oneil_signal_at(spec["family"], spec["dir"], spec["tf"], t, o, h, l, c, v, rs, spec["chase"], rs_thr)
+        fired = True if pat else (app.oneil_signal_at(spec["family"], spec["dir"], spec["tf"], t, o, h, l, c, v, rs, spec["chase"], rs_thr)
                  if use_main else signal_at(spec, t, o, h, l, c, v, rs, cfg))
         if not fired:
             t += 1
@@ -350,6 +426,21 @@ def finalize(cells, universe=None):
     return res
 
 
+def to_rows(res):
+    """B-1472 b: the docs/backtest_data/oneil_main_replay_run_*.json row shape."""
+    rows = []
+    for tag, m in sorted(res.items()):
+        if not m.get("n"):
+            rows.append(dict(tag=tag, metrics=dict(n=0, universe=m.get("universe"))))
+            continue
+        rows.append(dict(tag=tag, metrics=dict(
+            n=m["n"], pfnet=m["pfnet"], pfgross=m["pfgross"], win_pct=m["win_pct"], avg_held_bars=m["avg_hold_bars"],
+            pfnet_ex_top5=m["pfnet_ex_top5"], top5_share=m["top5_share_of_gain"], syms_traded=m["symbols_traded"],
+            universe=m["universe"],
+            exit_reasons={k: dict(n=v["n"], avg_pct=v["avg_net_pct"]) for k, v in m["exit_reasons"].items()})))
+    return rows
+
+
 def format_table(res):
     hdr = "tag\tn\twin_pct\tavg_hold_bars\tpfnet\tpfgross\tpfnet_ex_top5\ttop5_share\tsyms_traded\tuniverse\texit_reasons"
     rows = [hdr]
@@ -398,15 +489,19 @@ def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
     closes = pd.DataFrame({s: df["Close"] for s, df in data.items()})
     rs_all = orx.rs_rank_matrix(closes, CFG[tf]["rs_lb"])
     for i, (sym, df) in enumerate(data.items()):
+        sig_cache = {}
         for sp in specs:
             mode = sp.get("band_cap", "off")
-            trades = replay_symbol(df, rs_all[sym], sp, cost, slip, use_main, mode)
+            trades = replay_symbol(df, rs_all[sym], sp, cost, slip, use_main, mode, sig_cache)
             add_trades(cells[bc.band_tag(sp["tag"], mode)], trades)
             if crosscheck and trades:
                 notes.extend(_crosscheck(sp, sym, df, rs_all[sym], cost, trades))
         if i % 100 == 0:
             print("processed", i, flush=True)
     return cells, notes
+
+
+_XC_CACHE: dict = {}
 
 
 def _crosscheck(sp, sym, df, rs_series, cost, trades):
@@ -417,8 +512,12 @@ def _crosscheck(sp, sym, df, rs_series, cost, trades):
     rs = rs_series.reindex(df.index).to_numpy(float)
     atr = orx.atr_arr(h, l, c)
     key = (sp["family"].replace("oneil_", "oneil_"), sp["variant"], sp["dir"], sp["chase"],
-           sp["rs"] if sp["rs"] in ("none",) else str(int(float(sp["rs"]))))
-    sig = orx.entry_signals(o, h, l, c, v, rs, cfg).get(key)
+           sp["rs"] if sp["rs"] in ("none", "qual1") else str(int(float(sp["rs"]))))
+    ck = (sym, sp["tf"], len(c), float(c[0]), float(c[-1]), float(np.nansum(c)))  # B-1472 b: once per symbol
+    if _XC_CACHE.get("key") != ck:
+        _XC_CACHE.clear()
+        _XC_CACHE.update(key=ck, sigs=orx.entry_signals(o, h, l, c, v, rs, cfg))
+    sig = _XC_CACHE["sigs"].get(key)
     if sig is None:
         return [f"{sp['tag']} {sym}: research has no signal key {key}"]
     side = 1 if sp["dir"] == "long" else -1
@@ -430,8 +529,14 @@ def _crosscheck(sp, sym, df, rs_series, cost, trades):
 
 def main_run():
     import main as app
-    tags = [t.strip() for t in os.environ.get("TAGS", "").split(",") if t.strip()] or list(DEFAULT_TAGS)
+    tags = [t.strip() for t in os.environ.get("TAGS", "").split(",") if t.strip()]
+    families = (os.environ.get("FAMILIES") or "").strip()
     interval = (os.environ.get("INTERVAL") or "").strip()
+    if families:   # B-1472 b: pattern-family grid; INTERVAL is a comma list here (default both candle sizes)
+        tags += pattern_family_tags(families, interval or "1d,1w",
+                                    (os.environ.get("PATTERN_EXITS") or "").strip() or PATTERN_EXITS_DEFAULT)
+        interval = ""
+    tags = tags or list(DEFAULT_TAGS)
     if interval:   # B-786: replay the same rules at another candle size, each its own tag; bar counts mean BARS
         tags = [retag_tf(t, interval) for t in tags]
     use_main = os.environ.get("USE_MAIN", "1") != "0"
@@ -473,6 +578,8 @@ def merge_run(paths):
     uni = f"{parts[0]['universe_total']} listed; loaded {loaded}; cost {parts[0]['cost'] * 100:g}%; slip {parts[0]['slip'] * 100:g}%"
     res = finalize(cells, uni)
     json.dump(dict(results=res), open(os.path.join(ROOT, "docs", "oneil_replay_results.json"), "w"), indent=0)
+    json.dump(dict(cost_round_trip_pct=parts[0]["cost"] * 100, rows=to_rows(res)),
+              open(os.path.join(ROOT, "docs", "oneil_replay_rows.json"), "w"), indent=1)
     print(format_table(res))
     notes = [x for p in parts for x in p.get("crosscheck_notes", [])]
     print(f"crosscheck diffs: {len(notes)}")
