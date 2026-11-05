@@ -173,3 +173,14 @@ def test_port_is_unwired():
     # defined once, never called from main.py outside the port's own functions
     assert src.count("minervini_lab_simulate_trade(") == 1
     assert "minervini_lab" not in str(m._STRATEGY_TAG_TO_REGISTRY_NAME)
+
+
+def test_stopout_cluster_no_lookahead_ignores_trades_still_open():
+    import pandas as pd
+    d = pd.Timestamp
+    # 5 losers entered early but all exit AFTER the 6th trade's entry: the lab rule flags it, the no-look-ahead rule must not.
+    tr = [{"entry_date": d(f"2025-01-0{i+1}"), "exit_date": d("2025-02-01"), "net": -0.01} for i in range(5)]
+    tr.append({"entry_date": d("2025-01-10"), "exit_date": d("2025-01-20"), "net": 0.02})
+    assert J.stopout_cluster_flags_no_lookahead(tr) == [False] * 6
+    late = dict(tr[-1], entry_date=d("2025-02-02"), exit_date=d("2025-02-10"))
+    assert J.stopout_cluster_flags_no_lookahead(tr[:5] + [late])[-1] is True
