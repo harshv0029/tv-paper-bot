@@ -1710,3 +1710,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What broke: a safety rule added the day before (never place an SL when the order book cannot be read) met Kotak's start-of-day reply for an empty book and blocked every 09:15 IST SL for ~2 minutes.
 - Lesson: every "refuse when unsure" guard must be tested against the first minute of the trading day, when the book is legitimately empty and no SL can already exist (exchange purge at 15:15 IST).
 - Profit-booking / exit takeaway: at the open, protection beats duplicate-avoidance; a duplicate SL is rejected harmlessly by RMS, a naked holding is real money at risk.
+
+## B-1482 (2026-11-05): a chandelier trail is wide by design; frozen-stop cells never trail
+- What we checked: the 6xATR order-block chandelier sits ~20 points under the peak close on BANKINDIA/UNIONBANK, below the band-floored resting SL, so "not trailing yet" is correct, not a bug. macddiv 1h and gap_runaway cells were validated with frozen stops plus a max hold, so they never trail.
+- Open question: frozen stops give back open gains (IOC +7.8%, UNIONBANK +7.4% today). A trailing or breakeven variant is a separate tag to backtest, never a live change without the pooled-PFnet evidence.
+- Profit-booking / exit takeaway: check each position against ITS OWN strategy's stop rule (main._SWING_SL_RULES) before calling a stop stuck; then test whether a trail would have booked more, as its own variant.
