@@ -1681,3 +1681,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Wired: the two 15m LONG cells (no 15m long scan existed), via the B-980 pattern (15m frame fetched from the 5m tick, 15m cells after every 5m cell).
 - Reuse: before wiring a "new" replay row, grep the live cell dicts for the same (signal, atr, ve, z); the family name in the tag (band_srcmain vs band_mr) can differ while the live code is identical.
 - Profit-booking / exit takeaway: the 15m long edge sits in the z2 band (fewer, stronger stretches); z1 trades 13x more often for a thinner OOS margin (1.03), so it is cascaded after z2.
+
+### 2026-11-05: brk20_min_rr LONG 1h fails out of sample (B-1465)
+- Pooled main replay PFnet up to 1.71 (n 1112), but every 1h long cell's OOS segment sits at 0.63-0.80; the IS half (up to 2.10) carries the whole pooled number.
+- Not wired. Lesson: a pooled PFnet far above 1 on 1h with an IS/OOS split this lopsided is regime-specific, not an edge; always read the _oos row before wiring.
+- Profit-booking / exit takeaway: the wider rr4 targets are what inflated IS; in OOS they are rarely reached, so the breakout's pay-off depended on a trending sample.
