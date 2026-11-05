@@ -1739,3 +1739,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Profit-booking / exit takeaway: the timeout winners suggest a longer hold or a wider stop is the only lever worth a sweep here; a tight trail would cut the only profitable exit.
 - B-1484 b addendum (user 11:55 IST): the trail set now includes 0.5R steps and LTP-based trails (peak of completed-bar highs - N x R, the per-tick LTP view the live orphan trail uses). Expect LTP trails to stop out sooner than close trails at the same N because highs run above closes; that only pays if winners give back a lot after an intraday peak.
 - Profit-booking / exit takeaway: compare LTP and close trails at the same R before choosing; a tighter-feeling LTP trail is not automatically more profit.
+
+## 2026-11-05: a no-trade day (B-1488)
+- On 2026-11-05 the bot made 0 real-entry attempts in every category. Scans ran normally; only the sub-floor chan_shape mom_mr 1d cells fired, and the PFnet gate blocked all 342 of those triggers.
+- Lesson: on a quiet day, read /entry-funnel first. "no setup fired" vs "blocked" vs "failed" separates a market with no setups from a bug in seconds.
+- Profit-booking / exit takeaway: a day without entries is the PFnet gate doing its job, not missed profit. Do not loosen the floor because of a quiet day.
