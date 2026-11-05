@@ -19115,7 +19115,67 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs166.00",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs166.00 already covers the position (target stop Rs164.80), adopted, nothing placed"
+  },
+  {
+   "id": 1594,
+   "ts": 1793850439.009237,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261105000039740",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs166.00",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs166.00 already covers the position (target stop Rs164.80), adopted, nothing placed"
+  },
+  {
+   "id": 1595,
+   "ts": 1793850443.23015,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261105000039735",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs128.21",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs128.21 already covers the position (target stop Rs123.21), adopted, nothing placed"
+  },
+  {
+   "id": 1596,
+   "ts": 1793850447.05741,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261105000039735",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs128.21",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs128.21 already covers the position (target stop Rs123.21), adopted, nothing placed"
+  },
+  {
+   "id": 1597,
+   "ts": 1793850448.283638,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261105000039739",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs440.25",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs440.25 already covers the position (target stop Rs440.21), adopted, nothing placed"
+  },
+  {
+   "id": 1598,
+   "ts": 1793850451.8359728,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261105000039739",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs440.25",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs440.25 already covers the position (target stop Rs440.21), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-05T03:47:22Z"
+ "synced_at_utc": "2026-11-05T03:47:37Z"
 }
