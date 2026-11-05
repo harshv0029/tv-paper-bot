@@ -14,7 +14,10 @@ def test_merge_keeps_larger_total_and_recent_days():
     main._check_totals_merge({"2026-10-28": 100})
     main._check_totals_merge({"2026-10-28": 90, "2026-10-27": "bad", "2026-10-26": 5})
     assert main._check_totals_daily == {"2026-10-28": 100, "2026-10-26": 5}
-    main._check_totals_merge({f"2026-09-{d:02d}": 1 for d in range(1, 30)})
+    assert main._CHECK_TOTALS_KEEP_DAYS >= 3650  # B-1487: all-time history for "max till date"
+    import datetime as _d
+    many = {(_d.date(2010, 1, 1) + _d.timedelta(days=k)).isoformat(): 1 for k in range(main._CHECK_TOTALS_KEEP_DAYS + 5)}
+    main._check_totals_merge(many)
     assert len(main._check_totals_daily) == main._CHECK_TOTALS_KEEP_DAYS
     assert "2026-10-28" in main._check_totals_daily
     _reset()
@@ -64,3 +67,26 @@ def test_dashboard_shows_checks_yesterday():
     assert 'checks yesterday <b id="cyday">' in html and "checks_previous_day" in html
     assert html.index('id="ctoday"') < html.index('id="cyday"')
     assert '"checks_previous_day": _checks_previous_day(' in open(main.__file__).read()
+
+
+def test_max_till_date_and_journal_floor_b1487():
+    _reset()
+    main._check_totals_merge({"2026-10-29": 680000, "2026-11-04": 389349})
+    assert main._checks_max_till_date("2026-11-05", 100) == {"day": "2026-10-29", "total": 680000}
+    assert main._checks_max_till_date("2026-11-05", 700000) == {"day": "2026-11-05", "total": 700000}
+    # the git counts journal is a floor for its day (a restart cannot lower a day's total)
+    j = json.dumps({"day": "2026-11-04", "counts": {"A.NS": 479000, "B.NS": 110}})
+    from unittest.mock import mock_open
+    real_open = open
+
+    def fake_open(path, *a, **k):
+        if path == main.STATE_SCHEDULER_CHECK_COUNTS_PATH:
+            return mock_open(read_data=j)()
+        return real_open(path, *a, **k)
+    with patch("builtins.open", side_effect=fake_open), patch.object(main, "UPSTASH_REDIS_REST_URL", ""):
+        main.hydrate_check_totals_daily()
+    assert main._check_totals_daily["2026-11-04"] == 479110
+    _reset()
+    html = open("static/trade-view4.html").read()
+    assert "max till date = " in html and "checks_max_till_date" in html
+    assert '"checks_max_till_date": _checks_max_till_date(' in open(main.__file__).read()
