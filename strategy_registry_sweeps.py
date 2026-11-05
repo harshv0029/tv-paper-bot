@@ -38,6 +38,32 @@ except Exception:
     pass
 
 
+
+def _pooled_metrics(a, b):
+    """B-1472: exact pooled metrics of two DISJOINT trade sets from (PFnet, n, avg_net_pct) per side.
+    Per side: net = n*avg; gross loss L = net/(PF-1); gross win W = PF*L; pooled PF = sum W / sum L.
+    Returns None when a side cannot be decomposed (PF missing/~1, or PF and avg disagree in sign)."""
+    W = L = 0.0
+    n = 0
+    win = hold = net = 0.0
+    for m in (a, b):
+        if not m or m.get("pfnet") is None or not m.get("n") or m.get("avg_net_pct") is None:
+            return None
+        pf, k, avg = float(m["pfnet"]), int(m["n"]), float(m["avg_net_pct"])
+        if abs(pf - 1.0) < 0.01 or (pf - 1.0) * avg <= 0:
+            return None
+        l = k * avg / (pf - 1.0)
+        W += pf * l
+        L += l
+        n += k
+        net += k * avg
+        win += k * float(m.get("win_pct") or 0.0)
+        hold += k * float(m.get("avg_held_bars") or 0.0) * float(m.get("bar_hours") or a.get("bar_hours") or 6.25)
+    if L <= 0:
+        return None
+    return {"pfnet": round(W / L, 3), "n": n, "win_pct": round(win / n, 1), "avg_net_pct": round(net / n, 3),
+            "avg_held_hrs": round(hold / n, 2)}
+
 def _load(name):
     try:
         with open(os.path.join(_DOCS, name)) as fh:
@@ -90,6 +116,7 @@ def build():
                      ("1h", "morning_star_bos_results_1h_n200.json"), ("15m", "morning_star_bos_results_15m_n200.json"),
                      ("5m", "morning_star_bos_results_5m_n200.json")):
         for tag, m in _load(_fn).get("results", {}).items():
+            _m_is = m
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
             _suffix = "" if ("n200" in _fn or _fn in ("minervini_lab_results.json", "breadth_lab_results.json", "combo_lab_results.json", "intermarket_lab_results.json")) else (
@@ -128,6 +155,32 @@ def build():
                 evidence=(f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade." if _pf is not None
                           else f"In-sample only (multiple-testing inflated, NOT out-of-sample validated): raw PFnet {m['pfnet']}, trimmed {m.get('pfnet_trim1')}, win {m['win_pct']}%, n={m['n']}."),
                 notes="Pattern lab rule, registered pass or fail; research only unless wired."))
+            # B-1472 (user 2026-11-05: pooled PFnet decides wiring, OOS is recorded but never a veto). The
+            # validate re-run is a SYMBOL holdout, so in-sample + holdout pool exactly into one trade set. Registered
+            # as a NEW "_pool" variant tag; the in-sample/holdout-gated row above is kept unchanged (data intact).
+            _side = (_oos if _combo else _pv) if (_combo or _fn.endswith("n200.json")) else None
+            _orig = _m_is
+            _pool = _pooled_metrics(_orig, _side) if _side else None
+            if _pool:
+                _pp = tag.split("__")
+                _pp[1] = _pp[1] + "_pool"
+                _ptag = "__".join(_pp)
+                out.append(sr.StrategyDef(
+                    name=_ptag, asset_class=sr.AssetClass.EQUITY_SWING,
+                    categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
+                    timeframe=_tf,
+                    status=(sr.StrategyStatus.LIVE if _ptag in _PATTERN_LIVE_WIRED else sr.StrategyStatus.VALIDATED
+                            if (_pool["pfnet"] > 1 and _pool["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                    entry_fn=None,
+                    metrics=sr.Metrics(pfnet=_pool["pfnet"], pfgross=0.0, win_rate_pct=_pool["win_pct"],
+                                       n_trades=_pool["n"], avg_held_hrs=_pool["avg_held_hrs"],
+                                       universe="n200_plus_holdout_pooled",
+                                       run_ref="B-1472 pooled: in-sample (pattern/combo lab) + symbol holdout (validate)"),
+                    source=("scripts/combo_lab.py + scripts/combo_validate.py" if _combo else "scripts/pattern_lab.py + pattern_validate"),
+                    evidence=(f"Pooled PFnet {_pool['pfnet']} over n={_pool['n']} (in-sample PFnet {_orig['pfnet']} n={_orig['n']}, "
+                              f"holdout PFnet {_side['pfnet']} n={_side['n']}); win {_pool['win_pct']}%, avg net {_pool['avg_net_pct']}%."
+                              + (" Combo in-sample side is best-of-thousands (selection inflated)." if _combo else "")),
+                    notes="B-1472 pooled variant (exact pool of two disjoint symbol sets); research only unless wired."))
     mcx = _load("mcx_sweep_results.json")
     mcx = mcx.get("results", mcx)
     for tag, m in mcx.items():
