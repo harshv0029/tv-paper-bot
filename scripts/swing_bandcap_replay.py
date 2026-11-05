@@ -50,6 +50,8 @@ MEMO_FNS = ("power_play_entry_signal", "primary_base_entry_signal", "gap_and_go_
             "pl1d_long_entry_signal", "minervini_vcp_entry_signal", "swingminrr_vcp_entry_signal",
             "tasuki_short_signal", "swingminrr_gate_short_entry_signal", "envelope_fade_entry_signal",
             "cup_cheat_3c_fires", "cup_cheat_3c_entry_signal")
+# B-1484: the FIXED-stop families (power_play / primary_base already trail their stop, so a trail overlay is not theirs)
+FIXED_STOP_FAMILIES = tuple(f for f in FAMILIES if f not in ("power_play", "primary_base"))
 TSM_GROUP = {"tasuki_short": "tasuki", "swm1h_short": "swm1h"}  # driver family -> tasuki_swingminrr_short GROUP
 br = cs = bc = cl = ss = ir = gf = pl = tsm = env = cup = bh = None
 
@@ -75,6 +77,8 @@ def parse_families(spec):
     s = (spec or "all").strip()
     if s in ("", "all"):
         return list(FAMILIES)
+    if s == "fixed":
+        return list(FIXED_STOP_FAMILIES)
     fams = [f.strip() for f in s.split(",") if f.strip()]
     bad = [f for f in fams if f not in FAMILIES]
     if bad:
@@ -167,8 +171,7 @@ def run():
     family = os.environ.get("FAMILY", "power_play")
     if family not in FAMILIES:
         raise SystemExit(f"bad family {family}")
-    mode = bc.mode_from_env()
-    modes = ["off"] + ([mode] if mode != "off" else [])
+    modes = run_modes(os.environ.get("BAND_CAP"))
     shard, nshards = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     limit = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     cost = real.ROUND_TRIP_COST_PCT / 100.0
@@ -179,6 +182,7 @@ def run():
     for sym, df in frames.items():
         m.reset()
         for md in modes:
+            bc.reset_trail()
             try:
                 res = replay(m, family, df, tags, cost, md)
             except Exception as ex:
@@ -197,6 +201,16 @@ def run():
             mt = br.agg_metrics(a)
             print(md, bc.band_tag(t, md), "n", mt["n"], "pfnet", mt["pfnet"], "win", mt["win_pct"])
     print("wrote", path)
+
+
+def run_modes(spec):
+    """B-1484: BAND_CAP = off | live | trail (off + live + every live_<trail> mode) | a comma list of modes."""
+    import swing_bandcap as sbc  # light (numpy only); bc itself is bound by _load_mods
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(sbc.TRAIL_MODES)
+    mds = [sbc.normalize_mode(x) for x in s.split(",") if x.strip()] or ["off"]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
 
 
 def _fmt(v, nd=3):
@@ -218,18 +232,20 @@ def merge(d, out_path=None):
     for t in sorted({t for t, _ in pooled}, key=lambda x: (fam_of[x], x)):
         live_modes = sorted(md for tt, md in pooled if tt == t and md != "off")
         off = br.agg_metrics(pooled[(t, "off")]) if (t, "off") in pooled else None
+        fixed = br.agg_metrics(pooled[(t, "live")]) if (t, "live") in pooled else None
         for md in live_modes or [None]:
             live = br.agg_metrics(pooled[(t, md)]) if md else None
             rows.append({"tag": t, "family": fam_of[t], "band_cap": md, "band_tag": bc.band_tag(t, md or "off"),
-                         "n_symbols": nsym.get(t, 0), "off": off, "live": live})
-    res = {"backlog": "B-1417/B-1426", "cost_round_trip_pct": 0.8, "run_id": os.environ.get("GITHUB_RUN_ID"),
+                         "n_symbols": nsym.get(t, 0), "off": off, "live": live,
+                         "live_fixed": fixed if md and md != "live" else None})
+    res = {"backlog": "B-1417/B-1426/B-1484", "cost_round_trip_pct": 0.8, "run_id": os.environ.get("GITHUB_RUN_ID"),
            "universe": "main._load_nse_universe_from_file() (full NSE)", "rows": rows}
     json.dump(res, open(out_path or os.path.join(d, "swing_bandcap_all.json"), "w"), indent=1)
-    print("SUMMARY tag | n off/live | win% off/live | PFnet off/live | live tag")
+    print("SUMMARY tag | n off/live | win% off/live | PFnet off/live | live tag | PFnet live-fixed (trail rows)")
     for r in rows:
-        o, lv = r["off"] or {}, r["live"] or {}
+        o, lv, fx = r["off"] or {}, r["live"] or {}, r.get("live_fixed") or {}
         print(f"{r['tag']} | n {o.get('n')}/{lv.get('n')} | win {_fmt(o.get('win_pct'), 1)}/{_fmt(lv.get('win_pct'), 1)}"
-              f" | PFnet {_fmt(o.get('pfnet'))}/{_fmt(lv.get('pfnet'))} | {r['band_tag']}")
+              f" | PFnet {_fmt(o.get('pfnet'))}/{_fmt(lv.get('pfnet'))} | {r['band_tag']} | {_fmt(fx.get('pfnet'))}")
     print("RESULTS_JSON: " + json.dumps(res, separators=(",", ":")))
     return res
 

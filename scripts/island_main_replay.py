@@ -84,7 +84,7 @@ def run_trade(m, df, k, sig, dates, cost, band=None):
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     fill_day = dates[k + 1]
     for j in range(k + 1, n):
-        hit = bc.band_hit(band, df, j, stop0, "long")
+        hit = bc.band_hit(band, df, j, stop0, "long", ep)
         if hit:
             g = (hit[0] - ep) / ep
             return {"gross": g, "net": g - cost, "held": j - k, "reason": hit[1], "entry_i": k + 1}, j

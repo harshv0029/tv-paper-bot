@@ -653,7 +653,7 @@ def _maybe_sync_check_counts_external() -> None:
 # sync, written at the rollover, restored at startup. docs/check_totals_daily.json is the git backfill (28-Oct from
 # the state/scheduler_check_counts.json journal at 21:43 IST).
 _CHECK_TOTALS_REDIS_KEY = "tv_paper_bot:scheduler_check_totals_daily:v1"
-_CHECK_TOTALS_KEEP_DAYS = 14
+_CHECK_TOTALS_KEEP_DAYS = 3650  # B-1487: was 14; ~10 years of one int per day, so "max till date" is all-time
 _check_totals_daily: dict = {}
 _CHECK_TOTALS_BACKFILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "check_totals_daily.json")
 
@@ -682,10 +682,21 @@ def _check_totals_push() -> None:
 
 
 def hydrate_check_totals_daily() -> int:
-    """Startup: git backfill first, then Upstash (merge keeps the larger total per day). Never raises."""
+    """Startup: git backfill first, then Upstash (merge keeps the larger total per day). Never raises.
+    B-1487 (user 2026-11-05: "why this decrease from 6.8L to 389349"): also the git counts journal
+    (state/scheduler_check_counts.json, written by journal-sync.yml) - on 2026-11-04 it held 479,110 at 16:07 IST
+    while the Upstash total stayed at 389,349, because the throttled totals push had not run before a restart; the
+    journal's per-symbol sum is a floor for its day, so a restart can no longer lower a day's recorded total."""
     try:
         with open(_CHECK_TOTALS_BACKFILL_PATH) as f:
             _check_totals_merge(json.load(f))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        with open(STATE_SCHEDULER_CHECK_COUNTS_PATH) as f:
+            j = json.load(f)
+        if j.get("day") and isinstance(j.get("counts"), dict):
+            _check_totals_merge({j["day"]: sum(int(v or 0) for v in j["counts"].values())})
     except Exception:  # noqa: BLE001
         pass
     if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
@@ -706,6 +717,18 @@ def _checks_previous_day(today: str) -> dict:
     day = prior[-1]
     yday = (dt.date.fromisoformat(today) - dt.timedelta(days=1)).isoformat()
     return {"day": day, "total": int(_check_totals_daily[day]), "is_yesterday": day == yday}
+
+
+def _checks_max_till_date(today: str, today_total: int) -> dict:
+    """B-1487 (user 2026-11-05: "checks yesterday 389349 (max till date = xxxxx)"): the highest daily check total ever
+    recorded (saved days plus today's running total): {"day", "total"} or {}."""
+    best = {d: int(v or 0) for d, v in _check_totals_daily.items()}
+    if today and int(today_total or 0) > best.get(today, 0):
+        best[today] = int(today_total)
+    if not best:
+        return {}
+    day = max(best, key=lambda d: (best[d], d))
+    return {"day": day, "total": best[day]}
 
 
 def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
@@ -30609,6 +30632,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
         "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
         "checks_previous_day": _checks_previous_day(ist_now().strftime("%Y-%m-%d")),  # B-1423
+        "checks_max_till_date": _checks_max_till_date(ist_now().strftime("%Y-%m-%d"),
+                                                      total_checks_incl_derivative_legs),  # B-1487
         "derivative_leg_visits_skipped_today": _scheduler_skipped_visits_today(),
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,

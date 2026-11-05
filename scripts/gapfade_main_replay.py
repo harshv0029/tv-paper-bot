@@ -90,7 +90,7 @@ def gapfade_trade(m, df, k, sig, cost, band=None):
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     running = ep
     for j in range(k + 1, n):
-        hit = bc.band_hit(band, df, j, stop0, "long")
+        hit = bc.band_hit(band, df, j, stop0, "long", ep)
         if hit:
             return trade_metrics(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, running = m._gapfade_exit_adapter(df.iloc[:j + 1], entry_day, stop0, atr, running)
