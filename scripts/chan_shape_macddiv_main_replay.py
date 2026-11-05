@@ -49,13 +49,13 @@ def _trade(ep, xp, held, reason, cost, entry_i, exit_i):
     return {"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_i": entry_i, "exit_i": exit_i}
 
 
-def _band_hit(band, df, j, stop):
+def _band_hit(band, df, j, stop, ep=None):
     """B-1417: the live resting stop (frozen stop, raised to the 10% band floor off the previous SESSION close),
     triggered intraday on bar j. band = (mode, prev_session_close array) or None (off: never)."""
     if band is None:
         return None
     return bc.resting_stop_exit(band[0], "long", stop, band[1][j], float(df["Open"].iloc[j]), float(df["Low"].iloc[j]),
-                                float(df["High"].iloc[j]))
+                                float(df["High"].iloc[j]), entry_price=ep)
 
 
 def chan_shape_trade(m, df, k, sig, tag, dates, cost, band=None):
@@ -63,7 +63,7 @@ def chan_shape_trade(m, df, k, sig, tag, dates, cost, band=None):
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     hold = m.CHAN_SHAPE_CELLS[tag][1]
     for j in range(k + 1, n):
-        hit = _band_hit(band, df, j, stop0)  # entry at the close of k, so the stop rests from bar k+1
+        hit = _band_hit(band, df, j, stop0, ep)  # entry at the close of k, so the stop rests from bar k+1
         if hit:
             return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, px = m.chan_shape_exit_reason(df.iloc[:j + 1], dates[k], stop0, hold)
@@ -111,7 +111,7 @@ def macddiv_trade_full(m, df, k, sig, tag, cost, band=None):
         return None
     fill = k + 1
     for j in range(fill, n):
-        hit = _band_hit(band, df, j, stop) if j > fill else None  # the stop rests after the fill bar
+        hit = _band_hit(band, df, j, stop, ep) if j > fill else None  # the stop rests after the fill bar
         if hit:
             return _trade(ep, hit[0], j - fill + 1, hit[1], cost, fill, j)
         reason, px = m.macddiv_long_exit_reason(df.iloc[:j + 1], fill, stop)

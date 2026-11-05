@@ -146,7 +146,8 @@ def replay_symbol(m, df, direction, atr, rr, be, cost, band_cap="off"):
     for k in range(MIN_BARS - 1, n):
         sub = df.iloc[:k + 1]
         if pos is not None and band and k > pos["idx"]:
-            hit = bc.resting_stop_exit(band_cap, direction, pos["stop0"], prevc[k], opens[k], lows[k], highs[k])
+            hit = bc.resting_stop_exit(band_cap, direction, pos["stop0"], prevc[k], opens[k], lows[k], highs[k],
+                                       entry_price=pos["ep"])
             if hit:
                 g = sgn * (hit[0] - pos["ep"]) / pos["ep"]
                 out.append({"gross": g, "net": g - cost, "held": k - pos["idx"] + 1, "reason": hit[1]})

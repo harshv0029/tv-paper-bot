@@ -14,16 +14,19 @@ name: Swing band_cap live resting-stop replay (B-1417)
 # Universe = main._load_nse_universe_from_file() (full NSE). Cost = main.ROUND_TRIP_COST_PCT (0.8% round trip).
 # Output: artifact swing-bandcap-all (swing_bandcap_all.json: per tag n, win %, PFnet gross/net, avg hold, exit
 # reasons, off AND live) + a one-line-per-tag summary and a RESULTS_JSON line in the aggregate job log.
+# B-1484 (user 2026-11-05): band_cap=trail adds 6 trailing-stop overlays on the fixed-stop families (strategies=fixed),
+# each a NEW tag (rsbandfloor + trailr1/trailr1d5/trailr2/trailr3/trailbe1r/trailbe2r); a trail is wired only when its
+# pooled PFnet beats the same run's live fixed-stop row (live_fixed in the output).
 # Live-mode results are NEW tags (rsbandfloor param), never a rename. Big matrix: dispatch only when no gate is queued.
 on:
   workflow_dispatch:
     inputs:
       strategies:
-        description: "all, or a comma list of: power_play,primary_base,gap_and_go,oneil,brk20,chan_shape,macddiv,short_swing,island,gapfade,pl1d,swingminrr,tasuki_short,swm1h_short,envelope,cup_cheat"
+        description: "all, fixed (B-1484: every fixed-stop family), or a comma list of: power_play,primary_base,gap_and_go,oneil,brk20,chan_shape,macddiv,short_swing,island,gapfade,pl1d,swingminrr,tasuki_short,swm1h_short,envelope,cup_cheat"
         required: false
         default: "all"
       band_cap:
-        description: "live (resting stop + 10% band floor) or off (baseline only)"
+        description: "live (resting stop + 10% band floor), off (baseline only), trail (B-1484: off + live + 6 trailing-stop overlays tr1/tr1d5/tr2/tr3/be1/be2), or a comma list"
         required: false
         default: "live"
       nshards:

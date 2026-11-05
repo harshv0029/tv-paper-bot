@@ -37,7 +37,7 @@ def pl1d_trade(m, df, k, sig, tag, dates, cost, band=None):
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     hold = m.PL1D_CELLS[tag][2]
     for j in range(k + 1, n):
-        hit = bc.band_hit(band, df, j, stop0, "long")
+        hit = bc.band_hit(band, df, j, stop0, "long", ep)
         if hit:
             return base._trade(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, px = m.pl1d_exit_reason(df.iloc[:j + 1], dates[k], stop0, hold)
