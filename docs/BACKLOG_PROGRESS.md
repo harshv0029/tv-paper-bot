@@ -24,9 +24,9 @@ Total rows: 1247 | closed: 590 | not closed: 657
 | USER | 12 |
 | DEPLOYED | 10 |
 | P1 | 8 |
-| IN | 8 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
+| IN | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
@@ -83,6 +83,7 @@ Total rows: 1247 | closed: 590 | not closed: 657
 | FOUND | 1 |
 | ROC | 1 |
 | JOURNAL | 1 |
+| B-1484 | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -552,7 +553,7 @@ Total rows: 1247 | closed: 590 | not closed: 657
 | B-1482 | P1 | OPEN | 2026-11-05 | needs, follow-up |
 | B-1484 | P1 | IN | 2026-11-05 | owed, needs |
 | B-1485 | P1 | OPEN | 2026-11-05 | owed |
-| B-1486 | P1 | IN | 2026-11-05 |  |
+| B-1486 | P1 | B-1484 | 2026-11-05 |  |
 | B-1489 | P1 | OPEN | 2026-11-05 | owed, blocked, follow-up |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
