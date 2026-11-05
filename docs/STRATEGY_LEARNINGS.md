@@ -1673,3 +1673,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Cutting max hold from 60 to 30/40 bars brought three VCP cells under the 30-bar wiring bar and lifted their OOS (early_bull h40 OOS 1.196 vs h60 1.138). Shorter holds did not hurt pooled PFnet (about 1.30).
 - Exit = 8% hard stop (pct8_hard) + time exit; the trailing/MA exits that looked better pooled all failed OOS.
 - Profit-booking / exit takeaway: for VCP breakouts, a fixed 8% stop plus a 30-40 bar time exit beats every trailing exit out of sample; book on time, not on a trail.
+
+### 2026-11-05: chan_kalman v1 band intraday (B-1470), wiring check before wiring
+- Mechanism: Kalman adaptive mean on close; enter against an err beyond z*sqrtQ, exit on the mean cross, stop 4xATR14, flat by 15:10 IST.
+- Result (main.py replay, full NSE universe, 0.8% cost): 5m SHORT atr4 z2 1.730 / OOS 2.171 (n 992); 15m SHORT 1.348 / 1.586; 15m LONG z2 1.332 / 1.338 (n 268), z1 1.180 / 1.031 (n 3529).
+- Surprise: the two SHORT cells were already live under the band_mr v2 tags (same signal, same atr/ve/z). The new replay is independent confirmation, not a new strategy to wire; a second tag on the same signal would only act as a fallback behind the first.
+- Wired: the two 15m LONG cells (no 15m long scan existed), via the B-980 pattern (15m frame fetched from the 5m tick, 15m cells after every 5m cell).
+- Reuse: before wiring a "new" replay row, grep the live cell dicts for the same (signal, atr, ve, z); the family name in the tag (band_srcmain vs band_mr) can differ while the live code is identical.
+- Profit-booking / exit takeaway: the 15m long edge sits in the z2 band (fewer, stronger stretches); z1 trades 13x more often for a thinner OOS margin (1.03), so it is cascaded after z2.

@@ -12333,7 +12333,7 @@ def _auto_signal_core(
                 # B-960: chan_kalman long is managed by its own tag-keyed rules (fixed stop, state exit, max hold,
                 # 15:10 flatten); it never touches the trailing/target/staged-ladder machinery below.
                 _why = (_chan_gap_manage(row, df, mins_now, exit_price, halted) if row["strategy"] in CHAN_GAP_LONG_CELLS
-                        else _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted))
+                        else _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted, symbol=symbol))
                 if _why:
                     _qty, _fx = row["qty"], row["fx_to_inr"]
                     _pnl_inr = (exit_price - row["entry_price"]) * _qty * _fx
@@ -12641,6 +12641,18 @@ def _auto_signal_core(
                                            agg_blocked=agg_blocked)
             if _chan_l is not None:
                 return _chan_l
+            # B-1470: 15m cells, scanned on the 15m frame from the same 5m tick (cascade: 5m cells first).
+            try:
+                _df15l, _ts15l = _chan_short_df_for(symbol, "15m")
+            except Exception:
+                _df15l = None
+            if _df15l is not None and len(_df15l):
+                _chan_l = _chan_long_try_entry(conn, symbol, _df15l, _ts15l, last_close, today_str, "15m", capital,
+                                               risk_per_trade_pct, fx_to_inr, currency, result,
+                                               require_real_tradability=require_real_tradability,
+                                               agg_blocked=agg_blocked)
+                if _chan_l is not None:
+                    return _chan_l
         # B-982: chan_gap buy-on-gap (09:20-10:15 IST, top-10 ranked at the first completed bar); paper always, real gated.
         if interval == "5m":
             _gap_l = _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
@@ -13258,13 +13270,28 @@ def _chan_long_cell_tag(atr_mult, ve, z):
 
 
 CHAN_LONG_CELLS = {_chan_long_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_CELL_SPECS}
+# B-1470: chan_kalman v1 band LONG 15m cells (main.py replay run 41899822245, full NSE universe, 0.8% cost): ve1e-3 z2 atr4
+# PFnet 1.332 / OOS 1.338, n 268; ve1e-3 z1 atr4 1.180 / OOS 1.031, n 3529. One cell per entry signal (atr4 is the best stop
+# for each z). Same Kalman band rule as the 5m cells; scanned on the 15m frame from the 5m tick (B-980 short pattern),
+# appended AFTER every 5m cell so the 5m cascade is unchanged; stop = close - 4xATR14 on EVERY trade, flat by 15:10 IST.
+# The 5m/15m SHORT srcmain cells are NOT wired: the identical signal already trades live as the band_mr v2 cells (B-918/B-980).
+_CHAN_LONG_15M_SPECS = ((4.0, 1e-3, 2.0), (4.0, 1e-3, 1.0))
+
+
+def _chan_long_srcmain_15m_tag(atr_mult, ve, z):
+    f = lambda x: f"{x:.1f}".replace(".", "d")  # noqa: E731
+    return f"chan_kalman__band_srcmain__long__15m__atr{f(atr_mult)}_hold40_ve{f(ve * 1e4)}e4_z{f(z)}__v1"
+
+
+CHAN_LONG_CELLS.update({_chan_long_srcmain_15m_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_15M_SPECS})
+CHAN_LONG_CELL_INTERVAL = {_t: ("15m" if "__long__15m__" in _t else "5m") for _t in CHAN_LONG_CELLS}
 CHAN_LONG_HOLD_BARS = 40
 CHAN_LONG_ENTRY_CUTOFF_MIN = CHAN_SHORT_ENTRY_CUTOFF_MIN
 CHAN_LONG_FLATTEN_START_MIN = CHAN_SHORT_FLATTEN_START_MIN
 CHAN_LONG_FLATTEN_END_MIN = CHAN_SHORT_FLATTEN_END_MIN
 
 
-def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
+def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted, symbol=None):
     """Exit reason for an open chan long, or None. Order: halt, stop, flatten (15:10+), state/max-hold/bar-stop."""
     if halted:
         return "daily_loss_cap_hit"
@@ -13274,6 +13301,12 @@ def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
         return "flatten_1515"
     try:
         ve = CHAN_LONG_CELLS[row["strategy"]][1]
+        _iv = CHAN_LONG_CELL_INTERVAL.get(row["strategy"], interval)
+        if _iv != interval:  # B-1470: a 15m cell is managed on 15m bars even though the scan runs on 5m
+            if not symbol:
+                return None
+            df, ts_utc = _chan_short_df_for(symbol, _iv)
+            interval = _iv
         dfc = _chan_short_frame(df, ts_utc)
         entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
         entry_pos = min(entry_pos, len(dfc) - 1)
@@ -13297,6 +13330,8 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
         dfc = _chan_short_frame(df, ts_utc)
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
+            if CHAN_LONG_CELL_INTERVAL[_t] != interval:
+                continue
             _record_strategy_scan(_t)  # B-1244: this cell is evaluated on this symbol/bar (feeds scans_today)
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
