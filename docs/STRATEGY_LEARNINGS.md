@@ -1781,3 +1781,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What:** an entry the Kotak balance cannot fund (Net below one share, F&O margin check, Kotak funds rejection) was hidden inside the generic "sized to 0" row, so a profitable signal lost for lack of cash looked like a sizing quirk. It is now counted beside the viability rejections on View 4, with the Net and the cheapest rejected 1-share price.
 - **Why it matters for profit:** a non-zero low-balance count means viable signals are being turned away for cash, not for edge; the fix there is funding or capital allocation, not loosening the PFnet gate.
 - **Profit-booking / exit takeaway:** unchanged exits; capital tied in slow holds directly costs new viable entries, which strengthens the faster-turnover preference.
+
+## 2026-11-06: O'Neil cells under the trailing-stop thumb rule (B-1493/B-1494/B-1495)
+
+- **Result (run 42025478119):** on 17 O'Neil weekly-signal cells, a trail beats the fixed stop on only one, shakeout plus3 pm1 with a peak-LTP 0.5R trail: PFnet 3.181 vs 2.979, and the hold falls from about 83 bars to 20. Every other cell loses with any trail, by 0.03 to 0.53 PFnet; the chandelier 3R trail is the least bad, the tight trails are the worst.
+- **Why:** O'Neil base breakouts pay through long runs, so an early trail cuts the winners. The shakeout pattern is a sharp reclaim that pays fast, so locking 0.5R under the peak keeps the edge and frees capital four times faster.
+- **Surprise:** three cells produced zero trades in this replay (leaders, rsline, rsscreen); that is a harness gap, not a result.
+- **Profit-booking / exit takeaway:** trail the fast-reversal setups (shakeout, gap_and_go, brk20) and keep fixed stops on slow base breakouts; never assume a trail helps.
+- B-1493 wired 2026-11-06 IST (user "Deploy 1493"): oneil_shakeout plus3 pm1 now trails at peak-LTP 0.5R off the highest completed daily high; the 1w entry, 3xATR initial stop and 26-week max hold are unchanged. Profit-booking / exit takeaway: on a shakeout (a quick reclaim after a flush) the edge is front-loaded, so a tight 0.5R trail books it in ~4 weeks instead of ~17 and lifts PFnet 2.98 -> 3.18; slow base breakouts keep the fixed stop.
