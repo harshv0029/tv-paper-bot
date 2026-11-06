@@ -28648,6 +28648,9 @@ SWING_PEAK_LTP_TRAIL_CELLS = {  # long live tag -> (N in R units, validated trai
     GAP_RUNAWAY_TAG: (0.5, "gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1"),
     "gap_and_go": (0.5, "gap_and_go__rsbandfloor__trailltp0d5r"),  # B-1491: user "Switch" 2026-11-06 IST (1.101 -> 1.463)
     STARC_FULL_TAG: (1.5, "starc__fade_full__long__1d__atr2d5_h20_rsbandfloor_trailltp1d5r__v1"),
+    # B-1493 (2026-11-06 IST, user "Deploy 1493"): run 42025478119 pooled 2.979 fixed -> 3.181 trail, n 7017, hold 3.9 wk
+    "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2":
+        (0.5, "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_rsbandfloor_srcmain_trailltp0d5r__nonovl__v2"),
 }
 SHORT_SWING_PEAK_LTP_TRAIL_CELLS = {  # short-swing live tag -> (N, validated trailed registry tag)
     BRK20_SHORT_SWING_CELLS[0][0]: (0.5, "brk20_min_rr__main_replay__short__1d__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),
