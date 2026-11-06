@@ -13,9 +13,9 @@ Total rows: 1257 | closed: 598 | not closed: 659
 | CLOSED | 136 |
 | CLOSED-AS-EXPLAINED | 128 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
-| DONE-PENDING-VERIFY | 77 |
+| DONE-PENDING-VERIFY | 78 |
 | BLOCKED | 63 |
-| OPEN | 54 |
+| OPEN | 53 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -108,7 +108,7 @@ Total rows: 1257 | closed: 598 | not closed: 659
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (364)
+## waiting-on-workflow/deploy (365)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -279,6 +279,7 @@ Total rows: 1257 | closed: 598 | not closed: 659
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
+| B-1500 | P1 | DONE-PENDING-VERIFY | 2026-11-06 | pending, follow-up |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
@@ -477,7 +478,7 @@ Total rows: 1257 | closed: 598 | not closed: 659
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (163)
+## ready-to-build (162)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -555,7 +556,6 @@ Total rows: 1257 | closed: 598 | not closed: 659
 | B-1486 | P1 | B-1484 | 2026-11-05 |  |
 | B-1489 | P1 | OPEN | 2026-11-05 | owed, blocked, follow-up |
 | B-1495 | P1 | IN | 2026-11-06 | owed, needs, follow-up |
-| B-1500 | P1 | OPEN | 2026-11-06 |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |

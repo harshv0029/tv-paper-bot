@@ -38,7 +38,7 @@ def test_trail_level_and_walk_on_daily_bars():
 
 def test_trail_walk_runs_before_the_oneil_exit_branch():
     src = inspect.getsource(main._run_swing_scan_pass)
-    assert src.index("pos[\"strategy\"] in SWING_PEAK_LTP_TRAIL_CELLS") < src.index("pos[\"strategy\"] in ONEIL_SWING_CELLS")
+    assert src.index("_swing_long_trail_rule(conn, symbol, pos[\"strategy\"]") < src.index("pos[\"strategy\"] in ONEIL_SWING_CELLS")  # B-1500 helper
 
 
 def test_hft_trail_wired_b1499():
