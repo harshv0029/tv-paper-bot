@@ -53,3 +53,9 @@ def test_b1506_ratchet_seq_bumps_right_after_the_1d_long_walk():
     src = inspect.getsource(main._run_swing_scan_pass)
     i = src.index("_mark_swing_long_walk_done()")
     assert i < src.index("_stage_rss('swing_sector_rotation')") < src.index("_stage_rss('swing_long_1h')")
+
+
+def test_b1505_trailed_sl_events_count_for_view4_and_sl_fill_log():
+    # the ratchet logs event 'trailed'; View 4's counter and the SL-fill logger must both see it
+    assert "'placed','moved','trailed'" in inspect.getsource(main.real_positions_sl_today)
+    assert "'placed','moved','trailed'" in inspect.getsource(main._log_sl_fills_from_kotak)
