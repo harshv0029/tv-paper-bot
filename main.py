@@ -26244,9 +26244,14 @@ def _run_swing_scan_pass(conn):
         # 41013761661: band-live PFnet 1.209 vs 1.097 for the old exit, hold 10.6 vs 15.7 bars). One entry per symbol,
         # never a second competing gap_and_go row; the stop is the cell's 2.5 x ATR14 stop, atr_at_entry stored for the trail.
         _record_strategy_scan("gap_and_go")
-        _gg_tag = GAP_AND_GO_XROC_LIVE_TAG
-        _record_strategy_scan(_gg_tag)
-        signal = gap_and_go_exitfamily_entry_signal(df, _gg_tag)
+        # B-1491 (user 2026-11-06 IST "Switch"): NEW gap_and_go entries go back to the legacy tag, exit
+        # gap_and_go_exit_reason + the B-1486 peak-LTP 0.5R trail (run 41978699531 pooled live PFnet 1.463, hold 3.7d)
+        # instead of the xroc cell (1.209, run 41013761661). GAP_AND_GO_XROC_LIVE_TAG stays exit-only for its open rows.
+        _gg_tag = "gap_and_go"
+        _record_strategy_scan(GAP_AND_GO_XROC_LIVE_TAG)  # still scanned/counted (exit-only), never entered
+        signal = gap_and_go_entry_signal(df)
+        if signal:
+            signal = dict(signal, atr_at_entry=None)
         if signal:
             entry_price = signal["entry_price"]
             stop_loss = signal["stop_loss"]
@@ -28613,13 +28618,14 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
 # the level to the 10% band floor at placement (_preclamp_long_stop), the replay's band model. A trail only tightens.
 # The live tag is KEPT (its exit fn, ATR map, scan counter and open positions all key off it); only the stop rule
 # changes, and the validated trailed variant's own registry tag is recorded here for the registry / gate mapping.
-# NOT wired: "gap_and_go" (1.101 -> 1.463): new gap_and_go entries open under GAP_AND_GO_XROC_LIVE_TAG, so the legacy tag
-# is exit-only; the brk20/island/swingminrr cascade siblings were not in the trail-beats-fixed list and stay fixed.
+# gap_and_go (1.101 -> 1.463) wired 2026-11-06 IST on the user's "Switch" (B-1491): new gap_and_go entries open under the
+# legacy tag again and GAP_AND_GO_XROC_LIVE_TAG is exit-only; the brk20/island/swingminrr cascade siblings were not in the trail-beats-fixed list and stay fixed.
 SWING_PEAK_LTP_TRAIL_CELLS = {  # long live tag -> (N in R units, validated trailed registry tag)
     BRK20_SWING_TAG: (0.5, "brk20_min_rr__main_replay__long__1d__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),
     SWINGMINRR_GATE4_TAG: (1.5, "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4_rsbandfloor_trailltp1d5r__v1"),
     ISLAND_GAP05_TAGS[0]: (0.5, "reversal__island_gap05__long__1d__atr1d5_rsbandfloor_trailltp0d5r_within8__nonovl__v2"),
     GAP_RUNAWAY_TAG: (0.5, "gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1"),
+    "gap_and_go": (0.5, "gap_and_go__rsbandfloor__trailltp0d5r"),  # B-1491: user "Switch" 2026-11-06 IST (1.101 -> 1.463)
     STARC_FULL_TAG: (1.5, "starc__fade_full__long__1d__atr2d5_h20_rsbandfloor_trailltp1d5r__v1"),
 }
 SHORT_SWING_PEAK_LTP_TRAIL_CELLS = {  # short-swing live tag -> (N, validated trailed registry tag)

@@ -186,7 +186,7 @@ def test_sl_type_follows_each_engines_real_stop_logic():
         assert main._sl_kind("swing", tag) == "Trail", tag
     assert main._sl_kind("swing", "minervini_vcp_be3r") == "Trail"
     assert main._sl_kind("swing", main.ORPHAN_SWING_STRATEGY_TAG) == "Trail"
-    assert main._sl_kind("swing", "gap_and_go") == "Fixed"
+    assert main._sl_kind("swing", "gap_and_go") == "Trail"  # B-1491: peak-LTP 0.5R trail
     assert main._sl_kind("swing", main.BRK20_LONG_SWING_TAGS[1]) == "Fixed"
     assert main._sl_kind("swing", main.BRK20_SWING_TAG) == "Trail"  # B-1486 peak-LTP trail
     assert main._sl_kind("swing", "never_seen_tag") == "Fixed"  # unknown swing tag exits off its frozen stop

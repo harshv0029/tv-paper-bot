@@ -50,16 +50,17 @@ def db(monkeypatch):
 
 # ------------------------------------------------------------------ wiring / membership
 def test_wired_cells_and_registry_tags():
-    assert {t: n for t, (n, _r) in main.SWING_PEAK_LTP_TRAIL_CELLS.items()} == LONG_TAGS
+    assert {t: n for t, (n, _r) in main.SWING_PEAK_LTP_TRAIL_CELLS.items()} == {**LONG_TAGS, "gap_and_go": 0.5}  # B-1491
     assert {t: n for t, (n, _r) in main.SHORT_SWING_PEAK_LTP_TRAIL_CELLS.items()} == {SHORT_TAG: 0.5}
     mode = {0.5: "live_lt0d5", 1.5: "live_lt1d5"}
     for t, (n, reg) in {**main.SWING_PEAK_LTP_TRAIL_CELLS, **main.SHORT_SWING_PEAK_LTP_TRAIL_CELLS}.items():
-        assert reg == bc.band_tag(t, mode[n]), t  # the validated trailed variant's own tag (naming grammar)
+        if t != "gap_and_go":  # legacy tag predates the grammar; its band tag is gap_and_go__rsbandfloor__trailltp0d5r
+            assert reg == bc.band_tag(t, mode[n]), t  # the validated trailed variant's own tag (naming grammar)
     for t in LONG_TAGS:
         assert t in main.SWING_TRAILING_STOP_TAGS and main._swing_is_trailing_tag(t)
         assert main._sl_kind("swing", t) == "Trail"
         assert "peak-LTP trail" in main._SWING_SL_RULES[t]
-    assert "gap_and_go" not in main.SWING_PEAK_LTP_TRAIL_CELLS  # legacy tag is exit-only (new entries use xroc)
+    assert main.SWING_PEAK_LTP_TRAIL_CELLS["gap_and_go"][1] == "gap_and_go__rsbandfloor__trailltp0d5r"  # B-1491 switch
     for t in (main.BRK20_LONG_SWING_TAGS[1], main.SWINGMINRR_GATE3_TAG, main.ISLAND_ALL_TAGS[1]):
         assert t not in main.SWING_PEAK_LTP_TRAIL_CELLS and not main._swing_is_trailing_tag(t)
     assert "swing_trail_peak" in main._GENERIC_MIRROR_TABLES and "swing_trail_peak" in main._GENERIC_MIRROR_T1
