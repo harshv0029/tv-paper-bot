@@ -60,7 +60,7 @@ VARIANT_OF_WIRED.update({
 # allowlisted against the registry row its live tag's gate reads today.
 import json as _json, os as _os
 # B-1426: run 40990174070 (second band_cap run) allowlisted the same way.
-for _rid in ("40952500265", "40990174070", "41978699531", "42025478119"):  # B-1484: trail-overlay rows of the same wired tags
+for _rid in ("40952500265", "40990174070", "41978699531", "42025478119", "42232093739"):  # B-1484: trail-overlay rows of the same wired tags
     _B1417 = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "docs", "backtest_data", f"swing_bandcap_run_{_rid}.json")
     for _r in _json.load(open(_B1417))["rows"]:
         if _r["tag"] in main._STRATEGY_TAG_TO_REGISTRY_NAME:
