@@ -28784,6 +28784,11 @@ def _swing_short_peak_trail_level(conn, symbol):
 
 
 _swing_sl_trail_last_day = None
+# B-1496 (IOC 2026-11-06 IST: Kotak SL 136.38 vs trail 141.66): the daily ratchet ran at 09:15 off a peak that the
+# swing scan only raised later (yesterday's completed bar joins the peak when the pass walks it). Count finished
+# passes and re-run the ratchet after each one, in session; it only ever raises a resting stop.
+_swing_scan_done_seq = 0
+_swing_sl_trail_seq = -1
 
 
 def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close, entry_price=None,
@@ -29628,6 +29633,9 @@ def _log_swing_scan_done(t):
     exc = t.exception()
     if exc is not None:
         print(f"[SWING] scan failed (non-fatal, intraday tick continues): {exc}")
+        return
+    global _swing_scan_done_seq
+    _swing_scan_done_seq += 1  # B-1496: a finished pass may have raised a stored trail peak -> re-run the SL ratchet
 
 
 def _fo_tick_steps():
@@ -30072,13 +30080,24 @@ async def _scheduler_tick():
         # B-1365 (2026-10-26): these place/cancel real orders (Kotak login, order_report, place) and ran ON the event
         # loop: live watchdog showed MainThread in _maybe_sync_real_swing_stop_loss > ensure_resting_sl with 37 s loop
         # lag, so /health stopped answering and Render restarted the bot ~every 20 min. Now in a worker thread.
+        global _swing_sl_trail_seq
         if _swing_sl_trail_last_day != _today_ist and _nse_equity_market_open_now():
             try:
+                _seq0 = _swing_scan_done_seq
                 await _real_off_loop(_sync_swing_resting_sl_to_strategy)
                 await _real_off_loop(_sync_signal_state_swing_external)
                 _swing_sl_trail_last_day = _today_ist
+                _swing_sl_trail_seq = _seq0
             except Exception as e:
                 print(f"[REAL SWING] daily SL trail/mirror failed (non-fatal, retries next tick): {e}")
+        elif _swing_sl_trail_seq != _swing_scan_done_seq and _nse_equity_market_open_now() \
+                and not _exchange_purge_window():
+            try:  # B-1496: a swing pass finished since the last ratchet -> move resting SLs up to the new trail
+                _seq0 = _swing_scan_done_seq
+                await _real_off_loop(_sync_swing_resting_sl_to_strategy)
+                _swing_sl_trail_seq = _seq0
+            except Exception as e:
+                print(f"[REAL SWING] post-scan SL ratchet failed (non-fatal, retries next tick): {e}")
         try:  # B-1369: entry-day stop breached -> cancel open sells, then market sell (every tick, in session)
             await _real_off_loop(_swing_entry_stop_breach_sweep)
         except Exception as e:
@@ -31449,6 +31468,21 @@ def _ensure_viable_stack_hydrated():
             threading.Thread(target=_recover, name="viable-stack-recover", daemon=True).start()
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] hydrate retry failed: {e}")
+
+
+@app.get("/viable-strategy-names")
+def viable_strategy_names():
+    """B-1497 (user 2026-11-06, View 4 footer): the names the active viable definition counts ("<N> strategies pass"),
+    i.e. the same list as /strategy-viable-stack's stack[0].count, sorted. Read-only."""
+    _ensure_viable_stack_hydrated()
+    _load_viable_overrides()
+    with closing(get_db()) as c:
+        r = c.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+    if not r:
+        return {"count": 0, "names": [], "label": None}
+    crit = _stack_criteria(r[0])
+    names = sorted(_names_meeting_criteria(crit)) if crit else sorted(json.loads(r[1]))
+    return {"count": len(names), "names": names, "label": r[0]}
 
 
 @app.get("/strategy-viable-stack")

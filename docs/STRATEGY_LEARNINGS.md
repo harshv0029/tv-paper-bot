@@ -1789,3 +1789,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Surprise:** three cells produced zero trades in this replay (leaders, rsline, rsscreen); that is a harness gap, not a result.
 - **Profit-booking / exit takeaway:** trail the fast-reversal setups (shakeout, gap_and_go, brk20) and keep fixed stops on slow base breakouts; never assume a trail helps.
 - B-1493 wired 2026-11-06 IST (user "Deploy 1493"): oneil_shakeout plus3 pm1 now trails at peak-LTP 0.5R off the highest completed daily high; the 1w entry, 3xATR initial stop and 26-week max hold are unchanged. Profit-booking / exit takeaway: on a shakeout (a quick reclaim after a flush) the edge is front-loaded, so a tight 0.5R trail books it in ~4 weeks instead of ~17 and lifts PFnet 2.98 -> 3.18; slow base breakouts keep the fixed stop.
+
+## 2026-11-06: a once-a-day SL ratchet lagged the trail it serves (B-1496, IOC)
+- What: IOC (gap runaway, peak-LTP 0.5R trail) sat with Kotak SL Rs136.38 while its trail said Rs141.66. The ratchet ran at 09:15, but the trail peak only takes yesterday's completed bar when the swing scan walks it later, so the 09:15 ratchet used a stale peak and nothing re-ran it.
+- Fix: re-run the ratchet after every finished swing scan pass (raise-only, place-new-then-cancel-old).
+- Lesson: any stop that depends on state computed by another pass must be re-synced when that pass finishes, not on a fixed clock.
+- Profit-booking / exit takeaway: a lagging trail gives back profit for free. IOC would have kept Rs5.28/share less of its gain on a stop-out, which is most of its Rs8.49 open profit.
+
