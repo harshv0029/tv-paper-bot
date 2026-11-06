@@ -25259,16 +25259,19 @@ def _sector_cap_blocks(conn, symbol, qty, price):
         sec = smap.get(symbol)
         if not sec:
             return None
-        cap = float(get_scheduler_capital_inr() or 0) * SECTOR_EXPOSURE_CAP_PCT / 100.0
+        rows = conn.execute("SELECT symbol, qty, entry_price FROM real_positions_swing").fetchall()
+        # B-1507: get_scheduler_capital_inr() is Kotak's FREE Net (already reduced by every open position), so 25% of
+        # it shrank as positions opened (live 2026-11-06 IST: cap Rs1,476 on a ~Rs9.3k account blocked YESBANK 16x).
+        # The cap is a share of the whole account: free Net + the cost of the open real swing positions.
+        open_cost = sum(float(r["qty"] or 0) * float(r["entry_price"] or 0) for r in rows)
+        cap = (float(get_scheduler_capital_inr() or 0) + open_cost) * SECTOR_EXPOSURE_CAP_PCT / 100.0
         if cap <= 0:
             return None
-        used = sum(float(r["qty"]) * float(r["entry_price"]) for r in
-                   conn.execute("SELECT symbol, qty, entry_price FROM real_positions_swing").fetchall()
-                   if smap.get(r["symbol"]) == sec)
+        used = sum(float(r["qty"]) * float(r["entry_price"]) for r in rows if smap.get(r["symbol"]) == sec)
         add = float(qty) * float(price)
         if used + add > cap:
             return (f"sector {sec!r} would hold Rs{used + add:,.0f} > cap Rs{cap:,.0f} "
-                    f"({SECTOR_EXPOSURE_CAP_PCT:.0f}% of capital); entry skipped")
+                    f"({SECTOR_EXPOSURE_CAP_PCT:.0f}% of account = free Net + open swing cost); entry skipped")
     except Exception as e:
         print(f"[SECTOR CAP] check failed (non-fatal, entry allowed): {e}")
     return None
@@ -25841,7 +25844,15 @@ def _swing_position_size(conn, capital: float, risk_pct: float, entry_price: flo
         qty = min(qty, usable_capital_inr / entry_price)
     if _swing_stopout_cluster(conn):
         qty *= SWING_CLUSTER_SIZE_FACTOR  # B-259/B-252/B-253: scale down after a stop-out cluster
-    return int(math.floor(qty))
+    qty = int(math.floor(qty))
+    if qty < 1 and capital > 0 and entry_price > 0:
+        # B-1507 (live 2026-11-03..06 IST: no real entry for 3 days): with Kotak Net ~Rs5.9k and ~Rs4k of paper-only
+        # rows counted by deployed_notional(), every fired swing signal sized to 0 here and was dropped by the
+        # caller's `if qty <= 0: break` before the real path ran - no paper entry, no real attempt, no log. The paper
+        # row is only the gateway to _maybe_place_real_swing_entry, which sizes the REAL order from Kotak's fresh Net
+        # on its own (B-1387) and logs a visible skip when that is 0, so the gateway is never closed by paper sizing.
+        qty = 1
+    return qty
 
 
 SWING_CLUSTER_SIZE_FACTOR = 0.5
