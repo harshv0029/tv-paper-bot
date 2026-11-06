@@ -250,3 +250,17 @@ def test_daily_pass_uses_the_position_rule():
     src = inspect.getsource(main._run_swing_scan_pass)
     assert "_swing_long_trail_rule(" in src and "kind=_trule[0]" in src and "_swing_exit_variant_clear(" in src
     assert "_select_swing_exit_variant(" in inspect.getsource(main._maybe_place_real_swing_entry)
+
+
+def test_b1504_position_sl_rule_states_the_stored_variant(db):
+    assert GG in main.SWING_EXIT_VARIANTS
+    # no stored variant -> the tag's default text
+    assert main._position_sl_rule(db, "swing", GG, "X.NS") == main._SWING_SL_RULES.get(GG)
+    main._swing_exit_variant_put(db, "X.NS", "2026-11-06", GG, "live", "t")
+    assert main._position_sl_rule(db, "swing", GG, "X.NS").startswith("fixed initial stop")
+    main._swing_exit_variant_put(db, "X.NS", "2026-11-06", GG, "live_tr1d5", "t")
+    assert main._position_sl_rule(db, "swing", GG, "X.NS").startswith("chandelier trail")
+    main._swing_exit_variant_put(db, "X.NS", "2026-11-06", GG, "live_be1", "t")
+    assert "breakeven" in main._position_sl_rule(db, "swing", GG, "X.NS")
+    # other categories are untouched
+    assert main._position_sl_rule(db, "buy", GG, "X.NS") == main._SWING_SL_RULES.get(GG)
