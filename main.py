@@ -1289,6 +1289,22 @@ def init_db():
             )
             """
         )
+        # B-1500 (2026-11-06): the exit variant (swing_bandcap mode: live = fixed, live_lt/tr/be<N> = trail) chosen at
+        # entry for a LONG swing position, by return per day with the first viability-passing variant owning the entry
+        # (_select_swing_exit_variant). Keyed by symbol; entry_day + strategy tie it to ONE position (a stale row never
+        # applies). No row = a position opened before B-1500 (legacy SWING_PEAK_LTP_TRAIL_CELLS / fixed). Upstash T1.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS swing_exit_variant (
+                symbol TEXT PRIMARY KEY,
+                entry_day TEXT NOT NULL,
+                strategy TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                registry_tag TEXT,
+                updated_at REAL
+            )
+            """
+        )
         # B-1443 (2026-11-02): durable Kotak fill ledger for View 4's ROC KPIs. Kotak positions() is today-only, so
         # each IST day's filled buy/sell qty and value per trading symbol + product is upserted here from Kotak's own
         # numbers (never shrinks within a day), plus one-time 'opening' rows for holdings open when the ledger began
@@ -15731,6 +15747,21 @@ def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> t
     registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
     if not registry_name:
         return False, "unmapped_tag"
+    return _viability_verdict_for_registry_name(registry_name, strategy_tag)
+
+
+def _viability_verdict_for_registry_name(registry_name: str, strategy_tag: str | None, check_switch: bool = False) -> tuple:
+    """B-1500: the registry-name half of _viability_verdict, shared by the live tag's own mapping and by an exit
+    variant's own registry tag (swing_bandcap.band_tag(T, mode)): metrics present, explorer override, explorer stack,
+    the live TAG's replay-owed / replay-failed holds, then is_viable(). check_switch adds the ALL TRADING switch (the
+    tag path checks it before the mapping)."""
+    if check_switch:
+        try:
+            with closing(get_db()) as _kc:
+                if not is_trading_enabled(_kc):
+                    return False, "switch_off"
+        except Exception:
+            pass
     import strategy_registry as sr
     strat = _registry_entry(registry_name)
     if strat is None:
@@ -22778,7 +22809,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
-    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak",
+    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -22797,7 +22828,7 @@ _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
 # strategy_viable_stack have their own dedicated mirrors and are not in this generic loop.
 _GENERIC_MIRROR_T1 = ("trading_control", "real_trading_control", "positions", "signal_state", "signal_state_short",
                       "real_fo_positions", "option_state", "signal_state_swing_short", "real_positions_swing_short",
-                      "swing_entry_stop", "swing_trail_peak")
+                      "swing_entry_stop", "swing_trail_peak", "swing_exit_variant")
 _GENERIC_MIRROR_UPSTASH_TABLES = tuple(sorted((t for t in _GENERIC_MIRROR_TABLES if t not in _GENERIC_MIRROR_GIT_TIER),
                                               key=lambda t: 0 if t in _GENERIC_MIRROR_T1 else 1))  # stable: T1 first
 # B-1302: loud /health alarm when the mirror itself gets an auth/suspension answer (401/403) from Upstash, separate
@@ -25323,6 +25354,9 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     apply to this engine. A genuinely T1/T2T-restricted symbol would
     still surface as a real order rejection at Kotak, logged like any
     other entry failure, just not pre-filtered here."""
+    # B-1500: choose (and store) the position's exit variant FIRST, so a paper-only entry (real switch off, market
+    # closed, gate closed) still runs the best PFnet > 1 variant; None for a tag without variants (legacy behaviour).
+    _var = _select_swing_exit_variant(conn, symbol, strategy)
     if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
     if strategy == ORPHAN_SWING_STRATEGY_TAG:
@@ -25356,11 +25390,17 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # reason every category was asked for: if a future swing candidate is
     # added below the floor, this blocks it automatically without a
     # separate change.
-    if not _is_strategy_viable_for_real_money(strategy):
+    # B-1500: a tag with exit variants enters when its chosen variant's OWN registry tag passes the viability gate (the
+    # first passing one in return-per-day order owns the entry) - the ALL TRADING switch included - or, as before, when
+    # the live tag's own registry row passes.
+    _var_ok = bool(_var is not None and _var.get("gate_ok")
+                   and _viability_verdict_for_registry_name(_var["registry_tag"], strategy, check_switch=True)[0])
+    if not _var_ok and not _is_strategy_viable_for_real_money(strategy):
         _log_real_attempt(
             conn, symbol, "B", "skipped_strategy_not_viable", strategy=strategy,
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
-                   "(or has no validated metrics) - see strategy_registry.py",
+                   "(or has no validated metrics) - see strategy_registry.py"
+                   + (f"; B-1500 exit variants tried: {_var.get('tried')}" if _var is not None else ""),
         )
         _log_signal_shadow(conn, strategy_tag if 2<2 else strategy, symbol, 'long', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
@@ -25516,7 +25556,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         order_id=result["order_id"], prev_state="no position",
         new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
-        reason=f"swing entry signal from strategy {strategy} passed the PFnet gate",
+        reason=f"swing entry signal from strategy {strategy} passed the PFnet gate"
+               + ("" if _var is None else
+                  f"; B-1500 exit variant {_var['mode']} ({_var['registry_tag']}, "
+                  f"{_var.get('ret_per_day')} %/day; "
+                  + ("first viable variant by return per day" if _var_ok else
+                     "no variant passed the viability gate, the strategy's own registry row did") + ")"),
     )
     _log_signal_shadow(conn, strategy, symbol, "long", True, "real swing entry placed")
 
@@ -25974,10 +26019,12 @@ def _run_swing_scan_pass(conn):
             # band_cap replay does) is the trailed level; walk every completed bar since entry, persist the peak, and on
             # a trail hit let the strategy's own exit pre-empt it only on an EARLIER bar (df cut before the hit bar).
             _pk_hit = None
-            if pos["strategy"] in SWING_PEAK_LTP_TRAIL_CELLS:
+            # B-1500: the position's own exit variant (stored at entry; legacy rows keep SWING_PEAK_LTP_TRAIL_CELLS)
+            _trule = _swing_long_trail_rule(conn, symbol, pos["strategy"], pos["entry_day"])
+            if _trule is not None:
                 try:
                     _pw = peak_ltp_trail_walk(df, pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"],
-                                              SWING_PEAK_LTP_TRAIL_CELLS[pos["strategy"]][0], "long")
+                                              _trule[1], "long", kind=_trule[0])
                     _swing_trail_peak_put(conn, symbol, "long", pos["entry_day"], _pw["peak"])
                     if _pw["hit_idx"] is not None:
                         _pk_hit = _pw
@@ -26159,6 +26206,7 @@ def _run_swing_scan_pass(conn):
                 )
                 conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
                 _swing_trail_peak_clear(conn, symbol, "long")  # B-1486
+                _swing_exit_variant_clear(conn, symbol)  # B-1500
                 conn.commit()
                 _sync_signal_state_swing_external(conn)
                 print(f"[SWING] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
@@ -28680,13 +28728,62 @@ def peak_ltp_trail_level(side, entry_price, initial_stop, peak, nmul):
     return min(stop0, min(pk, ep) + n * r)
 
 
-def peak_ltp_trail_walk(df, entry_day, entry_price, initial_stop, nmul, side="long"):
+# B-1500 (2026-11-06 IST): every exit variant of scripts/swing_bandcap.py TRAIL_RULES has a live implementation, so a
+# live tag can run whichever PFnet > 1.00 variant its return-per-day order + the viability gate pick (swing_exit_variants_
+# b1500.SWING_EXIT_VARIANTS, generated by scripts/gen_swing_exit_variants.py). kind: "ltp" = peak of completed-bar
+# HIGHs (LOWs for a short) - N x R; "chand" = peak of completed-bar CLOSEs - N x R; "be" = net breakeven entry x (1 +
+# cost) once the close peak gains N x R. A mode is "live" (fixed resting stop: no trail) or "live_<rule>".
+SWING_EXIT_MODE_RULES = {"tr0d5": ("chand", 0.5), "tr1": ("chand", 1.0), "tr1d5": ("chand", 1.5), "tr2": ("chand", 2.0),
+                         "tr3": ("chand", 3.0), "be1": ("be", 1.0), "be2": ("be", 2.0),
+                         "lt0d5": ("ltp", 0.5), "lt1": ("ltp", 1.0), "lt1d5": ("ltp", 1.5), "lt2": ("ltp", 2.0)}
+SWING_TRAIL_BE_COST = ROUND_TRIP_COST_PCT / 100.0  # == swing_bandcap.BE_COST (0.8% round trip)
+try:
+    from swing_exit_variants_b1500 import SWING_EXIT_VARIANTS
+except Exception as _e:  # noqa: BLE001 - a missing generated module only disables B-1500 (legacy behaviour)
+    print(f"[SWING] B-1500 exit variants unavailable (legacy exits apply): {_e}")
+    SWING_EXIT_VARIANTS = {}
+
+
+def swing_exit_mode_rule(mode):
+    """B-1500: (kind, N) of a swing_bandcap exit mode, None for the fixed "live" mode or anything unrecognised (an
+    unknown stored mode fails SAFE to the fixed initial stop, never a looser one)."""
+    m = str(mode or "").strip().lower()
+    if m.startswith("live_") and m[5:] in SWING_EXIT_MODE_RULES:
+        k, n = SWING_EXIT_MODE_RULES[m[5:]]
+        return (k, float(n))
+    return None
+
+
+def swing_trail_level(kind, side, entry_price, initial_stop, peak, nmul):
+    """B-1500: the trailed stop of a trail kind off a peak (long: highest, short: lowest). ltp/chand = the chandelier
+    peak_ltp_trail_level (the peak series differs, the arithmetic does not); be = entry x (1 + cost) once the peak gained
+    N x R (short: entry x (1 - cost) once the trough fell N x R). Never looser than the initial stop."""
+    if kind != "be":
+        return peak_ltp_trail_level(side, entry_price, initial_stop, peak, nmul)
+    try:
+        stop0 = float(initial_stop)
+    except (TypeError, ValueError):
+        return initial_stop
+    try:
+        ep, pk, n = float(entry_price), float(peak), float(nmul)
+    except (TypeError, ValueError):
+        return stop0
+    r = abs(ep - stop0)
+    if not (np.isfinite(ep) and np.isfinite(pk) and np.isfinite(r)) or r <= 0 or ep <= 0:
+        return stop0
+    if side == "long":
+        return max(stop0, ep * (1 + SWING_TRAIL_BE_COST)) if max(pk, ep) >= ep + n * r else stop0
+    return min(stop0, ep * (1 - SWING_TRAIL_BE_COST)) if min(pk, ep) <= ep - n * r else stop0
+
+
+def peak_ltp_trail_walk(df, entry_day, entry_price, initial_stop, nmul, side="long", kind="ltp"):
     """B-1486: walks every completed bar of df dated after entry_day in order (a skipped scan day cannot hide a hit).
-    The level in force on each bar is peak_ltp_trail_level off the peak of the bars BEFORE it; a hit is a bar whose low
+    The level in force on each bar is the trail level off the peak of the bars BEFORE it; a hit is a bar whose low
     (long) / high (short) reaches a level the trail set (strictly tighter than the initial stop: a plain initial-stop
     hit stays with the strategy's own exit fn). Returns {peak, level, hit_idx, hit_price}: peak = entry combined with
     every walked bar before the hit (all bars when none), level = the stop in force for the NEXT bar (or on the hit bar),
-    hit_idx = positional index of the hit bar in df (None), hit_price = min(open, level) long / max(open, level) short."""
+    hit_idx = positional index of the hit bar in df (None), hit_price = min(open, level) long / max(open, level) short.
+    B-1500: kind "ltp" (default, B-1486) peaks on HIGHs (LOWs short); "chand" and "be" peak on CLOSEs (swing_trail_level)."""
     ep = float(entry_price)
     stop0 = float(initial_stop)
     out = {"peak": ep, "level": stop0, "hit_idx": None, "hit_price": None}
@@ -28697,23 +28794,128 @@ def peak_ltp_trail_walk(df, entry_day, entry_price, initial_stop, nmul, side="lo
     else:
         dates = pd.DatetimeIndex(df.index).strftime("%Y-%m-%d").to_numpy()
     o, h, lo = (df[k].to_numpy(dtype=float) for k in ("Open", "High", "Low"))
+    if kind == "ltp":
+        pk_long, pk_short = h, lo
+    else:
+        pk_long = pk_short = df["Close"].to_numpy(dtype=float)
     peak = ep
     for j in np.flatnonzero(dates > str(entry_day)[:10]):
-        lvl = peak_ltp_trail_level(side, ep, stop0, peak, nmul)
+        lvl = swing_trail_level(kind, side, ep, stop0, peak, nmul)
         if side == "long":
             if lvl > stop0 and np.isfinite(lo[j]) and lo[j] <= lvl:
                 out.update(peak=peak, level=lvl, hit_idx=int(j), hit_price=float(min(o[j], lvl)))
                 return out
-            if np.isfinite(h[j]):
-                peak = max(peak, float(h[j]))
+            if np.isfinite(pk_long[j]):
+                peak = max(peak, float(pk_long[j]))
         else:
             if lvl < stop0 and np.isfinite(h[j]) and h[j] >= lvl:
                 out.update(peak=peak, level=lvl, hit_idx=int(j), hit_price=float(max(o[j], lvl)))
                 return out
-            if np.isfinite(lo[j]):
-                peak = min(peak, float(lo[j]))
-    out.update(peak=peak, level=peak_ltp_trail_level(side, ep, stop0, peak, nmul))
+            if np.isfinite(pk_short[j]):
+                peak = min(peak, float(pk_short[j]))
+    out.update(peak=peak, level=swing_trail_level(kind, side, ep, stop0, peak, nmul))
     return out
+
+
+def _swing_exit_variant_get(conn, symbol, entry_day=None, strategy=None):
+    """B-1500: the stored exit variant {mode, registry_tag, entry_day, strategy} of the LONG swing position on symbol,
+    or None (no row, or a row of another position: a different entry_day / strategy). Never raises."""
+    try:
+        r = conn.execute("SELECT mode, registry_tag, entry_day, strategy FROM swing_exit_variant WHERE symbol = ?",
+                         (symbol,)).fetchone()
+        if not r:
+            return None
+        if entry_day is not None and str(r[2])[:10] != str(entry_day)[:10]:
+            return None
+        if strategy is not None and r[3] != strategy:
+            return None
+        return {"mode": r[0], "registry_tag": r[1], "entry_day": r[2], "strategy": r[3]}
+    except Exception:
+        return None
+
+
+def _swing_exit_variant_put(conn, symbol, entry_day, strategy, mode, registry_tag):
+    try:
+        conn.execute("INSERT OR REPLACE INTO swing_exit_variant (symbol, entry_day, strategy, mode, registry_tag, "
+                     "updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                     (symbol, str(entry_day)[:10], strategy, mode, registry_tag, time.time()))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"[SWING] B-1500 exit variant store failed for {symbol} (non-fatal): {e}")
+        return False
+
+
+def _swing_exit_variant_clear(conn, symbol):
+    try:
+        conn.execute("DELETE FROM swing_exit_variant WHERE symbol = ?", (symbol,))
+    except Exception:
+        pass
+
+
+def _swing_long_trail_rule(conn, symbol, strategy, entry_day):
+    """B-1500: the ONE lookup every long swing stop path uses: (kind, N) of the position's trail, or None (fixed).
+    A stored variant (positions opened since B-1500) wins, "live" = fixed even on a SWING_PEAK_LTP_TRAIL_CELLS tag;
+    a position with no stored variant (opened before B-1500) keeps SWING_PEAK_LTP_TRAIL_CELLS (B-1486 peak-LTP) or fixed."""
+    v = _swing_exit_variant_get(conn, symbol, entry_day, strategy)
+    if v is not None:
+        return swing_exit_mode_rule(v["mode"])
+    pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+    return ("ltp", float(pl[0])) if pl else None
+
+
+def _swing_long_trail_rule_of_symbol(conn, symbol):
+    """B-1500: _swing_long_trail_rule for the open signal_state_swing row of symbol (None when no row)."""
+    try:
+        st = conn.execute("SELECT strategy, entry_day FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+        return _swing_long_trail_rule(conn, symbol, st[0], st[1]) if st else None
+    except Exception:
+        return None
+
+
+def _select_swing_exit_variant(conn, symbol, strategy):
+    """B-1500 (user 2026-11-06 IST WIRING RULE): pick the exit variant of a NEW long swing entry on a tag listed in
+    SWING_EXIT_VARIANTS (every variant with pooled PFnet > 1.00, in return-per-day order). The first variant whose OWN
+    registry tag passes the real-money viability definition (_viability_verdict_for_registry_name: explorer stack /
+    override / is_viable; the ALL TRADING switch is the caller's) owns the entry; none passing -> the first variant
+    (paper). Stored on swing_exit_variant for the position (entry_day + strategy). Chosen only on the ENTRY DAY and
+    before a real position exists: until a completed bar after entry_day exists every variant's stop is the initial
+    stop, so a same-day retry may re-pick; afterwards (or once real money is in) the stored choice is frozen.
+    Returns None for a tag with no variants or a position that is not this day's entry (legacy behaviour), else
+    {mode, registry_tag, gate_ok, verdict, ret_per_day, tried, frozen}. Never raises."""
+    try:
+        cands = SWING_EXIT_VARIANTS.get(strategy)
+        if not cands:
+            return None
+        st = conn.execute("SELECT entry_day FROM signal_state_swing WHERE symbol = ? AND strategy = ?",
+                          (symbol, strategy)).fetchone()
+        if not st or not st[0]:
+            return None
+        entry_day = str(st[0])[:10]
+        cur = _swing_exit_variant_get(conn, symbol, entry_day, strategy)
+        has_real = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone() is not None
+        if entry_day != ist_now().strftime("%Y-%m-%d") or (cur is not None and has_real):
+            if cur is None:
+                return None  # a position from before B-1500: legacy exits, never re-chosen
+            ok, why = _viability_verdict_for_registry_name(cur["registry_tag"], strategy)
+            rpd = next((c[2] for c in cands if c[0] == cur["mode"]), None)
+            return {"mode": cur["mode"], "registry_tag": cur["registry_tag"], "gate_ok": ok, "verdict": why,
+                    "ret_per_day": rpd, "tried": [(cur["mode"], why)], "frozen": True}
+        tried, chosen = [], None
+        for c in cands:
+            ok, why = _viability_verdict_for_registry_name(c[1], strategy)
+            tried.append((c[0], why))
+            if ok:
+                chosen = c
+                break
+        pick = chosen or cands[0]
+        _swing_exit_variant_put(conn, symbol, entry_day, strategy, pick[0], pick[1])
+        return {"mode": pick[0], "registry_tag": pick[1], "gate_ok": chosen is not None,
+                "verdict": tried[-1][1] if chosen else "no_variant_viable", "ret_per_day": pick[2], "tried": tried,
+                "frozen": False}
+    except Exception as e:  # noqa: BLE001
+        print(f"[SWING] B-1500 exit variant selection failed for {symbol} (non-fatal, legacy exit): {e}")
+        return None
 
 
 def _swing_trail_peak_get(conn, symbol, side, entry_day):
@@ -28755,16 +28957,20 @@ def _swing_trail_peak_clear(conn, symbol, side):
 
 def _swing_peak_trail_level(conn, symbol):
     """B-1486: the current peak-LTP trailed stop of a LONG swing row on a SWING_PEAK_LTP_TRAIL_CELLS tag, from the
-    stored completed-bar peak; None for any other tag, no stored peak, or a trail not above the initial stop."""
+    stored completed-bar peak; None for any other tag, no stored peak, or a trail not above the initial stop.
+    B-1500: the position's own trail rule (_swing_long_trail_rule: stored exit variant, else the B-1486 cells)."""
     try:
         st = conn.execute("SELECT strategy, initial_stop_loss, entry_price, entry_day FROM signal_state_swing "
                           "WHERE symbol = ?", (symbol,)).fetchone()
-        if not st or st[0] not in SWING_PEAK_LTP_TRAIL_CELLS or st[1] is None:
+        if not st or st[1] is None:
+            return None
+        rule = _swing_long_trail_rule(conn, symbol, st[0], st[3])
+        if rule is None:
             return None
         pk = _swing_trail_peak_get(conn, symbol, "long", st[3])
         if pk is None:
             return None
-        lvl = float(peak_ltp_trail_level("long", st[2], st[1], pk, SWING_PEAK_LTP_TRAIL_CELLS[st[0]][0]))
+        lvl = float(swing_trail_level(rule[0], "long", st[2], st[1], pk, rule[1]))
         return lvl if lvl > float(st[1]) else None
     except Exception:
         return None
@@ -28795,8 +29001,11 @@ _swing_scan_done_seq = 0
 _swing_sl_trail_seq = -1
 
 
+_TRAIL_RULE_LEGACY = object()  # B-1500: "no rule passed" -> the B-1486 SWING_PEAK_LTP_TRAIL_CELLS lookup by tag
+
+
 def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close, entry_price=None,
-                               peak_ltp=None):
+                               peak_ltp=None, trail_rule=_TRAIL_RULE_LEGACY):
     """The stop a swing position's OWN strategy exit rule is currently using:
     chandelier strategies = max(initial stop, peak close - mult x frozen ATR)
     (same arithmetic as minervini_vcp_exit_reason & co.); gap_and_go (and any
@@ -28804,12 +29013,16 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     for an unrecognised strategy. B-1438: minervini_vcp_be3r (breakeven ratchet,
     minervini_vcp_exit_reason_breakeven) = entry once the peak close gained 3R,
     only when entry_price is passed (else its initial stop, as before). B-1486: a SWING_PEAK_LTP_TRAIL_CELLS tag =
-    peak_ltp_trail_level off `peak_ltp` (the stored completed-bar peak high); its initial stop when no peak is passed."""
-    _pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
-    if _pl is not None:
+    peak_ltp_trail_level off `peak_ltp` (the stored completed-bar peak high); its initial stop when no peak is passed.
+    B-1500: trail_rule = the position's own (kind, N) from _swing_long_trail_rule (None = fixed: the trail branch is
+    skipped even on a SWING_PEAK_LTP_TRAIL_CELLS tag); `peak_ltp` is then that kind's stored peak (HIGHs or CLOSEs)."""
+    if trail_rule is _TRAIL_RULE_LEGACY:
+        _pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+        trail_rule = ("ltp", float(_pl[0])) if _pl is not None else None
+    if trail_rule is not None:
         if peak_ltp is None or entry_price is None:
             return float(initial_stop)
-        return float(peak_ltp_trail_level("long", entry_price, initial_stop, peak_ltp, _pl[0]))
+        return float(swing_trail_level(trail_rule[0], "long", entry_price, initial_stop, peak_ltp, trail_rule[1]))
     if strategy == "minervini_vcp_be3r":
         try:
             ep, ist = float(entry_price), float(initial_stop)
@@ -29195,14 +29408,15 @@ def _sync_swing_resting_sl_to_strategy(conn):
         st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()
         if not st:
             continue
+        _rule = _swing_long_trail_rule(conn, r["symbol"], st["strategy"], st["entry_day"])  # B-1500 stored variant
         target = round(_swing_strategy_stop_level(
             st["strategy"], st["initial_stop_loss"], st["atr_at_entry"], st["running_max_close"],
             entry_price=st["entry_price"],
-            peak_ltp=_swing_trail_peak_get(conn, r["symbol"], "long", st["entry_day"])), 2)  # B-1486
+            peak_ltp=_swing_trail_peak_get(conn, r["symbol"], "long", st["entry_day"]), trail_rule=_rule), 2)  # B-1486
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05:
             continue
-        if st["strategy"] in SWING_PEAK_LTP_TRAIL_CELLS:
+        if _rule is not None:
             # B-1486: the tight peak-LTP trail is never sent at/above the market (no live LTP -> wait); a breached
             # trail is closed by _swing_entry_stop_breach_sweep's existing cancel-then-market-sell path instead.
             _l = _swing_live_ltp(r["symbol"])
@@ -31929,6 +32143,15 @@ def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
     tag = tag or ""
     if category in ("buy", "short_sell"):
         return "Fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "Trail"
+    if category == "swing" and symbol and tag in SWING_EXIT_VARIANTS:
+        # B-1500: a position with a stored exit variant states that variant's stop (live = fixed, live_<rule> = trail)
+        try:
+            with closing(get_db()) as _c:
+                _v = _swing_exit_variant_get(_c, symbol, strategy=tag)
+            if _v is not None and not (symbol in SWING_LTP_TRAIL_SYMBOLS):
+                return "Trail" if swing_exit_mode_rule(_v["mode"]) is not None else "Fixed"
+        except Exception:
+            pass
     if category == "swing" and (_swing_is_trailing_tag(tag) or (symbol and symbol in SWING_LTP_TRAIL_SYMBOLS)):
         return "Trail"
     rule = _SWING_SL_RULES.get(tag) or ""
@@ -33817,11 +34040,12 @@ def _swing_trail_floor(conn, symbol: str):
             return None
         lvl = None
         cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(st[0])
-        if _swing_is_trailing_tag(st[0]):
+        _rule = _swing_long_trail_rule(conn, symbol, st[0], st[5])  # B-1500: the position's stored exit variant
+        if _swing_is_trailing_tag(st[0]) or _rule is not None:
             atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], cell) if cell is not None else st[2]
             lvl = float(_swing_strategy_stop_level(
                 st[0], st[1], atr or None, st[3], entry_price=st[4],
-                peak_ltp=_swing_trail_peak_get(conn, symbol, "long", st[5])))  # B-1486 peak-LTP cells
+                peak_ltp=_swing_trail_peak_get(conn, symbol, "long", st[5]), trail_rule=_rule))  # B-1486/B-1500
         # B-1440 (WIPRO 2026-11-02: re-placed at 175.12 -> band 179.01 although Friday's LTP-trailed stop was 192.89):
         # a REAL row on the orphan LTP trail (_sync_swing_ltp_trail: peak live LTP - 1R, peak persisted in
         # swing_ltp_peak) re-places at that trailed level, whatever strategy the paper row carries.
@@ -33838,7 +34062,7 @@ def _swing_trail_floor(conn, symbol: str):
         if lvl is None or not lvl > float(st[1]):
             return None
         refs = [p for p in (_SWING_LAST_CLOSE.get(symbol), _swing_live_ltp(symbol)) if p and float(p) > 0]
-        if st[0] in SWING_PEAK_LTP_TRAIL_CELLS:
+        if _rule is not None:
             # B-1486: the replay rests the trail even when it sits above the previous close (a high-then-fade day) and
             # fills at the open only when the open is through it, so the live LTP alone is the "never above the
             # market" reference here; the previous close is only the fallback when no live price is available.
