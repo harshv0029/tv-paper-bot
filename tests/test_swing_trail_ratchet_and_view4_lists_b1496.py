@@ -44,3 +44,12 @@ def test_viable_names_endpoint_matches_stack_count():
 def test_view4_has_both_lists():
     h = pathlib.Path(main.__file__).with_name("static").joinpath("trade-view4.html").read_text()
     assert 'id="symList"' in h and 'id="viaList"' in h and "/viable-strategy-names" in h
+
+
+def test_b1506_ratchet_seq_bumps_right_after_the_1d_long_walk():
+    s0 = main._swing_scan_done_seq
+    main._mark_swing_long_walk_done()
+    assert main._swing_scan_done_seq == s0 + 1
+    src = inspect.getsource(main._run_swing_scan_pass)
+    i = src.index("_mark_swing_long_walk_done()")
+    assert i < src.index("_stage_rss('swing_sector_rotation')") < src.index("_stage_rss('swing_long_1h')")
