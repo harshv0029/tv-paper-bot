@@ -154,7 +154,9 @@ def _scan(monkeypatch, df, sym):
         monkeypatch.setattr(main, fn, lambda d: None)
 
 
-def test_scan_entry_records_xroc_tag_with_atr_and_real_mirror(monkeypatch):
+def test_scan_entry_records_legacy_tag_after_b1491_switch(monkeypatch):
+    """B-1491 (user 2026-11-06 IST "Switch"): new gap_and_go entries open under the legacy tag (legacy stop, peak-LTP
+    0.5R trail), never the xroc tag, which stays exit-only for its open rows."""
     _fresh_db()
     df = _frame(300)
     _scan(monkeypatch, df, "NEWGG.NS")
@@ -165,13 +167,13 @@ def test_scan_entry_records_xroc_tag_with_atr_and_real_mirror(monkeypatch):
     with closing(main.get_db()) as conn:
         main._run_swing_scan(conn)
         row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'NEWGG.NS'").fetchone()
-        assert row["strategy"] == TAG
-        assert row["atr_at_entry"] and row["atr_at_entry"] > 0
-        assert abs(row["initial_stop_loss"] - (row["entry_price"] - 2.5 * row["atr_at_entry"])) < 1e-9
+        assert row["strategy"] == "gap_and_go"
+        assert row["initial_stop_loss"] == 1.0 and row["atr_at_entry"] is None
         assert row["running_max_close"] == row["entry_price"] and row["gap_low"] == 95.0
         n = conn.execute("SELECT COUNT(*) FROM signal_state_swing").fetchone()[0]
         assert n == 1  # one entry, never a second competing gap_and_go row
-    assert calls and calls[0][-1] == TAG and abs(calls[0][4] - row["initial_stop_loss"]) < 1e-9
+    assert calls and calls[0][-1] == "gap_and_go" and calls[0][4] == 1.0
+    assert "gap_and_go" in main.SWING_PEAK_LTP_TRAIL_CELLS
 
 
 def test_scan_exit_dispatch_old_tag_unaffected_new_tag_exitfamily(monkeypatch):

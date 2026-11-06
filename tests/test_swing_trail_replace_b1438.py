@@ -50,7 +50,8 @@ def test_every_trailing_tag_is_covered():
         assert main._swing_is_trailing_tag(tag), tag
     # B-1486: BRK20_SWING_TAG, the PL1D cells and the island gap05 nonovl cell now trail (peak-LTP); their untrailed
     # cascade siblings stay fixed.
-    for tag in ("gap_and_go", main.BRK20_LONG_SWING_TAGS[1], main.SWING_EXITINVAL_VP_TAG, main.SWING_EXITINVAL_OB_TAG,
+    assert main._swing_is_trailing_tag("gap_and_go")  # B-1491: legacy gap_and_go now trails (peak-LTP 0.5R)
+    for tag in (main.BRK20_LONG_SWING_TAGS[1], main.SWING_EXITINVAL_VP_TAG, main.SWING_EXITINVAL_OB_TAG,
                 main.SECTOR_ROT_TAG, main.SWINGMINRR_GATE3_TAG, *list(main.CHAN_SHAPE_CELLS)[:1],
                 main.ISLAND_ALL_TAGS[1], *list(main.GAPFADE_TAGS)[:1]):
         assert not main._swing_is_trailing_tag(tag), tag

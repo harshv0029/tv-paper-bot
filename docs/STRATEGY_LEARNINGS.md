@@ -1769,3 +1769,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What broke:** adding 11 trail-overlay rows per tag to a band_cap run made `_bandcap_live_failed_tags` take whichever row came last for each base tag, so a losing trail variant could close a winning fixed cell's real-money gate. Caught by the island wiring test before push.
 - **Reuse:** any reader of a results file that keys on `tag` must filter to the row variant it means (`band_cap == "live"`), never assume one row per tag.
 - **Profit-booking / exit takeaway:** a research row must never silently decide whether a live cell trades; check every derived gate after adding a new row type to a results file.
+
+## 2026-11-06: gap_and_go back to its original exit plus a peak-LTP 0.5R trail (B-1491)
+
+- **Decision (user "Switch"):** the xroc exhaustion exit (1.209) had replaced the legacy exit (1.101 live fixed); the trail flips the ranking: legacy exit + peak-LTP 0.5R = 1.463 with a 3.7-day hold, beating both.
+- **Lesson:** compare a new exit against the old exit WITH each candidate trail before retiring the old one; an exit judged only on its fixed-stop form can lose its best variant.
+- **Profit-booking / exit takeaway:** gap_and_go books profit 0.5R under the best completed-day high; expect more, shorter trades (about 4 days) rather than 15-day holds.
