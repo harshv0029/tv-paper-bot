@@ -28651,6 +28651,10 @@ SWING_PEAK_LTP_TRAIL_CELLS = {  # long live tag -> (N in R units, validated trai
     # B-1493 (2026-11-06 IST, user "Deploy 1493"): run 42025478119 pooled 2.979 fixed -> 3.181 trail, n 7017, hold 3.9 wk
     "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2":
         (0.5, "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_rsbandfloor_srcmain_trailltp0d5r__nonovl__v2"),
+    # B-1499 (2026-11-06 IST, user: wiring = PFnet > 1 only; fixed vs trail by return per day): run 42025478119
+    # 0.778 %/day trail (PFnet 4.75, 16d) vs 0.080 fixed (1.58, 65d)
+    "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2":
+        (0.5, "oneil_hft__breakout__long__1w__atr3_h26_rsbandfloor_srcmain_trailltp0d5r__nonovl__v2"),
 }
 SHORT_SWING_PEAK_LTP_TRAIL_CELLS = {  # short-swing live tag -> (N, validated trailed registry tag)
     BRK20_SHORT_SWING_CELLS[0][0]: (0.5, "brk20_min_rr__main_replay__short__1d__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),

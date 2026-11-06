@@ -1800,4 +1800,5 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Rule: same strategy, fixed vs trail -> higher (avg net % per trade / avg trading days held) wins; wiring bars still apply.
 - O'Neil 1w run 42025478119: shakeout pm1's 0.5R trail wins clearly (0.580 %/day vs 0.213 fixed). On every other O'Neil setup the fixed stop has the higher return per day (e.g. trendline 0.119 fixed vs 0.107 best trail; newhigh 0.081 vs 0.079), because trails cut the long runs that carry these base breakouts.
 - Profit-booking / exit takeaway: a trail that books a smaller gain much sooner can still win on return per day (shakeout: 11.4% in 20d beats 17.7% in 83d); judge exits on money per day held, not per trade.
+- 2026-11-06 IST addendum: the user ruled PFnet > 1 is the ONLY wiring condition (trade count and hold belong to the View 1 variable definition), so O'Neil hft now trails at 0.5R too (0.778 vs 0.080 %/day on n=25). Profit-booking / exit takeaway: on a high-tight-flag breakout the move is fast; book it with a tight trail in ~3 weeks rather than wait 13.
 
