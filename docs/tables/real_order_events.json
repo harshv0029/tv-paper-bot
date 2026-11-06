@@ -19895,7 +19895,31 @@
       "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
       "new_state": "none (placement failed)",
       "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+    },
+    {
+      "id": 1659,
+      "ts": 1793963283.2544038,
+      "symbol": "IRCTC.NS",
+      "kotak_trading_symbol": null,
+      "leg": "sl",
+      "event": "cleared_no_live_sl_at_kotak",
+      "order_id": null,
+      "prev_state": null,
+      "new_state": "none",
+      "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+    },
+    {
+      "id": 1660,
+      "ts": 1793963690.7991912,
+      "symbol": "__ALL__",
+      "kotak_trading_symbol": null,
+      "leg": "audit",
+      "event": "no_entry_day",
+      "order_id": null,
+      "prev_state": null,
+      "new_state": null,
+      "detail": "reason: no real entry confirmed today in any category | buy: no scans recorded yet (viability 0, money 0, other 0); short_sell: no scans recorded yet (viability 0, money 0, other 0); swing: no scans recorded yet (viability 0, money 0, other 0); bidirectional: no viable strategy in this category (nothing may open a real entry) (viability 0, money 0, other 0); futures: no scans recorded yet (viability 0, money 0, other 0); options: no viable strategy in this category (nothing may open a real entry) (viability 0, money 0, other 0)"
     }
   ],
-  "synced_at_utc": "2026-11-06T10:03:38Z"
+  "synced_at_utc": "2026-11-06T17:23:47Z"
 }
