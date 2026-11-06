@@ -26536,6 +26536,7 @@ def _run_swing_scan_pass(conn):
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
+    _mark_swing_long_walk_done()  # B-1506: peaks were just put by the 1d long walk -> let the tick ratchet now
     try:  # sector rotation entries (after the per-symbol chain so a symbol never gets two entries)
         with _stage_rss('swing_sector_rotation'):
             _run_sector_rotation_entries(conn, dfs, capital, today)
@@ -29843,6 +29844,14 @@ def _fo_chain_monitoring_snapshot_own_conn():
 
 
 _swing_scan_task = None
+
+
+def _mark_swing_long_walk_done():
+    """B-1506 (2026-11-06 IST: IOC trail 141.66 rested at Kotak only at 14:32, ~19 min after a 14:12 boot, because the
+    ratchet waited for the 1h legs at the end of the pass): the 1d long walk has put every stored trail peak, so bump
+    the pass counter here too and the next tick raises the resting stops. The ratchet only ever raises a stop."""
+    global _swing_scan_done_seq
+    _swing_scan_done_seq += 1
 
 
 def _log_swing_scan_done(t):
