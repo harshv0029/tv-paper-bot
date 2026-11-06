@@ -133,10 +133,10 @@ def load(m, family, shard, nshards, limit):
     return ss.load_frames(m, shard, nshards, limit)
 
 
-def replay(m, family, df, tags, cost, mode):
+def replay(m, family, df, tags, cost, mode, sym=None):
     """{tag: trades} for one symbol, one band mode, via the family's own replay (real main.py fns)."""
     if family in CLASSIC:
-        return {t: cl.replay_symbol(m, df, family, t, cost, mode) for t in tags}
+        return {t: cl.replay_symbol(m, df, family, t, cost, mode, symbol=sym) for t in tags}
     if family == "brk20":
         assert br.make_tag("long", "1d", m.BRK20_SWING_ATR_MULT, m.BRK20_SWING_MIN_RR) == m.BRK20_SWING_TAG
         return {tags[0]: br.replay_symbol(m, df, "long", m.BRK20_SWING_ATR_MULT, m.BRK20_SWING_MIN_RR, None, cost, mode)}
@@ -178,13 +178,15 @@ def run():
     m = bc.MemoMain(real, MEMO_FNS)
     tags = family_tags(real, family)
     frames = load(real, family, shard, nshards, limit)
+    if family == "oneil" and os.environ.get("SYNTHETIC") != "1":
+        cl.prepare_oneil(real, frames)  # B-1495a: ^NSEI index + RS population, as the live pass
     aggs = {md: {t: br.agg_new() for t in tags} for md in modes}
     for sym, df in frames.items():
         m.reset()
         for md in modes:
             bc.reset_trail()
             try:
-                res = replay(m, family, df, tags, cost, md)
+                res = replay(m, family, df, tags, cost, md, sym)
             except Exception as ex:
                 print("ERROR", sym, md, ex)
                 continue
