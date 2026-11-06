@@ -24,6 +24,7 @@ LONG_TAGS = {
     main.GAP_RUNAWAY_TAG: 0.5,
     main.STARC_FULL_TAG: 1.5,
     "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2": 0.5,  # B-1493
+    "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2": 0.5,  # B-1499
 }
 SHORT_TAG = "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1"
 

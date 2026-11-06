@@ -23,7 +23,7 @@ def test_cell_wired_at_half_r_with_its_validated_tag():
 
 def test_other_oneil_cells_stay_fixed():
     for t in main.ONEIL_SWING_CELLS:
-        if t != TAG:
+        if t not in (TAG, "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2"):  # B-1499
             assert t not in main.SWING_PEAK_LTP_TRAIL_CELLS, t
 
 
@@ -38,4 +38,11 @@ def test_trail_level_and_walk_on_daily_bars():
 
 def test_trail_walk_runs_before_the_oneil_exit_branch():
     src = inspect.getsource(main._run_swing_scan_pass)
-    assert src.index("pos[\"strategy\"] in SWING_PEAK_LTP_TRAIL_CELLS") < src.index("pos[\"strategy\"] in ONEIL_SWING_CELLS")
+    assert src.index("_swing_long_trail_rule(conn, symbol, pos[\"strategy\"]") < src.index("pos[\"strategy\"] in ONEIL_SWING_CELLS")  # B-1500 helper
+
+
+def test_hft_trail_wired_b1499():
+    t = "oneil_hft__breakout__long__1w__atr3_h26_srcmain__nonovl__v2"
+    assert main.SWING_PEAK_LTP_TRAIL_CELLS[t] == (
+        0.5, "oneil_hft__breakout__long__1w__atr3_h26_rsbandfloor_srcmain_trailltp0d5r__nonovl__v2")
+    assert main._sl_kind("swing", t) == "Trail"

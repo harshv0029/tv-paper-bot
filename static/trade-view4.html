@@ -178,6 +178,12 @@
   <div class="dim" style="font-size:10.5px;margin-top:8px">Counts are each symbol's latest check (<span class="mono">/scheduler-attempts</span>, every 5s); the latest decision pulses. Gates 10–12 are the real-money mirror (PFnet ≥ floor and explorer stack, the one real-trading switch, Kotak entry with its SL); their counts come from today's real order log and the stop backcheck.</div>
 </div>
 
+<!-- B-1497 (user 2026-11-06): the symbols the decision tree counts, and the viable strategies the definition counts -->
+<div class="box" id="symListBox" style="margin-top:12px"><h2>Symbols in the decision tree <span class="n mono" id="symListN"></span></h2>
+  <div class="mono" id="symList" style="font-size:10.5px;line-height:1.6;word-break:break-word">loading…</div></div>
+<div class="box" id="viaListBox" style="margin-top:12px"><h2>Viable strategies (active definition) <span class="n mono" id="viaListN"></span></h2>
+  <div class="mono" id="viaList" style="font-size:10.5px;line-height:1.6;word-break:break-word">loading…</div></div>
+
 <footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails), <span class="mono">/roc-kpis</span> 60s (return on deployed capital from the durable Kotak fill ledger), <span class="mono">/restart-history</span> 60s (Render restarts today, IST; red when any was not a deploy). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
 
 <script>
@@ -729,6 +735,12 @@
       const c = {};
       Object.values(d || {}).forEach(r => { const g = gateOf(r); c[g] = (c[g] || 0) + 1; });
       dtCounts = c; drawDT();
+      // B-1497: every symbol counted above, grouped by the gate its latest check stopped at
+      const by = {};
+      Object.entries(d || {}).forEach(([s, r]) => { const g = gateOf(r); (by[g] = by[g] || []).push(String(s).replace(/\.NS$/, "")); });
+      const n = Object.keys(d || {}).length;
+      $("symListN").textContent = `${n} symbols`;
+      $("symList").innerHTML = GATES.filter(g => by[g[0]]).map(g => `<b>${esc(g[1])}</b> (${by[g[0]].length}): ${by[g[0]].sort().map(esc).join(", ")}`).join("<br>") || '<span class="dim">no symbol checked yet</span>';
     } catch (e) {}
   }
   pollDT(); setInterval(pollDT, 5000);
@@ -788,6 +800,14 @@
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }
   pollViability(); setInterval(pollViability, 15000);
+  async function pollViaNames() {  // B-1497
+    try {
+      const d = await getJSON("/viable-strategy-names");
+      $("viaListN").textContent = `${d.count} strategies`;
+      $("viaList").innerHTML = (d.names || []).map((x, i) => `${i + 1}. ${esc(x)}`).join(" · ") || '<span class="dim">none - no real entry can open</span>';
+    } catch (e) { $("viaList").innerHTML = `<span class="down">could not read /viable-strategy-names (${esc(e.message)})</span>`; }
+  }
+  pollViaNames(); setInterval(pollViaNames, 60000);
 </script>
 </body>
 </html>
