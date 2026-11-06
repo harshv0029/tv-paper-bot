@@ -29064,7 +29064,7 @@ def _log_sl_fills_from_kotak(conn, order_rows) -> int:
     n = 0
     try:
         sl_ids = {str(r[0]) for r in conn.execute(
-            "SELECT order_id FROM real_order_events WHERE leg IN ('sl','short_sl') AND event IN ('placed','moved') "
+            "SELECT order_id FROM real_order_events WHERE leg IN ('sl','short_sl') AND event IN ('placed','moved','trailed') "
             "AND order_id IS NOT NULL").fetchall()}
         done = {str(r[0]) for r in conn.execute(
             "SELECT order_id FROM real_order_events WHERE leg='sl' AND event='filled' AND order_id IS NOT NULL").fetchall()}
@@ -32298,7 +32298,7 @@ def real_positions_sl_today():
         def _one(r, category, side, strat_stop, target, tag, initial_stop=None):
             kotak_sl = r["sl_trigger_price"] if r["sl_order_id"] else None
             ev = c.execute(
-                "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved') "
+                "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved','trailed') "
                 "AND ts >= ? ORDER BY ts", (r["symbol"], day0)).fetchall()
             kind = _sl_kind(category, tag, r["symbol"])
             if kotak_sl is None:
