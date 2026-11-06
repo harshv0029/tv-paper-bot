@@ -1811,3 +1811,15 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 ### B-1496 verification (2026-11-06 IST): post-deploy ratchet timing
 
 Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swing scan pass ended (14:31:36 IST), then the ratchet moved it to the trail level Rs141.66 (Kotak = strategy). The ratchet keys off the whole pass finishing, and the 1h legs at the end of the pass take ~13 min, so a stop can lag its trail by ~20 min after a restart (B-1506). View 4's "SL updates today" counter missed the trailed replace (B-1505). Profit-booking / exit takeaway: a trail only protects profit once it is resting at Kotak; raise the resting stop as soon as the peak is known, not at the end of unrelated scan work.
+
+### B-1507 (2026-11-06 IST): 3 days with no real entry - capital starvation hidden by a silent paper-size drop
+- Mechanism: the swing paper row is the gateway to the real order. Paper sizing subtracted ~Rs4k of paper-only positions (never at Kotak) from Kotak's free Net (Rs5.9k), so 1% risk = Rs19 and qty floored to 0; callers `break` on qty 0 with no log, so nothing reached the real path or any log for 3 days.
+- Second gate: the 25% sector cap used free Net as its base, so it tightened as positions opened (Rs1,476 cap on a Rs9.3k account).
+- Fix: paper gateway floor 1 share; real size still from Kotak Net (B-1387) with a logged skip; cap base = free Net + open swing cost.
+- Reuse: any percentage cap must use the whole account (free + deployed), never free cash; any `qty <= 0` drop on a fired signal must log a reason.
+- Profit-booking / exit takeaway: with a ~Rs9k account fully in 6 swings, new entries depend on exits freeing cash; small accounts need a stated 1-share policy (B-1508) or every 6xATR-stop signal sizes to zero.
+
+### B-1509 (2026-11-06 IST): small-account entry rules and the three reject flags
+- 1-share real minimum when one share's stop loss <= 1% of free Kotak cash (Rs59 at Net Rs5,904); most 6xATR stops on Rs100-400 stocks fit, Rs1,000+ names with wide stops still reject as money.
+- Every non-entry is one of viability / money / other, counted in /entry-funnel reject_flags; a zero-entry day writes a durable no_entry_day row.
+- Profit-booking / exit takeaway: on a ~Rs9k account, one share per signal keeps the strategies trading live (real evidence) at a per-trade risk of at most 1% of free cash; exits that free cash matter as much as entries.
