@@ -73,3 +73,10 @@ def test_no_entry_day_silent_when_an_entry_confirmed(db, monkeypatch):
     with closing(main.get_db()) as c:
         main._log_real_order_event(c, "A.NS", "entry", "confirmed", reason="test")
         assert main._no_entry_day_check(c, now=dt.datetime(2026, 11, 6, 15, 40)) is None
+
+
+def test_b1510_view4_shows_reject_flags():
+    html = open(os.path.join(os.path.dirname(__file__), "..", "static", "trade-view4.html")).read()
+    assert 'id="rejBox"' in html and 'getJSON("/entry-funnel")' in html
+    for k in ("reject_flags", "viability", "money", "other"):
+        assert k in html
