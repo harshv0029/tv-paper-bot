@@ -23,6 +23,7 @@ LONG_TAGS = {
     "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2": 0.5,
     main.GAP_RUNAWAY_TAG: 0.5,
     main.STARC_FULL_TAG: 1.5,
+    "oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2": 0.5,  # B-1493
 }
 SHORT_TAG = "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1"
 
