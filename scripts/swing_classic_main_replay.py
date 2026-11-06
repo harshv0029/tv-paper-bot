@@ -61,14 +61,14 @@ def min_bars(m, family):
     return {"gap_and_go": 30, "oneil": 60}[family]
 
 
-def _entry(m, family, tag, win):
+def _entry(m, family, tag, win, symbol=None):
     if family == "power_play":
         return m.power_play_entry_signal(win)
     if family == "primary_base":
         return m.primary_base_entry_signal(win)
     if family == "gap_and_go":
         return m.gap_and_go_entry_signal(win)
-    return m.oneil_swing_entry_signal(win, tag)
+    return m.oneil_swing_entry_signal(win, tag, symbol)  # B-1495a: symbol for the rsscreen RS lookup
 
 
 def _exit(m, family, win, pos):
@@ -82,7 +82,7 @@ def _exit(m, family, win, pos):
     return m._oneil_swing_exit_adapter(win, pos["day"], pos["stop"], pos["atr"], pos["rmc"])
 
 
-def replay_symbol(m, df, family, tag, cost, band_cap="off"):
+def replay_symbol(m, df, family, tag, cost, band_cap="off", symbol=None):
     """One symbol, one tag. Returns trade dicts {gross, net, held, reason}."""
     df = df.reset_index(drop=True)
     n = len(df)
@@ -117,7 +117,7 @@ def replay_symbol(m, df, family, tag, cost, band_cap="off"):
             continue  # live: never also enter the day a position is/was open
         if family == "oneil" and last_entry_week == weeks[i]:
             continue  # live: a stop-out inside the 2-session window must not re-enter the same week's signal
-        sig = _entry(m, family, tag, win)
+        sig = _entry(m, family, tag, win, symbol)
         if not sig:
             continue
         ep, sl = float(sig["entry_price"]), float(sig["stop_loss"])
@@ -134,6 +134,36 @@ def replay_symbol(m, df, family, tag, cost, band_cap="off"):
 def _fin(pos, xp, i, reason, cost):
     g = (xp - pos["ep"]) / pos["ep"]
     return {"gross": g, "net": g - cost, "held": i - pos["idx"], "reason": reason}
+
+
+def prepare_oneil(m, frames, fetch=None):
+    """B-1495a: give the replay the two inputs the live swing pass gives the O'Neil cells, else leaders/rsline (need the
+    ^NSEI index) and rsscreen (needs an RS-rank population and the symbol) can never fire (run 42025478119: n=0).
+    Index = ^NSEI daily closes via main._oneil_daily_set_index. RS population = the live watchlist (main.NSE_FULL_UNIVERSE,
+    the NIFTY-200 set after import), as live and the B-1468 rs_universe=n200 replay; frames already loaded are reused,
+    the rest fetched. Fail closed (prints, never raises): those cells then stay at n=0 exactly as before."""
+    fetch = fetch or (lambda s: m.fetch_ohlc(s, PERIOD, INTERVAL))
+    try:
+        ix = fetch("^NSEI")
+        dates = ix["Date"].astype(str).str[:10] if "Date" in ix.columns else [str(x)[:10] for x in ix.index]
+        m._oneil_daily_set_index(pd.Series(ix["Close"].to_numpy(float), index=list(dates)))
+    except Exception as e:  # noqa: BLE001
+        print("oneil: ^NSEI index unavailable, leaders/rsline stay closed:", e)
+    pop = {}
+    for s in sorted(set(getattr(m, "NSE_FULL_UNIVERSE", []) or [])):
+        df = frames.get(s)
+        if df is None:
+            try:
+                df = fetch(s)
+            except Exception:  # noqa: BLE001
+                df = None
+        if df is not None and len(df):
+            pop[s] = df.reset_index(drop=True) if "Date" in df.columns else df
+    try:
+        m._oneil_rs_set_for_pass(pop)
+    except Exception as e:  # noqa: BLE001
+        print("oneil: RS population unavailable, rsscreen stays closed:", e)
+    print(f"oneil: index {'set' if m._ONEIL_DAILY_IDX.get('close') is not None else 'MISSING'}, RS population {len(pop)}")
 
 
 def load_frames(m, shard, nshards, limit=None):
@@ -165,11 +195,13 @@ def run():
     cost = m.ROUND_TRIP_COST_PCT / 100.0
     tags = tags_for(m, family)
     frames = load_frames(m, shard, nshards, limit)
+    if family == "oneil" and os.environ.get("SYNTHETIC") != "1":
+        prepare_oneil(m, frames)
     aggs = {t: br.agg_new() for t in tags}
     for sym, df in frames.items():
         for t in tags:
             try:
-                br.agg_add(aggs[t], replay_symbol(m, df, family, t, cost, band_cap))
+                br.agg_add(aggs[t], replay_symbol(m, df, family, t, cost, band_cap, symbol=sym))
             except Exception as ex:
                 print("ERROR", sym, t, ex)
     res = {"family": family, "interval": INTERVAL, "period": PERIOD, "shard": shard, "nshards": nshards,
