@@ -511,7 +511,7 @@
           `<td data-v="${num(p.profit_pct)}" class="${pc}">${p.profit_pct == null ? "-" : (p.profit_pct > 0 ? "+" : "") + Number(p.profit_pct).toFixed(2) + "%"}</td>` +
           `<td data-v="${days ?? ""}">${days ?? "-"}</td>` +
           `<td data-v="${rpd ?? ""}" class="${pc}">${rpd == null ? "-" : (rpd < 0 ? "-₹" : "₹") + Math.abs(rpd).toFixed(2) + " INR/day" + (rpdPct == null ? "" : ` (${(rpdPct > 0 ? "+" : "") + rpdPct.toFixed(3)}% /day)`)}</td>` +
-          `<td>${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td>` +
+          `<td title="${esc(p.sl_rule || "")}">${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td>` +
           // B-1425: the strategy's time stop (latest exit date); it can exit sooner on stop, target or its rule.
           `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td></tr>`;
       }).join("") || '<tr><td colspan="15" class="dim">no active real positions</td></tr>';
