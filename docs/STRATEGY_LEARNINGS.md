@@ -1802,3 +1802,7 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Profit-booking / exit takeaway: a trail that books a smaller gain much sooner can still win on return per day (shakeout: 11.4% in 20d beats 17.7% in 83d); judge exits on money per day held, not per trade.
 - 2026-11-06 IST addendum: the user ruled PFnet > 1 is the ONLY wiring condition (trade count and hold belong to the View 1 variable definition), so O'Neil hft now trails at 0.5R too (0.778 vs 0.080 %/day on n=25). Profit-booking / exit takeaway: on a high-tight-flag breakout the move is fast; book it with a tight trail in ~3 weeks rather than wait 13.
 
+## 2026-11-06: wire every PFnet > 1 variant; viability controls money (user rule, B-1500)
+- Wiring = pooled PFnet > 1.00 only, for every variant that can enter; the View 1 viability definition decides real money. Collisions on one symbol go in return-per-day order, falling through to the next variant when one is gated out.
+- Profit-booking / exit takeaway: keeping both the fixed and the trailed variant wired means the faster-booking one takes the entry when it is allowed, and the other still catches the trade if the viability definition rejects the first.
+
