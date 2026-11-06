@@ -32,7 +32,7 @@ on:
       nshards:
         description: "Universe shards per family"
         required: false
-        default: "8"
+        default: "24"
 
 jobs:
   plan:
@@ -56,7 +56,7 @@ jobs:
     timeout-minutes: 340
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4

@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
-TRAIL_RUNS = ("41978699531", "42025478119")  # band_cap=trail runs (B-1484, B-1485), oldest first
+TRAIL_RUNS = ("41978699531", "42025478119", "42232093739")  # band_cap=trail runs (B-1484, B-1485, B-1495a), oldest first
 OUT = os.path.join(ROOT, "swing_exit_variants_b1500.py")
 
 
