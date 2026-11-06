@@ -19631,7 +19631,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs158.47",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs158.47 already covers the position (target stop Rs158.47), adopted, nothing placed"
+  },
+  {
+   "id": 1637,
+   "ts": 1793955721.3734274,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261106000597749",
+   "prev_state": "resting SELL trigger Rs136.38",
+   "new_state": "resting SELL trigger Rs141.66",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs136.38 to Rs141.66 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-06T08:43:27Z"
+ "synced_at_utc": "2026-11-06T09:02:05Z"
 }
