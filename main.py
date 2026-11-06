@@ -32142,6 +32142,31 @@ _SWING_SL_RULES.update({
     for _t, (_n, _rt) in SHORT_SWING_PEAK_LTP_TRAIL_CELLS.items()})
 
 
+_SWING_TRAIL_KIND_TEXT = {"ltp": "peak-LTP trail: highest completed-day high since entry - {n}R",
+                          "chand": "chandelier trail: highest completed-day close since entry - {n}R",
+                          "be": "breakeven: stop to entry + 0.8% cost once the peak gained {n}R"}
+
+
+def _position_sl_rule(conn, category: str, tag: str | None, symbol: str | None):
+    """B-1504: the stop rule of THIS open position. A long swing position with a stored B-1500 exit variant states that
+    variant (a fixed-stop variant on a trail tag reads 'fixed', a trail variant on a fixed tag reads its trail), never the
+    tag's default text; every other position keeps _SWING_SL_RULES. Display only. Never raises."""
+    base = _SWING_SL_RULES.get(tag or "")
+    if category != "swing" or not symbol or (tag or "") not in SWING_EXIT_VARIANTS:
+        return base
+    try:
+        v = _swing_exit_variant_get(conn, symbol, strategy=tag)
+    except Exception:
+        v = None
+    if v is None:
+        return base
+    rule = swing_exit_mode_rule(v["mode"])
+    if rule is None:
+        return f"fixed initial stop (exit variant {v['mode']}, never trailed)"
+    txt = _SWING_TRAIL_KIND_TEXT.get(rule[0], "{n}R trail").format(n=f"{rule[1]:g}")
+    return f"{txt}, never below the initial stop (exit variant {v['mode']})"
+
+
 def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
     """B-1402/B-1441: 'Trail' or 'Fixed' (never anything else) for an open real position's stop, from the stop logic
     its own engine actually runs. Intraday long/short engines trail (staged ladder / per-tick SL sync) except the
@@ -32324,6 +32349,7 @@ def real_positions_sl_today():
                 "kotak_sl_trigger": kotak_sl, "sl_updates_today": len(ev),
                 "last_sl_update_ist": (dt.datetime.fromtimestamp(last["ts"], dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M") if last else None,
                 "sl_as_per_strategy": ok, "sl_status": status,
+                "sl_rule": _position_sl_rule(c, category, tag, r["symbol"]),  # B-1504
                 "entry_day": r.get("day"), "entry_day_sl": eday_sl, "entry_day_sl_source": eday_src,
                 **_expected_exit_for_position(category, tag, r.get("sed") or r.get("day"), r.get("opened_at"),
                                               _wl_by_sym.get(r["symbol"])),
