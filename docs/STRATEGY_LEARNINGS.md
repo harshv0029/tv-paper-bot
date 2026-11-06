@@ -1789,3 +1789,21 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Surprise:** three cells produced zero trades in this replay (leaders, rsline, rsscreen); that is a harness gap, not a result.
 - **Profit-booking / exit takeaway:** trail the fast-reversal setups (shakeout, gap_and_go, brk20) and keep fixed stops on slow base breakouts; never assume a trail helps.
 - B-1493 wired 2026-11-06 IST (user "Deploy 1493"): oneil_shakeout plus3 pm1 now trails at peak-LTP 0.5R off the highest completed daily high; the 1w entry, 3xATR initial stop and 26-week max hold are unchanged. Profit-booking / exit takeaway: on a shakeout (a quick reclaim after a flush) the edge is front-loaded, so a tight 0.5R trail books it in ~4 weeks instead of ~17 and lifts PFnet 2.98 -> 3.18; slow base breakouts keep the fixed stop.
+
+## 2026-11-06: a once-a-day SL ratchet lagged the trail it serves (B-1496, IOC)
+- What: IOC (gap runaway, peak-LTP 0.5R trail) sat with Kotak SL Rs136.38 while its trail said Rs141.66. The ratchet ran at 09:15, but the trail peak only takes yesterday's completed bar when the swing scan walks it later, so the 09:15 ratchet used a stale peak and nothing re-ran it.
+- Fix: re-run the ratchet after every finished swing scan pass (raise-only, place-new-then-cancel-old).
+- Lesson: any stop that depends on state computed by another pass must be re-synced when that pass finishes, not on a fixed clock.
+- Profit-booking / exit takeaway: a lagging trail gives back profit for free. IOC would have kept Rs5.28/share less of its gain on a stop-out, which is most of its Rs8.49 open profit.
+
+## 2026-11-06: fixed vs trailing stop is decided by return per day (user rule, B-1498)
+- Rule: same strategy, fixed vs trail -> higher (avg net % per trade / avg trading days held) wins; wiring bars still apply.
+- O'Neil 1w run 42025478119: shakeout pm1's 0.5R trail wins clearly (0.580 %/day vs 0.213 fixed). On every other O'Neil setup the fixed stop has the higher return per day (e.g. trendline 0.119 fixed vs 0.107 best trail; newhigh 0.081 vs 0.079), because trails cut the long runs that carry these base breakouts.
+- Profit-booking / exit takeaway: a trail that books a smaller gain much sooner can still win on return per day (shakeout: 11.4% in 20d beats 17.7% in 83d); judge exits on money per day held, not per trade.
+- 2026-11-06 IST addendum: the user ruled PFnet > 1 is the ONLY wiring condition (trade count and hold belong to the View 1 variable definition), so O'Neil hft now trails at 0.5R too (0.778 vs 0.080 %/day on n=25). Profit-booking / exit takeaway: on a high-tight-flag breakout the move is fast; book it with a tight trail in ~3 weeks rather than wait 13.
+
+## 2026-11-06: wire every PFnet > 1 variant; viability controls money (user rule, B-1500)
+- Wiring = pooled PFnet > 1.00 only, for every variant that can enter; the View 1 viability definition decides real money. Collisions on one symbol go in return-per-day order, falling through to the next variant when one is gated out.
+- Profit-booking / exit takeaway: keeping both the fixed and the trailed variant wired means the faster-booking one takes the entry when it is allowed, and the other still catches the trade if the viability definition rejects the first.
+
+- 2026-11-06 IST build note (B-1500, swing long daily pass): 28 live long tags now carry 234 wired exit variants (fixed, peak-HIGH, peak-CLOSE chandelier, breakeven), each with same-run and registry PFnet > 1.00, ordered by return per day; the first variant whose own registry tag passes the viability definition owns the entry and is stored per position. Best-by-return-per-day is the fixed stop on 16 tags (most O'Neil base breakouts, swingminrr base/rr2/rr3, island none/px20), a trail on 12; the only change versus the B-1486/B-1499 picks for a new entry is STARC (peak-LTP 1R, 0.0849 %/day, over 1.5R, 0.0840). Lesson: a trail's arithmetic must match the replay bar for bar (the chandelier peaks on completed CLOSES, the LTP trail on completed HIGHS, the entry bar never counts), so it is tested against `swing_bandcap.trailed_stop` directly, not re-derived. Profit-booking / exit takeaway: let the variant with the most money per day held book the trade when it is allowed, and keep the slower variants as fallbacks so a viability rule that rejects the fast one does not cost the trade.
