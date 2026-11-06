@@ -16186,6 +16186,23 @@ def _stamp_viability_reason(detail, strategy_tag):
 REAL_EXIT_ROW_MARK = "[exit]"
 
 
+# B-1492 (user 2026-11-06: "Entries fired today but REJECTED by viability and low balance on trading platform ...
+# consider balance on trading platform as one of factor too"): an entry the Kotak balance cannot fund (Net below
+# one share/lot) is its own reason, never folded into the generic sized-to-0 row, so View 4 can count it.
+REAL_LOW_BALANCE_STATUS = "skipped_low_balance"
+REAL_FO_LOW_BALANCE_STATUSES = ("skipped_margin_unaffordable", "skipped_only_one_leg_affordable")
+_KOTAK_FUNDS_REJECT_RE = re.compile(r"margin|insufficient|fund|balance|limit exceed", re.I)
+
+
+def _real_qty_skip_status(max_by_capital) -> str:
+    """B-1492: status for an entry sized to 0 shares. The Kotak balance is the reason when it cannot buy even one
+    share (max_by_capital <= 0); otherwise (daily cap, risk sizing) it stays skipped_insufficient_real_qty."""
+    try:
+        return REAL_LOW_BALANCE_STATUS if float(max_by_capital) <= 0 else "skipped_insufficient_real_qty"
+    except (TypeError, ValueError):
+        return REAL_LOW_BALANCE_STATUS
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
                        strategy=None, leg=None):
@@ -16570,7 +16587,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _log_real_attempt(
-            conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            conn, symbol, "S", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
             detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
@@ -16895,7 +16912,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _lra_tag(
-            conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            conn, symbol, "B", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
             detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
@@ -25425,7 +25442,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     qty = int(min(risk_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _log_real_attempt(
-            conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            conn, symbol, "B", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
             price_est=ltp, strategy=strategy,
             detail=f"paper qty {paper_qty}, real risk qty {risk_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
@@ -27992,10 +28009,14 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
             return
     remaining = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     risk_qty = _real_swing_qty_by_risk(conn, symbol, ltp, paper_stop_loss, short=True) if paper_stop_loss else paper_qty  # B-1387
-    qty = int(min(risk_qty, math.floor(remaining / ltp), math.floor(get_scheduler_capital_inr() / ltp)))
+    _cap_now = get_scheduler_capital_inr()
+    max_by_capital = math.floor(_cap_now / ltp)
+    qty = int(min(risk_qty, math.floor(remaining / ltp), max_by_capital))
     if qty <= 0:
-        _log_real_attempt(conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
-                          price_est=ltp, strategy=strategy)
+        _log_real_attempt(conn, symbol, "S", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy,
+                          detail=f"risk qty {risk_qty}, 1 share = Rs{ltp:.2f}, remaining daily cap Rs{remaining:.2f}, "
+                                 f"Kotak Net Rs{_cap_now:.2f} (max {max_by_capital})")
         return
     loss = _real_loss_budget(conn)
     if loss["real_pnl_today"] is None or not loss["ok"]:
@@ -31456,6 +31477,7 @@ def _live_entry_gate_summary(conn) -> dict:
         "replay_owed_tags": len(REPLAY_OWED_TAGS),
         "replay_failed_tags": len(REPLAY_FAILED_TAGS),
         "rejected_today": _viability_rejections_today(conn),
+        "balance_rejected_today": _balance_rejections_today(conn),
         "checked_at": time.time(),
     }
     out["unlock_hint"] = _viability_unlock_hint(conn, out["rejected_today"])
@@ -31499,6 +31521,61 @@ def _viability_rejections_today(conn, day: str | None = None) -> dict:
                   key=lambda r: (-r["count"], r["strategy"]))
     return {"day": day, "total": sum(r["count"] for r in rows),
             "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows}
+
+
+def _balance_rejections_today(conn, day: str | None = None) -> dict:
+    """B-1492: today's (IST) real ENTRY attempts turned away because the Kotak balance could not fund them, per
+    strategy: equity/swing skipped_low_balance (Net below one share), F&O margin_unaffordable / only_one_leg_affordable
+    (Kotak margin check), and Kotak order rejections whose reason names margin/funds. Exit/cover rows never count.
+    Shows the Kotak Net now and the cheapest 1-share price among them (what the balance must reach to admit one)."""
+    day = day or ist_now().strftime("%Y-%m-%d")
+    by, cheapest = {}, None
+
+    def _add(key, sym, side, price):
+        nonlocal cheapest
+        r = by.setdefault(key, {"count": 0, "syms": set(), "sides": set()})
+        r["count"] += 1; r["syms"].add(sym); r["sides"].add(side)
+        try:
+            p = float(price)
+            if p > 0 and (cheapest is None or p < cheapest):
+                cheapest = p
+        except (TypeError, ValueError):
+            pass
+    try:
+        for strat, side, sym, st, det, px in conn.execute(
+                "SELECT strategy, side, symbol, status, detail, price_est FROM real_trades WHERE day = ? AND status IN (?, 'failed')",
+                (day, REAL_LOW_BALANCE_STATUS)).fetchall():
+            d = str(det or "")
+            if d.startswith(REAL_EXIT_ROW_MARK):
+                continue
+            if st == "failed" and not _KOTAK_FUNDS_REJECT_RE.search(d):
+                continue
+            _add((str(strat or "unknown"), "equity"), sym, side, px)
+    except Exception:
+        pass
+    try:
+        q = ",".join("?" * len(REAL_FO_LOW_BALANCE_STATUSES))
+        for leg, side, st, det, px in conn.execute(
+                f"SELECT leg_key, side, status, detail, price_est FROM real_fo_trades WHERE day = ? AND (status IN ({q}) OR status = 'failed')",
+                (day, *REAL_FO_LOW_BALANCE_STATUSES)).fetchall():
+            d = str(det or "")
+            if st == "failed" and not _KOTAK_FUNDS_REJECT_RE.search(d):
+                continue
+            m = re.search(r"strategy_tag=(\S+)", d)
+            _add((m.group(1) if m else str(leg).split(":")[0], "fo"), str(leg).split(":")[0], side, px)
+    except Exception:
+        pass
+    rows = sorted(({"strategy": k[0], "segment": k[1], "count": v["count"], "symbols": len(v["syms"]),
+                    "sides": "".join(sorted(x for x in v["sides"] if x))} for k, v in by.items()),
+                  key=lambda r: (-r["count"], r["strategy"]))
+    try:
+        net = _real_capital_cache.get("value")
+    except Exception:
+        net = None
+    return {"day": day, "total": sum(r["count"] for r in rows),
+            "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows,
+            "kotak_net_inr": None if net is None else round(float(net), 2),
+            "cheapest_rejected_price_inr": None if cheapest is None else round(cheapest, 2)}
 
 
 def _viability_unlock_hint(conn, rejected: dict) -> dict:
@@ -32781,6 +32858,7 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
         "skipped_t1_restricted": "permanently avoided - T1/T2T same-day-sell restricted",
         "skipped_no_live_tick": "no live price tick available at entry time",
         "skipped_insufficient_real_qty": "sized to 0 shares (daily loss cap / available capital too low)",
+        "skipped_low_balance": "Kotak balance too low to buy even 1 share",
         "skipped_real_pnl_unknown": "could not confirm today's real P&L from Kotak, refused to trade blind",
         "skipped_real_daily_loss_cap_hit": "real daily loss cap already hit",
         "failed": "real order was attempted but rejected by Kotak",
