@@ -16221,6 +16221,25 @@ REAL_EXIT_ROW_MARK = "[exit]"
 # consider balance on trading platform as one of factor too"): an entry the Kotak balance cannot fund (Net below
 # one share/lot) is its own reason, never folded into the generic sized-to-0 row, so View 4 can count it.
 REAL_LOW_BALANCE_STATUS = "skipped_low_balance"
+
+# B-1509 (user 2026-11-06 IST): when the 1%-risk formula rounds a REAL entry to 0 shares, buy 1 share anyway if that
+# one share's stop loss (|price - stop|) is at most REAL_ONE_SHARE_RISK_PCT of Kotak's free cash (Net) and the share
+# is affordable. Live example: Net Rs5,904 -> limit Rs59 per share at the stop.
+REAL_ONE_SHARE_RISK_PCT = 1.0
+
+
+def _real_one_share_floor(qty: int, net_inr: float, ltp: float, dist: float, usable_inr: float) -> int:
+    """B-1509: qty, or 1 when qty < 1 and one share's stop loss fits REAL_ONE_SHARE_RISK_PCT of free Net and
+    one share fits the usable tranche. Never raises."""
+    try:
+        if qty >= 1:
+            return int(qty)
+        if (net_inr > 0 and ltp > 0 and 0 < dist <= net_inr * REAL_ONE_SHARE_RISK_PCT / 100.0
+                and ltp <= usable_inr):
+            return 1
+    except (TypeError, ValueError):
+        pass
+    return max(0, int(qty or 0))
 REAL_FO_LOW_BALANCE_STATUSES = ("skipped_margin_unaffordable", "skipped_only_one_leg_affordable")
 _KOTAK_FUNDS_REJECT_RE = re.compile(r"margin|insufficient|fund|balance|limit exceed", re.I)
 
@@ -16232,6 +16251,26 @@ def _real_qty_skip_status(max_by_capital) -> str:
         return REAL_LOW_BALANCE_STATUS if float(max_by_capital) <= 0 else "skipped_insufficient_real_qty"
     except (TypeError, ValueError):
         return REAL_LOW_BALANCE_STATUS
+
+
+# B-1509 (user 2026-11-06 IST): every fired trigger that does not become a real entry carries exactly one of three
+# reject flags, so no trigger is ever missed silently: (1) viability (the user's View 1 definition / PFnet floor),
+# (2) money (what Kotak's free cash can buy), (3) other rule conditions (sector cap on invested + available, cutoffs,
+# ticks, tolerance, duplicates, ...).
+_REJECT_FLAG_VIABILITY = frozenset({"skipped_strategy_not_viable"})
+_REJECT_FLAG_MONEY = frozenset({REAL_LOW_BALANCE_STATUS, "skipped_insufficient_real_qty", "skipped_capital_unavailable",
+                                "skipped_over_daily_cap", "skipped_margin_unaffordable",
+                                "skipped_only_one_leg_affordable"})
+
+
+def _entry_reject_flag(status) -> str:
+    """'viability' | 'money' | 'other' for a skipped_* entry status (B-1509)."""
+    st = str(status or "")
+    if st in _REJECT_FLAG_VIABILITY:
+        return "viability"
+    if st in _REJECT_FLAG_MONEY:
+        return "money"
+    return "other"
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
@@ -25292,8 +25331,10 @@ def _real_qty_by_risk(ltp: float, stop_loss, risk_pct: float, short: bool = Fals
     if stop <= 0 or ltp <= 0 or dist <= 0:
         return 0
     _refresh_real_capital_cache()  # Kotak-first: fresh Net immediately before the order decision
-    usable = max(0.0, get_scheduler_capital_inr()) / CAPITAL_TRANCHES
-    return int(math.floor(min(usable * float(risk_pct) / 100 / dist, usable / ltp)))
+    _net = max(0.0, get_scheduler_capital_inr())
+    usable = _net / CAPITAL_TRANCHES
+    return _real_one_share_floor(int(math.floor(min(usable * float(risk_pct) / 100 / dist, usable / ltp))),
+                                 _net, ltp, dist, usable)  # B-1509
 
 
 # B-1430: paper qty for these tags already carries a signal-confidence multiplier (_confidence_size_multiplier
@@ -25338,7 +25379,7 @@ def _real_swing_qty_by_risk(conn, symbol, ltp: float, stop_loss, short: bool = F
     qty = min(usable * risk_pct / 100 / dist, usable / ltp)
     if _swing_stopout_cluster(conn):
         qty *= SWING_CLUSTER_SIZE_FACTOR
-    return int(math.floor(qty))
+    return _real_one_share_floor(int(math.floor(qty)), capital, ltp, dist, usable)  # B-1509
 
 
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
@@ -30276,6 +30317,47 @@ async def _bar_sweep_loop():
         _BAR_SWEEP_STATS["last"] = st
 
 
+NO_ENTRY_DAY_CHECK_MIN = 15 * 60 + 35  # B-1509: after the 15:30 IST close and the last 1h swing leg
+_no_entry_day_checked: str = ""
+
+
+def _no_entry_day_check(conn, now=None) -> dict | None:
+    """B-1509 (user 2026-11-06 IST thumb rule): once per NSE trading day after 15:35 IST, if no real entry was
+    confirmed today in any category, write a durable 'no_entry_day' row to real_order_events (git tier) carrying
+    every category's reject flags (viability / money / other) and verdict from /entry-funnel, so a silent day is
+    recorded with its reasons and picked up by the daily check-in. Returns the summary when it fires. Never raises."""
+    global _no_entry_day_checked
+    try:
+        now = now or ist_now()
+        day = now.strftime("%Y-%m-%d")
+        if _no_entry_day_checked == day or not is_nse_trading_day(now.date()) \
+                or now.hour * 60 + now.minute < NO_ENTRY_DAY_CHECK_MIN:
+            return None
+        start = time.time() - (now.hour * 3600 + now.minute * 60 + now.second)  # IST midnight
+        done = conn.execute("SELECT 1 FROM real_order_events WHERE event = 'no_entry_day' AND ts >= ?",
+                            (start,)).fetchone()
+        _no_entry_day_checked = day
+        if done:
+            return None
+        n_entries = conn.execute(
+            "SELECT COUNT(*) FROM real_order_events WHERE ts >= ? AND leg IN ('entry', 'short_entry') "
+            "AND event IN ('confirmed', 'filled', 'placed')", (start,)).fetchone()[0]
+        if n_entries:
+            return None
+        cats = entry_funnel().get("categories", {})
+        summary = {c: {"flags": o.get("reject_flags", {}), "verdict": o.get("verdict")} for c, o in cats.items()}
+        brief = "; ".join(f"{c}: {v['verdict']} (viability {v['flags'].get('viability', 0)}, money "
+                          f"{v['flags'].get('money', 0)}, other {v['flags'].get('other', 0)})"
+                          for c, v in summary.items())
+        _log_real_order_event(conn, "__ALL__", "audit", "no_entry_day", detail=brief,
+                              reason="no real entry confirmed today in any category")
+        print(f"[NO ENTRY DAY] {day}: {brief}")
+        return summary
+    except Exception as e:  # noqa: BLE001
+        print(f"[NO ENTRY DAY] check failed (non-fatal): {e}")
+        return None
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     _tick_t0 = time.time()  # B-1419
@@ -30288,6 +30370,8 @@ async def _scheduler_tick():
                 _git_tier_push_wake.set()
         except Exception as e:  # noqa: BLE001
             print(f"[order_log] B-1448 tick flush failed (non-fatal): {e}")
+        if _no_entry_day_check(conn):  # B-1509: durable record of a trading day with zero real entries
+            _git_tier_push_wake.set()
         if _nse_equity_market_open_now():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
@@ -32062,11 +32146,16 @@ def entry_funnel():
             _r["symbols_fired"] += syms
             if _skipped:
                 _r["skip_reasons"][st] = _r["skip_reasons"].get(st, 0) + n
+                _fl = o.setdefault("reject_flags", {"viability": 0, "money": 0, "other": 0})
+                _fl[_entry_reject_flag(st)] += n  # B-1509
             key = "blocked" if _skipped else ("placed" if _is_placed else "failed")  # B-1285: rejected/errored = failed
             _r[key] += n
             o[key] += n
     for c, o in out.items():
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
+        # B-1509: gate-closed triggers (wired cell fired, viability closed before the paper row) are viability rejects
+        _fl = o.setdefault("reject_flags", {"viability": 0, "money": 0, "other": 0})
+        _fl["viability"] += int(o.get("blocked_triggers") or 0)
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
         for _r in _all:  # B-1285: per-tag attempts = attempts_total = placed + blocked + failed (exits excluded)

@@ -1818,3 +1818,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: paper gateway floor 1 share; real size still from Kotak Net (B-1387) with a logged skip; cap base = free Net + open swing cost.
 - Reuse: any percentage cap must use the whole account (free + deployed), never free cash; any `qty <= 0` drop on a fired signal must log a reason.
 - Profit-booking / exit takeaway: with a ~Rs9k account fully in 6 swings, new entries depend on exits freeing cash; small accounts need a stated 1-share policy (B-1508) or every 6xATR-stop signal sizes to zero.
+
+### B-1509 (2026-11-06 IST): small-account entry rules and the three reject flags
+- 1-share real minimum when one share's stop loss <= 1% of free Kotak cash (Rs59 at Net Rs5,904); most 6xATR stops on Rs100-400 stocks fit, Rs1,000+ names with wide stops still reject as money.
+- Every non-entry is one of viability / money / other, counted in /entry-funnel reject_flags; a zero-entry day writes a durable no_entry_day row.
+- Profit-booking / exit takeaway: on a ~Rs9k account, one share per signal keeps the strategies trading live (real evidence) at a per-trade risk of at most 1% of free cash; exits that free cash matter as much as entries.
