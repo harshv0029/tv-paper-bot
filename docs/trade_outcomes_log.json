@@ -3367,5 +3367,33 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "YESBANK.NS",
+    "exit_time_utc": 1793947716.138013,
+    "entry_price_native": null,
+    "exit_price_native": 16.25,
+    "currency": "INR",
+    "qty": 66.0,
+    "pnl_inr": 50.59,
+    "pnl_pct_of_capital": 0.013,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "RELIANCE.NS",
+    "exit_time_utc": 1793958502.3345888,
+    "entry_price_native": null,
+    "exit_price_native": 1315.9000244140625,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 115.6,
+    "pnl_pct_of_capital": 0.029,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
