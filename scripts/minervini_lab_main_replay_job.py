@@ -30,6 +30,16 @@ tf=<job>, results=docs/backtest_data/minervini_lab_main_replay_<job>.json; each 
   baseline_short  the same control, short mirror
 Smoke: SYNTHETIC=1 (offline random-walk frames, NOT a result; written to out/ unless OUT_DIR) and/or SYMBOL_LIMIT=N.
 Output: docs/backtest_data/minervini_lab_main_replay_<job>.json
+
+B-1485 (B-1484 stage 2, user 2026-11-05 "backtest TRAILING SL rules on each wired FIXED SL strategy; wire the trail only
+if it beats the fixed one"): job `live_cells` replays ONLY the wired main.MINERVINI_LAB_LIVE_CELLS (pct8_hard + feature
+filter cells and the ma50_trail structural cell, each at its own max hold) under BAND_CAP modes (default trail = off +
+live + every scripts/swing_bandcap.TRAIL_MODES overlay; or live / a comma list). off = the same-run fixed-stop baseline
+through main.minervini_lab_simulate_trade (bit-identical to the other jobs). A band mode walks the same real
+main.minervini_lab_open_position / main.minervini_lab_exit_reason bar by bar and, on every bar AFTER the fill, first checks
+the Kotak resting stop (10% band floor, raised by the trail rule) via swing_bandcap.band_hit. Each mode is its own tag
+(swing_bandcap.band_tag: ..._srcmain__long__1d__h30_rsbandfloor_trailr1__v1). Output:
+docs/backtest_data/minervini_lab_main_replay_live_cells.json (rows carry wired_tag, band_cap and fixed_baseline).
 """
 import json
 import os
@@ -46,8 +56,10 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
 import bar_hygiene as bh  # noqa: E402
+import swing_bandcap as bc  # noqa: E402
 
-JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40", "short_h30", "short_h40")  # _hNN: max-hold sweep (B-1469)
+JOBS = ("long", "short", "baseline_long", "baseline_short", "long_h30", "long_h40", "short_h30", "short_h40",
+        "live_cells")  # live_cells: B-1485 trail overlay on the wired cells  # _hNN: max-hold sweep (B-1469)
 MAXH = 60
 IS_FRAC = 0.7
 COOLDOWN = 5
@@ -175,16 +187,47 @@ def stopout_cluster_flags_no_lookahead(trades, lookback=5, losers=3):
     return out
 
 
-def walk(m, variant, df, arrs, sigs, direction, cost, accept=None):
-    """Strict one position per symbol: a signal at or before the previous trade's exit bar is skipped."""
+def simulate_trade_band(m, variant, o, h, l, c, sig, direction, maxh, mas, band, df):
+    """B-1485: main.minervini_lab_simulate_trade's own loop (same real open_position / exit_reason calls, same return
+    shape) with the Kotak resting stop checked first on every bar AFTER the fill bar: band floor + the trail rule of the
+    band mode, raising pos['stop'] only through the resting order (the lab exit keeps its own stop logic)."""
+    i, _ep, stop0, atr = sig
+    n = len(c)
+    e = i + 1
+    if e >= n:
+        return None
+    pos = m.minervini_lab_open_position(variant, o[e], stop0, atr, c[i], e, direction)
+    if pos is None:
+        return None
+    ma20, ma50, ma200 = mas if mas is not None else m.minervini_lab_moving_averages(c)
+    bc.reset_trail()  # trail state is per trade
+    for j in range(e, min(e + maxh, n)):
+        if j > e:
+            hit = bc.band_hit(band, df, j, pos["stop"], direction, pos["entry"])
+            if hit is not None:
+                return j, float(hit[0]), j - e + 1, hit[1], float(pos["entry"])
+        reason, px = m.minervini_lab_exit_reason(variant, pos, j, o, h, l, c, ma20, ma50, ma200, direction, maxh)
+        if reason:
+            return j, float(px), j - e + 1, reason, float(pos["entry"])
+    j = min(e + maxh, n) - 1
+    return j, float(c[j]), j - e + 1, "end_of_data", float(pos["entry"])
+
+
+def walk(m, variant, df, arrs, sigs, direction, cost, accept=None, maxh=None, band=None):
+    """Strict one position per symbol: a signal at or before the previous trade's exit bar is skipped.
+    B-1485: maxh overrides the job's MAXH; band = bc.make_band(df, mode) (None = off: main.minervini_lab_simulate_trade)."""
     o, h, l, c, mas = arrs
+    maxh = MAXH if maxh is None else maxh
     sgn = 1.0 if direction == "long" else -1.0
     trades, free_from = [], 0
     for sg in sigs:
         i = sg[0]
         if i < free_from or (accept is not None and not accept(i)):
             continue
-        r = m.minervini_lab_simulate_trade(variant, o, h, l, c, sg, direction, MAXH, mas)
+        if band is None:
+            r = m.minervini_lab_simulate_trade(variant, o, h, l, c, sg, direction, maxh, mas)
+        else:
+            r = simulate_trade_band(m, variant, o, h, l, c, sg, direction, maxh, mas, band, df)
         if r is None:
             continue
         x, px, held, reason, ent = r
@@ -211,9 +254,46 @@ def summarize(trades, split_date):
     return mt
 
 
+def run_modes(spec):
+    """BAND_CAP = off | live | trail (off + live + every live_<trail> mode) | a comma list of modes."""
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(bc.TRAIL_MODES)
+    mds = [bc.normalize_mode(x) for x in s.split(",") if x.strip()] or ["off"]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
+
+
+def live_cell_specs(m):
+    """B-1485: [(wired tag, exit variant, feature or None, wanted value, max hold)] from main.MINERVINI_LAB_LIVE_CELLS.
+    The exit variant is parsed from the tag's lab variant (minervini_lab_parse_variant), never guessed from the name."""
+    out = []
+    for tag, (feat, want, maxh) in m.MINERVINI_LAB_LIVE_CELLS.items():
+        lab = tag.split("__")[1]
+        assert lab.endswith("_srcmain"), tag
+        ex, f2, _flag = m.minervini_lab_parse_variant(lab[: -len("_srcmain")])
+        assert f2 == feat, (tag, f2, feat)
+        out.append((tag, ex, feat, want, int(maxh)))
+    return out
+
+
+def symbol_live_cells(m, df, sigs, feats, direction, cost, specs, modes):
+    """B-1485: {(wired tag, mode): [trade]} for one symbol (every wired cell x every band mode)."""
+    o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
+    arrs = (o, h, l, c, m.minervini_lab_moving_averages(c))
+    out = {}
+    for md in modes:
+        band = bc.make_band(df, md)
+        for tag, ex, feat, want, maxh in specs:
+            okf = None if feat is None else (lambda i, feat=feat, want=want: feat in feats.get(i, {}) and bool(feats[i][feat]) == want)
+            out[(tag, md)] = walk(m, ex, df, arrs, sigs, direction, cost, okf, maxh, band)
+    return out
+
+
 def run(job):
     import main as m
     global MAXH
+    if job == "live_cells":
+        return run_live_cells(m)
     direction, baseline = job_spec(job)
     if "_h" in job:
         MAXH = int(job.rsplit("_h", 1)[1])
@@ -312,6 +392,78 @@ def run(job):
     for t, r in sorted(rows.items(), key=lambda kv: -(kv[1]["metrics"]["pfnet"] or 0))[:40]:
         mt = r["metrics"]
         print(t, mt["pfnet"], mt["pfgross"], mt["win_pct"], mt["n"], mt["avg_held_bars"], mt["oos_pfnet"], flush=True)
+    return out
+
+
+def run_live_cells(m):
+    """B-1485 job: wired MINERVINI_LAB_LIVE_CELLS x BAND_CAP modes (default trail), long, full universe."""
+    modes = run_modes(os.environ.get("BAND_CAP") or "trail")
+    direction = "long"
+    specs = live_cell_specs(m)
+    lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
+    t0 = time.time()
+    frames, dropped, requested = load_frames(m, lim)
+    print(f"minervini_lab_main_replay job=live_cells: {len(frames)} symbols, {len(specs)} cells, modes {modes}", flush=True)
+    cost = m.ROUND_TRIP_COST_PCT / 100.0
+    all_dates = sorted(set().union(*[set(f.index) for f in frames.values()])) if frames else []
+    split_date = all_dates[int(len(all_dates) * IS_FRAC)] if all_dates else None
+    acc, nsig = {}, 0
+    ic = load_index(frames)
+    closes = pd.DataFrame({s: f["Close"] for s, f in frames.items()})
+    highs = pd.DataFrame({s: f["High"] for s, f in frames.items()})
+    lows = pd.DataFrame({s: f["Low"] for s, f in frames.items()})
+    rs_rank, nhnl_ok = m.minervini_lab_rs_nhnl_panels(closes, highs, lows)
+    for k, (s, df) in enumerate(frames.items()):
+        sigs = strategy_signals(m, df, direction)
+        if k % 200 == 0:
+            print("signals", k, nsig, round(time.time() - t0), flush=True)
+        if not sigs:
+            continue
+        nsig += len(sigs)
+        dates = df.index
+        idx_arr = ic.reindex(dates, method="ffill").to_numpy(float)
+        rs_arr = rs_rank[s].reindex(dates).to_numpy(float)
+        nn_arr = nhnl_ok.reindex(dates).fillna(False).to_numpy(bool)
+        feats = {}
+        for sg in sigs:
+            i = sg[0]
+            try:
+                feats[i] = m.minervini_lab_features(df, i, idx_arr, None if np.isnan(rs_arr[i]) else rs_arr[i], nn_arr[i])
+            except Exception:
+                feats[i] = {}
+        for key, tr in symbol_live_cells(m, df, sigs, feats, direction, cost, specs, modes).items():
+            acc.setdefault(key, []).extend(tr)
+    rows = {}
+    for tag, ex, feat, want, maxh in specs:
+        base = summarize(acc.get((tag, "off"), []), split_date)
+        for md in modes:
+            mt = base if md == "off" else summarize(acc.get((tag, md), []), split_date)
+            rows[bc.band_tag(tag, md)] = {
+                "wired_tag": tag, "band_cap": md, "exit_variant": ex, "feature": feat, "feature_value": want,
+                "max_hold_bars": maxh, "direction": direction, "metrics": mt,
+                "fixed_baseline": {x: base.get(x) for x in ("n", "pfnet", "win_pct", "avg_held_bars")},
+                "beats_fixed": (None if md == "off" or mt["pfnet"] is None or base["pfnet"] is None
+                                else mt["pfnet"] > base["pfnet"])}
+    out = {"job": "live_cells", "direction": direction, "tf": "1d", "band_cap_modes": modes,
+           "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
+           "universe": "main._load_nse_universe_from_file() minus ETF_SYMBOLS", "universe_requested": requested,
+           "n_symbols": len(frames), "bars_dropped_glitch": dropped, "n_signals": nsig, "is_frac": IS_FRAC,
+           "is_oos_split_date": str(split_date)[:10] if split_date is not None else None,
+           "one_position_per_symbol": True,
+           "entry_source": "main.minervini_vcp_entry_signal (real, RS gate skipped)",
+           "exit_source": ("off: main.minervini_lab_simulate_trade; band modes: main.minervini_lab_open_position + "
+                           "main.minervini_lab_exit_reason with swing_bandcap.band_hit (resting stop + trail) first"),
+           "synthetic": os.environ.get("SYNTHETIC") == "1", "elapsed_s": round(time.time() - t0, 1), "rows": rows}
+    od = os.environ.get("OUT_DIR") or (os.path.join(ROOT, "out") if out["synthetic"] else os.path.join(ROOT, "docs", "backtest_data"))
+    os.makedirs(od, exist_ok=True)
+    path = os.path.join(od, "minervini_lab_main_replay_live_cells.json")
+    json.dump(out, open(path, "w"), indent=1, default=str)
+    print("wrote", path, "elapsed", out["elapsed_s"], flush=True)
+    for t, r in rows.items():
+        mt = r["metrics"]
+        print(t, "n", mt["n"], "pfnet", mt["pfnet"], "win", mt["win_pct"], "hold", mt["avg_held_bars"],
+              "fixed", r["fixed_baseline"]["pfnet"], "exits", {k: v["n"] for k, v in mt.get("exit_reasons", {}).items()},
+              flush=True)
     return out
 
 

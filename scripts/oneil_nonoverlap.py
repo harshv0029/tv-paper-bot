@@ -21,6 +21,12 @@ Output per tag: PFnet net/gross, win %, avg hold (bars), n, raw signal trades be
 PFnet with the global top-5 winners removed (bad-bar guard), count of >100% trades; plus IS and OOS (entry-bar split)
 as separate tags <old minus __v1>__nonovl__v2 / _nonovl_segis__v2 / _segoos__v2. FULL universe via
 main._load_nse_universe_from_file(); 0.8% round trip (main.ROUND_TRIP_COST_PCT); an ATR stop on every trade.
+B-1485 (B-1484 stage 2 trailing-stop overlay): env BAND_CAP (or --band_cap) = trail | live | a comma list of
+swing_bandcap modes re-runs every ext_main (main.py-calling) cell under off (the same-run fixed-stop baseline) plus each
+mode: the Kotak resting stop (10% daily band floor, raised by the trail rule) is checked on every bar AFTER the fill,
+before main.oneil_exit_bar; each mode is its own tag (swing_bandcap.band_tag on the cell tag, then nonovl/seg). Blank =
+unchanged. Non-ext_main cells always run off only. Wired 1d cells: --cells ext_main --families oneil_leaders (full RS)
+and --cells ext_main --families oneil_rsscreen --rs_universe n200.
 Usage:
   python3 scripts/oneil_nonoverlap.py run --tf 1d --shard 0 --nshards 3 --out out/
   python3 scripts/oneil_nonoverlap.py merge out/ --json oneil_nonoverlap.json
@@ -43,6 +49,7 @@ sys.path.insert(0, HERE)
 import macddiv_nonoverlap as no  # noqa: E402  (strict-FIFO + IS/OOS helpers, tag helpers)
 import oneil_ext_research as ox  # noqa: E402
 import oneil_research as orx  # noqa: E402
+import swing_bandcap as bc  # noqa: E402  (B-1485 resting stop + trail overlay)
 
 TOPK = 20  # winners kept per tag per shard so the merge can drop the global top-5
 
@@ -88,9 +95,11 @@ def resolve_key(key, d):
     return fam, var, pk
 
 
-def main_trade_one(t, o, h, l, c, atr, hold, stopm, side, cost):
+def main_trade_one(t, o, h, l, c, atr, hold, stopm, side, cost, band_cap="off"):
     """One trade for signal bar t, exit decided by main.oneil_stop_price / main.oneil_exit_bar (same conventions as
-    simulate_x 'base': entry at o[t+1], full hold window required, gap-aware stop, timeout at the close)."""
+    simulate_x 'base': entry at o[t+1], full hold window required, gap-aware stop, timeout at the close).
+    B-1485: band_cap != off checks the resting (band-floored, optionally trailed) stop on every bar after the fill
+    first (daily bars: prev close = c[j-1]); off = unchanged."""
     app = _app()
     n = len(c)
     if t + 1 >= n or np.isnan(atr[t]) or atr[t] <= 0:
@@ -104,8 +113,16 @@ def main_trade_one(t, o, h, l, c, atr, hold, stopm, side, cost):
         return None
     d = "long" if side == 1 else "short"
     stop = app.oneil_stop_price(float(ent), float(atr[t]), d, "atr", stopm)
+    band = bc.normalize_mode(band_cap) != "off"
+    if band:
+        bc.reset_trail()  # trail state is per trade
     for j in range(e, last + 1):
-        r = app.oneil_exit_bar(d, o[j], h[j], l[j], c[j], j, last, stop, stop, None)
+        r = None
+        if band and j > e:
+            hit = bc.resting_stop_exit(band_cap, d, stop, c[j - 1], o[j], l[j], h[j], entry_price=float(ent))
+            r = None if hit is None else (hit[1], hit[0])  # resting_stop_exit -> (px, reason); exit_bar -> (reason, px)
+        if r is None:
+            r = app.oneil_exit_bar(d, o[j], h[j], l[j], c[j], j, last, stop, stop, None)
         if r is not None:
             reason, px = r
             g = (px / ent - 1) * side
@@ -113,9 +130,10 @@ def main_trade_one(t, o, h, l, c, atr, hold, stopm, side, cost):
     return None
 
 
-def nonovl_trades_main(sig, o, h, l, c, atr, hold, stopm, side, cost):
+def nonovl_trades_main(sig, o, h, l, c, atr, hold, stopm, side, cost, band_cap="off"):
     """Independent main.py trade per signal bar, then the same strict FIFO as nonovl_trades."""
-    raw = [r for r in (main_trade_one(int(t), o, h, l, c, atr, hold, stopm, side, cost) for t in np.flatnonzero(sig)) if r]
+    raw = [r for r in (main_trade_one(int(t), o, h, l, c, atr, hold, stopm, side, cost, band_cap)
+                       for t in np.flatnonzero(sig)) if r]
     shifted = [{**t, "entry_i": t["entry_i"] - 1} for t in raw]
     kept = [{**t, "entry_i": t["entry_i"] + 1} for t in no.fifo_filter(shifted)]
     return kept, len(raw)
@@ -238,8 +256,17 @@ def cell_tag(spec, tf, d, ex_cfg, holds, rsn=""):
     return ox.ptag("oneil_pivot", "exit", d, tf, x({"h": hold, "atr": 3.0, "chase": 10, "xm": mode + str(int(val))})), hold
 
 
+def band_modes(spec):
+    """B-1485: [modes] for BAND_CAP: blank/off -> ["off"]; trail -> off + live + every TRAIL_MODES; else off + list."""
+    s = (spec or "off").strip().lower()
+    if s == "trail":
+        return ["off", "live"] + list(bc.TRAIL_MODES)
+    mds = [bc.normalize_mode(x) for x in s.split(",") if x.strip()] or ["off"]
+    return ["off"] + [md for md in dict.fromkeys(mds) if md != "off"]
+
+
 def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, raw_counts, split_date="", split_frac=0.6,
-               mirror=False, families=None, rsn=""):
+               mirror=False, families=None, rsn="", modes=("off",)):
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     v = df["Volume"].to_numpy(float)
     rs = rs_series.reindex(df.index).to_numpy(float)
@@ -266,14 +293,16 @@ def run_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells_sel, aggs, ra
                     sg = msigs.get(resolve_key(spec[2], d_native))
                     if sg is None or not np.asarray(sg).any():
                         continue
-                    tag, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"], rsn)
-                    kept, nraw = nonovl_trades_main(sg, o, h, l, c, matr, hold, spec[4], side, cost)
-                    full = no.nonovl_tag(tag)
-                    add_trades(aggs.setdefault(full, new_agg()), kept, sym, df.index)
-                    ins, oos = no.segment_trades(kept, df.index, ts)
-                    add_trades(aggs.setdefault(no.seg_tag(tag, "is"), new_agg()), ins, sym, df.index)
-                    add_trades(aggs.setdefault(no.seg_tag(tag, "oos"), new_agg()), oos, sym, df.index)
-                    raw_counts[full] = raw_counts.get(full, 0) + nraw
+                    tag0, hold = cell_tag(spec, tf, d_native, ex, cfg["holds"], rsn)
+                    for md in modes:  # B-1485: off first (unchanged), then each band/trail mode as its own tag
+                        tag = bc.band_tag(tag0, md)
+                        kept, nraw = nonovl_trades_main(sg, o, h, l, c, matr, hold, spec[4], side, cost, md)
+                        full = no.nonovl_tag(tag)
+                        add_trades(aggs.setdefault(full, new_agg()), kept, sym, df.index)
+                        ins, oos = no.segment_trades(kept, df.index, ts)
+                        add_trades(aggs.setdefault(no.seg_tag(tag, "is"), new_agg()), ins, sym, df.index)
+                        add_trades(aggs.setdefault(no.seg_tag(tag, "oos"), new_agg()), oos, sym, df.index)
+                        raw_counts[full] = raw_counts.get(full, 0) + nraw
                     continue
                 if d_native != spec[1] and not mirror:
                     continue
@@ -360,18 +389,21 @@ def _shard(args):
     cells_sel = [x for x in (args.cells or DEFAULT_CELLS[tf]).split(",") if x]
     fams = {x for x in (args.families or "").split(",") if x} or None
     aggs, raw_counts = {}, {}
+    modes = band_modes(getattr(args, "band_cap", "") or os.environ.get("BAND_CAP"))
+    if modes != ["off"] and tf != "1d":
+        raise SystemExit("BAND_CAP needs daily bars (the price band is daily); use --tf 1d")
     traded = [(s, df) for s, df in data.items() if trade_set is None or s in trade_set]
     for i, (s, df) in enumerate(traded):
         try:
             run_symbol(df, idx_series, rs_all[s], cfg, ex, cost, tf, cells_sel, aggs, raw_counts, args.split_date,
-                       args.split_frac, args.mirror, fams, rsn)
+                       args.split_frac, args.mirror, fams, rsn, modes=modes)
         except Exception as e:
             print("ERROR", s, e, file=sys.stderr)
         if i % 100 == 0:
             print("processed", i, "tags", len(aggs), flush=True)
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"oneil_nonovl_{tf}_{args.shard}.json"), "w") as f:
-        meta = {"tf": tf, "cells": cells_sel, "fetched": len(traded), "universe": len(syms), "split_date": args.split_date,
+        meta = {"tf": tf, "cells": cells_sel, "band_cap_modes": modes, "fetched": len(traded), "universe": len(syms), "split_date": args.split_date,
                 "split_frac": args.split_frac, "raw_signal_trades": raw_counts, "aggs": aggs}
         if trade_set is not None:
             meta["rs_universe"] = rs_universe
@@ -410,6 +442,7 @@ def main(argv=None):
     r.add_argument("--rs_universe", default="full", choices=("full", "n200"),
                    help="full = RS ranked across the shard's full-universe slice (default); n200 = RS ranked across "
                         "main.SWING_WATCHLIST, trading that same watchlist (tags gain rsn200)")
+    r.add_argument("--band_cap", default="", help="B-1485: trail | live | comma list of swing_bandcap modes (ext_main)")
     r.add_argument("--split_date", default="")
     r.add_argument("--split_frac", type=float, default=0.6)
     r.add_argument("--out", default="out")

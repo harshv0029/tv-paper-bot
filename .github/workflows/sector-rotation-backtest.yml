@@ -17,6 +17,9 @@ on:
       uni:
         description: "n200 = restrict to the live swing watchlist, blank = full mapped universe"
         default: ""
+      band_cap:
+        description: "B-1485 trailing-stop overlay (chan_kalman tf=1d/1h -> results ..._<tf>_bandcap.json; minervini_lab tf=live_cells): trail | live | blank = off"
+        default: ""
       results:
         description: results file to commit
         default: docs/sector_rotation_results.json
@@ -34,7 +37,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt yfinance
-      - run: UNI='${{ inputs.uni }}' KS='${{ inputs.ks }}' FADE=${{ inputs.fade || '0' }} TF=${{ inputs.tf || '1d' }} python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
+      - run: BAND_CAP='${{ inputs.band_cap }}' UNI='${{ inputs.uni }}' KS='${{ inputs.ks }}' FADE=${{ inputs.fade || '0' }} TF=${{ inputs.tf || '1d' }} python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
       - name: Commit results
         run: |
           git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"

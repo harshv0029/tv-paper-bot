@@ -39,6 +39,10 @@ on:
         description: "Exits for the pattern grid (blank = atr2,atr3,pct7,pct8,tgt20,trl3)"
         required: false
         default: ""
+      band_cap:
+        description: "B-1485: blank/off = unchanged; trail = off + live + every trailing-stop overlay per tag (1d only; set crosscheck=0)"
+        required: false
+        default: ""
       crosscheck:
         description: "1 = also compare each trade list against scripts/oneil_research.py simulate()"
         required: false
@@ -67,6 +71,7 @@ jobs:
           CROSSCHECK: ${{ inputs.crosscheck }}
           FAMILIES: ${{ inputs.families }}
           PATTERN_EXITS: ${{ inputs.pattern_exits }}
+          BAND_CAP: ${{ inputs.band_cap }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "4"
         run: |

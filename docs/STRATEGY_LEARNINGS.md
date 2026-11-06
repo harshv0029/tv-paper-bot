@@ -1739,3 +1739,39 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Profit-booking / exit takeaway: the timeout winners suggest a longer hold or a wider stop is the only lever worth a sweep here; a tight trail would cut the only profitable exit.
 - B-1484 b addendum (user 11:55 IST): the trail set now includes 0.5R steps and LTP-based trails (peak of completed-bar highs - N x R, the per-tick LTP view the live orphan trail uses). Expect LTP trails to stop out sooner than close trails at the same N because highs run above closes; that only pays if winners give back a lot after an intraday peak.
 - Profit-booking / exit takeaway: compare LTP and close trails at the same R before choosing; a tighter-feeling LTP trail is not automatically more profit.
+
+## 2026-11-05: a no-trade day (B-1488)
+- On 2026-11-05 the bot made 0 real-entry attempts in every category. Scans ran normally; only the sub-floor chan_shape mom_mr 1d cells fired, and the PFnet gate blocked all 342 of those triggers.
+- Lesson: on a quiet day, read /entry-funnel first. "no setup fired" vs "blocked" vs "failed" separates a market with no setups from a bug in seconds.
+- Profit-booking / exit takeaway: a day without entries is the PFnet gate doing its job, not missed profit. Do not loosen the floor because of a quiet day.
+
+### 2026-11-05: how often does a no-entry day happen? (B-1489)
+- The git order journal (docs/real_order_log.json) shows real entries on only 3 of the last 10 trading days, so a no-entry day is the usual case for a floor-gated system, not a fault.
+- Per-tag fire counts reset daily and are not journaled, so a quiet-day comparison across days needs the git order journal, not /entry-funnel.
+- Profit-booking / exit takeaway: no entry also means no cost. Never loosen the PFnet floor to "get a trade in" on a quiet day.
+
+## 2026-11-06: trailing SL vs fixed SL on wired swing cells (B-1484, run 41978699531)
+
+- **Mechanism:** 11 trail overlays (close chandelier 0.5/1/1.5/2/3R, peak-LTP = highest completed-bar high - 0.5/1/1.5/2R, net breakeven at 1R/2R) layered on the live resting-stop model (10% band floor, intraday trigger, fill at the worse of open and trigger), full NSE, 0.8% cost, compared with the SAME run's live fixed row.
+- **Result:** peak-LTP 0.5R is the only rule that wins broadly: gap_and_go 1.101 -> 1.463 with hold cut 15.6 -> 3.7 days; brk20 long/short atr4_rr4, island gap05, gap runaway all up; vcp_gate rr4 and starc fade best at 1.5R. Close-based chandelier and breakeven ratchets mostly LOSE, often badly (island px20 1.797 -> 1.228, brk20 short rr3d5 3.924 -> 3.121): they exit on noise after the move has already given back.
+- **Surprise:** the tight trail lifts PFnet AND trade count (gap_and_go n 11611 -> 12779) because faster exits free the non-overlap slot; the cells whose fixed edge comes from 30-day max-hold survivors (brk20 short rr3/rr3d5, island px20/none) are hurt by any trail.
+- **Reuse:** test peak-LTP trails first on any momentum/breakout cell; never assume a trail helps a cell whose winners are long-hold timeouts; check the exit-reason split (max_hold_timeout PFnet) before choosing.
+- **Profit-booking / exit takeaway:** on gap/breakout momentum swings, lock profit 0.5R under the best completed-day high; it books gains about 4x faster and earns more per trade than holding to the fixed stop, but leave max-hold-driven cells on their fixed stop.
+
+## 2026-11-06: Yahoo leaves the latest daily close null after the session (B-1489 part 2 / B-1490)
+
+- **Mechanism:** Yahoo's v8 chart (1d) returned the 11-05 bar with open/high/low but close=null at 01:31 IST the next day, while meta.regularMarketPrice had the true close (RELIANCE 1313.4). `data_fetch.fetch_ohlc` drops NaN-close rows, so any after-hours read sees yesterday as the last bar.
+- **Fit:** entries run in-session, where the forming bar normally has a close, so live entries are probably unaffected; research or any after-hours scan is silently one day stale. To confirm in-session on 11-06.
+- **Profit-booking / exit takeaway:** a stale last bar delays a trail ratchet or exit by a day; any exit or trail logic that reads daily bars after the close must use a filled last close, not drop the bar.
+
+## 2026-11-06: one tag, many rows: a gate that keys on the base tag lets the last row win (B-1484)
+
+- **What broke:** adding 11 trail-overlay rows per tag to a band_cap run made `_bandcap_live_failed_tags` take whichever row came last for each base tag, so a losing trail variant could close a winning fixed cell's real-money gate. Caught by the island wiring test before push.
+- **Reuse:** any reader of a results file that keys on `tag` must filter to the row variant it means (`band_cap == "live"`), never assume one row per tag.
+- **Profit-booking / exit takeaway:** a research row must never silently decide whether a live cell trades; check every derived gate after adding a new row type to a results file.
+
+## 2026-11-06: gap_and_go back to its original exit plus a peak-LTP 0.5R trail (B-1491)
+
+- **Decision (user "Switch"):** the xroc exhaustion exit (1.209) had replaced the legacy exit (1.101 live fixed); the trail flips the ranking: legacy exit + peak-LTP 0.5R = 1.463 with a 3.7-day hold, beating both.
+- **Lesson:** compare a new exit against the old exit WITH each candidate trail before retiring the old one; an exit judged only on its fixed-stop form can lose its best variant.
+- **Profit-booking / exit takeaway:** gap_and_go books profit 0.5R under the best completed-day high; expect more, shorter trades (about 4 days) rather than 15-day holds.

@@ -32,7 +32,7 @@ def test_rows_and_sl_verdicts():
     a, b = rows["AAA.NS"], rows["BBB.NS"]
     assert (a["category"], a["sl_type"], a["target_price"], a["qty"]) == ("buy", "Trail", 110, 5)
     assert a["sl_as_per_strategy"] is False and "behind strategy stop" in a["sl_status"]
-    assert (b["category"], b["sl_type"], b["target_price"]) == ("swing", "Fixed", None)
+    assert (b["category"], b["sl_type"], b["target_price"]) == ("swing", "Trail", None)  # B-1491: gap_and_go trails (peak-LTP 0.5R)
     assert b["sl_as_per_strategy"] is True and b["sl_updates_today"] == 1 and b["last_sl_update_ist"]
 
 

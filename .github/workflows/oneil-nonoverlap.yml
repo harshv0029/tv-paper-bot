@@ -35,6 +35,9 @@ on:
       rs_universe:
         description: "full = RS ranked across the full-universe shard (default); n200 = RS ranked across the live swing watchlist (tags gain rsn200)"
         default: "full"
+      band_cap:
+        description: "B-1485 (ext_main, 1d): blank = off; trail = off + live + every trailing-stop overlay (each its own tag)"
+        default: ""
       split_date:
         description: "IS/OOS boundary YYYY-MM-DD (entry before = IS). Blank = split_frac"
         default: ""
@@ -61,7 +64,7 @@ jobs:
           set -o pipefail
           MIRROR=""
           if [ "${{ inputs.mirror }}" = "true" ]; then MIRROR="--mirror"; fi
-          python3 scripts/oneil_nonoverlap.py run --tf "${{ inputs.interval }}" --shard ${{ matrix.shard }} --nshards 3 --cells "${{ inputs.cells }}" --families "${{ inputs.families }}" $MIRROR --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --rs_universe "${{ inputs.rs_universe || 'full' }}" --out out
+          python3 scripts/oneil_nonoverlap.py run --tf "${{ inputs.interval }}" --shard ${{ matrix.shard }} --nshards 3 --cells "${{ inputs.cells }}" --families "${{ inputs.families }}" $MIRROR --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --rs_universe "${{ inputs.rs_universe || 'full' }}" --band_cap "${{ inputs.band_cap }}" --out out
       - uses: actions/upload-artifact@v4
         with:
           name: oneil-nonovl-${{ inputs.interval }}-${{ matrix.shard }}
