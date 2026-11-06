@@ -42,7 +42,8 @@ def test_empty_and_missing_tables_never_raise():
 
 def test_view4_renders_counter():
     html = open("static/trade-view4.html").read()
-    assert "rejected_today" in html and "REJECTED by viability" in html
+    assert "rejected_today" in html and "REJECTED by viability and low balance on trading platform" in html
+    assert "balance_rejected_today" in html
 
 
 def _stack(c, label):
