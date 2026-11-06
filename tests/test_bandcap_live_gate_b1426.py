@@ -6,6 +6,7 @@ import main
 import strategy_registry as sr
 
 CLOSED = (
+    "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",   # live 1.017 (run 40990174070) -> 0.998 (run 41978699531, B-1484): newest run decides
     "base__cup_cheat_3c__long__1h__atr6_h30__v1",       # off 1.003 -> live 0.994
     "envelope__0d05_fade__long__1h__atr2d5_h30__v1",    # off 1.021 -> live 0.977
     "envelope__0d05_fade__long__1h__atr6_h18__v1",      # off 1.006 -> live 0.935
@@ -13,7 +14,6 @@ CLOSED = (
     "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1",  # 0.53 both modes
 )
 STILL_OPEN_BY_BANDCAP = (
-    "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",   # live 1.017
     "envelope__0d05_fade__long__1h__atr4_h30__v1",    # live 1.040
     "envelope__0d05_fade__long__1h__atr6_h30__v1",    # live 1.062
 )
