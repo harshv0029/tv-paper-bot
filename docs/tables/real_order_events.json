@@ -19907,7 +19907,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1660,
+   "ts": 1793963690.7991912,
+   "symbol": "__ALL__",
+   "kotak_trading_symbol": null,
+   "leg": "audit",
+   "event": "no_entry_day",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": null,
+   "detail": "reason: no real entry confirmed today in any category | buy: no scans recorded yet (viability 0, money 0, other 0); short_sell: no scans recorded yet (viability 0, money 0, other 0); swing: no scans recorded yet (viability 0, money 0, other 0); bidirectional: no viable strategy in this category (nothing may open a real entry) (viability 0, money 0, other 0); futures: no scans recorded yet (viability 0, money 0, other 0); options: no viable strategy in this category (nothing may open a real entry) (viability 0, money 0, other 0)"
   }
  ],
- "synced_at_utc": "2026-11-06T11:14:48Z"
+ "synced_at_utc": "2026-11-06T11:15:03Z"
 }
