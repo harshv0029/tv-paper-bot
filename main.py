@@ -3551,8 +3551,44 @@ def options_backtest_endpoint(
 
 IST_OFFSET_MIN = 330  # UTC+5:30
 # B-1291: NSE trading holidays (docs/MARKET_HOLIDAYS.md). Used ONLY to skip NEW-entry scans; never
-# gates protection/SL sync/reconcile/exit paths. Muhurat 2026-11-08 (Sunday special session) is not listed.
+# gates protection/SL sync/reconcile/exit paths. Special sessions on otherwise-closed days are below.
 NSE_HOLIDAYS_2026 = frozenset({"2026-10-20", "2026-11-10", "2026-11-24", "2026-12-25"})
+# B-1511 (2026-11-07, user: full trading in Muhurat): NSE special sessions, IST date -> (open_min, close_min).
+# Diwali Muhurat Sun 2026-11-08, continuous trading 14:20-15:30 IST (CAS stocks 15:15), NSE circular 19-Oct-2026.
+# NSE cash + F&O only; MCX symbols are never opened by this table.
+NSE_SPECIAL_SESSIONS = {"2026-11-08": (14 * 60 + 20, 15 * 60 + 30)}
+
+
+def nse_special_session(date=None):
+    """(open_min, close_min) IST if `date` (dt.date/datetime/ISO str; default today IST) is a special session, else None."""
+    try:
+        if date is None:
+            date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+        key = date[:10] if isinstance(date, str) else date.strftime("%Y-%m-%d")
+        return NSE_SPECIAL_SESSIONS.get(key)
+    except Exception:
+        return None
+
+
+def _nse_special_session_open(now_local=None, symbol: str | None = None) -> bool:
+    """B-1511: True inside a special session's window (IST). symbol, when given, must be NSE (.NS/.BO or a ^ index);
+    MCX (=F proxies), US and any other symbol never open through this."""
+    if symbol is not None:
+        u = str(symbol).upper()
+        if not (u.endswith((".NS", ".BO")) or u.startswith("^")):
+            return False
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    sp = nse_special_session(n)
+    if not sp:
+        return False
+    m = n.hour * 60 + n.minute
+    return sp[0] <= m <= sp[1]
+
+
+def _nse_closed_day(now_local=None, symbol: str | None = None) -> bool:
+    """B-1511: weekend AND not inside a special session (replaces bare `weekday() >= 5` gates)."""
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    return n.weekday() >= 5 and not _nse_special_session_open(n, symbol)
 
 
 def is_nse_trading_day(date=None) -> bool:
@@ -3562,6 +3598,8 @@ def is_nse_trading_day(date=None) -> bool:
             date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
         if isinstance(date, str):
             date = dt.date.fromisoformat(date[:10])
+        if date.strftime("%Y-%m-%d") in NSE_SPECIAL_SESSIONS:
+            return True
         if date.weekday() >= 5:
             return False
         return date.strftime("%Y-%m-%d") not in NSE_HOLIDAYS_2026
@@ -12338,7 +12376,7 @@ def _options_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, underlying):
         return {"underlying": underlying, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"underlying": underlying, "status": "pre_open", "time_local": str(now_local)}
@@ -12761,7 +12799,7 @@ def _auto_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
@@ -14441,7 +14479,7 @@ def _short_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
@@ -19734,7 +19772,7 @@ def _run_index_swing_option_scan(conn):
         return
     t = ist_now()
     today = t.strftime("%Y-%m-%d")
-    if t.weekday() >= 5 or _index_swing_option_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
+    if _nse_closed_day(t) or _index_swing_option_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
         return
     _index_swing_option_scan_day = today
     for sym in _INDEX_SWING_OPTION_SYMBOLS:
@@ -19909,7 +19947,7 @@ def _run_fo_strike_setup_scan(conn):
     if now - _fo_strike_scan_last_ts < FO_STRIKE_SETUP_SCAN_SECONDS:
         return
     t = ist_now()
-    if t.weekday() >= 5 or not ((9, 15) <= (t.hour, t.minute) < (15, 30)):
+    if _nse_closed_day(t) or not ((9, 15) <= (t.hour, t.minute) < (15, 30)):
         return
     _fo_strike_scan_last_ts = now
     real_ok = is_real_fo_trading_enabled()
@@ -22126,9 +22164,12 @@ def _exchange_purge_window(now_ist=None) -> bool:
     expected state, not an app failure. Also gates swing SL (re)placement retries
     (B-1444: Kotak rejects SL/SL-M in the CAS session, 15:15+ IST); never gates an exit."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    mins = n.hour * 60 + n.minute
+    sp = nse_special_session(n)  # B-1511: a special session's own open replaces 09:15
+    if sp:
+        return mins >= 15 * 60 + 15 or mins < sp[0]
     if n.weekday() >= 5:
         return True
-    mins = n.hour * 60 + n.minute
     return mins >= 15 * 60 + 15 or mins < 9 * 60 + 15
 
 
@@ -22971,9 +23012,12 @@ _UPSTASH_OFF_HOURS_SLOWDOWN = 6  # B-1342: outside NSE hours (and weekends) dash
 def _upstash_in_market_hours() -> bool:
     """Weekday 09:00-15:45 IST (NSE session plus a small buffer either side)."""
     now_local = ist_now()
+    m = now_local.hour * 60 + now_local.minute
+    sp = nse_special_session(now_local)  # B-1511
+    if sp:
+        return sp[0] - 15 <= m <= sp[1] + 15
     if now_local.weekday() >= 5:
         return False
-    m = now_local.hour * 60 + now_local.minute
     return 9 * 60 <= m <= 15 * 60 + 45
 
 
@@ -24990,9 +25034,12 @@ def _nse_equity_market_open_now() -> bool:
     attempted while the exchange itself is closed - see that function's
     docstring for the bug this exists to fix."""
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+    mins_now = now_local.hour * 60 + now_local.minute
+    sp = nse_special_session(now_local)  # B-1511: Muhurat etc. use their own window
+    if sp:
+        return sp[0] <= mins_now <= sp[1]
     if now_local.weekday() >= 5:
         return False
-    mins_now = now_local.hour * 60 + now_local.minute
     return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
 
 
@@ -25025,8 +25072,9 @@ def _nse_market_hours_between(start, end) -> float:
     total, day = 0.0, start.date()
     while day <= end.date():
         if is_nse_trading_day(day):
-            o = dt.datetime.combine(day, dt.time(9, 15))
-            c = dt.datetime.combine(day, dt.time(15, 30))
+            sp = nse_special_session(day)  # B-1511: Muhurat counts only its own window
+            o = dt.datetime.combine(day, dt.time(*divmod(sp[0], 60)) if sp else dt.time(9, 15))
+            c = dt.datetime.combine(day, dt.time(*divmod(sp[1], 60)) if sp else dt.time(15, 30))
             lo, hi = max(o, start), min(c, end)
             if hi > lo:
                 total += (hi - lo).total_seconds() / 3600.0
@@ -27879,7 +27927,7 @@ def _run_chan_gap_short_scan(conn=None):
     now = ist_now()
     today_str = now.strftime("%Y-%m-%d")
     mins = now.hour * 60 + now.minute
-    if now.weekday() >= 5 or not (CHAN_GAP_SCAN_START_MIN <= mins < CHAN_GAP_SCAN_END_MIN):
+    if _nse_closed_day(now) or not (CHAN_GAP_SCAN_START_MIN <= mins < CHAN_GAP_SCAN_END_MIN):
         return "outside_window"
     if _chan_gap_short_scan_day == today_str:
         return "already_done"
@@ -34239,7 +34287,7 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label:
     if not (ltp > 0 and stop > 0 and stop >= ltp * 0.999):
         return False
     _n = ist_now()
-    if _n.weekday() >= 5 or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
+    if _nse_closed_day(_n) or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
         return False  # outside the session a market sell is rejected; the 09:15 pass handles it
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
@@ -35274,10 +35322,15 @@ def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
     so protect-first never waits on the tick or on where the 5-min cycle falls."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
     base = float(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
-    if n.weekday() >= 5:
+    sp = nse_special_session(n)  # B-1511: wake at a special session's own open (Muhurat 14:20 IST)
+    if sp:
+        open_at = n.replace(hour=sp[0] // 60, minute=sp[0] % 60, second=1, microsecond=0)
+        window_end = open_at + dt.timedelta(minutes=15)
+    elif n.weekday() >= 5:
         return base
-    open_at = n.replace(hour=9, minute=15, second=1, microsecond=0)
-    window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
+    else:
+        open_at = n.replace(hour=9, minute=15, second=1, microsecond=0)
+        window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
     if open_at <= n < window_end:
         return float(_OPEN_PROTECT_EVERY_SECONDS)
     if n < open_at:
@@ -35330,6 +35383,9 @@ def _in_open_protect_window(now_ist: dt.datetime | None = None) -> bool:
     """B-1481: 09:15:00-09:30 IST on a weekday. No resting SL survives the exchange's 15:15 IST purge, so in this window
     an unreadable order book must not block an SL placement (B-1462's no-blind-place rule applies outside it)."""
     now_ist = now_ist or _ist_now_aware()
+    sp = nse_special_session(now_ist)  # B-1511: first 15 min of a special session
+    if sp:
+        return sp[0] <= now_ist.hour * 60 + now_ist.minute < sp[0] + 15
     if now_ist.weekday() >= 5:
         return False
     return (9, 15) <= (now_ist.hour, now_ist.minute) < (9, 30)

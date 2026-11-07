@@ -1829,3 +1829,14 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - n=0 on a registered strategy means "the replay cannot see it", never "it does not trade": check the inputs before reading any metric.
 - Ops: 8 shards x 2,667 symbols x 12 exit modes ran past the 340-min job timeout and lost every killed shard's output. 24 shards finish in 2-4 h each.
 - Profit-booking / exit takeaway: rsscreen's best exit is breakeven-at-2R (trailbe2r); leaders and rsline do best on the plain resting stop. Exit variants stay in return-per-day order per tag, never one exit style for the whole family.
+
+## B-1511 Muhurat special session (2026-11-07 IST)
+
+- **Mechanism:** NSE's Diwali Muhurat session runs on Sunday 2026-11-08, 14:20-15:30 IST (closing-auction stocks stop at 15:15). Trades in it are real and settle normally. The bot had about 17 bare `weekday() >= 5` gates, so it would have sat out the session and left overnight holdings without a resting SL for that hour.
+- **Fix:** one table, `NSE_SPECIAL_SESSIONS`, feeds every session gate. The user chose full trading: entries, exits and SL protection.
+- **Fit / caveat:** no strategy here has been backtested on a 70-minute evening session.
+  - Indicators reading "today's bars" see only the Muhurat bars.
+  - Daily-bar swing signals see Friday's completed bar.
+  - Expect thin liquidity and wide spreads. The 0.8% cost model understates slippage there.
+- **Reuse:** any future special session (Muhurat 2027, a Budget-day Saturday) is one row in `NSE_SPECIAL_SESSIONS`. Never use bare weekday checks in new gates; use `_nse_closed_day`.
+- **Profit-booking / exit takeaway:** stops must rest from the session's own open, not 09:15. The 15:15 IST CAS purge and the no-SL-after-15:15 rule still apply. Review Muhurat fills in the Kotak trade book on Monday before trusting any result from the session.

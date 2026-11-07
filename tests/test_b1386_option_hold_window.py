@@ -24,7 +24,7 @@ def test_hours_to_expiry_physical_vs_cash():
     # cash-settled index: 30 min left today
     assert main._option_hours_to_expiry("NIFTY", "2026-10-27", now=now) == 0.5
     # NHPC Nov (23 Nov): holdable to 20 Nov 15:30 -> 0.5 h today + 17 sessions (28 Oct-20 Nov, 10 Nov holiday)
-    assert main._option_hours_to_expiry("NHPC", "2026-11-23", now=now) == 0.5 + 17 * 6.25
+    assert abs(main._option_hours_to_expiry("NHPC", "2026-11-23", now=now) - (0.5 + 17 * 6.25 + 70 / 60)) < 1e-9  # B-1511 Muhurat 70 min
 
 
 def test_selector_rolls_to_expiry_that_fits(monkeypatch):
