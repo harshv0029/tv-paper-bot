@@ -1823,3 +1823,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - 1-share real minimum when one share's stop loss <= 1% of free Kotak cash (Rs59 at Net Rs5,904); most 6xATR stops on Rs100-400 stocks fit, Rs1,000+ names with wide stops still reject as money.
 - Every non-entry is one of viability / money / other, counted in /entry-funnel reject_flags; a zero-entry day writes a durable no_entry_day row.
 - Profit-booking / exit takeaway: on a ~Rs9k account, one share per signal keeps the strategies trading live (real evidence) at a per-trade risk of at most 1% of free cash; exits that free cash matter as much as entries.
+
+### B-1495a (2026-11-07 IST): a replay that is missing a live input reports n=0, not a bad result
+- O'Neil leaders firsthigh, rsline newhigh and rsscreen top had n=0 in band_cap run 42025478119 only because the replay did not pass the ^NSEI index, the RS-rank population or the symbol, which the live scan has. With them (run 42232093739, full NSE): n=1363 / 2573 / 247, best pooled PFnet 3.730 / 1.514 / 2.557, every variant > 1.00.
+- n=0 on a registered strategy means "the replay cannot see it", never "it does not trade": check the inputs before reading any metric.
+- Ops: 8 shards x 2,667 symbols x 12 exit modes ran past the 340-min job timeout and lost every killed shard's output. 24 shards finish in 2-4 h each.
+- Profit-booking / exit takeaway: rsscreen's best exit is breakeven-at-2R (trailbe2r); leaders and rsline do best on the plain resting stop. Exit variants stay in return-per-day order per tag, never one exit style for the whole family.
