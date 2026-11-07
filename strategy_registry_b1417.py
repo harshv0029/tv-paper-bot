@@ -23,7 +23,7 @@ _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtes
 # (backlog id, run id); each run's raw RESULTS_JSON is docs/backtest_data/swing_bandcap_run_<run id>.json
 # B-1484 (2026-11-05 IST): run 41978699531 adds the 11 trail overlays (trailr*/trailltp*r/trailbe*r) per wired fixed-SL tag;
 # its already-registered rsbandfloor fixed rows are skipped by name (first registration kept), the raw JSON keeps them all.
-RUNS = (("B-1417", "40952500265", "2026-10-30"), ("B-1426", "40990174070", "2026-10-30"), ("B-1484", "41978699531", "2026-11-05"), ("B-1485", "42025478119", "2026-11-06"))
+RUNS = (("B-1417", "40952500265", "2026-10-30"), ("B-1426", "40990174070", "2026-10-30"), ("B-1484", "41978699531", "2026-11-05"), ("B-1485", "42025478119", "2026-11-06"), ("B-1495a", "42232093739", "2026-11-07"))
 _SRC = "scripts/swing_bandcap_replay.py + scripts/swing_bandcap.py (band_cap=live resting-stop model) over the family's main.py fns"
 
 
