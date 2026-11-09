@@ -1856,3 +1856,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - **Fit:** every queued trigger is re-validated fresh at the open (PFnet / View 1 viability, sector cap, money, duplicates, live price within 2% of the signal, stop still below the price). A gap through the stop or beyond tolerance is dropped with a logged reason, never chased. No entry ever opens without its SL (the engine attaches it as usual). No new kill switch.
 - **Reuse:** any new engine that can skip on "market closed" adds one replayer to `_OPEN_TRIGGER_REPLAYERS`. Never `return` on a closed market without queuing or logging.
 - **Profit-booking / exit takeaway:** pre-open signals were the day's biggest lost opportunity. Replaying them at the open keeps the edge, but only within 2% of the signal price: an opening gap is the market already taking that profit, and chasing it lowers the expected return per trade. Protection runs before any new entry, so overnight holdings are never left naked while the bot buys.
+
+## Sizing decision (2026-11-09 21:30 IST, user: "Leave as it is")
+- Real size stays at 1% risk of half of Kotak free Net (CAPITAL_TRANCHES=2), with the 1-share floor. On a ~Rs5,900 free balance that means 1 share on most setups (PNB: Rs29.5 / Rs17.63 per share = 1.7, rounded down to 1).
+- Not adopted: 2% risk, or 1 tranche.
+- **Profit-booking / exit takeaway:** with 1-share lots, the 0.8% round-trip cost dominates small winners. Judge strategies on net PFnet, never gross, until the account grows.
