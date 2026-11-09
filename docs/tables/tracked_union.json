@@ -17,6 +17,22 @@
    "symbol": "BANKINDIA.NS"
   },
   {
+   "day": "2026-11-09",
+   "entry_order_id": "261109000025550",
+   "entry_price": 1673.4,
+   "first_seen_day": "2026-11-09",
+   "is_short": 0,
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "opened_at": 1794196022.6028814,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1623.2,
+   "source": "position",
+   "stop_loss": 1623.105172886939,
+   "strategy": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+   "symbol": "COLPAL.NS"
+  },
+  {
    "day": "2026-11-02",
    "entry_order_id": "261102000030918",
    "entry_price": 135.67,
