@@ -20209,6 +20209,18 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs177.52 to Rs179.83 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 1686,
+   "ts": 1794202543.198805,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261109000191173",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 1685,
    "ts": 1794202557.14226,
    "symbol": "COCHINSHIP.NS",
@@ -20221,5 +20233,5 @@
    "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1172.40 to Rs1203.70 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T05:36:02Z"
+ "synced_at_utc": "2026-11-09T05:39:30Z"
 }
