@@ -15,7 +15,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | P2 | 79 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 65 |
-| OPEN | 56 |
+| OPEN | 55 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
 | DEPLOYED | 12 |
@@ -36,12 +36,12 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
+| BUILT | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | READY-TO-BUILD | 2 |
 | WIRED-GATE-CLOSED | 2 |
-| BUILT | 2 |
 | WIRED | 2 |
 | DONE-BUILT | 2 |
 | UNKNOWN | 2 |
@@ -491,7 +491,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | B-1485 | P1 | B-1484 | 2026-11-05 | owed, needs |
 | B-1517 | P1 | DEPLOYED | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed, awaiting, waiting |
 | B-1518 | P1 | DEPLOYED | Session-aware NSE open/close for every engine (user 2026-11-09: swing signal bar = previous trading session... | awaiting, waiting |
-| B-1533 | P1 | OPEN | real_trades grows ~12k rows/day from repeated skip rows (09-Nov: 11,799 rows, ~109 per symbol: skipped_stra... |  |
+| B-1533 | P1 | BUILT | real_trades grows ~12k rows/day from repeated skip rows (09-Nov: 11,799 rows, ~109 per symbol: skipped_stra... | awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
