@@ -1840,3 +1840,12 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
   - Expect thin liquidity and wide spreads. The 0.8% cost model understates slippage there.
 - **Reuse:** any future special session (Muhurat 2027, a Budget-day Saturday) is one row in `NSE_SPECIAL_SESSIONS`. Never use bare weekday checks in new gates; use `_nse_closed_day`.
 - **Profit-booking / exit takeaway:** stops must rest from the session's own open, not 09:15. The 15:15 IST CAS purge and the no-SL-after-15:15 rule still apply. Review Muhurat fills in the Kotak trade book on Monday before trusting any result from the session.
+
+## B-1513 / B-1514 multiple viability slots and a rolling 24 h reject view (2026-11-09 IST)
+
+- **Mechanism:** the View 1 viability definition is now an ordered list of named rule slots (PFnet range, min trades, max avg hold each). Real money may enter a strategy when ANY enabled slot admits it; the first admitting slot is stamped on the entry. View 4 shows rejects and placements over a rolling 24 h window that survives restarts.
+- **Fit for this system:** different edges need different gates. A short-hold, high-PFnet intraday cell and a long-hold swing cell with a huge sample cannot share one max-hold or min-trades threshold without either blocking one or loosening the other. Slots let each class of strategy keep its own tight bar. The PFnet floor for wiring, SL on every trade and the ALL TRADING switch are unchanged.
+- **Result:** no backtest (infrastructure). Measurement now exists: per slot, View 4 shows real entries admitted today and which factor rejected the rest, so each slot can be judged on its own live outcome.
+- **What surprised or broke:** the old day-keyed counters reset at IST midnight and on restart, so a reject pattern seen in the evening was gone by morning. A slot whose label is its definition cannot be "renamed" in place without erasing it, so rename is refused for slot entries.
+- **Reuse:** before loosening a single global threshold to admit one strategy, add a narrow slot for that strategy class instead. Check the slot's "placed" vs the Kotak trade book after a week before keeping it.
+- **Profit-booking / exit takeaway:** judge each slot by the net P&L of the entries it admitted (Kotak trade book, joined on the `viability_slot=` stamp). Disable a slot whose admitted trades lose money after costs instead of tightening every other slot.
