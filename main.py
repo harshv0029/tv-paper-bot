@@ -16519,6 +16519,42 @@ def _real_one_share_floor(qty: int, net_inr: float, ltp: float, dist: float, usa
     except (TypeError, ValueError):
         pass
     return max(0, int(qty or 0))
+def _real_sizing_basis_note(ltp, stop, net_inr, risk_qty) -> str:
+    """B-1515 (ZYDUSLIFE 2026-11-09 IST, 1 share @1207.50, stop 1123.70 = Rs83.80 at risk, read as 'over the ~Rs59
+    1-share limit'): the limit is 1% of Kotak's FRESH Net at the order decision, and Net had just risen from Rs7,405.33
+    to Rs9,239.93 (IRCTC/RECLTD/SAIL sold 12:17-12:19 IST), so the limit was Rs92.40 and the entry was within it. The
+    confirmed entry row now carries this basis so a sizing question is answered from the log, not reconstructed.
+    Never raises."""
+    try:
+        ltp, stop, net = float(ltp or 0), float(stop or 0), float(net_inr or 0)
+        dist = ltp - stop
+        return (f"sizing: stop Rs{stop:.2f} (the stop that rests; every later adjustment only raises it), "
+                f"Rs{dist:.2f}/share at risk vs Kotak Net Rs{net:,.2f} -> 1-share limit "
+                f"Rs{net * REAL_ONE_SHARE_RISK_PCT / 100.0:.2f}, risk qty {risk_qty}")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _flag_real_risk_after_fill(conn, symbol, kotak_symbol, qty, fill_price, trigger, net_inr) -> bool:
+    """B-1515: after a real long entry's SL rests, compare the real money at risk (qty x (fill - resting trigger)) with
+    the most the sizing rules allow (REAL_ONE_SHARE_RISK_PCT of Kotak Net, the larger of the two budgets). A fill that
+    slipped above the decision price can push it over; that is logged LOUD (the stop already rests, so no unwind, which
+    would only add the round-trip cost). Returns True when it was over. Never raises."""
+    try:
+        risk = float(qty) * (float(fill_price) - float(trigger))
+        limit = float(net_inr or 0) * REAL_ONE_SHARE_RISK_PCT / 100.0
+        if limit > 0 and risk > limit + 0.01:
+            _log_real_order_event(
+                conn, symbol, "entry", "risk_over_limit_after_fill", kotak_trading_symbol=kotak_symbol,
+                prev_state=f"long {qty} @ Rs{float(fill_price):.2f}", new_state=f"stop Rs{float(trigger):.2f}",
+                detail=f"Rs{risk:.2f} at risk > Rs{limit:.2f} ({REAL_ONE_SHARE_RISK_PCT:g}% of Kotak Net Rs{float(net_inr):,.2f})",
+                reason="B-1515 post-fill risk check: the fill slipped past the sizing decision; stop kept, no unwind")
+            return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL] B-1515 post-fill risk check failed (non-fatal): {e}")
+    return False
+
+
 REAL_FO_LOW_BALANCE_STATUSES = ("skipped_margin_unaffordable", "skipped_only_one_leg_affordable")
 _KOTAK_FUNDS_REJECT_RE = re.compile(r"margin|insufficient|fund|balance|limit exceed", re.I)
 
@@ -23419,13 +23455,18 @@ def hydrate_git_tier_tables() -> int:
             continue
         try:
             with closing(get_db()) as conn:
-                if conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0:
+                # B-1516: a non-empty order log (rows written before a failed boot restore was retried) is MERGED on
+                # content, never skipped, so the retry still restores the history; other tables keep empty-only restore.
+                _local_n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                _merge_into_local = table == "real_order_events" and _local_n > 0
+                if _local_n > 0 and not _merge_into_local:
                     _git_tier_hydrated.add(table)
                     continue
                 resp = requests.get(
                     f"https://raw.githubusercontent.com/{repo}/main/docs/tables/{table}.json", timeout=6)
                 if resp.status_code == 404:
                     _git_tier_hydrated.add(table)
+                    _git_tier_unhydrated_since.pop(table, None)
                     continue
                 resp.raise_for_status()
                 rows = (resp.json() or {}).get("rows") or []
@@ -23442,6 +23483,9 @@ def hydrate_git_tier_tables() -> int:
                     except Exception as _e:  # noqa: BLE001
                         print(f"[table_mirror] side-branch read {table} skipped: {_e}")
                 cols = _generic_mirror_table_columns(conn, table)
+                if _merge_into_local:  # B-1516: add only rows the local log lacks; local ids stay, remote ids dropped
+                    have = {_order_event_key(dict(r)) for r in conn.execute(f"SELECT * FROM {table}").fetchall()}
+                    rows = [{k: v for k, v in r.items() if k != "id"} for r in rows if _order_event_key(r) not in have]
                 for row in rows:
                     keep = {k: v for k, v in row.items() if k in cols}
                     if keep:
@@ -23449,11 +23493,47 @@ def hydrate_git_tier_tables() -> int:
                                      tuple(keep.values()))
                 conn.commit()
                 _git_tier_hydrated.add(table)
+                _git_tier_unhydrated_since.pop(table, None)
                 if rows:
                     print(f"[table_mirror] restored {len(rows)} row(s) into {table} from git")
         except Exception as e:
+            _git_tier_unhydrated_since.setdefault(table, time.time())
             print(f"[table_mirror] git hydrate {table} failed (non-fatal, will retry): {e}")
     return len(_git_tier_hydrated)
+
+
+# B-1516 (live 2026-11-09 IST): the process booted 2026-11-07 10:45 IST failed its one startup git restore of the
+# order log and nothing ever retried it (only a viable-stack recovery re-ran the full hydrate), so the git-tier push
+# loop skipped real_order_events (and strategy_scan_counts) for ~48 h. Every order row of 09-Nov 09:15-10:56 IST lived
+# only in SQLite; the 10:57 IST platform restart wiped them and the first reconcile tagged 20 of the bot's own orders
+# kotak_order_not_in_app_log (UNLOGGED). The push loop now retries the restore every round, and if the restore stays
+# unreachable the order log is pushed anyway after _GIT_TIER_UNHYDRATED_PUSH_AFTER_S (the push is an append-only
+# content union with the git copy, so it can only add rows, never drop history).
+_git_tier_unhydrated_since: dict = {}
+_GIT_TIER_HYDRATE_RETRY_SEC = 60
+_GIT_TIER_UNHYDRATED_PUSH_AFTER_S = 300
+_git_tier_hydrate_last_retry = [0.0]
+# Off under pytest: the background push thread a test app starts must never restore real git tables into a test DB.
+_GIT_TIER_RETRY_IN_LOOP = "pytest" not in __import__("sys").modules
+
+
+def _git_tier_hydrate_retry(now=None) -> bool:
+    """B-1516: re-run the git-tier restore while any git-tier table is not restored (throttled). Returns True when
+    every git-tier table is restored. Never raises."""
+    now = time.time() if now is None else now
+    missing = [t for t in _GENERIC_MIRROR_GIT_TIER if t not in _git_tier_hydrated]
+    if not missing:
+        return True
+    for t in missing:
+        _git_tier_unhydrated_since.setdefault(t, now)
+    if now - _git_tier_hydrate_last_retry[0] < _GIT_TIER_HYDRATE_RETRY_SEC:
+        return False
+    _git_tier_hydrate_last_retry[0] = now
+    try:
+        hydrate_git_tier_tables()
+    except Exception as e:  # noqa: BLE001
+        print(f"[table_mirror] B-1516 git-tier restore retry failed (non-fatal): {e}")
+    return all(t in _git_tier_hydrated for t in _GENERIC_MIRROR_GIT_TIER)
 
 
 # B-1306/B-1311 (2026-10-22): a push for a not-yet-restored table used to re-run the whole restore synchronously, so
@@ -25896,6 +25976,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # B-1387: size from real Kotak capital (risk formula), not the paper qty, when the stop is known.
     risk_qty = _real_swing_qty_by_risk(conn, symbol, ltp, paper_stop_loss) if paper_stop_loss else paper_qty
     qty = int(min(risk_qty, max_by_cap, max_by_capital))
+    _net_at_decision = get_scheduler_capital_inr()  # B-1515: the Net the sizing used (cache, same fetch)
+    _size_note = _real_sizing_basis_note(ltp, paper_stop_loss, _net_at_decision, risk_qty)
     if qty <= 0:
         _log_real_attempt(
             conn, symbol, "B", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
@@ -25962,7 +26044,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
         qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
         order_id=result["order_id"], raw_response=result.get("raw_response"),
-        detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
+        detail=("" if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP; ")
+               + _size_note,
         strategy=strategy,
     )
     print(f"[REAL SWING] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
@@ -26007,6 +26090,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             order_id=sl_result["order_id"], prev_state="none",
             new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
         )
+        _flag_real_risk_after_fill(conn, symbol, kotak_symbol, real_qty, real_entry_price,
+                                   sl_result["trigger_price"], _net_at_decision)  # B-1515
     else:
         conn.commit()
         _sync_real_positions_swing_external(conn)
@@ -29536,6 +29621,23 @@ def _sl_fills_today(conn, since_ts) -> list:
     return out
 
 
+def _unlogged_before_boot_note(ord_dt_tm, boot_ts=None) -> str:
+    """B-1516: for an UNLOGGED Kotak order placed before this process booted, say so - its app row was most likely
+    written by the previous process and lost to the restart (09-Nov-2026: 20 bot orders 09:15-10:08 IST, restart
+    10:57 IST). '' when the order is newer than the boot or its time is unreadable. Never raises."""
+    try:
+        boot = float(_BOOT_TS if boot_ts is None else boot_ts)
+        t = dt.datetime.strptime(str(ord_dt_tm).strip(), "%d-%b-%Y %H:%M:%S")
+        ts = (t - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+        if ts < boot:
+            b = (dt.datetime.utcfromtimestamp(boot) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%d-%b %H:%M")
+            return (f"; placed before this process booted ({b} IST): its app log row was most likely lost to the "
+                    "restart, not a manual order")
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
 def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     """B-307: Kotak's order book is ground truth, so every order in it must have an
     app log row (reason rule). Any Kotak order whose nOrdNo has no real_order_events
@@ -29565,7 +29667,7 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
                 known_why = None
             detail = (f"reason: {known_why}; {facts}" if known_why else
                       f"reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or "
-                      f"manually); {facts}")
+                      f"manually){_unlogged_before_boot_note(row.get('ordDtTm'))}; {facts}")
             conn.execute(
                 "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
                 "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -35478,8 +35580,15 @@ def _git_tier_push_side_branch(name: str) -> bool:
     redeploys Render). APPEND-ONLY: the branch copy is merged with the local rows on content, so a wiped or partial local
     table can never drop a row from git. Only after the table's git restore ran. Needs GITHUB_SYNC_TOKEN. Never raises."""
     token = os.environ.get("GITHUB_SYNC_TOKEN")
-    if not token or name not in _git_tier_hydrated:
+    if not token:
         return False
+    if name not in _git_tier_hydrated:
+        since = _git_tier_unhydrated_since.get(name)
+        # B-1516: the order log never waits forever for a restore - an append-only union push cannot drop git rows
+        if not (name == "real_order_events" and since and time.time() - since >= _GIT_TIER_UNHYDRATED_PUSH_AFTER_S):
+            return False
+        print(f"[table_mirror] LOUD B-1516: {name} git restore still pending after {int(time.time() - since)} s; "
+              "pushing the local order log anyway (append-only union with the git copy)")
     try:
         with closing(get_db()) as conn:
             local = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
@@ -36441,6 +36550,11 @@ def _git_tier_push_loop(sleep=_git_tier_push_wait, rounds=None):
     its own daemon thread on a wall clock: every 60 s, push only if the table changed. Never raises."""
     n = 0
     while rounds is None or n < rounds:
+        try:
+            if _GIT_TIER_RETRY_IN_LOOP:
+                _git_tier_hydrate_retry()  # B-1516: a failed boot restore must not silence the order-log push for days
+        except Exception as e:  # noqa: BLE001
+            print(f"[table_mirror] git-tier restore retry failed (non-fatal): {e}")
         for name in _GIT_TIER_PUSH_TABLES:
             try:
                 if name == "strategy_scan_counts" and name in _git_tier_hydrated:
@@ -36458,7 +36572,8 @@ def _git_tier_push_loop(sleep=_git_tier_push_wait, rounds=None):
 def _git_tier_push_status() -> dict:
     """B-1349: /health shows how old the last successful order-log push is, so a stall is visible, not silent."""
     ts = _git_tier_push_last_ok.get("real_order_events")
-    return {"order_log_git_push_age_s": round(time.time() - ts) if ts else None}
+    return {"order_log_git_push_age_s": round(time.time() - ts) if ts else None,
+            "order_log_git_restored": "real_order_events" in _git_tier_hydrated}  # B-1516: False = pushes held back
 
 
 async def _tracked_union_memory_loop():

@@ -1861,3 +1861,13 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Real size stays at 1% risk of half of Kotak free Net (CAPITAL_TRANCHES=2), with the 1-share floor. On a ~Rs5,900 free balance that means 1 share on most setups (PNB: Rs29.5 / Rs17.63 per share = 1.7, rounded down to 1).
 - Not adopted: 2% risk, or 1 tranche.
 - **Profit-booking / exit takeaway:** with 1-share lots, the 0.8% round-trip cost dominates small winners. Judge strategies on net PFnet, never gross, until the account grows.
+
+## B-1515 / B-1516 one-share sizing check and order rows lost to a restart (2026-11-09 IST)
+
+- **Mechanism (B-1515):** ZYDUSLIFE (minervini_vcp_livermore) bought 1 share at 12:19:43 IST, @Rs1,207.50, resting stop Rs1,123.70 (Rs83.80 at risk). The 1-share floor compares that with 1% of Kotak's FRESH Net at the decision. Net was Rs7,405.33 until 12:17 IST (11 refusals, limit Rs74.05), then Rs9,239.93 once three max-hold exits freed cash (limit Rs92.40), so the entry was correct.
+- **Fit:** the sizing stop is the strategy stop. Every later adjustment (entry-day floor, band floor, stop-below-price) only raises a long stop, so the sized risk always bounds the resting risk. The confirmed entry row now logs the basis (stop, Rs at risk, Net, limit). A post-fill check flags slippage that pushes risk over the limit.
+- **Mechanism (B-1516):** a failed boot restore of the git-tier order log was never retried, so the log was not pushed for two days. A restart then wiped the morning's rows, and 20 bot orders were reported as UNLOGGED. The fix retries the restore every minute. A late restore merges on content. If the restore stays down for 5 min, the log is pushed anyway (append-only).
+- **What surprised:** the "Net ~Rs5,900" in the question was stale. Kotak Net moves within minutes as exits settle, so a sizing audit must read the Net logged at the decision, never a remembered figure. One unretried startup step stopped a durability mirror for 48 h, and nothing alarmed, because the push function returned False without logging.
+- **Reuse:** every durability push gets a retry path for its restore and a visible health flag, never a silent `return False`. Every real-sizing decision logs the numbers it used.
+- **Profit-booking / exit takeaway:** cash freed by exits (IRCTC/RECLTD/SAIL max-hold sells) raises the 1-share risk limit within minutes, so the next fired signal can enter at a wider stop. That is intended, but it means wider-stop 1-share entries cluster right after exits. Watch those entries' net P&L in the Kotak trade book before changing REAL_ONE_SHARE_RISK_PCT.
+

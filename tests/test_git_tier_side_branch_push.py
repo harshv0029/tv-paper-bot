@@ -76,6 +76,7 @@ def test_hydrate_merges_side_branch(monkeypatch, tmp_path):
 def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
     """B-1349: the order-log push runs on its own wall-clock thread; a failing push never kills the loop."""
     calls = []
+    monkeypatch.setattr(main, "_git_tier_hydrate_retry", lambda: True)  # B-1516: no network in the loop test
     monkeypatch.setattr(main, "_git_tier_push_side_branch", lambda n: calls.append(n) or (_ for _ in ()).throw(RuntimeError("x")))
     sleeps = []
     main._git_tier_push_loop(sleep=sleeps.append, rounds=3)
