@@ -27,6 +27,25 @@ pl = cl.pl
 OUT = os.path.join(ROOT, "docs", "combo_validate_results.json")
 TOP = int(os.environ.get("TOP_CELLS", "80"))
 SAMPLE = int(os.environ.get("OOS_SYMBOLS", "500"))
+# B-1472 (2026-11-09): CANDS=all_pf1 re-runs EVERY combo whose in-sample PFnet > 1 on the same holdout (no trimmed-PFnet
+# 1.3 / n 300 pre-filter, no n >= 100 output cut), so strategy_registry_sweeps can register an exact pooled
+# (in-sample + holdout) number per tag. SHARD/SHARDS split the cell list; OUT_FILE overrides the output path.
+CANDS = os.environ.get("CANDS", "top")
+SHARD, SHARDS = int(os.environ.get("SHARD", "0")), max(1, int(os.environ.get("SHARDS", "1")))
+MIN_N = int(os.environ.get("MIN_N", "1" if CANDS == "all_pf1" else "100"))
+if os.environ.get("OUT_FILE"):
+    OUT = os.path.join(ROOT, os.environ["OUT_FILE"])
+
+
+def select_cells(cells, mode=CANDS, top=TOP, shard=SHARD, shards=SHARDS):
+    """Cells to validate. "top" = the original B-18 pick (long ATR-6, n >= 300, trimmed PFnet >= 1.3, best TOP);
+    "all_pf1" = every long combo with in-sample PFnet > 1 (sorted by tag, then every SHARDS-th from SHARD)."""
+    if mode == "all_pf1":
+        cand = sorted(t for t, m in cells.items() if (m.get("pfnet") or 0) > 1 and "__long__" in t)
+        return cand[shard::shards]
+    cand = sorted([(min(m["pfnet"], m["pfnet_trim1"] or m["pfnet"]), t) for t, m in cells.items()
+                   if m["pfnet"] and m["n"] >= 300 and "__long__" in t and "__atr6_" in t], reverse=True)
+    return [t for pf, t in cand if pf >= 1.3][:top]
 
 
 def parse(tag):
@@ -42,9 +61,7 @@ def main_run():
     import main as app
     cost = app.ROUND_TRIP_COST_PCT / 100.0
     cells = json.load(open(os.path.join(ROOT, "docs", "combo_lab_results.json")))["results"]
-    cand = sorted([(min(m["pfnet"], m["pfnet_trim1"] or m["pfnet"]), t) for t, m in cells.items()
-                   if m["pfnet"] and m["n"] >= 300 and "__long__" in t and "__atr6_" in t], reverse=True)
-    cand = [t for pf, t in cand if pf >= 1.3][:TOP]
+    cand = select_cells(cells)
     print("cells to validate", len(cand), flush=True)
     seen = set(app.SWING_WATCHLIST)
     pool = [s for s in app._load_nse_universe_from_file() if s not in seen and s not in app.ETF_SYMBOLS]
@@ -89,7 +106,7 @@ def main_run():
         print("oos symbols", done, flush=True)
     res = {}
     for t, (r, hd) in acc.items():
-        if len(r) < 100:
+        if len(r) < MIN_N:
             continue
         r = np.array(r)
         g, lo = r[r > 0].sum(), -r[r < 0].sum()

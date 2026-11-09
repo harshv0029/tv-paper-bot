@@ -287,18 +287,24 @@ def run():
 def merge(d):
     tags = {}
     meta = {}
+    periods = {}  # B-1455: period is per interval (1d 5y / 1h 730d / 15m 60d); never one file-level value
     for f in sorted(glob.glob(os.path.join(d, "brk20_*_s*.json"))):
         r = json.load(open(f))
         for t, c in r["cells"].items():
             e = tags.setdefault(t, {"cell": c["cell"], "interval": r["interval"], "direction": r["direction"],
-                                    "agg": agg_new(), "n_symbols": 0, "shards": 0})
+                                    "period": r.get("period"), "agg": agg_new(), "n_symbols": 0, "shards": 0})
+            if r.get("interval") and r.get("period"):
+                periods[r["interval"]] = r["period"]
             agg_merge(e["agg"], c["raw"])
             e["n_symbols"] += r["n_symbols"]
             e["shards"] += 1
         meta = {k: r.get(k) for k in ("cost_round_trip_pct", "universe", "period", "synthetic", "bar_constants_in_bars", "note")}
+    if len(set(periods.values())) > 1:
+        meta["period"] = "per interval, see period_by_interval"
+    meta["period_by_interval"] = periods
     rows = []
     for t, e in sorted(tags.items()):
-        rows.append({"tag": t, **{k: e[k] for k in ("cell", "interval", "direction", "n_symbols", "shards")},
+        rows.append({"tag": t, **{k: e[k] for k in ("cell", "interval", "direction", "period", "n_symbols", "shards")},
                      "metrics": agg_metrics(e["agg"])})
     out = {**meta, "rows": rows}
     json.dump(out, open(os.path.join(d, "brk20_all.json"), "w"), indent=1)
