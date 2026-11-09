@@ -1188,6 +1188,59 @@ def apply_entry_day_floor(kotak_trading_symbol: str, trigger_price: float, side:
     return floor, info
 
 
+# B-1520 (IOC 2026-11-09: no resting SL from the 09:15 IST open until 09:26:19 IST): a SELL stop must sit below the
+# market (a BUY stop above it) or Kotak refuses it, often with no order id, so a trailed stop the open had already gone
+# through was re-sent and refused for 11 minutes while nothing rested. Every stop is therefore checked against a FRESH
+# live price (main.py registers the provider: today's tick, seconds old; None = unknown -> previous behaviour). A stop
+# at/through the market rests at the tightest placeable level (long 0.995 x LTP, short 1.005 x LTP, the same margin
+# apply_entry_day_floor uses) so the holding is never naked, and result['stop_through_market'] tells the caller the
+# strategy stop is already hit (the swing callers then exit at market, as the replay fills at the open).
+_LTP_PROVIDER = None
+
+
+def set_ltp_provider(fn) -> None:
+    global _LTP_PROVIDER
+    _LTP_PROVIDER = fn
+
+
+def _fresh_ltp(kotak_trading_symbol: str):
+    fn = _LTP_PROVIDER
+    if fn is None:
+        return None
+    try:
+        v = fn(kotak_trading_symbol)
+        return float(v) if v and float(v) > 0 else None
+    except Exception:  # noqa: BLE001 - a price lookup must never block a protective order
+        return None
+
+
+def clamp_stop_to_market(kotak_trading_symbol: str, trigger_price: float, side: str = "long"):
+    """(trigger, info). Long: a trigger at/above LTP - 1 tick rests at the tick below 0.995 x LTP; short: a trigger
+    at/below LTP + 1 tick rests at the tick above 1.005 x LTP. info: stop_through_market (the requested trigger),
+    ltp. Unknown LTP -> unchanged. Never moves a stop that is already placeable."""
+    info: dict = {}
+    ltp = _fresh_ltp(kotak_trading_symbol)
+    if ltp is None:
+        return trigger_price, info
+    tick = _tick_size_for(kotak_trading_symbol) or 0.05
+    import math
+    req = float(trigger_price)
+    if side == "long":
+        if req < ltp - tick + 1e-9:
+            return trigger_price, info
+        best = round(math.floor(min(ltp * 0.995, ltp - tick) / tick + 1e-6) * tick, 2)
+        if best <= 0:
+            return trigger_price, info
+    else:
+        if req > ltp + tick - 1e-9:
+            return trigger_price, info
+        best = round(math.ceil(max(ltp * 1.005, ltp + tick) / tick - 1e-6) * tick, 2)
+    info.update(stop_through_market=req, ltp=ltp)
+    print(f"[REAL SL MARKET] LOUD: {kotak_trading_symbol} ({side}) stop Rs{req:.2f} is through the market "
+          f"(LTP Rs{ltp:.2f}); resting at Rs{best:.2f} so the position is protected - caller exits at market")
+    return best, info
+
+
 _SL_SYMBOL_LOCKS: dict = {}
 _SL_SYMBOL_LOCKS_GUARD = threading.Lock()
 _RECENT_SL_PLACED: dict = {}  # trdSym -> {"order_id", "trigger", "qty", "ts"}
@@ -1237,6 +1290,8 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
     else:
         trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "long")  # B-1440
     trigger_price, clamped_from = _preclamp_long_stop(kotak_trading_symbol, trigger_price)  # only ever raises
+    trigger_price, market_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "long")  # B-1520
+    floor_info = {**floor_info, **market_info}
     res = _place_real_stop_loss_once(kotak_trading_symbol, qty, trigger_price)
     res.update(floor_info)
     if clamped_from is not None:
@@ -1409,7 +1464,18 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
     # B-1440: compare live SLs against the FLOORED stop, so a live SL under the entry-day stop is ratcheted up, never
     # adopted as-is.
     trigger_price, _floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "long")
+    # B-1520: compare against the level that can actually rest (a stop through the market rests just under it), so a
+    # live SL already at that level is adopted instead of being cancelled and re-placed every pass.
+    trigger_price, _mk_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "long")
     desired = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
+    res = _ensure_resting_sl_decide(kotak_trading_symbol, qty, trigger_price, desired, live)
+    if _mk_info:
+        res.update(_mk_info)
+    return res
+
+
+def _ensure_resting_sl_decide(kotak_trading_symbol: str, qty: int, trigger_price: float, desired: float,
+                              live: list) -> dict:
     if live:
         best = max(live, key=lambda o: o["trigger"])
         if best["trigger"] >= desired - 0.005 and sum(o["qty"] for o in live) >= qty:
@@ -1459,6 +1525,8 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
     only ever lowered toward the market, never below 0.5% over last price."""
     trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "short")  # B-1440
     trigger_price, clamped_from = _preclamp_short_stop(kotak_trading_symbol, trigger_price)  # only ever lowers
+    trigger_price, market_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "short")  # B-1520
+    floor_info = {**floor_info, **market_info}
     res = _place_real_short_stop_loss_once(kotak_trading_symbol, qty, trigger_price, product)
     res.update(floor_info)
     if clamped_from is not None:

@@ -206,7 +206,7 @@ def test_real_entry_gate_uses_the_chosen_variant(db, monkeypatch):
                         lambda n, t, check_switch=False: (n == ok_tag, "viable" if n == ok_tag else "below_floor"))
     _row(db, "F.NS", FADE, _today())
     main._maybe_place_real_swing_entry(db, "F.NS", 5, 100.0, 90.0, FADE)
-    assert seen[-1][0] == "skipped_sector_cap"  # passed the PFnet gate through the 3rd variant
+    assert seen[-1][0] == "skipped_no_live_tick"  # B-1517: sector cap now runs after sizing; passed the PFnet gate through the 3rd variant
     assert main._swing_exit_variant_get(db, "F.NS")["mode"] == cands[2][0]
     # no variant viable and the tag's own row not viable -> gate closed (paper only, first variant)
     monkeypatch.setattr(main, "_viability_verdict_for_registry_name", lambda n, t, check_switch=False: (False, "below_floor"))

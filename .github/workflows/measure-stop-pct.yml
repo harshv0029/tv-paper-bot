@@ -38,6 +38,12 @@ jobs:
           [ -n "$MAXSYM" ] && ARGS="$ARGS --max-symbols $MAXSYM"
           python3 scripts/measure_stop_pct.py $ARGS
       - run: python3 scripts/count_sl_cap.py
+      # B-1457: artifact downloads are blocked from the session proxy (run 39361657874's 4h table never reached git),
+      # so print the measured ATR table and every 4h tag's stop-% to the log, where it can be copied into the repo.
+      - name: Print measured table (B-1457)
+        run: |
+          echo "ATR_PCT_BY_TF_JSON=$(python3 -c 'import json;print(json.dumps(json.load(open("docs/backtest_data/atr_pct_by_tf.json"))))')"
+          python3 -c 'import json;d=json.load(open("docs/backtest_data/stop_pct.json"));print("STOP_PCT_4H_JSON="+json.dumps({k:v for k,v in d.items() if "__4h__" in k}))'
       - uses: actions/upload-artifact@v4
         with:
           name: stop-pct

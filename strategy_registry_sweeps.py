@@ -72,8 +72,18 @@ def _load(name):
         return {}
 
 
+def _combo_holdout():
+    """B-1472 (2026-11-09): every combo symbol-holdout result. combo_validate_results.json (B-18 top-80 pick) wins on a
+    tag both carry; docs/combo_validate_results_all.json (CANDS=all_pf1, every in-sample PFnet > 1 combo) fills the rest,
+    so each such combo gets an exact pooled "_pool" twin once that run is on file."""
+    out = dict(_load("combo_validate_results_all.json").get("results", {}))
+    out.update(_load("combo_validate_results.json").get("results", {}))
+    return out
+
+
 def build():
     out = []
+    _combo_oos_all = _combo_holdout()
     sector = dict(_load("sector_rotation_results.json").get("results", {}))
     for _tf in ("1h", "4h", "15m", "5m"):  # B-341 intraday runs, present once their workflow has committed
         sector.update(_load(f"sector_rotation_results_{_tf}.json").get("results", {}))
@@ -128,7 +138,7 @@ def build():
             short = "__short__" in tag
             hrs = m["avg_held_bars"] * m["bar_hours"]
             _combo = _fn.startswith("combo")
-            _oos = _load("combo_validate_results.json").get("results", {}).get(tag) if _combo else None
+            _oos = _combo_oos_all.get(tag) if _combo else None
             # conservative: registered PFnet is the one after dropping the best 1% of trades (outlier guard)
             _pf = m["pfnet"] if m.get("pfnet_trim1") is None else (min(m["pfnet"], m["pfnet_trim1"]) if m["pfnet"] else m["pfnet"])
             _pv = _load("pattern_validate_results.json").get("results", {}).get(tag) if not _combo else None

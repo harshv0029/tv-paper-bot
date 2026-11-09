@@ -30,10 +30,15 @@ def test_all_19_csv_tags_wired_mapped_viable_and_exit_covered(tmp_path, monkeypa
     covered = set(main.ISLAND_ALL_TAGS) | set(main.SWINGMINRR_TAGS)
     for t in tags:
         assert t in covered, t
-        assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t  # own registry name, never merged
+        reg = main._STRATEGY_TAG_TO_REGISTRY_NAME[t]
+        if t in main.SWINGMINRR_TAGS:  # B-1466: gated on the main.py-calling replay row (`_mr` variant), own row kept
+            assert reg == t.replace("_gate__", "_gate_mr__").replace("_base__", "_base_mr__")
+            assert any(s.name == t for s in sr.REGISTRY)  # the research-sim row stays registered
+        else:
+            assert reg == t  # own registry name, never merged
         assert main._is_strategy_viable_for_real_money(t, check_switch=False) is (t not in main.REPLAY_OWED_TAGS)  # replay-verified tags re-open (2026-10-12)
         assert t in main._SWING_SL_RULES
-        assert next(s for s in sr.REGISTRY if s.name == t).metrics.pfnet >= sr.PFNET_LIVE_FLOOR
+        assert next(s for s in sr.REGISTRY if s.name == reg).metrics.pfnet >= sr.PFNET_LIVE_FLOOR
 
 
 def test_island_gap05_signal_and_filter_mapping():
@@ -126,3 +131,13 @@ def test_scan_wiring_no_new_switch_sl_attached_reasoned_exit():
     assert ("_is_strategy_viable_for_real_money" in inspect.getsource(main._swingminrr_try_entry) or "_is_strategy_wired" in inspect.getsource(main._swingminrr_try_entry))
     assert not any("swingminrr" in n.lower() or "wirenext" in n.lower() for n in dir(main)
                    if n.startswith("is_real_") or n.endswith("_TRADING_ENABLED"))
+
+
+def test_b1466_swingminrr_gates_on_main_replay_rows():
+    """B-1466: each live swingminrr VCP tag's registry row is the main.py-calling replay (run 38318986997)."""
+    reg = {s.name: s for s in sr.REGISTRY}
+    for t in main.SWINGMINRR_TAGS:
+        name = main._STRATEGY_TAG_TO_REGISTRY_NAME[t]
+        assert name != t and name in reg
+        assert "38318986997" in reg[name].metrics.run_ref and "main.py" in reg[name].metrics.run_ref
+        assert reg[name].metrics.pfnet > sr.PFNET_LIVE_FLOOR

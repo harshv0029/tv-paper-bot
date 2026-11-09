@@ -224,3 +224,20 @@ def test_b1339_fno_universe_and_cost_override_are_their_own_tags(monkeypatch):
     syms = R.universe_symbols(M, "fno")
     assert "SOMESMALLCAP.NS" not in syms and "RELIANCE.NS" in syms
     assert R.universe_symbols(M, "full") == sorted(M._load_nse_universe_from_file())
+
+
+def test_b1454_nonfno_universe_is_the_exact_cash_complement():
+    """B-1454: nonfno = full minus F&O underlyings; fno + nonfno partition the full universe; own tag variant."""
+    import importlib, sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    R = importlib.import_module("brk20_replay")
+
+    class M:
+        @staticmethod
+        def _load_nse_universe_from_file():
+            return ["RELIANCE.NS", "SOMESMALLCAP.NS", "TCS.NS"]
+    fno, non = R.universe_symbols(M, "fno"), R.universe_symbols(M, "nonfno")
+    assert "SOMESMALLCAP.NS" in non and "RELIANCE.NS" not in non
+    assert sorted(fno + non) == sorted(M._load_nse_universe_from_file()) and not set(fno) & set(non)
+    assert (R.make_tag("short", "1d", 3, 3.5, None, "nonfno")
+            == "brk20_min_rr__main_replay_nonfno__short__1d__atr3_rr3d5__v1")

@@ -43,6 +43,10 @@ on:
         description: "B-1485: blank/off = unchanged; trail = off + live + every trailing-stop overlay per tag (1d only; set crosscheck=0)"
         required: false
         default: ""
+      rs_universe:
+        description: "B-1483: full = RS ranked inside each shard (default, unchanged); n200 = RS ranked across the live swing watchlist (main.SWING_WATCHLIST), tags gain rsn200"
+        required: false
+        default: "full"
       crosscheck:
         description: "1 = also compare each trade list against scripts/oneil_research.py simulate()"
         required: false
@@ -72,6 +76,7 @@ jobs:
           FAMILIES: ${{ inputs.families }}
           PATTERN_EXITS: ${{ inputs.pattern_exits }}
           BAND_CAP: ${{ inputs.band_cap }}
+          RS_UNIVERSE: ${{ inputs.rs_universe }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "4"
         run: |
