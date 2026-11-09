@@ -20413,6 +20413,18 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs142.10 to Rs142.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 1703,
+   "ts": 1794213543.0856361,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261109000650517",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 1702,
    "ts": 1794213554.850144,
    "symbol": "IOC.NS",
@@ -20425,5 +20437,5 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs142.20 to Rs143.43 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T08:39:19Z"
+ "synced_at_utc": "2026-11-09T08:40:43Z"
 }
