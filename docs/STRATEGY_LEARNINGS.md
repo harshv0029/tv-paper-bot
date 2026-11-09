@@ -1871,3 +1871,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - **Reuse:** every durability push gets a retry path for its restore and a visible health flag, never a silent `return False`. Every real-sizing decision logs the numbers it used.
 - **Profit-booking / exit takeaway:** cash freed by exits (IRCTC/RECLTD/SAIL max-hold sells) raises the 1-share risk limit within minutes, so the next fired signal can enter at a wider stop. That is intended, but it means wider-stop 1-share entries cluster right after exits. Watch those entries' net P&L in the Kotak trade book before changing REAL_ONE_SHARE_RISK_PCT.
 
+
+## B-1517 - sector cap charged the paper size, not the real order (2026-11-09)
+- The swing sector cap (25% of whole account per sector) was evaluated before real sizing, using the paper qty x paper price. Paper qty is sized off paper capital, so a 1-share real BOSCHLTD order was charged ~Rs52,603 and could be refused as over the cap.
+- Fix: check the cap after real sizing on real qty x live price. Open-position exposure already came from real_positions_swing (real qty).
+- Lesson: every real-money gate must measure the real order, never the paper mirror; audit other gates for paper-qty inputs.
+- Profit-booking / exit takeaway: none for exits; on entries, false sector blocks cost real trades with no risk benefit, so gates must price the actual order.
