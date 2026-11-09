@@ -118,6 +118,7 @@ def test_b419_forming_daily_bar_dropped_while_market_open(monkeypatch):
     monkeypatch.setattr(main, "_compute_minervini_rs_percentiles", cap)
     for open_now, expect in ((True, 59), (False, 60)):
         monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda o=open_now: o)
+        monkeypatch.setattr(main, "nse_session_closed_for_day", lambda *a, o=open_now: not o)  # B-1518
         seen.clear()
         with closing(main.get_db()) as c, pytest.raises(Stop):
             main._run_swing_scan_pass(c)

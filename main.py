@@ -3619,6 +3619,77 @@ def nse_special_session(date=None):
         return None
 
 
+NSE_REGULAR_OPEN_MIN = 9 * 60 + 15
+NSE_REGULAR_CLOSE_MIN = 15 * 60 + 30
+# Square-off sits this many minutes before the session close (regular 15:30 close -> 15:14, the 2026-09-30 rule).
+NSE_SQUAREOFF_BEFORE_CLOSE_MIN = 16
+
+
+def nse_session_today(now_local=None) -> dict | None:
+    """B-1518 (2026-11-09, user: know the live open AND close; intraday only when the close is known): today's NSE
+    cash/F&O session in IST minutes. {"source": "special"|"regular"|"tick", "open_min", "close_min",
+    "squareoff_min"}; close_min/squareoff_min are None for "tick" (live ticks prove NSE trades on a day no calendar
+    lists, so the close is unknown). None on a closed day. Never raises."""
+    try:
+        n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+        if getattr(n, "tzinfo", None) is not None:
+            n = n.replace(tzinfo=None)
+        sp = nse_special_session(n)
+        if sp:
+            return {"source": "special", "open_min": sp[0], "close_min": sp[1],
+                    "squareoff_min": sp[1] - NSE_SQUAREOFF_BEFORE_CLOSE_MIN}
+        if _nse_calendar_trading_day(n):
+            return {"source": "regular", "open_min": NSE_REGULAR_OPEN_MIN, "close_min": NSE_REGULAR_CLOSE_MIN,
+                    "squareoff_min": NSE_REGULAR_CLOSE_MIN - NSE_SQUAREOFF_BEFORE_CLOSE_MIN}
+        if _tick_open_override(n, "nse"):
+            return {"source": "tick", "open_min": None, "close_min": None, "squareoff_min": None}
+    except Exception:
+        pass
+    return None
+
+
+def _is_nse_symbol(symbol) -> bool:
+    u = str(symbol or "").upper()
+    return u.endswith((".NS", ".BO")) or u.startswith("^")
+
+
+def _nse_session_minutes(symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local=None):
+    """B-1518: (open_min, close_min, squareoff_min, close_known) for an intraday engine call. NSE symbols in IST take
+    today's real session (a special session such as Muhurat 14:20-15:30 replaces the 09:15-15:30 defaults); a
+    tick-only session returns close_known=False so the caller opens NO new intraday position (it cannot square off
+    before an unknown close). Non-NSE symbols and the regular day keep the caller's own config unchanged."""
+    if tz_offset_min != IST_OFFSET_MIN or not _is_nse_symbol(symbol):
+        return open_min, close_min, squareoff_min, True
+    sess = nse_session_today(now_local)
+    if not sess:
+        return open_min, close_min, squareoff_min, True
+    if sess["source"] == "tick":
+        return open_min, close_min, squareoff_min, False
+    if sess["source"] == "special":
+        so = sess["squareoff_min"] - (NSE_REGULAR_CLOSE_MIN - NSE_SQUAREOFF_BEFORE_CLOSE_MIN - squareoff_min)
+        return sess["open_min"], sess["close_min"], so, True
+    return open_min, close_min, squareoff_min, True
+
+
+def nse_session_closed_for_day(now_local=None) -> bool:
+    """B-1518: True once today's NSE session (regular or special) has ended, so today's daily bar is COMPLETE.
+    False before/during the session, on a tick-only day (close unknown) and on a closed day."""
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    sess = nse_session_today(n)
+    if not sess or sess["close_min"] is None:
+        return False
+    return n.hour * 60 + n.minute > sess["close_min"]
+
+
+def swing_entry_cutoff_min(now_local=None) -> int:
+    """B-1518: swing real entries refused from this IST minute: today's session close minus the regular day's gap
+    (SWING_REAL_ENTRY_CUTOFF_MIN before NSE_REGULAR_CLOSE_MIN, i.e. 16 min -> 15:14 regular, 15:14 Muhurat)."""
+    sess = nse_session_today(now_local)
+    if sess and sess.get("source") == "special":
+        return sess["close_min"] - (NSE_REGULAR_CLOSE_MIN - SWING_REAL_ENTRY_CUTOFF_MIN)
+    return SWING_REAL_ENTRY_CUTOFF_MIN
+
+
 def _nse_special_session_open(now_local=None, symbol: str | None = None) -> bool:
     """B-1511: True inside a special session's window (IST). symbol, when given, must be NSE (.NS/.BO or a ^ index);
     MCX (=F proxies), US and any other symbol never open through this."""
@@ -12506,6 +12577,14 @@ def _options_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        underlying, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"underlying": underlying, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, underlying):
         return {"underlying": underlying, "status": "closed_weekend", "time_local": str(now_local)}
@@ -12929,6 +13008,14 @@ def _auto_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"symbol": symbol, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
@@ -14609,6 +14696,14 @@ def _short_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"symbol": symbol, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
@@ -25384,9 +25479,11 @@ def _market_open_for_cfg(cfg: dict) -> bool:
     position the cursor happened to be in."""
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=cfg.get("tz_offset_min", IST_OFFSET_MIN))
     mins_now = now_local.hour * 60 + now_local.minute
-    if not cfg.get("trade_weekends", False) and now_local.weekday() >= 5:
+    if not cfg.get("trade_weekends", False) and _nse_closed_day(now_local, cfg.get("symbol")):
         return False
-    return cfg.get("open_min", 0) <= mins_now <= cfg.get("close_min", 1439)
+    o, c, _sq, _known = _nse_session_minutes(cfg.get("symbol"), cfg.get("tz_offset_min", IST_OFFSET_MIN),
+                                             cfg.get("open_min", 0), cfg.get("close_min", 1439), 0, now_local)
+    return o <= mins_now <= c  # B-1518: a Muhurat/special session's own hours
 
 
 async def _scheduler_loop():
@@ -25543,7 +25640,7 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
             return
         _n = ist_now()
-        if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+        if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_after_entry_cutoff")
             return
         import kotak_live_feed, nse_fo_chain
@@ -25911,7 +26008,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # (15:15+) cancels SLs and rejects orders, so such a position could not be
     # protected or exited (RVNL/SAIL/DRREDDY/VBL bought 15:10-15:11 IST).
     _n = ist_now()
-    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+    if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
         _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff", strategy=strategy,
                           detail="no new real swing entries from 15:14 IST (user: allowed through 15:13)")
         return
@@ -26495,8 +26592,12 @@ def _run_swing_scan_pass(conn):
         # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
         try:
-            if str(df.index[-1])[:10] == today and _nse_equity_market_open_now():
-                _SWING_LIVE_PX[symbol] = float(df["Close"].iloc[-1])  # B-1463: today's forming close = live entry ref
+            # B-1518: the signal bar is the PREVIOUS SESSION's completed bar (Friday, a Muhurat Sunday, the day before a
+            # holiday...): today's bar is kept only once today's own session (regular or special) has closed, so a
+            # pre-open or tick-only partial bar is never read as complete.
+            if str(df.index[-1])[:10] == today and (_nse_equity_market_open_now() or not nse_session_closed_for_day()):
+                if _nse_equity_market_open_now():
+                    _SWING_LIVE_PX[symbol] = float(df["Close"].iloc[-1])  # B-1463: today's forming close = live entry ref
                 df = df.iloc[:-1]
         except Exception:
             pass
@@ -28542,7 +28643,7 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
         _log_signal_shadow(conn, strategy, symbol, "short", False, "real entry: strategy below PFnet floor", hard_gate=True)
         return
     _n = ist_now()
-    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+    if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
         _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff", strategy=strategy,
                           detail="no new real swing entries from 15:14 IST (SL cannot rest after 15:15)")
         return
