@@ -22029,7 +22029,8 @@ def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None 
         cfg = watchlist_by_symbol.get(sym, {}) or {}
         return float(fetch_ohlc(sym, "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
 
-    ex = _cf.ThreadPoolExecutor(max_workers=min(8, len(todo)))
+    ex = _prefetch_pool(8, "op-price")  # B-1447: persistent pool (a fresh 8-thread pool per dashboard poll churned Curl handles)
+    futs = {}
     try:
         futs = {ex.submit(_one, s): s for s in todo}
         done, _ = _cf.wait(futs, timeout=OPEN_POSITIONS_PRICE_BUDGET_S if budget_s is None else budget_s)
@@ -22039,7 +22040,8 @@ def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None 
             except Exception:
                 pass
     finally:
-        ex.shutdown(wait=False)
+        for f in futs:
+            f.cancel()
     return out
 
 
@@ -23016,6 +23018,29 @@ def _scan_prefetch_intervals() -> list:
     return ["5m", *sorted(set(CHAN_SHORT_CELL_INTERVAL.values()) - {"5m"})]
 
 
+# B-1447 (tick_prefetch +180-200 MB per run on /health stage_rss): yfinance's curl_cffi Session keeps one Curl
+# handle (own TLS context and connection cache) PER THREAD (threading.local, curl_cffi requests/session.py). The
+# prefetch built a fresh 8-thread ThreadPoolExecutor every ~30 s tick, so every tick created up to 8 new Curl
+# handles, re-did the TLS handshakes to Yahoo, and freed them when the threads exited: native-heap churn that glibc
+# keeps as RSS. One persistent pool per worker count reuses the same threads, so the handle set (and the kept-alive
+# connections) is created once per process. Read-only cache warm-up; no DB, order or SL code touched.
+_PREFETCH_POOLS: dict = {}
+_PREFETCH_POOLS_LOCK = threading.Lock()
+
+
+def _prefetch_pool(n_workers: int, name: str = "scan-prefetch"):
+    """B-1447: the shared, long-lived fetch pool for this (name, worker count), created once and never shut down,
+    so its threads (and their curl_cffi handles) are reused instead of rebuilt on every call."""
+    import concurrent.futures as _cf
+    key = (name, int(n_workers))
+    with _PREFETCH_POOLS_LOCK:
+        pool = _PREFETCH_POOLS.get(key)
+        if pool is None:
+            pool = _cf.ThreadPoolExecutor(max_workers=int(n_workers), thread_name_prefix=name)
+            _PREFETCH_POOLS[key] = pool
+        return pool
+
+
 def _prefetch_one_frame(symbol: str, period: str, interval: str):
     """(fetch time, frame) for one prefetch key; the time is the shared cache entry's own, so a pinned copy expires
     exactly when the cached one would."""
@@ -23045,8 +23070,9 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
     ivs = list(intervals) if intervals else [interval]
     t0 = time.time()
     ok = failed = 0
-    n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
-    pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
+    # Fixed size (not min(len(syms))): one pool for the process; ThreadPoolExecutor starts threads lazily.
+    pool = _prefetch_pool(max(1, int(workers or SCAN_PREFETCH_WORKERS)))
+    futs = []
     try:
         # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
         keys = [(s, period, iv) for s in syms for iv in ivs]
@@ -23064,7 +23090,8 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
         except _cf.TimeoutError:
             failed += sum(1 for f in futs if not f.done())
     finally:
-        pool.shutdown(wait=False, cancel_futures=True)
+        for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+            f.cancel()
     return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
 
 
@@ -33096,8 +33123,6 @@ def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
     else Trail when _SWING_SL_RULES says the stop trails; every other tag exits off its frozen initial stop
     (_swing_strategy_stop_level's default for an unrecognised tag), so Fixed."""
     tag = tag or ""
-    if category in ("options", "option", "fo_option", "mcx_option") or tag.startswith(("single_leg_", "strike_setup_")):
-        return "Trail"  # B-1441 every-category check: every single-strike option (NSE or MCX) trails (2026-10-08 rule)
     if category in ("buy", "short_sell"):
         return "Fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "Trail"
     if category == "swing" and symbol and tag in SWING_EXIT_VARIANTS:
@@ -35785,7 +35810,7 @@ def _watchdog_day_bump(now=None, put=None, info=None) -> None:
         ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
                                            + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
               "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
-              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch"))),
+              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch", "op-price"))),
                                key=lambda t: "(event loop)" not in t)[:5]}  # B-1422: the loop thread first
         _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
