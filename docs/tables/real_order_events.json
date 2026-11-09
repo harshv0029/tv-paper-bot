@@ -20231,7 +20231,31 @@
    "prev_state": "resting SELL trigger Rs1172.40",
    "new_state": "resting SELL trigger Rs1203.70",
    "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1172.40 to Rs1203.70 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 1687,
+   "ts": 1794206831.5940356,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261109000025243",
+   "prev_state": "resting @ Rs440.25",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 1688,
+   "ts": 1794206831.6239872,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 4 @ Rs450.75",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-09T05:39:30Z"
+ "synced_at_utc": "2026-11-09T06:47:16Z"
 }
