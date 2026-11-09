@@ -20351,7 +20351,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs1207.50",
    "detail": "reason: swing entry signal from strategy minervini_vcp_livermore passed the PFnet gate"
+  },
+  {
+   "id": 1697,
+   "ts": 1794207006.920071,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261109000520367",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1123.70",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-09T06:49:59Z"
+ "synced_at_utc": "2026-11-09T06:50:18Z"
 }
