@@ -20159,7 +20159,19 @@
    "prev_state": null,
    "new_state": "complete",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 09-Nov-2026 09:16:59 B L qty 1 trg 0.00 status complete rejRsn --"
+  },
+  {
+   "id": 1681,
+   "ts": 1794202508.7552536,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261109000321336",
+   "prev_state": "resting SELL trigger Rs1623.20",
+   "new_state": "resting SELL trigger Rs1658.00",
+   "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1623.20 to Rs1658.00 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T05:29:24Z"
+ "synced_at_utc": "2026-11-09T05:35:30Z"
 }
