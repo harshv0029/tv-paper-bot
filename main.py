@@ -857,6 +857,28 @@ def init_db():
             )
             """
         )
+        # B-1514 (user 2026-11-09: "Entry rejects today gets reset. At least keep the data restored for rolling 24
+        # hours"): entry-funnel events (real-entry attempts: placed / failed / skipped_* rejects, and gate-closed
+        # triggers) in 15-min buckets, so /entry-funnel can show a rolling 24 h window that survives a Render restart
+        # (generic Upstash mirror) and the IST midnight reset. Pruned beyond 48 h. No qty/price (balance-free).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entry_funnel_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                bucket_ts REAL NOT NULL,          -- epoch floored to 15 min
+                last_ts REAL NOT NULL,            -- epoch of the newest event in the bucket
+                kind TEXT NOT NULL,               -- 'placed' | 'failed' | 'reject' | 'blocked_trigger'
+                strategy TEXT NOT NULL DEFAULT '',
+                side TEXT NOT NULL DEFAULT '',
+                symbol TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT '',
+                flag TEXT NOT NULL DEFAULT '',    -- reject flag: viability | money | other
+                slot TEXT NOT NULL DEFAULT '',    -- B-1513 viability slot that admitted a placed entry
+                n INTEGER NOT NULL DEFAULT 1,
+                UNIQUE (bucket_ts, kind, strategy, side, symbol, status, slot)
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS swing_entry_stop (
@@ -1302,6 +1324,33 @@ def init_db():
                 mode TEXT NOT NULL,
                 registry_tag TEXT,
                 updated_at REAL
+            )
+            """
+        )
+        # B-1512 (2026-11-09): real entries skipped ONLY because the market was closed (swing first pass / pre-open
+        # scans: 109 swing + 2 buy triggers blocked `market_closed` at 08:37 IST) wait here for the session's open
+        # event, are re-validated fresh through the engine's own entry function, and end placed / dropped / expired
+        # with a logged reason. One row per (session_day, engine, symbol, strategy). Upstash T1 mirror.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pending_open_triggers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_day TEXT NOT NULL,
+                engine TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                strategy TEXT NOT NULL DEFAULT '',
+                entry_price REAL,
+                stop_loss REAL,
+                target_price REAL,
+                qty INTEGER,
+                fired_at_ist TEXT,
+                signal_ref TEXT,
+                status TEXT NOT NULL DEFAULT 'queued',
+                outcome TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                created_at REAL,
+                updated_at REAL,
+                UNIQUE(session_day, engine, symbol, strategy)
             )
             """
         )
@@ -3551,17 +3600,137 @@ def options_backtest_endpoint(
 
 IST_OFFSET_MIN = 330  # UTC+5:30
 # B-1291: NSE trading holidays (docs/MARKET_HOLIDAYS.md). Used ONLY to skip NEW-entry scans; never
-# gates protection/SL sync/reconcile/exit paths. Muhurat 2026-11-08 (Sunday special session) is not listed.
+# gates protection/SL sync/reconcile/exit paths. Special sessions on otherwise-closed days are below.
 NSE_HOLIDAYS_2026 = frozenset({"2026-10-20", "2026-11-10", "2026-11-24", "2026-12-25"})
+# B-1511 (2026-11-07, user: full trading in Muhurat): NSE special sessions, IST date -> (open_min, close_min).
+# Diwali Muhurat Sun 2026-11-08, continuous trading 14:20-15:30 IST (CAS stocks 15:15), NSE circular 19-Oct-2026.
+# NSE cash + F&O only; MCX symbols are never opened by this table.
+NSE_SPECIAL_SESSIONS = {"2026-11-08": (14 * 60 + 20, 15 * 60 + 30)}
+
+
+def nse_special_session(date=None):
+    """(open_min, close_min) IST if `date` (dt.date/datetime/ISO str; default today IST) is a special session, else None."""
+    try:
+        if date is None:
+            date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+        key = date[:10] if isinstance(date, str) else date.strftime("%Y-%m-%d")
+        return NSE_SPECIAL_SESSIONS.get(key)
+    except Exception:
+        return None
+
+
+def _nse_special_session_open(now_local=None, symbol: str | None = None) -> bool:
+    """B-1511: True inside a special session's window (IST). symbol, when given, must be NSE (.NS/.BO or a ^ index);
+    MCX (=F proxies), US and any other symbol never open through this."""
+    if symbol is not None:
+        u = str(symbol).upper()
+        if not (u.endswith((".NS", ".BO")) or u.startswith("^")):
+            return False
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    sp = nse_special_session(n)
+    if not sp:
+        return False
+    m = n.hour * 60 + n.minute
+    return sp[0] <= m <= sp[1]
+
+
+def _nse_closed_day(now_local=None, symbol: str | None = None) -> bool:
+    """B-1511: weekend AND not inside a special session (replaces bare `weekday() >= 5` gates).
+    B-1512: also not closed while live ticks prove the symbol's segment is trading (unlisted special sessions)."""
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    if n.weekday() < 5 or _nse_special_session_open(n, symbol):
+        return False
+    return not _tick_open_override(n, _segment_of_symbol(symbol))
 
 
 def is_nse_trading_day(date=None) -> bool:
-    """Weekday and not an NSE holiday. date: dt.date/datetime/ISO str; default today IST. Fails open (True)."""
+    """Weekday and not an NSE holiday (or a listed special session). date: dt.date/datetime/ISO str; default today
+    IST. Fails open (True). B-1512: TODAY is also a trading day while live ticks prove NSE is trading."""
+    if _nse_calendar_trading_day(date):
+        return True
+    try:
+        n = ist_now()
+        if date is None or (date[:10] if isinstance(date, str) else date.strftime("%Y-%m-%d")) == n.strftime("%Y-%m-%d"):
+            return _tick_open_override(n, "nse")
+    except Exception:
+        pass
+    return False
+
+
+# B-1512 (2026-11-09, user: "when you receive a live ticker for any trade you hold, assume the market is open"):
+# live-tick evidence of an open market (kotak_live_feed.market_live_evidence: >= 2 symbols of the segment printed a
+# NEW trade today within 120 s; a snapshot on subscribe never counts). It opens the NSE gates ONLY on a day the
+# calendar does not know as a regular trading day (weekend, holiday, a special-session day outside its listed window),
+# so an unlisted Muhurat / Budget Saturday works by itself, while the pre-open (09:00-09:15) and post-close sessions of
+# a normal weekday never open anything. Fails CLOSED (no evidence = calendar only) for entries. Cached 2 s.
+_MARKET_LIVE_CACHE: dict = {}
+_MARKET_LIVE_CACHE_SECONDS = 2.0
+
+
+def _segment_of_symbol(symbol) -> str | None:
+    if symbol is None:
+        return "nse"
+    u = str(symbol).upper()
+    if u.endswith((".NS", ".BO")) or u.startswith("^"):
+        return "nse"
+    if u.endswith("=F"):
+        return "mcx"
+    return None
+
+
+def _market_live_evidence(segment: str = "nse") -> dict:
+    """Tick evidence dict for `segment` ('nse' | 'mcx'): open, reason, count, symbols. Never raises (fails closed)."""
+    hit = _MARKET_LIVE_CACHE.get(segment)
+    if hit and time.time() - hit[0] < _MARKET_LIVE_CACHE_SECONDS:
+        return hit[1]
+    try:
+        import kotak_live_feed
+        ev = kotak_live_feed.market_live_evidence(segment)
+    except Exception as e:  # noqa: BLE001
+        ev = {"open": False, "reason": f"tick evidence unavailable: {e}", "count": 0, "symbols": [], "segment": segment}
+    _MARKET_LIVE_CACHE[segment] = (time.time(), ev)
+    return ev
+
+
+def _market_live_open(segment: str = "nse") -> bool:
+    """B-1512: True when live ticks prove `segment` is trading right now (see _market_live_evidence)."""
+    return bool(_market_live_evidence(segment).get("open"))
+
+
+def _nse_regular_trading_day(day) -> bool:
+    return day.weekday() < 5 and day.strftime("%Y-%m-%d") not in NSE_HOLIDAYS_2026
+
+
+def _tick_open_override(now_local=None, segment: str | None = "nse") -> bool:
+    """B-1512: live ticks open `segment` now, on a day the calendar does not treat as a regular trading day. Only for
+    a live 'now' (a past/future now_local never uses today's ticks). Never raises."""
+    if segment is None:
+        return False
+    try:
+        real = ist_now()
+        n = now_local or real
+        if n.tzinfo is not None:
+            n = n.replace(tzinfo=None)
+        if abs((n - real).total_seconds()) > 120:
+            return False
+        if segment == "nse" and _nse_regular_trading_day(n):
+            return False
+        if segment == "mcx" and n.weekday() < 5:
+            return False
+        return _market_live_open(segment)
+    except Exception:
+        return False
+
+
+def _nse_calendar_trading_day(date=None) -> bool:
+    """Calendar-only is_nse_trading_day (no tick evidence)."""
     try:
         if date is None:
             date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
         if isinstance(date, str):
             date = dt.date.fromisoformat(date[:10])
+        if date.strftime("%Y-%m-%d") in NSE_SPECIAL_SESSIONS:
+            return True
         if date.weekday() >= 5:
             return False
         return date.strftime("%Y-%m-%d") not in NSE_HOLIDAYS_2026
@@ -12338,7 +12507,7 @@ def _options_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, underlying):
         return {"underlying": underlying, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"underlying": underlying, "status": "pre_open", "time_local": str(now_local)}
@@ -12761,7 +12930,7 @@ def _auto_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
@@ -14441,7 +14610,7 @@ def _short_signal_core(
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
 
-    if not trade_weekends and now_local.weekday() >= 5:
+    if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
     if mins_now < open_min:
         return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
@@ -15840,6 +16009,107 @@ def _names_meeting_criteria(crit: dict) -> set:
     return out
 
 
+# B-1513 (user 2026-11-09: "I want multiple viability rules to be applicable. Give me multiple slots in View 1"): a
+# saved stack entry may hold an ORDERED list of named rule slots, each with the same 3 factors as the single rule.
+# Stored in the entry's label as "slots:" + JSON, so every existing durability layer (generic mirror, dedicated
+# Upstash key, git side branch, docs/viable_stack.json) carries it with no schema change. A strategy is viable when
+# ANY enabled slot admits it (OR); the first admitting slot (in order) is recorded. A legacy single-rule label reads
+# as slot 1 (no behaviour change), a legacy name list as a slot holding that list. Zero enabled slots = no
+# definition loaded, exactly today's empty-stack behaviour (reason no_stack, no real entry); the save endpoint
+# refuses it so it only happens on hand-edited data.
+VIABLE_SLOTS_PREFIX = "slots:"
+VIABLE_SLOTS_MAX = 8
+_VIABLE_ADMIT_SLOT: dict = {}  # registry name -> name of the first enabled slot that admits it (active definition)
+
+
+def _slot_from_dict(d: dict, idx: int) -> dict | None:
+    """Normalize one slot dict from the API/label; None when its factors are unusable."""
+    try:
+        pf_min = float(d.get("pf_min", 0) if d.get("pf_min") not in (None, "") else 0)
+        pf_max = float(d.get("pf_max", 100) if d.get("pf_max") not in (None, "") else 100)
+        mt = int(float(d.get("min_trades", 0) if d.get("min_trades") not in (None, "") else 0))
+        mh = d.get("max_hold_hrs")
+        mh = None if mh in (None, "", "any") else float(mh)
+    except (TypeError, ValueError):
+        return None
+    if pf_min > pf_max or mt < 0 or (mh is not None and mh < 0):
+        return None
+    name = re.sub(r"\s+", " ", str(d.get("name") or f"Slot {idx}")).strip()[:40] or f"Slot {idx}"
+    return {"name": name, "enabled": bool(d.get("enabled", True)),
+            "criteria": {"pf_min": pf_min, "pf_max": pf_max, "min_trades": mt, "max_hold_hrs": mh}}
+
+
+def _stack_slots(label, names_json=None) -> list:
+    """The ordered rule slots of one stack entry (see VIABLE_SLOTS_PREFIX). Never raises."""
+    lab = str(label or "")
+    if lab.startswith(VIABLE_SLOTS_PREFIX):
+        try:
+            raw = json.loads(lab[len(VIABLE_SLOTS_PREFIX):])
+        except (TypeError, ValueError):
+            raw = []
+        out = []
+        for i, d in enumerate(raw if isinstance(raw, list) else [], start=1):
+            s = _slot_from_dict(d, i) if isinstance(d, dict) else None
+            if s is not None:
+                out.append(s)
+        return out
+    crit = _stack_criteria(lab)
+    if crit:
+        return [{"name": "Slot 1", "enabled": True, "criteria": crit}]
+    try:
+        names = json.loads(names_json) if names_json else []
+    except (TypeError, ValueError):
+        names = []
+    return [{"name": "Slot 1 (saved list)", "enabled": True, "criteria": None, "names": list(names or [])}]
+
+
+def _slots_label(slots: list) -> str:
+    return VIABLE_SLOTS_PREFIX + json.dumps(
+        [{"name": s["name"], "enabled": bool(s["enabled"]), **s["criteria"]} for s in slots], separators=(",", ":"))
+
+
+def _slot_names(slot: dict) -> set:
+    return _names_meeting_criteria(slot["criteria"]) if slot.get("criteria") else set(slot.get("names") or [])
+
+
+def _slots_admit_map(slots: list) -> dict:
+    """registry name -> first ENABLED slot (in order) that admits it. Union of the enabled slots = the keys."""
+    admit: dict = {}
+    for s in slots:
+        if not s.get("enabled"):
+            continue
+        for n in _slot_names(s):
+            admit.setdefault(n, s["name"])
+    return admit
+
+
+def _slot_fail_factors(crit: dict, m) -> list:
+    """Which of a slot's 3 factors a strategy's stored metrics fail (empty = passes)."""
+    if m is None or m.pfnet is None:
+        return ["no_metrics"]
+    out = []
+    if not (crit["pf_min"] <= m.pfnet <= crit["pf_max"]):
+        out.append("pfnet")
+    if (m.n_trades or 0) < crit["min_trades"]:
+        out.append("min_trades")
+    mh = crit["max_hold_hrs"]
+    if mh is not None and (m.avg_held_hrs is None or m.avg_held_hrs > mh):
+        out.append("max_hold")
+    return out
+
+
+def _viability_admit_slot(registry_name: str | None) -> str | None:
+    """B-1513: the slot of the active definition that admitted this registry name (None if none did)."""
+    if not registry_name:
+        return None
+    _load_viable_overrides()
+    return _VIABLE_ADMIT_SLOT.get(registry_name)
+
+
+def _viability_admit_slot_for_tag(strategy_tag: str | None) -> str | None:
+    return _viability_admit_slot(_STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or ""))
+
+
 _VIABLE_OVERRIDES_CACHE: dict = {}
 _VIABLE_OVERRIDES_TTL_S = 3.0
 
@@ -15882,15 +16152,24 @@ def _load_viable_overrides() -> set:
         key = (tuple(row) if row else None, id(sr.REGISTRY), len(sr.REGISTRY))
         if _VIABLE_OVERRIDES_CACHE.get("key") == key:
             names = _VIABLE_OVERRIDES_CACHE["names"]
+            admit = _VIABLE_OVERRIDES_CACHE["admit"]
+            active = _VIABLE_OVERRIDES_CACHE["active"]
         else:
-            crit = _stack_criteria(row[1]) if row else None
-            names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
-            _VIABLE_OVERRIDES_CACHE.update(key=key, names=names)
+            # B-1513: OR over the enabled rule slots of the newest entry (a legacy entry is one slot).
+            slots = _stack_slots(row[1], row[0]) if row else []
+            admit = _slots_admit_map(slots)
+            names = set(admit)
+            active = any(s.get("enabled") for s in slots)
+            _VIABLE_OVERRIDES_CACHE.update(key=key, names=names, admit=admit, active=active)
         _VIABLE_OVERRIDES_CACHE["ts"] = _now
         if sr.VIABLE_OVERRIDES != names:  # B-1379: never empty the shared set under a concurrent reader when unchanged
             sr.VIABLE_OVERRIDES.clear()
             sr.VIABLE_OVERRIDES.update(names)
-        sr.VIABLE_STACK_ACTIVE = row is not None
+        if _VIABLE_ADMIT_SLOT != admit:
+            _VIABLE_ADMIT_SLOT.clear()
+            _VIABLE_ADMIT_SLOT.update(admit)
+        # Zero enabled slots = no definition loaded (today's empty-stack behaviour), never a silent open.
+        sr.VIABLE_STACK_ACTIVE = bool(row is not None and active)
     except Exception:
         pass
     return sr.VIABLE_OVERRIDES
@@ -16273,11 +16552,57 @@ def _entry_reject_flag(status) -> str:
     return "other"
 
 
+def _is_placed_entry_status(status) -> bool:
+    st = str(status or "")
+    return st in ("confirmed", "placed", "filled", "ok") or st.startswith(("placed", "filled", "ok", "confirmed"))
+
+
+ENTRY_FUNNEL_BUCKET_S = 900          # B-1514: 15-min buckets
+ENTRY_FUNNEL_KEEP_S = 48 * 3600      # prune beyond 48 h (the view is rolling 24 h)
+ENTRY_FUNNEL_PRUNE_EVERY_S = 600
+_entry_funnel_last_prune = [0.0]
+
+
+def _record_funnel_event(conn, kind, strategy=None, side=None, symbol=None, status=None, flag=None, slot=None,
+                         ts=None) -> None:
+    """B-1514: one entry-funnel event into entry_funnel_events (15-min bucket upsert). Never raises."""
+    try:
+        now = float(ts if ts is not None else time.time())
+        bucket = now - (now % ENTRY_FUNNEL_BUCKET_S)
+        conn.execute(
+            "INSERT INTO entry_funnel_events (bucket_ts, last_ts, kind, strategy, side, symbol, status, flag, slot, n) "
+            "VALUES (?,?,?,?,?,?,?,?,?,1) ON CONFLICT (bucket_ts, kind, strategy, side, symbol, status, slot) "
+            "DO UPDATE SET n = n + 1, last_ts = MAX(last_ts, excluded.last_ts)",
+            (bucket, now, str(kind), str(strategy or ""), str(side or ""), str(symbol or ""), str(status or ""),
+             str(flag or ""), str(slot or "")))
+        if now - _entry_funnel_last_prune[0] >= ENTRY_FUNNEL_PRUNE_EVERY_S:
+            _entry_funnel_last_prune[0] = now
+            conn.execute("DELETE FROM entry_funnel_events WHERE last_ts < ?", (now - ENTRY_FUNNEL_KEEP_S,))
+    except Exception as e:  # noqa: BLE001
+        print(f"[entry_funnel] event record failed (non-fatal): {e}")
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
                        strategy=None, leg=None):
     if status == "skipped_strategy_not_viable":
         detail = _stamp_viability_reason(detail, strategy)
+    _slot = None
+    if leg != "exit" and strategy and _is_placed_entry_status(status):
+        # B-1513: which View 1 viability slot admitted this real entry (stamped for View 4 / the audit trail)
+        try:
+            _slot = _viability_admit_slot_for_tag(strategy)
+        except Exception:
+            _slot = None
+        if _slot:
+            _tail = "viability_slot=" + re.sub(r"\s+", "_", _slot)
+            detail = f"{detail} {_tail}" if detail else _tail
+    if leg != "exit":
+        _st = str(status or "")
+        _record_funnel_event(
+            conn, "reject" if _st.startswith("skipped") else ("placed" if _is_placed_entry_status(_st) else "failed"),
+            strategy=strategy, side=side, symbol=symbol, status=_st,
+            flag=_entry_reject_flag(_st) if _st.startswith("skipped") else None, slot=_slot)
     if leg == "exit":
         # B-1408: exit/cover rows carry their position's strategy tag, so /entry-funnel cannot tell them from entries
         # by tag or side (NHPC's cover read as a 'placed' gap_and_go entry, 2026-10-28). Mark them explicitly.
@@ -19734,7 +20059,7 @@ def _run_index_swing_option_scan(conn):
         return
     t = ist_now()
     today = t.strftime("%Y-%m-%d")
-    if t.weekday() >= 5 or _index_swing_option_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
+    if _nse_closed_day(t) or _index_swing_option_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
         return
     _index_swing_option_scan_day = today
     for sym in _INDEX_SWING_OPTION_SYMBOLS:
@@ -19909,7 +20234,7 @@ def _run_fo_strike_setup_scan(conn):
     if now - _fo_strike_scan_last_ts < FO_STRIKE_SETUP_SCAN_SECONDS:
         return
     t = ist_now()
-    if t.weekday() >= 5 or not ((9, 15) <= (t.hour, t.minute) < (15, 30)):
+    if _nse_closed_day(t) or not ((9, 15) <= (t.hour, t.minute) < (15, 30)):
         return
     _fo_strike_scan_last_ts = now
     real_ok = is_real_fo_trading_enabled()
@@ -22126,9 +22451,14 @@ def _exchange_purge_window(now_ist=None) -> bool:
     expected state, not an app failure. Also gates swing SL (re)placement retries
     (B-1444: Kotak rejects SL/SL-M in the CAS session, 15:15+ IST); never gates an exit."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    mins = n.hour * 60 + n.minute
+    if mins < 15 * 60 + 15 and _tick_open_override(n, "nse"):
+        return False  # B-1512: live ticks prove an (unlisted) session is trading; the 15:15+ CAS rule still holds
+    sp = nse_special_session(n)  # B-1511: a special session's own open replaces 09:15
+    if sp:
+        return mins >= 15 * 60 + 15 or mins < sp[0]
     if n.weekday() >= 5:
         return True
-    mins = n.hour * 60 + n.minute
     return mins >= 15 * 60 + 15 or mins < 9 * 60 + 15
 
 
@@ -22849,6 +23179,8 @@ _GENERIC_MIRROR_TABLES = (
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
     "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
+    "entry_funnel_events",
+    "pending_open_triggers",  # B-1512
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -22867,7 +23199,7 @@ _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
 # strategy_viable_stack have their own dedicated mirrors and are not in this generic loop.
 _GENERIC_MIRROR_T1 = ("trading_control", "real_trading_control", "positions", "signal_state", "signal_state_short",
                       "real_fo_positions", "option_state", "signal_state_swing_short", "real_positions_swing_short",
-                      "swing_entry_stop", "swing_trail_peak", "swing_exit_variant")
+                      "swing_entry_stop", "swing_trail_peak", "swing_exit_variant", "pending_open_triggers")
 _GENERIC_MIRROR_UPSTASH_TABLES = tuple(sorted((t for t in _GENERIC_MIRROR_TABLES if t not in _GENERIC_MIRROR_GIT_TIER),
                                               key=lambda t: 0 if t in _GENERIC_MIRROR_T1 else 1))  # stable: T1 first
 # B-1302: loud /health alarm when the mirror itself gets an auth/suspension answer (401/403) from Upstash, separate
@@ -22896,7 +23228,7 @@ _generic_mirror_last_hash: dict = {}
 # the Upstash tier pushes at most every _GENERIC_MIRROR_SLOW_SEC on the tick path; an explicit only=(...) call is immediate.
 _GENERIC_MIRROR_SLOW_TABLES = ("nse_straddle_state", "signal_state_fo_options", "tracked_union",
                                "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today",
-                               "kotak_fill_ledger")
+                               "kotak_fill_ledger", "entry_funnel_events")
 _GENERIC_MIRROR_SLOW_SEC = 300
 _generic_mirror_last_push_ts: dict = {}
 
@@ -22971,9 +23303,12 @@ _UPSTASH_OFF_HOURS_SLOWDOWN = 6  # B-1342: outside NSE hours (and weekends) dash
 def _upstash_in_market_hours() -> bool:
     """Weekday 09:00-15:45 IST (NSE session plus a small buffer either side)."""
     now_local = ist_now()
+    m = now_local.hour * 60 + now_local.minute
+    sp = nse_special_session(now_local)  # B-1511
+    if sp:
+        return sp[0] - 15 <= m <= sp[1] + 15
     if now_local.weekday() >= 5:
         return False
-    m = now_local.hour * 60 + now_local.minute
     return 9 * 60 <= m <= 15 * 60 + 45
 
 
@@ -24288,6 +24623,32 @@ def _record_blocked_trigger(tag: str):
         _strategy_blocked_triggers.clear()
         _strategy_blocked_triggers["_day"] = day
     _strategy_blocked_triggers[tag] = _strategy_blocked_triggers.get(tag, 0) + 1
+    # B-1514: durable, rolling-24h copy (the in-memory counter resets at restart and at IST midnight). Buffered, not
+    # written here: call sites sit inside scan loops that may hold their own write transaction.
+    with _FUNNEL_PENDING_LOCK:
+        _FUNNEL_PENDING.append((time.time(), str(tag)))
+
+
+_FUNNEL_PENDING: list = []
+_FUNNEL_PENDING_LOCK = threading.Lock()
+
+
+def _flush_funnel_pending() -> int:
+    """B-1514: write buffered gate-closed triggers into entry_funnel_events (scheduler tick + /entry-funnel)."""
+    with _FUNNEL_PENDING_LOCK:
+        items = list(_FUNNEL_PENDING)
+        _FUNNEL_PENDING.clear()
+    if not items:
+        return 0
+    try:
+        with closing(get_db()) as _c:
+            for ts, tag in items:
+                _record_funnel_event(_c, "blocked_trigger", strategy=tag, status="gate_closed", flag="viability", ts=ts)
+            _c.commit()
+        return len(items)
+    except Exception as e:  # noqa: BLE001
+        print(f"[entry_funnel] blocked-trigger flush failed (non-fatal): {e}")
+        return 0
 
 
 # B-1274 stage 1: per-symbol record of every distinct strategy tag evaluated today (IST day), fed by
@@ -24990,9 +25351,17 @@ def _nse_equity_market_open_now() -> bool:
     attempted while the exchange itself is closed - see that function's
     docstring for the bug this exists to fix."""
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+    return _nse_equity_calendar_open(now_local) or _tick_open_override(now_local, "nse")  # B-1512: ticks prove open
+
+
+def _nse_equity_calendar_open(now_local) -> bool:
+    """Calendar-only half of _nse_equity_market_open_now (B-1512)."""
+    mins_now = now_local.hour * 60 + now_local.minute
+    sp = nse_special_session(now_local)  # B-1511: Muhurat etc. use their own window
+    if sp:
+        return sp[0] <= mins_now <= sp[1]
     if now_local.weekday() >= 5:
         return False
-    mins_now = now_local.hour * 60 + now_local.minute
     return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
 
 
@@ -25025,8 +25394,9 @@ def _nse_market_hours_between(start, end) -> float:
     total, day = 0.0, start.date()
     while day <= end.date():
         if is_nse_trading_day(day):
-            o = dt.datetime.combine(day, dt.time(9, 15))
-            c = dt.datetime.combine(day, dt.time(15, 30))
+            sp = nse_special_session(day)  # B-1511: Muhurat counts only its own window
+            o = dt.datetime.combine(day, dt.time(*divmod(sp[0], 60)) if sp else dt.time(9, 15))
+            c = dt.datetime.combine(day, dt.time(*divmod(sp[1], 60)) if sp else dt.time(15, 30))
             lo, hi = max(o, start), min(c, end)
             if hi > lo:
                 total += (hi - lo).total_seconds() / 3600.0
@@ -25413,6 +25783,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         # leg) is never attempted while NSE is closed. Checked before the PFnet gate so the B-1372 counter only
         # counts in-session rejections.
         _log_real_attempt(conn, symbol, "B", "skipped_market_closed", strategy=strategy)
+        _queue_open_trigger(conn, "swing", symbol, strategy, paper_entry_price, paper_stop_loss, None, paper_qty,
+                            signal_ref=f"signal_state_swing:{symbol}")  # B-1512: replayed at the market-open event
         return
 
     _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
@@ -25801,7 +26173,10 @@ def _retry_pending_real_swing_orders(conn):
         "SELECT symbol, strategy, entry_day, entry_price, initial_stop_loss, qty "
         "FROM signal_state_swing WHERE entry_day = ?", (today,)
     ).fetchall()
+    _queued = _open_trigger_symbols_queued(conn)  # B-1512: the open-event queue owns these until it resolves them
     for row in open_paper:
+        if row["symbol"] in _queued:
+            continue
         has_real = conn.execute(
             "SELECT 1 FROM real_positions_swing WHERE symbol = ?", (row["symbol"],)
         ).fetchone()
@@ -27879,7 +28254,7 @@ def _run_chan_gap_short_scan(conn=None):
     now = ist_now()
     today_str = now.strftime("%Y-%m-%d")
     mins = now.hour * 60 + now.minute
-    if now.weekday() >= 5 or not (CHAN_GAP_SCAN_START_MIN <= mins < CHAN_GAP_SCAN_END_MIN):
+    if _nse_closed_day(now) or not (CHAN_GAP_SCAN_START_MIN <= mins < CHAN_GAP_SCAN_END_MIN):
         return "outside_window"
     if _chan_gap_short_scan_day == today_str:
         return "already_done"
@@ -30372,6 +30747,10 @@ async def _scheduler_tick():
             print(f"[order_log] B-1448 tick flush failed (non-fatal): {e}")
         if _no_entry_day_check(conn):  # B-1509: durable record of a trading day with zero real entries
             _git_tier_push_wake.set()
+        try:  # B-1512: market-open event (protect every holding first, then replay market_closed triggers)
+            await _real_off_loop(_market_open_event_check)
+        except Exception as e:  # noqa: BLE001
+            print(f"[B-1512] market-open event check failed (non-fatal): {e}")
         if _nse_equity_market_open_now():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
@@ -30643,6 +31022,10 @@ async def _scheduler_tick():
 
     global _scheduler_tick_count
     _scheduler_tick_count += 1
+    try:
+        await asyncio.to_thread(_flush_funnel_pending)  # B-1514: before the mirror push so it rides this pass
+    except Exception as e:
+        print(f"[entry_funnel] tick flush failed (non-fatal): {e}")
     try:
         await asyncio.to_thread(sync_generic_tables_external)
     except Exception as e:
@@ -30941,6 +31324,7 @@ async def _start_scheduler():
     # (Kotak has none), still no order placement.
     try:
         import kotak_live_feed
+        kotak_live_feed.on_trade_advance = _on_feed_trade_advance  # B-1512: a live trade print wakes the open event
         asyncio.create_task(kotak_live_feed.run_feed([cfg["symbol"] for cfg in WATCHLIST]))
     except Exception as e:
         print(f"[kotak_live_feed] not started: {e}")
@@ -31476,9 +31860,15 @@ def _viable_stack_rows(c, full: bool = False) -> list:
     rows = []
     for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall():
         names = json.loads(r[3])
-        crit = _stack_criteria(r[2])
-        e = {"id": r[0], "created_at": r[1], "label": r[2], "criteria": crit,
-             "count": len(_names_meeting_criteria(crit)) if crit else len(names)}
+        slots = _stack_slots(r[2], r[3])
+        admit = _slots_admit_map(slots)
+        # B-1513: `criteria` stays the single-rule view (legacy readers); `slots` carries every rule with its count.
+        crit = _stack_criteria(r[2]) or (slots[0]["criteria"] if len(slots) == 1 else None)
+        e = {"id": r[0], "created_at": r[1], "label": r[2], "criteria": crit, "count": len(admit),
+             "slots": [{"name": s["name"], "enabled": s["enabled"], "criteria": s.get("criteria"),
+                        "count": len(_slot_names(s)),
+                        "admits_first": sum(1 for v in admit.values() if v == s["name"])} for s in slots],
+             "enabled_slots": sum(1 for s in slots if s["enabled"])}
         if full:
             e["created_at_ist"] = dt.datetime.fromtimestamp(r[1], tz=dt.timezone(dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S IST")
             e["names"] = names
@@ -31802,9 +32192,9 @@ def viable_strategy_names():
         r = c.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
     if not r:
         return {"count": 0, "names": [], "label": None}
-    crit = _stack_criteria(r[0])
-    names = sorted(_names_meeting_criteria(crit)) if crit else sorted(json.loads(r[1]))
-    return {"count": len(names), "names": names, "label": r[0]}
+    admit = _slots_admit_map(_stack_slots(r[0], r[1]))  # B-1513: union of the enabled slots
+    names = sorted(admit)
+    return {"count": len(names), "names": names, "label": r[0], "slot_of": {n: admit[n] for n in names}}
 
 
 @app.get("/strategy-viable-stack")
@@ -31840,6 +32230,53 @@ def _live_entry_gate_summary(conn) -> dict:
         "checked_at": time.time(),
     }
     out["unlock_hint"] = _viability_unlock_hint(conn, out["rejected_today"])
+    try:
+        out["slots"] = _viability_slots_summary(conn, out["rejected_today"])
+    except Exception as e:  # noqa: BLE001
+        out["slots"] = []
+        print(f"[viability] slots summary failed (non-fatal): {e}")
+    return out
+
+
+def _viability_slots_summary(conn, rejected: dict | None = None, day: str | None = None) -> list:
+    """B-1513: per slot of the active definition (View 4): enabled, the 3 factors, how many strategies it admits
+    (and admits first, in slot order), real entries it admitted today, and today's viability rejects counted against
+    it by failing factor (every rejected attempt failed every enabled slot, or it would have been admitted)."""
+    row = conn.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+    if not row:
+        return []
+    slots = _stack_slots(row[0], row[1])
+    admit = _slots_admit_map(slots)
+    day = day or ist_now().strftime("%Y-%m-%d")
+    placed: dict = {}
+    try:
+        for (det,) in conn.execute("SELECT detail FROM real_trades WHERE day = ? AND detail LIKE ?",
+                                   (day, "%viability_slot=%")).fetchall():
+            m = re.search(r"viability_slot=(\S+)", str(det or ""))
+            if m and not str(det).startswith(REAL_EXIT_ROW_MARK):
+                placed[m.group(1)] = placed.get(m.group(1), 0) + 1
+    except Exception:
+        pass
+    out = []
+    for i, sl in enumerate(slots, start=1):
+        fails = {"pfnet": 0, "min_trades": 0, "max_hold": 0, "no_metrics": 0, "not_in_list": 0}
+        rej = 0
+        for r in ((rejected or {}).get("by_strategy", []) if sl["enabled"] else []):  # a disabled slot judges nothing
+            reg = _STRATEGY_TAG_TO_REGISTRY_NAME.get(r["strategy"])
+            strat = _registry_entry(reg) if reg else None
+            m = strat.metrics if strat is not None else None
+            if sl.get("criteria"):
+                ff = _slot_fail_factors(sl["criteria"], m)
+            else:
+                ff = [] if (reg and reg in set(sl.get("names") or [])) else ["not_in_list"]
+            if ff:
+                rej += r["count"]
+                for f in ff:
+                    fails[f] = fails.get(f, 0) + r["count"]
+        out.append({"index": i, "name": sl["name"], "enabled": sl["enabled"], "criteria": sl.get("criteria"),
+                    "count": len(_slot_names(sl)), "admits_first": sum(1 for v in admit.values() if v == sl["name"]),
+                    "placed_today": placed.get(re.sub(r"\s+", "_", sl["name"]), 0),
+                    "rejects_today": rej, "rejects_by_factor": {k: v for k, v in fails.items() if v}})
     return out
 
 
@@ -31944,9 +32381,13 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
     metrics. `easiest` is the one needing the fewest factor changes (then the smallest PFnet drop, then the most
     rejected attempts). A guide only: nothing here changes the live definition."""
     crit = None
+    slot_crits = []  # B-1513: (slot name, criteria) of every enabled 3-factor slot; the hint picks the easiest slot
     try:
-        row = conn.execute("SELECT label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
-        crit = _stack_criteria(row[0]) if row else None
+        row = conn.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            slot_crits = [(sl["name"], sl["criteria"]) for sl in _stack_slots(row[0], row[1])
+                          if sl.get("enabled") and sl.get("criteria")]
+        crit = slot_crits[0][1] if slot_crits else None
     except Exception:
         pass
     per = []
@@ -31975,13 +32416,21 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
             e["replay_owed"] = True
         if tag in REPLAY_FAILED_TAGS:
             e["replay_below_floor"] = True
-        needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
-                 "min_trades": min(crit["min_trades"], e["n_trades"]),
-                 "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (
-                     m.avg_held_hrs is not None and m.avg_held_hrs <= crit["max_hold_hrs"]) else (
-                     None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        def _needs(cr):
+            return {"pf_min": min(cr["pf_min"], m.pfnet), "pf_max": max(cr["pf_max"], m.pfnet),
+                    "min_trades": min(cr["min_trades"], e["n_trades"]),
+                    "max_hold_hrs": cr["max_hold_hrs"] if cr["max_hold_hrs"] is None or (
+                        m.avg_held_hrs is not None and m.avg_held_hrs <= cr["max_hold_hrs"]) else (
+                        None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        best = None
+        for _sn, _cr in slot_crits:
+            _nd = _needs(_cr)
+            _ch = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if _nd[k] != _cr[k]]
+            _rank = (len(_ch), _cr["pf_min"] - _nd["pf_min"])
+            if best is None or _rank < best[0]:
+                best = (_rank, _sn, _cr, _nd, _ch)
+        _, e["slot"], e["criteria"], needs, e["changes"] = best
         e["needs"] = needs
-        e["changes"] = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if needs[k] != crit[k]]
         if not e["changes"]:
             # B-1390: the stamped reasons (recorded at skip time) replace the old guess. Rows logged before the stamp
             # existed read not_recorded.
@@ -31990,8 +32439,9 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
                 "passes the active definition now; reason not recorded"
         per.append(e)
     fix = [e for e in per if e["fixable"] and e.get("changes")]
-    easiest = min(fix, key=lambda e: (len(e["changes"]), crit["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
-    return {"criteria": crit, "per_strategy": per, "easiest": easiest}
+    easiest = min(fix, key=lambda e: (len(e["changes"]), e["criteria"]["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
+    return {"criteria": crit, "per_strategy": per, "easiest": easiest,
+            "slots": [{"name": n, "criteria": c} for n, c in slot_crits]}
 
 
 @app.post("/strategy-viable-override")
@@ -32005,10 +32455,30 @@ async def strategy_viable_override(request: Request):
     import strategy_registry as sr
     body = await request.json()
     action = body.get("action", "set")
-    if action not in ("set", "undo", "restore", "relabel"):
-        raise HTTPException(status_code=400, detail="action must be set, undo, restore or relabel")
+    if action not in ("set", "set_slots", "undo", "restore", "relabel"):
+        raise HTTPException(status_code=400, detail="action must be set, set_slots, undo, restore or relabel")
     with closing(get_db()) as c:
-        if action == "set":
+        if action == "set_slots":
+            # B-1513: push a NEW definition holding an ordered list of named rule slots (OR of the enabled ones).
+            raw = body.get("slots")
+            if not isinstance(raw, list) or not raw:
+                raise HTTPException(status_code=400, detail="slots must be a non-empty list")
+            if len(raw) > VIABLE_SLOTS_MAX:
+                raise HTTPException(status_code=400, detail=f"at most {VIABLE_SLOTS_MAX} slots")
+            slots = []
+            for i, d in enumerate(raw, start=1):
+                sl = _slot_from_dict(d, i) if isinstance(d, dict) else None
+                if sl is None:
+                    raise HTTPException(status_code=400, detail=f"slot {i}: bad PFnet range / min trades / max hold")
+                slots.append(sl)
+            if len({sl["name"].lower() for sl in slots}) != len(slots):
+                raise HTTPException(status_code=400, detail="slot names must be unique")
+            if not any(sl["enabled"] for sl in slots):
+                raise HTTPException(status_code=400, detail="keep at least one slot enabled (use the ALL TRADING "
+                                                            "switch to stop new real trades)")
+            c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                      (time.time(), _slots_label(slots), json.dumps(sorted(_slots_admit_map(slots)))))
+        elif action == "set":
             known = {d.name for d in sr.REGISTRY if d.metrics is not None}
             names = sorted({n for n in (body.get("names") or []) if n in known})
             if not names:
@@ -32018,6 +32488,10 @@ async def strategy_viable_override(request: Request):
         elif action == "relabel":
             # B-897: name a legacy entry (saved before filters were stored) in place; names/created_at untouched.
             label = str(body.get("label") or "").strip()[:120]
+            _cur = c.execute("SELECT label FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
+            if _cur and str(_cur[0] or "").startswith(VIABLE_SLOTS_PREFIX):
+                # B-1513: a slots entry's label IS its definition; renaming would erase it. Edit slots instead.
+                raise HTTPException(status_code=400, detail="a multi-slot entry is renamed by editing its slots")
             if not label:
                 raise HTTPException(status_code=400, detail="label required")
             cur = c.execute("UPDATE strategy_viable_stack SET label = ? WHERE id = ?", (label, body.get("id")))
@@ -32078,6 +32552,7 @@ def entry_funnel():
     statuses (every skipped_* reason _log_real_attempt records) and a verdict
     ('no viable strategy' vs 'no setup fired' vs 'setups blocked by ...')."""
     day = ist_now().strftime("%Y-%m-%d")
+    _flush_funnel_pending()  # B-1514: buffered gate-closed triggers land before the rolling window is read
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
                "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
@@ -32151,7 +32626,26 @@ def entry_funnel():
             key = "blocked" if _skipped else ("placed" if _is_placed else "failed")  # B-1285: rejected/errored = failed
             _r[key] += n
             o[key] += n
+    try:  # B-1513: which View 1 viability slot admitted each placed entry today (stamped by _log_real_attempt)
+        with closing(get_db()) as _c:
+            _top = _c.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+            _slot_by_stamp = {re.sub(r"\s+", "_", sl["name"]): sl["name"] for sl in
+                              (_stack_slots(_top[0], _top[1]) if _top else [])}
+            for strat, side, det in _c.execute(
+                    "SELECT strategy, side, detail FROM real_trades WHERE day = ? AND detail LIKE ?",
+                    (day, "%viability_slot=%")).fetchall():
+                if str(det or "").startswith(REAL_EXIT_ROW_MARK):
+                    continue
+                _m = re.search(r"viability_slot=(\S+)", str(det or ""))
+                for c in (tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]):
+                    if c in out and _m:
+                        _pb = out[c].setdefault("placed_by_slot", {})
+                        _sn = _slot_by_stamp.get(_m.group(1), _m.group(1))
+                        _pb[_sn] = _pb.get(_sn, 0) + 1
+    except Exception:
+        pass
     for c, o in out.items():
+        o.setdefault("placed_by_slot", {})
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         # B-1509: gate-closed triggers (wired cell fired, viability closed before the paper row) are viability rejects
         _fl = o.setdefault("reject_flags", {"viability": 0, "money": 0, "other": 0})
@@ -32172,7 +32666,127 @@ def entry_funnel():
         else:
             o["verdict"] = "entries flowing"
         o["attempts"] = [{"status": k, **v} for k, v in sorted(o["attempts"].items(), key=lambda kv: -kv[1]["attempts"])]
-    return {"day": day, "categories": out, "as_of_epoch": time.time()}
+    now = time.time()
+    try:
+        rolling = _entry_funnel_window(now - 24 * 3600, tag_cats, {c: o["viable_strategies"] for c, o in out.items()})
+    except Exception as e:  # noqa: BLE001
+        rolling = {"error": str(e)[:200], "categories": {}}
+    # B-1514: `day`/`categories` kept as-is (today, IST) for existing readers; `today` repeats it, `rolling_24h` adds
+    # the last 24 h from the durable entry_funnel_events table (survives a restart and the IST midnight reset).
+    try:  # B-1512: triggers that fired while the market was closed, and what the open event did with them
+        with closing(get_db()) as _qc:
+            queued = _queued_at_open_summary(_qc, day)
+    except Exception as e:  # noqa: BLE001
+        queued = {"error": str(e)}
+    return {"day": day, "categories": out, "as_of_epoch": now, "queued_at_open": queued,
+            "today": {"day": day, "categories": out}, "rolling_24h": rolling}
+
+
+def _paper_entries_since(since_ts: float) -> dict:
+    """Paper 'buy' entries per strategy tag since since_ts (swing rows carry the tag in raw_payload.entry_reason)."""
+    out: dict = {}
+    with closing(get_db()) as conn:
+        for r in conn.execute("SELECT strategy, raw_payload FROM trades WHERE action = 'buy' AND ts >= ?",
+                              (since_ts,)).fetchall():
+            tag = r["strategy"]
+            if tag == SWING_STRATEGY_TAG:
+                try:
+                    tag = (json.loads(r["raw_payload"]) or {}).get("entry_reason") or tag
+                except (TypeError, ValueError):
+                    pass
+            out[str(tag)] = out.get(str(tag), 0) + 1
+    return out
+
+
+def _entry_funnel_window(since_ts: float, tag_cats: dict, viable_by_cat: dict | None = None) -> dict:
+    """B-1514: the entry funnel over [since_ts, now] from entry_funnel_events (15-min bucket resolution: a bucket is
+    included when its newest event is inside the window). Same per-category shape and same rules as the today block
+    (exits are never recorded; untagged non-skipped rows are not entry attempts; a long's sell / short's cover is not
+    an entry), plus `placed_by_slot` (B-1513: the View 1 viability slot that admitted each placed entry)."""
+    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    out = {c: {"attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "blocked_triggers": 0,
+               "paper_entries": 0, "reject_flags": {"viability": 0, "money": 0, "other": 0},
+               "placed_by_slot": {}, "_strats": {}, "_fired": set()} for c in cats}
+
+    def _srow(o, tag):
+        return o["_strats"].setdefault(str(tag), {"strategy": str(tag), "fired": 0, "placed": 0, "blocked": 0,
+                                                 "failed": 0, "blocked_triggers": 0, "symbols_fired": 0,
+                                                 "skip_reasons": {}, "slots": {}})
+    with closing(get_db()) as conn:
+        rows = conn.execute(
+            "SELECT kind, strategy, side, status, flag, slot, SUM(n), COUNT(DISTINCT symbol) FROM entry_funnel_events "
+            "WHERE last_ts >= ? GROUP BY kind, strategy, side, status, flag, slot", (since_ts,)).fetchall()
+        oldest = conn.execute("SELECT MIN(bucket_ts) FROM entry_funnel_events WHERE last_ts >= ?",
+                              (since_ts,)).fetchone()[0]
+    for kind, strat, side, status, flag, slot, n, syms in rows:
+        n = int(n or 0)
+        if kind == "blocked_trigger":
+            for c in (tag_cats.get(strat) or []):
+                if c in out:
+                    out[c]["blocked_triggers"] += n
+                    out[c]["reject_flags"]["viability"] += n
+                    _srow(out[c], strat)["blocked_triggers"] += n
+                    out[c]["_fired"].add(strat)
+            continue
+        _skipped = kind == "reject"
+        if not strat and not _skipped:
+            continue
+        cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
+        _short_tag = "short" in re.split(r"[_\-]+", str(strat or "").lower())
+        for c in cs:
+            if c not in out:
+                continue
+            if not _skipped and c != "bidirectional":
+                _entry_side = "S" if (c == "short_sell" or _short_tag) else "B"
+                if not str(side).upper().startswith(_entry_side):
+                    continue
+            o = out[c]
+            o["_fired"].add(strat)
+            d = o["attempts"].setdefault(status, {"attempts": 0, "symbols": 0})
+            d["attempts"] += n
+            d["symbols"] += int(syms or 0)
+            r = _srow(o, strat)
+            r["symbols_fired"] += int(syms or 0)
+            if _skipped:
+                r["skip_reasons"][status] = r["skip_reasons"].get(status, 0) + n
+                o["reject_flags"][flag if flag in o["reject_flags"] else _entry_reject_flag(status)] += n
+            key = "blocked" if _skipped else ("placed" if kind == "placed" else "failed")
+            r[key] += n
+            o[key] += n
+            if key == "placed":
+                _sk = slot or "not_recorded"
+                o["placed_by_slot"][_sk] = o["placed_by_slot"].get(_sk, 0) + n
+                r["slots"][_sk] = r["slots"].get(_sk, 0) + n
+    try:
+        paper = _paper_entries_since(since_ts)
+    except Exception:
+        paper = {}
+    for tag, n in paper.items():
+        for c in (tag_cats.get(tag) or []):
+            if c in out:
+                out[c]["paper_entries"] += n
+                _srow(out[c], tag)["fired"] += n
+                out[c]["_fired"].add(tag)
+    for c, o in out.items():
+        o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
+        o["strategies_fired"] = len(o.pop("_fired"))
+        o["strategies"] = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
+        for r in o["strategies"]:
+            r["attempts_total"] = r["attempts"] = r["placed"] + r["blocked"] + r["failed"]
+        o["attempts"] = [{"status": k, **v} for k, v in sorted(o["attempts"].items(), key=lambda kv: -kv[1]["attempts"])]
+        if viable_by_cat is not None and not viable_by_cat.get(c):
+            o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
+        elif o["blocked"] and not o["placed"]:
+            o["verdict"] = "setups fired but every real entry was blocked - see reasons"
+        elif not o["paper_entries"] and not o["placed"] and not o["attempts_total"]:
+            o["verdict"] = "no setup fired in the last 24 h"
+        else:
+            o["verdict"] = "entries flowing"
+    ist = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    _f = lambda e: dt.datetime.fromtimestamp(e, tz=ist).strftime("%Y-%m-%d %H:%M IST")  # noqa: E731
+    return {"window_hours": 24, "since_epoch": since_ts, "since_ist": _f(since_ts), "until_ist": _f(time.time()),
+            "bucket_minutes": ENTRY_FUNNEL_BUCKET_S // 60,
+            "oldest_event_ist": _f(oldest) if oldest else None, "categories": out}
 
 
 @app.get("/strategy-viable-buckets")
@@ -34239,7 +34853,7 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label:
     if not (ltp > 0 and stop > 0 and stop >= ltp * 0.999):
         return False
     _n = ist_now()
-    if _n.weekday() >= 5 or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
+    if _nse_closed_day(_n) or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
         return False  # outside the session a market sell is rejected; the 09:15 pass handles it
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
@@ -35249,6 +35863,302 @@ def _unprotected_backcheck_once() -> bool:
         _unprotected_backcheck_lock.release()
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# B-1512 (2026-11-07/09, user: "whenever the market opens for whichever stock/symbol, you know it, place new entry
+# orders, maintain them, place SL or trailing SL on holdings ... Auto-manage"). A market-open EVENT per segment per
+# session: on the closed -> open transition (calendar window OR live-tick evidence, see _tick_open_override), checked
+# every scheduler tick and woken by the live feed, it (a) runs the Kotak-first protection pass for every holding /
+# position (_unprotected_backcheck_once = _reconcile_real_positions_core(adopt="*"): positions/holdings, order book,
+# then act; it only places an SL the live order book shows missing, so it never doubles the 09:14:55 open-protect
+# thread), (b) THEN replays the real entries that were skipped only because the market was closed
+# (pending_open_triggers), and (c) writes one durable `market_open_event` row to real_order_events with the evidence.
+# ---------------------------------------------------------------------------------------------------------------
+MARKET_OPEN_SEGMENTS = ("nse", "mcx")
+OPEN_TRIGGER_REPLAY_MINUTES = 30  # queued triggers are retried from the open event until open + 30 min
+# A replay that ends in one of these stays queued for the next tick (transient); any other skipped_*/failed is final.
+OPEN_TRIGGER_RETRY_STATUSES = frozenset({"skipped_market_closed", "skipped_no_live_tick", "skipped_real_pnl_unknown",
+                                         "skipped_replay_error"})
+_OPEN_TRIGGER_PLACED = ("confirmed", "placed", "filled", "ok")
+_MARKET_OPEN_STATE: dict = {}  # segment -> {"open": bool, "fired_day": str, "fired_at": epoch}
+_market_open_event_lock = threading.Lock()
+_market_open_wake_last: dict = {}
+
+
+def _queue_open_trigger(conn, engine, symbol, strategy, entry_price, stop_loss, target_price, qty, signal_ref=None):
+    """Persist a real entry skipped only because the market is closed, for the next session's open event. A re-fired
+    trigger refreshes its levels while still queued. Never raises."""
+    try:
+        n = ist_now()
+        mins = n.hour * 60 + n.minute
+        sp = nse_special_session(n)
+        close_min = sp[1] if sp else 15 * 60 + 30
+        day = n.date()
+        if _tick_open_override(n, "nse"):
+            pass  # a tick-proven (unlisted) session is today's session
+        elif not (_nse_calendar_trading_day(day) and mins <= close_min):
+            for _ in range(10):  # otherwise the next calendar session
+                day = day + dt.timedelta(days=1)
+                if _nse_calendar_trading_day(day):
+                    break
+        now = time.time()
+        conn.execute(
+            "INSERT INTO pending_open_triggers (session_day, engine, symbol, strategy, entry_price, stop_loss, "
+            "target_price, qty, fired_at_ist, signal_ref, status, attempts, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?, ?) "
+            "ON CONFLICT(session_day, engine, symbol, strategy) DO UPDATE SET entry_price = excluded.entry_price, "
+            "stop_loss = excluded.stop_loss, target_price = excluded.target_price, qty = excluded.qty, "
+            "fired_at_ist = excluded.fired_at_ist, updated_at = excluded.updated_at "
+            "WHERE pending_open_triggers.status = 'queued'",
+            (day.strftime("%Y-%m-%d"), engine, symbol, strategy or "", entry_price, stop_loss, target_price,
+             int(qty or 0), n.strftime("%Y-%m-%d %H:%M:%S IST"), signal_ref, now, now))
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] could not queue {engine} trigger {symbol} (non-fatal): {e}")
+
+
+def _segment_open_now(segment: str) -> bool:
+    if segment == "nse":
+        return bool(_nse_equity_market_open_now())
+    return _market_live_open(segment)  # MCX: tick evidence only (no MCX calendar in this app)
+
+
+def _ist_day_start_epoch(day: str) -> float:
+    d = dt.datetime.strptime(day, "%Y-%m-%d")
+    return (d - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def _market_open_event_row(conn, segment, day):
+    return conn.execute(
+        "SELECT ts FROM real_order_events WHERE symbol = ? AND event = 'market_open_event' AND ts >= ? "
+        "ORDER BY id DESC LIMIT 1", (f"MARKET:{segment.upper()}", _ist_day_start_epoch(day))).fetchone()
+
+
+def _market_open_protect() -> dict:
+    """Protection pass first (single-flight with the 5-min backcheck: when one is already running, wait for it)."""
+    t0 = time.time()
+    try:
+        if _unprotected_backcheck_once():
+            return {"ok": True, "ran": "reconcile adopt=*", "seconds": round(time.time() - t0, 1)}
+        if _unprotected_backcheck_lock.acquire(timeout=180):
+            _unprotected_backcheck_lock.release()
+            return {"ok": True, "ran": "joined the in-flight 5-min reconcile", "seconds": round(time.time() - t0, 1)}
+        return {"ok": False, "ran": "in-flight reconcile still busy after 180 s", "seconds": round(time.time() - t0, 1)}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e), "seconds": round(time.time() - t0, 1)}
+
+
+def _market_open_event_check(conn, protect=None, replay=None) -> list:
+    """Fire the market-open event once per segment per IST day on the closed -> open transition; on later ticks keep
+    replaying queued triggers (until open + 30 min) and expire finished sessions. Returns the segments fired. A
+    restart mid-session finds the durable row and does not fire again. Never raises."""
+    protect = protect or _market_open_protect
+    replay = replay or _replay_open_triggers
+    fired = []
+    if not _market_open_event_lock.acquire(blocking=False):
+        return fired
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        for seg in MARKET_OPEN_SEGMENTS:
+            st = _MARKET_OPEN_STATE.setdefault(seg, {"open": False, "fired_day": None, "fired_at": None})
+            try:
+                is_open = bool(_segment_open_now(seg))
+            except Exception:  # noqa: BLE001
+                is_open = False
+            if is_open and st.get("fired_day") != day:
+                prior = _market_open_event_row(conn, seg, day)
+                if prior:
+                    st.update(fired_day=day, fired_at=float(prior[0]))
+                else:
+                    ev = _market_live_evidence(seg)
+                    cal = bool(seg == "nse" and _nse_equity_calendar_open(ist_now()))
+                    why = "calendar session window" if cal else "live ticks: " + str(ev.get("reason"))
+                    st.update(fired_day=day, fired_at=time.time())
+                    prot = protect()  # (a) protect every holding / position FIRST
+                    rep = replay(conn, force=True) if seg == "nse" else {"note": f"no queued-entry engine for {seg}"}
+                    _log_real_order_event(
+                        conn, f"MARKET:{seg.upper()}", "market", "market_open_event",
+                        prev_state="closed", new_state="open",
+                        detail=json.dumps({"segment": seg, "calendar_open": cal, "ticks": ev, "protection": prot,
+                                           "replay": rep}, default=str)[:4000],
+                        reason=f"{seg.upper()} market opened ({why}): protection pass, then queued-entry replay")
+                    fired.append(seg)
+            elif is_open and seg == "nse":
+                replay(conn)  # later ticks: transient-skip triggers retried until open + 30 min
+            st["open"] = is_open
+        _expire_open_triggers(conn)
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] market-open event check failed (non-fatal): {e}")
+    finally:
+        _market_open_event_lock.release()
+    return fired
+
+
+def _market_open_event_check_own_conn():
+    with closing(get_db()) as c:
+        return _market_open_event_check(c)
+
+
+def _on_feed_trade_advance(segment: str) -> None:
+    """kotak_live_feed hook (runs on the event loop): wake the detector in a thread when a segment that has not fired
+    today may have just opened. At most once per 5 s per segment; cheap otherwise. Never raises."""
+    try:
+        if (_MARKET_OPEN_STATE.get(segment) or {}).get("fired_day") == ist_now().strftime("%Y-%m-%d"):
+            return
+        now = time.time()
+        if now - _market_open_wake_last.get(segment, 0.0) < 5.0:
+            return
+        _market_open_wake_last[segment] = now
+        if not _segment_open_now(segment):
+            return
+        threading.Thread(target=_market_open_event_check_own_conn, name="market-open-event", daemon=True).start()
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] feed wake failed (non-fatal; the scheduler tick still checks): {e}")
+
+
+def _open_trigger_resolve(conn, row, status, outcome, final_event, reason):
+    conn.execute("UPDATE pending_open_triggers SET status = ?, outcome = ?, attempts = attempts + 1, updated_at = ? "
+                 "WHERE id = ?", (status, outcome, time.time(), row["id"]))
+    conn.commit()
+    _log_real_order_event(conn, row["symbol"], "entry", final_event, prev_state="queued at open",
+                          new_state=status, detail=f"{row['engine']} {row['strategy']}: {outcome}", reason=reason)
+
+
+def _replay_one_swing_trigger(conn, row):
+    """Re-validate and place one queued swing trigger through the swing engine's OWN entry function (session, PFnet /
+    View 1 viability, sector cap, entry cutoff, live price vs signal tolerance, stop below price = gap through stop,
+    money, duplicates, SL attach). Returns (status, detail) of the attempt it logged."""
+    paper = conn.execute("SELECT qty, entry_price, initial_stop_loss, strategy FROM signal_state_swing "
+                         "WHERE symbol = ?", (row["symbol"],)).fetchone()
+    if not paper or (row["strategy"] and str(paper["strategy"]) != row["strategy"]):
+        return "skipped_paper_signal_gone", "the paper swing signal row is no longer open"
+    ts0 = time.time() - 0.001
+    _maybe_place_real_swing_entry(conn, row["symbol"], int(paper["qty"] or row["qty"] or 0),
+                                  float(paper["entry_price"] or row["entry_price"] or 0),
+                                  paper["initial_stop_loss"] if paper["initial_stop_loss"] is not None else row["stop_loss"],
+                                  paper["strategy"])
+    got = conn.execute("SELECT status, detail FROM real_trades WHERE symbol = ? AND side = 'B' AND ts >= ? "
+                       "AND (detail IS NULL OR detail NOT LIKE ?) ORDER BY id DESC LIMIT 1",
+                       (row["symbol"], ts0, REAL_EXIT_ROW_MARK + "%")).fetchone()
+    if not got:
+        return "skipped_real_switch_off_or_orphan", "the swing engine took no attempt (real swing switch off or orphan tag)"
+    return str(got["status"]), str(got["detail"] or "")
+
+
+# engine -> replay. Only the swing engine skips on `market_closed`: the intraday buy/short engines scan in session only.
+_OPEN_TRIGGER_REPLAYERS = {"swing": _replay_one_swing_trigger}
+
+
+def _session_open_epoch_today():
+    st = _MARKET_OPEN_STATE.get("nse") or {}
+    return st.get("fired_at") if st.get("fired_day") == ist_now().strftime("%Y-%m-%d") else None
+
+
+def _open_trigger_symbols_queued(conn) -> set:
+    """Symbols the open-event queue still owns: queued today, inside the open + 30 min replay window (or before the open
+    event). After the window the pre-existing all-day swing retry may still try them with the same gates."""
+    opened = _session_open_epoch_today()
+    if opened is not None and time.time() > opened + OPEN_TRIGGER_REPLAY_MINUTES * 60:
+        return set()
+    try:
+        return {r[0] for r in conn.execute("SELECT symbol FROM pending_open_triggers WHERE status = 'queued' "
+                                           "AND session_day = ?", (ist_now().strftime("%Y-%m-%d"),)).fetchall()}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def _replay_open_triggers(conn, force: bool = False) -> dict:
+    """Replay today's queued triggers, only after today's NSE open event (so after the protection pass) and until
+    open + OPEN_TRIGGER_REPLAY_MINUTES. Every final outcome is logged with a reason. Never raises."""
+    out = {"placed": 0, "dropped": 0, "requeued": 0, "considered": 0}
+    try:
+        opened = _session_open_epoch_today()
+        if opened is None:
+            out["skipped"] = "no NSE open event yet today (protection runs first)"
+            return out
+        if not _nse_equity_market_open_now():
+            out["skipped"] = "market closed"
+            return out
+        if not force and time.time() > opened + OPEN_TRIGGER_REPLAY_MINUTES * 60:
+            out["skipped"] = f"past open + {OPEN_TRIGGER_REPLAY_MINUTES} min"
+            return out
+        rows = conn.execute("SELECT * FROM pending_open_triggers WHERE status = 'queued' AND session_day = ? "
+                            "ORDER BY id", (ist_now().strftime("%Y-%m-%d"),)).fetchall()
+        for row in rows:
+            out["considered"] += 1
+            fn = _OPEN_TRIGGER_REPLAYERS.get(row["engine"])
+            if fn is None:
+                _open_trigger_resolve(conn, row, "dropped", f"skipped_no_replay_path: engine {row['engine']}",
+                                      "queued_trigger_dropped", "engine has no open-replay path")
+                out["dropped"] += 1
+                continue
+            try:
+                status, detail = fn(conn, row)
+            except Exception as e:  # noqa: BLE001
+                status, detail = "skipped_replay_error", str(e)
+            if status in _OPEN_TRIGGER_PLACED or status.startswith(_OPEN_TRIGGER_PLACED):
+                _open_trigger_resolve(conn, row, "placed", status, "queued_trigger_placed",
+                                      f"trigger queued at {row['fired_at_ist']} (market closed) passed fresh "
+                                      f"re-validation at the open; placed by the {row['engine']} engine with its SL")
+                out["placed"] += 1
+            elif status in OPEN_TRIGGER_RETRY_STATUSES:
+                conn.execute("UPDATE pending_open_triggers SET attempts = attempts + 1, outcome = ?, updated_at = ? "
+                             "WHERE id = ?", (f"{status}: {detail}"[:500], time.time(), row["id"]))
+                conn.commit()
+                out["requeued"] += 1
+            else:
+                _open_trigger_resolve(conn, row, "dropped", f"{status}: {detail}"[:500], "queued_trigger_dropped",
+                                      f"queued trigger failed fresh re-validation at the open: {status}")
+                out["dropped"] += 1
+    except Exception as e:  # noqa: BLE001
+        out["error"] = str(e)
+    return out
+
+
+def _expire_open_triggers(conn) -> int:
+    """Expire queued triggers whose session is over: an older session_day, or today's once the NSE session that
+    opened today has closed again. Each logged with its reason. Never raises."""
+    n = 0
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        st = _MARKET_OPEN_STATE.get("nse") or {}
+        over_today = 1 if (st.get("fired_day") == day and not st.get("open")) else 0
+        rows = conn.execute("SELECT * FROM pending_open_triggers WHERE status = 'queued' AND (session_day < ? OR "
+                            "(session_day = ? AND ? = 1))", (day, day, over_today)).fetchall()
+        for row in rows:
+            if row["engine"] == "swing" and conn.execute(
+                    "SELECT 1 FROM real_positions_swing WHERE symbol = ? AND day = ?",
+                    (row["symbol"], row["session_day"])).fetchone():
+                _open_trigger_resolve(conn, row, "placed", "confirmed: placed later in the session by the swing retry",
+                                      "queued_trigger_placed", "queued trigger was placed after the 30-min open window")
+                continue
+            _open_trigger_resolve(conn, row, "expired",
+                                  f"skipped_session_ended: session {row['session_day']} ended unplaced; last: "
+                                  f"{row['outcome'] or 'never replayed'}"[:500], "queued_trigger_expired",
+                                  "queued trigger was not placed before its session ended")
+            n += 1
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] expiry sweep failed (non-fatal): {e}")
+    return n
+
+
+def _queued_at_open_summary(conn, day: str) -> dict:
+    """/entry-funnel `queued_at_open`: the day's queue size and outcomes per engine, plus drop reasons."""
+    out = {"session_day": day, "queued": 0, "placed": 0, "dropped": 0, "expired": 0, "by_engine": {},
+           "drop_reasons": {}, "open_event_fired": (_MARKET_OPEN_STATE.get("nse") or {}).get("fired_day") == day}
+    try:
+        for eng, status, cnt in conn.execute("SELECT engine, status, COUNT(*) FROM pending_open_triggers "
+                                             "WHERE session_day = ? GROUP BY engine, status", (day,)).fetchall():
+            out[status] = out.get(status, 0) + int(cnt)
+            out["by_engine"].setdefault(eng, {})[status] = int(cnt)
+        for (outcome,) in conn.execute("SELECT outcome FROM pending_open_triggers WHERE session_day = ? "
+                                       "AND status IN ('dropped', 'expired')", (day,)).fetchall():
+            k = str(outcome or "").split(":", 1)[0] or "unknown"
+            out["drop_reasons"][k] = out["drop_reasons"].get(k, 0) + 1
+    except Exception as e:  # noqa: BLE001
+        out["error"] = str(e)
+    return out
+
+
 def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
     """B-1354 (2026-10-23): CLAUDE.md requires the unprotected-position backcheck every 5 min, enforced in-process.
     It rode the scheduler tick ("every 10 ticks"), but one tick scans hundreds of symbols and can take minutes, so on
@@ -35274,10 +36184,15 @@ def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
     so protect-first never waits on the tick or on where the 5-min cycle falls."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
     base = float(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
-    if n.weekday() >= 5:
+    sp = nse_special_session(n)  # B-1511: wake at a special session's own open (Muhurat 14:20 IST)
+    if sp:
+        open_at = n.replace(hour=sp[0] // 60, minute=sp[0] % 60, second=1, microsecond=0)
+        window_end = open_at + dt.timedelta(minutes=15)
+    elif n.weekday() >= 5:
         return base
-    open_at = n.replace(hour=9, minute=15, second=1, microsecond=0)
-    window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
+    else:
+        open_at = n.replace(hour=9, minute=15, second=1, microsecond=0)
+        window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
     if open_at <= n < window_end:
         return float(_OPEN_PROTECT_EVERY_SECONDS)
     if n < open_at:
@@ -35330,6 +36245,9 @@ def _in_open_protect_window(now_ist: dt.datetime | None = None) -> bool:
     """B-1481: 09:15:00-09:30 IST on a weekday. No resting SL survives the exchange's 15:15 IST purge, so in this window
     an unreadable order book must not block an SL placement (B-1462's no-blind-place rule applies outside it)."""
     now_ist = now_ist or _ist_now_aware()
+    sp = nse_special_session(now_ist)  # B-1511: first 15 min of a special session
+    if sp:
+        return sp[0] <= now_ist.hour * 60 + now_ist.minute < sp[0] + 15
     if now_ist.weekday() >= 5:
         return False
     return (9, 15) <= (now_ist.hour, now_ist.minute) < (9, 30)

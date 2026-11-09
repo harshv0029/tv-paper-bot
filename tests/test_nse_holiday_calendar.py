@@ -12,9 +12,9 @@ def test_normal_weekday_trades():
     assert main.is_nse_trading_day(dt.date(2026, 10, 21))
 
 
-def test_weekend_and_muhurat_sunday_not_normal_day():
+def test_weekend_closed_but_muhurat_sunday_is_a_session():
     assert not main.is_nse_trading_day("2026-10-24")
-    assert not main.is_nse_trading_day("2026-11-08")
+    assert main.is_nse_trading_day("2026-11-08")  # B-1511: Muhurat 14:20-15:30 IST (user: full trading)
 
 
 def test_fails_open_on_error():

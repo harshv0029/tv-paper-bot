@@ -40,6 +40,7 @@ name: Kotak Real Position Reconciliation
 on:
   schedule:
     - cron: "*/5 3-10 * * 1-5"
+    - cron: "*/5 8-10 8 11 *"  # B-1511: Muhurat Sun 8 Nov 13:30-16:25 IST (secondary check; in-process tick is primary)
   workflow_dispatch:
     inputs:
       adopt:

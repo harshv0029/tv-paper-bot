@@ -1829,3 +1829,30 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - n=0 on a registered strategy means "the replay cannot see it", never "it does not trade": check the inputs before reading any metric.
 - Ops: 8 shards x 2,667 symbols x 12 exit modes ran past the 340-min job timeout and lost every killed shard's output. 24 shards finish in 2-4 h each.
 - Profit-booking / exit takeaway: rsscreen's best exit is breakeven-at-2R (trailbe2r); leaders and rsline do best on the plain resting stop. Exit variants stay in return-per-day order per tag, never one exit style for the whole family.
+
+## B-1511 Muhurat special session (2026-11-07 IST)
+
+- **Mechanism:** NSE's Diwali Muhurat session runs on Sunday 2026-11-08, 14:20-15:30 IST (closing-auction stocks stop at 15:15). Trades in it are real and settle normally. The bot had about 17 bare `weekday() >= 5` gates, so it would have sat out the session and left overnight holdings without a resting SL for that hour.
+- **Fix:** one table, `NSE_SPECIAL_SESSIONS`, feeds every session gate. The user chose full trading: entries, exits and SL protection.
+- **Fit / caveat:** no strategy here has been backtested on a 70-minute evening session.
+  - Indicators reading "today's bars" see only the Muhurat bars.
+  - Daily-bar swing signals see Friday's completed bar.
+  - Expect thin liquidity and wide spreads. The 0.8% cost model understates slippage there.
+- **Reuse:** any future special session (Muhurat 2027, a Budget-day Saturday) is one row in `NSE_SPECIAL_SESSIONS`. Never use bare weekday checks in new gates; use `_nse_closed_day`.
+- **Profit-booking / exit takeaway:** stops must rest from the session's own open, not 09:15. The 15:15 IST CAS purge and the no-SL-after-15:15 rule still apply. Review Muhurat fills in the Kotak trade book on Monday before trusting any result from the session.
+
+## B-1513 / B-1514 multiple viability slots and a rolling 24 h reject view (2026-11-09 IST)
+
+- **Mechanism:** the View 1 viability definition is now an ordered list of named rule slots (PFnet range, min trades, max avg hold each). Real money may enter a strategy when ANY enabled slot admits it; the first admitting slot is stamped on the entry. View 4 shows rejects and placements over a rolling 24 h window that survives restarts.
+- **Fit for this system:** different edges need different gates. A short-hold, high-PFnet intraday cell and a long-hold swing cell with a huge sample cannot share one max-hold or min-trades threshold without either blocking one or loosening the other. Slots let each class of strategy keep its own tight bar. The PFnet floor for wiring, SL on every trade and the ALL TRADING switch are unchanged.
+- **Result:** no backtest (infrastructure). Measurement now exists: per slot, View 4 shows real entries admitted today and which factor rejected the rest, so each slot can be judged on its own live outcome.
+- **What surprised or broke:** the old day-keyed counters reset at IST midnight and on restart, so a reject pattern seen in the evening was gone by morning. A slot whose label is its definition cannot be "renamed" in place without erasing it, so rename is refused for slot entries.
+- **Reuse:** before loosening a single global threshold to admit one strategy, add a narrow slot for that strategy class instead. Check the slot's "placed" vs the Kotak trade book after a week before keeping it.
+- **Profit-booking / exit takeaway:** judge each slot by the net P&L of the entries it admitted (Kotak trade book, joined on the `viability_slot=` stamp). Disable a slot whose admitted trades lose money after costs instead of tightening every other slot.
+## B-1512 Market-open event and the closed-market trigger queue (2026-11-09 IST)
+
+- **Mechanism:** on 2026-11-09 the swing first pass fired 109 swing + 2 buy triggers before 09:15 IST and every real entry logged `skipped_market_closed`. Those triggers now wait in `pending_open_triggers` (Upstash-mirrored). A market-open event per segment per session (calendar window, or live ticks proving trades) first runs the Kotak-first protection pass for every holding, then replays the queue through the swing engine's own entry function, then writes a durable `market_open_event` row.
+- **Tick evidence:** Kotak sends a snapshot on every subscribe, even when closed, so a tick is never proof by itself. Proof = 2+ symbols printing a new trade (volume up or trade time advanced) within 120 s, both prints dated today IST and fresh. The pre-open first print (baseline = yesterday) never counts. Ticks open the gates only on a day the calendar does not know as a regular session, so unlisted Muhurat / Budget Saturday sessions work without a code change.
+- **Fit:** every queued trigger is re-validated fresh at the open (PFnet / View 1 viability, sector cap, money, duplicates, live price within 2% of the signal, stop still below the price). A gap through the stop or beyond tolerance is dropped with a logged reason, never chased. No entry ever opens without its SL (the engine attaches it as usual). No new kill switch.
+- **Reuse:** any new engine that can skip on "market closed" adds one replayer to `_OPEN_TRIGGER_REPLAYERS`. Never `return` on a closed market without queuing or logging.
+- **Profit-booking / exit takeaway:** pre-open signals were the day's biggest lost opportunity. Replaying them at the open keeps the edge, but only within 2% of the signal price: an opening gap is the market already taking that profit, and chasing it lowers the expected return per trade. Protection runs before any new entry, so overnight holdings are never left naked while the bot buys.
