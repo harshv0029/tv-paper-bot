@@ -20339,7 +20339,19 @@
    "prev_state": "long 5 @ Rs164.93",
    "new_state": "closed",
    "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 1696,
+   "ts": 1794206983.7487586,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261109000519865",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1207.50",
+   "detail": "reason: swing entry signal from strategy minervini_vcp_livermore passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-09T06:49:39Z"
+ "synced_at_utc": "2026-11-09T06:49:59Z"
 }
