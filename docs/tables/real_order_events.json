@@ -20267,7 +20267,31 @@
    "prev_state": "long 4 @ Rs450.75",
    "new_state": "closed",
    "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 1690,
+   "ts": 1794206944.3889265,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261109000012076",
+   "prev_state": "resting @ Rs279.25",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 1691,
+   "ts": 1794206944.4047117,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 4 @ Rs287.15",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__line_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-09T06:47:32Z"
+ "synced_at_utc": "2026-11-09T06:49:08Z"
 }
