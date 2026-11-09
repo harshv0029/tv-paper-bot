@@ -27,9 +27,9 @@ def test_counts_today_per_strategy_and_ignores_other_rows():
     c.execute("INSERT INTO real_trades (day, symbol, side, status, strategy) VALUES ('2026-10-25','X','B',"
               "'skipped_strategy_not_viable','gap_and_go')")
     r = main._viability_rejections_today(c, day)
-    assert r["total"] == 6
+    assert r["total"] == 5  # B-1533: the repeated TCS skip is written once (first skip only)
     by = {(x["strategy"], x["segment"]): x for x in r["by_strategy"]}
-    assert by[("gap_and_go", "equity")]["count"] == 3 and by[("gap_and_go", "equity")]["symbols"] == 2
+    assert by[("gap_and_go", "equity")]["count"] == 2 and by[("gap_and_go", "equity")]["symbols"] == 2
     assert by[("long_straddle", "fo")]["count"] == 2 and by[("long_straddle", "fo")]["symbols"] == 1
     assert by[("chan_gap_short", "equity")]["sides"] == "S"
     assert r["by_strategy"][0]["strategy"] == "gap_and_go"
