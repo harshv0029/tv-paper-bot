@@ -1327,6 +1327,33 @@ def init_db():
             )
             """
         )
+        # B-1512 (2026-11-09): real entries skipped ONLY because the market was closed (swing first pass / pre-open
+        # scans: 109 swing + 2 buy triggers blocked `market_closed` at 08:37 IST) wait here for the session's open
+        # event, are re-validated fresh through the engine's own entry function, and end placed / dropped / expired
+        # with a logged reason. One row per (session_day, engine, symbol, strategy). Upstash T1 mirror.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pending_open_triggers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_day TEXT NOT NULL,
+                engine TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                strategy TEXT NOT NULL DEFAULT '',
+                entry_price REAL,
+                stop_loss REAL,
+                target_price REAL,
+                qty INTEGER,
+                fired_at_ist TEXT,
+                signal_ref TEXT,
+                status TEXT NOT NULL DEFAULT 'queued',
+                outcome TEXT,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                created_at REAL,
+                updated_at REAL,
+                UNIQUE(session_day, engine, symbol, strategy)
+            )
+            """
+        )
         # B-1443 (2026-11-02): durable Kotak fill ledger for View 4's ROC KPIs. Kotak positions() is today-only, so
         # each IST day's filled buy/sell qty and value per trading symbol + product is upserted here from Kotak's own
         # numbers (never shrinks within a day), plus one-time 'opening' rows for holdings open when the ledger began
@@ -3608,13 +3635,95 @@ def _nse_special_session_open(now_local=None, symbol: str | None = None) -> bool
 
 
 def _nse_closed_day(now_local=None, symbol: str | None = None) -> bool:
-    """B-1511: weekend AND not inside a special session (replaces bare `weekday() >= 5` gates)."""
+    """B-1511: weekend AND not inside a special session (replaces bare `weekday() >= 5` gates).
+    B-1512: also not closed while live ticks prove the symbol's segment is trading (unlisted special sessions)."""
     n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
-    return n.weekday() >= 5 and not _nse_special_session_open(n, symbol)
+    if n.weekday() < 5 or _nse_special_session_open(n, symbol):
+        return False
+    return not _tick_open_override(n, _segment_of_symbol(symbol))
 
 
 def is_nse_trading_day(date=None) -> bool:
-    """Weekday and not an NSE holiday. date: dt.date/datetime/ISO str; default today IST. Fails open (True)."""
+    """Weekday and not an NSE holiday (or a listed special session). date: dt.date/datetime/ISO str; default today
+    IST. Fails open (True). B-1512: TODAY is also a trading day while live ticks prove NSE is trading."""
+    if _nse_calendar_trading_day(date):
+        return True
+    try:
+        n = ist_now()
+        if date is None or (date[:10] if isinstance(date, str) else date.strftime("%Y-%m-%d")) == n.strftime("%Y-%m-%d"):
+            return _tick_open_override(n, "nse")
+    except Exception:
+        pass
+    return False
+
+
+# B-1512 (2026-11-09, user: "when you receive a live ticker for any trade you hold, assume the market is open"):
+# live-tick evidence of an open market (kotak_live_feed.market_live_evidence: >= 2 symbols of the segment printed a
+# NEW trade today within 120 s; a snapshot on subscribe never counts). It opens the NSE gates ONLY on a day the
+# calendar does not know as a regular trading day (weekend, holiday, a special-session day outside its listed window),
+# so an unlisted Muhurat / Budget Saturday works by itself, while the pre-open (09:00-09:15) and post-close sessions of
+# a normal weekday never open anything. Fails CLOSED (no evidence = calendar only) for entries. Cached 2 s.
+_MARKET_LIVE_CACHE: dict = {}
+_MARKET_LIVE_CACHE_SECONDS = 2.0
+
+
+def _segment_of_symbol(symbol) -> str | None:
+    if symbol is None:
+        return "nse"
+    u = str(symbol).upper()
+    if u.endswith((".NS", ".BO")) or u.startswith("^"):
+        return "nse"
+    if u.endswith("=F"):
+        return "mcx"
+    return None
+
+
+def _market_live_evidence(segment: str = "nse") -> dict:
+    """Tick evidence dict for `segment` ('nse' | 'mcx'): open, reason, count, symbols. Never raises (fails closed)."""
+    hit = _MARKET_LIVE_CACHE.get(segment)
+    if hit and time.time() - hit[0] < _MARKET_LIVE_CACHE_SECONDS:
+        return hit[1]
+    try:
+        import kotak_live_feed
+        ev = kotak_live_feed.market_live_evidence(segment)
+    except Exception as e:  # noqa: BLE001
+        ev = {"open": False, "reason": f"tick evidence unavailable: {e}", "count": 0, "symbols": [], "segment": segment}
+    _MARKET_LIVE_CACHE[segment] = (time.time(), ev)
+    return ev
+
+
+def _market_live_open(segment: str = "nse") -> bool:
+    """B-1512: True when live ticks prove `segment` is trading right now (see _market_live_evidence)."""
+    return bool(_market_live_evidence(segment).get("open"))
+
+
+def _nse_regular_trading_day(day) -> bool:
+    return day.weekday() < 5 and day.strftime("%Y-%m-%d") not in NSE_HOLIDAYS_2026
+
+
+def _tick_open_override(now_local=None, segment: str | None = "nse") -> bool:
+    """B-1512: live ticks open `segment` now, on a day the calendar does not treat as a regular trading day. Only for
+    a live 'now' (a past/future now_local never uses today's ticks). Never raises."""
+    if segment is None:
+        return False
+    try:
+        real = ist_now()
+        n = now_local or real
+        if n.tzinfo is not None:
+            n = n.replace(tzinfo=None)
+        if abs((n - real).total_seconds()) > 120:
+            return False
+        if segment == "nse" and _nse_regular_trading_day(n):
+            return False
+        if segment == "mcx" and n.weekday() < 5:
+            return False
+        return _market_live_open(segment)
+    except Exception:
+        return False
+
+
+def _nse_calendar_trading_day(date=None) -> bool:
+    """Calendar-only is_nse_trading_day (no tick evidence)."""
     try:
         if date is None:
             date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
@@ -22343,6 +22452,8 @@ def _exchange_purge_window(now_ist=None) -> bool:
     (B-1444: Kotak rejects SL/SL-M in the CAS session, 15:15+ IST); never gates an exit."""
     n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
     mins = n.hour * 60 + n.minute
+    if mins < 15 * 60 + 15 and _tick_open_override(n, "nse"):
+        return False  # B-1512: live ticks prove an (unlisted) session is trading; the 15:15+ CAS rule still holds
     sp = nse_special_session(n)  # B-1511: a special session's own open replaces 09:15
     if sp:
         return mins >= 15 * 60 + 15 or mins < sp[0]
@@ -23069,6 +23180,7 @@ _GENERIC_MIRROR_TABLES = (
     "signal_state_swing_short", "real_positions_swing_short",
     "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
     "entry_funnel_events",
+    "pending_open_triggers",  # B-1512
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -23087,7 +23199,7 @@ _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
 # strategy_viable_stack have their own dedicated mirrors and are not in this generic loop.
 _GENERIC_MIRROR_T1 = ("trading_control", "real_trading_control", "positions", "signal_state", "signal_state_short",
                       "real_fo_positions", "option_state", "signal_state_swing_short", "real_positions_swing_short",
-                      "swing_entry_stop", "swing_trail_peak", "swing_exit_variant")
+                      "swing_entry_stop", "swing_trail_peak", "swing_exit_variant", "pending_open_triggers")
 _GENERIC_MIRROR_UPSTASH_TABLES = tuple(sorted((t for t in _GENERIC_MIRROR_TABLES if t not in _GENERIC_MIRROR_GIT_TIER),
                                               key=lambda t: 0 if t in _GENERIC_MIRROR_T1 else 1))  # stable: T1 first
 # B-1302: loud /health alarm when the mirror itself gets an auth/suspension answer (401/403) from Upstash, separate
@@ -25239,6 +25351,11 @@ def _nse_equity_market_open_now() -> bool:
     attempted while the exchange itself is closed - see that function's
     docstring for the bug this exists to fix."""
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+    return _nse_equity_calendar_open(now_local) or _tick_open_override(now_local, "nse")  # B-1512: ticks prove open
+
+
+def _nse_equity_calendar_open(now_local) -> bool:
+    """Calendar-only half of _nse_equity_market_open_now (B-1512)."""
     mins_now = now_local.hour * 60 + now_local.minute
     sp = nse_special_session(now_local)  # B-1511: Muhurat etc. use their own window
     if sp:
@@ -25666,6 +25783,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         # leg) is never attempted while NSE is closed. Checked before the PFnet gate so the B-1372 counter only
         # counts in-session rejections.
         _log_real_attempt(conn, symbol, "B", "skipped_market_closed", strategy=strategy)
+        _queue_open_trigger(conn, "swing", symbol, strategy, paper_entry_price, paper_stop_loss, None, paper_qty,
+                            signal_ref=f"signal_state_swing:{symbol}")  # B-1512: replayed at the market-open event
         return
 
     _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
@@ -26054,7 +26173,10 @@ def _retry_pending_real_swing_orders(conn):
         "SELECT symbol, strategy, entry_day, entry_price, initial_stop_loss, qty "
         "FROM signal_state_swing WHERE entry_day = ?", (today,)
     ).fetchall()
+    _queued = _open_trigger_symbols_queued(conn)  # B-1512: the open-event queue owns these until it resolves them
     for row in open_paper:
+        if row["symbol"] in _queued:
+            continue
         has_real = conn.execute(
             "SELECT 1 FROM real_positions_swing WHERE symbol = ?", (row["symbol"],)
         ).fetchone()
@@ -30625,6 +30747,10 @@ async def _scheduler_tick():
             print(f"[order_log] B-1448 tick flush failed (non-fatal): {e}")
         if _no_entry_day_check(conn):  # B-1509: durable record of a trading day with zero real entries
             _git_tier_push_wake.set()
+        try:  # B-1512: market-open event (protect every holding first, then replay market_closed triggers)
+            await _real_off_loop(_market_open_event_check)
+        except Exception as e:  # noqa: BLE001
+            print(f"[B-1512] market-open event check failed (non-fatal): {e}")
         if _nse_equity_market_open_now():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
@@ -31198,6 +31324,7 @@ async def _start_scheduler():
     # (Kotak has none), still no order placement.
     try:
         import kotak_live_feed
+        kotak_live_feed.on_trade_advance = _on_feed_trade_advance  # B-1512: a live trade print wakes the open event
         asyncio.create_task(kotak_live_feed.run_feed([cfg["symbol"] for cfg in WATCHLIST]))
     except Exception as e:
         print(f"[kotak_live_feed] not started: {e}")
@@ -32546,7 +32673,12 @@ def entry_funnel():
         rolling = {"error": str(e)[:200], "categories": {}}
     # B-1514: `day`/`categories` kept as-is (today, IST) for existing readers; `today` repeats it, `rolling_24h` adds
     # the last 24 h from the durable entry_funnel_events table (survives a restart and the IST midnight reset).
-    return {"day": day, "categories": out, "as_of_epoch": now,
+    try:  # B-1512: triggers that fired while the market was closed, and what the open event did with them
+        with closing(get_db()) as _qc:
+            queued = _queued_at_open_summary(_qc, day)
+    except Exception as e:  # noqa: BLE001
+        queued = {"error": str(e)}
+    return {"day": day, "categories": out, "as_of_epoch": now, "queued_at_open": queued,
             "today": {"day": day, "categories": out}, "rolling_24h": rolling}
 
 
@@ -35729,6 +35861,302 @@ def _unprotected_backcheck_once() -> bool:
         return True
     finally:
         _unprotected_backcheck_lock.release()
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# B-1512 (2026-11-07/09, user: "whenever the market opens for whichever stock/symbol, you know it, place new entry
+# orders, maintain them, place SL or trailing SL on holdings ... Auto-manage"). A market-open EVENT per segment per
+# session: on the closed -> open transition (calendar window OR live-tick evidence, see _tick_open_override), checked
+# every scheduler tick and woken by the live feed, it (a) runs the Kotak-first protection pass for every holding /
+# position (_unprotected_backcheck_once = _reconcile_real_positions_core(adopt="*"): positions/holdings, order book,
+# then act; it only places an SL the live order book shows missing, so it never doubles the 09:14:55 open-protect
+# thread), (b) THEN replays the real entries that were skipped only because the market was closed
+# (pending_open_triggers), and (c) writes one durable `market_open_event` row to real_order_events with the evidence.
+# ---------------------------------------------------------------------------------------------------------------
+MARKET_OPEN_SEGMENTS = ("nse", "mcx")
+OPEN_TRIGGER_REPLAY_MINUTES = 30  # queued triggers are retried from the open event until open + 30 min
+# A replay that ends in one of these stays queued for the next tick (transient); any other skipped_*/failed is final.
+OPEN_TRIGGER_RETRY_STATUSES = frozenset({"skipped_market_closed", "skipped_no_live_tick", "skipped_real_pnl_unknown",
+                                         "skipped_replay_error"})
+_OPEN_TRIGGER_PLACED = ("confirmed", "placed", "filled", "ok")
+_MARKET_OPEN_STATE: dict = {}  # segment -> {"open": bool, "fired_day": str, "fired_at": epoch}
+_market_open_event_lock = threading.Lock()
+_market_open_wake_last: dict = {}
+
+
+def _queue_open_trigger(conn, engine, symbol, strategy, entry_price, stop_loss, target_price, qty, signal_ref=None):
+    """Persist a real entry skipped only because the market is closed, for the next session's open event. A re-fired
+    trigger refreshes its levels while still queued. Never raises."""
+    try:
+        n = ist_now()
+        mins = n.hour * 60 + n.minute
+        sp = nse_special_session(n)
+        close_min = sp[1] if sp else 15 * 60 + 30
+        day = n.date()
+        if _tick_open_override(n, "nse"):
+            pass  # a tick-proven (unlisted) session is today's session
+        elif not (_nse_calendar_trading_day(day) and mins <= close_min):
+            for _ in range(10):  # otherwise the next calendar session
+                day = day + dt.timedelta(days=1)
+                if _nse_calendar_trading_day(day):
+                    break
+        now = time.time()
+        conn.execute(
+            "INSERT INTO pending_open_triggers (session_day, engine, symbol, strategy, entry_price, stop_loss, "
+            "target_price, qty, fired_at_ist, signal_ref, status, attempts, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?, ?) "
+            "ON CONFLICT(session_day, engine, symbol, strategy) DO UPDATE SET entry_price = excluded.entry_price, "
+            "stop_loss = excluded.stop_loss, target_price = excluded.target_price, qty = excluded.qty, "
+            "fired_at_ist = excluded.fired_at_ist, updated_at = excluded.updated_at "
+            "WHERE pending_open_triggers.status = 'queued'",
+            (day.strftime("%Y-%m-%d"), engine, symbol, strategy or "", entry_price, stop_loss, target_price,
+             int(qty or 0), n.strftime("%Y-%m-%d %H:%M:%S IST"), signal_ref, now, now))
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] could not queue {engine} trigger {symbol} (non-fatal): {e}")
+
+
+def _segment_open_now(segment: str) -> bool:
+    if segment == "nse":
+        return bool(_nse_equity_market_open_now())
+    return _market_live_open(segment)  # MCX: tick evidence only (no MCX calendar in this app)
+
+
+def _ist_day_start_epoch(day: str) -> float:
+    d = dt.datetime.strptime(day, "%Y-%m-%d")
+    return (d - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def _market_open_event_row(conn, segment, day):
+    return conn.execute(
+        "SELECT ts FROM real_order_events WHERE symbol = ? AND event = 'market_open_event' AND ts >= ? "
+        "ORDER BY id DESC LIMIT 1", (f"MARKET:{segment.upper()}", _ist_day_start_epoch(day))).fetchone()
+
+
+def _market_open_protect() -> dict:
+    """Protection pass first (single-flight with the 5-min backcheck: when one is already running, wait for it)."""
+    t0 = time.time()
+    try:
+        if _unprotected_backcheck_once():
+            return {"ok": True, "ran": "reconcile adopt=*", "seconds": round(time.time() - t0, 1)}
+        if _unprotected_backcheck_lock.acquire(timeout=180):
+            _unprotected_backcheck_lock.release()
+            return {"ok": True, "ran": "joined the in-flight 5-min reconcile", "seconds": round(time.time() - t0, 1)}
+        return {"ok": False, "ran": "in-flight reconcile still busy after 180 s", "seconds": round(time.time() - t0, 1)}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": str(e), "seconds": round(time.time() - t0, 1)}
+
+
+def _market_open_event_check(conn, protect=None, replay=None) -> list:
+    """Fire the market-open event once per segment per IST day on the closed -> open transition; on later ticks keep
+    replaying queued triggers (until open + 30 min) and expire finished sessions. Returns the segments fired. A
+    restart mid-session finds the durable row and does not fire again. Never raises."""
+    protect = protect or _market_open_protect
+    replay = replay or _replay_open_triggers
+    fired = []
+    if not _market_open_event_lock.acquire(blocking=False):
+        return fired
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        for seg in MARKET_OPEN_SEGMENTS:
+            st = _MARKET_OPEN_STATE.setdefault(seg, {"open": False, "fired_day": None, "fired_at": None})
+            try:
+                is_open = bool(_segment_open_now(seg))
+            except Exception:  # noqa: BLE001
+                is_open = False
+            if is_open and st.get("fired_day") != day:
+                prior = _market_open_event_row(conn, seg, day)
+                if prior:
+                    st.update(fired_day=day, fired_at=float(prior[0]))
+                else:
+                    ev = _market_live_evidence(seg)
+                    cal = bool(seg == "nse" and _nse_equity_calendar_open(ist_now()))
+                    why = "calendar session window" if cal else "live ticks: " + str(ev.get("reason"))
+                    st.update(fired_day=day, fired_at=time.time())
+                    prot = protect()  # (a) protect every holding / position FIRST
+                    rep = replay(conn, force=True) if seg == "nse" else {"note": f"no queued-entry engine for {seg}"}
+                    _log_real_order_event(
+                        conn, f"MARKET:{seg.upper()}", "market", "market_open_event",
+                        prev_state="closed", new_state="open",
+                        detail=json.dumps({"segment": seg, "calendar_open": cal, "ticks": ev, "protection": prot,
+                                           "replay": rep}, default=str)[:4000],
+                        reason=f"{seg.upper()} market opened ({why}): protection pass, then queued-entry replay")
+                    fired.append(seg)
+            elif is_open and seg == "nse":
+                replay(conn)  # later ticks: transient-skip triggers retried until open + 30 min
+            st["open"] = is_open
+        _expire_open_triggers(conn)
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] market-open event check failed (non-fatal): {e}")
+    finally:
+        _market_open_event_lock.release()
+    return fired
+
+
+def _market_open_event_check_own_conn():
+    with closing(get_db()) as c:
+        return _market_open_event_check(c)
+
+
+def _on_feed_trade_advance(segment: str) -> None:
+    """kotak_live_feed hook (runs on the event loop): wake the detector in a thread when a segment that has not fired
+    today may have just opened. At most once per 5 s per segment; cheap otherwise. Never raises."""
+    try:
+        if (_MARKET_OPEN_STATE.get(segment) or {}).get("fired_day") == ist_now().strftime("%Y-%m-%d"):
+            return
+        now = time.time()
+        if now - _market_open_wake_last.get(segment, 0.0) < 5.0:
+            return
+        _market_open_wake_last[segment] = now
+        if not _segment_open_now(segment):
+            return
+        threading.Thread(target=_market_open_event_check_own_conn, name="market-open-event", daemon=True).start()
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] feed wake failed (non-fatal; the scheduler tick still checks): {e}")
+
+
+def _open_trigger_resolve(conn, row, status, outcome, final_event, reason):
+    conn.execute("UPDATE pending_open_triggers SET status = ?, outcome = ?, attempts = attempts + 1, updated_at = ? "
+                 "WHERE id = ?", (status, outcome, time.time(), row["id"]))
+    conn.commit()
+    _log_real_order_event(conn, row["symbol"], "entry", final_event, prev_state="queued at open",
+                          new_state=status, detail=f"{row['engine']} {row['strategy']}: {outcome}", reason=reason)
+
+
+def _replay_one_swing_trigger(conn, row):
+    """Re-validate and place one queued swing trigger through the swing engine's OWN entry function (session, PFnet /
+    View 1 viability, sector cap, entry cutoff, live price vs signal tolerance, stop below price = gap through stop,
+    money, duplicates, SL attach). Returns (status, detail) of the attempt it logged."""
+    paper = conn.execute("SELECT qty, entry_price, initial_stop_loss, strategy FROM signal_state_swing "
+                         "WHERE symbol = ?", (row["symbol"],)).fetchone()
+    if not paper or (row["strategy"] and str(paper["strategy"]) != row["strategy"]):
+        return "skipped_paper_signal_gone", "the paper swing signal row is no longer open"
+    ts0 = time.time() - 0.001
+    _maybe_place_real_swing_entry(conn, row["symbol"], int(paper["qty"] or row["qty"] or 0),
+                                  float(paper["entry_price"] or row["entry_price"] or 0),
+                                  paper["initial_stop_loss"] if paper["initial_stop_loss"] is not None else row["stop_loss"],
+                                  paper["strategy"])
+    got = conn.execute("SELECT status, detail FROM real_trades WHERE symbol = ? AND side = 'B' AND ts >= ? "
+                       "AND (detail IS NULL OR detail NOT LIKE ?) ORDER BY id DESC LIMIT 1",
+                       (row["symbol"], ts0, REAL_EXIT_ROW_MARK + "%")).fetchone()
+    if not got:
+        return "skipped_real_switch_off_or_orphan", "the swing engine took no attempt (real swing switch off or orphan tag)"
+    return str(got["status"]), str(got["detail"] or "")
+
+
+# engine -> replay. Only the swing engine skips on `market_closed`: the intraday buy/short engines scan in session only.
+_OPEN_TRIGGER_REPLAYERS = {"swing": _replay_one_swing_trigger}
+
+
+def _session_open_epoch_today():
+    st = _MARKET_OPEN_STATE.get("nse") or {}
+    return st.get("fired_at") if st.get("fired_day") == ist_now().strftime("%Y-%m-%d") else None
+
+
+def _open_trigger_symbols_queued(conn) -> set:
+    """Symbols the open-event queue still owns: queued today, inside the open + 30 min replay window (or before the open
+    event). After the window the pre-existing all-day swing retry may still try them with the same gates."""
+    opened = _session_open_epoch_today()
+    if opened is not None and time.time() > opened + OPEN_TRIGGER_REPLAY_MINUTES * 60:
+        return set()
+    try:
+        return {r[0] for r in conn.execute("SELECT symbol FROM pending_open_triggers WHERE status = 'queued' "
+                                           "AND session_day = ?", (ist_now().strftime("%Y-%m-%d"),)).fetchall()}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def _replay_open_triggers(conn, force: bool = False) -> dict:
+    """Replay today's queued triggers, only after today's NSE open event (so after the protection pass) and until
+    open + OPEN_TRIGGER_REPLAY_MINUTES. Every final outcome is logged with a reason. Never raises."""
+    out = {"placed": 0, "dropped": 0, "requeued": 0, "considered": 0}
+    try:
+        opened = _session_open_epoch_today()
+        if opened is None:
+            out["skipped"] = "no NSE open event yet today (protection runs first)"
+            return out
+        if not _nse_equity_market_open_now():
+            out["skipped"] = "market closed"
+            return out
+        if not force and time.time() > opened + OPEN_TRIGGER_REPLAY_MINUTES * 60:
+            out["skipped"] = f"past open + {OPEN_TRIGGER_REPLAY_MINUTES} min"
+            return out
+        rows = conn.execute("SELECT * FROM pending_open_triggers WHERE status = 'queued' AND session_day = ? "
+                            "ORDER BY id", (ist_now().strftime("%Y-%m-%d"),)).fetchall()
+        for row in rows:
+            out["considered"] += 1
+            fn = _OPEN_TRIGGER_REPLAYERS.get(row["engine"])
+            if fn is None:
+                _open_trigger_resolve(conn, row, "dropped", f"skipped_no_replay_path: engine {row['engine']}",
+                                      "queued_trigger_dropped", "engine has no open-replay path")
+                out["dropped"] += 1
+                continue
+            try:
+                status, detail = fn(conn, row)
+            except Exception as e:  # noqa: BLE001
+                status, detail = "skipped_replay_error", str(e)
+            if status in _OPEN_TRIGGER_PLACED or status.startswith(_OPEN_TRIGGER_PLACED):
+                _open_trigger_resolve(conn, row, "placed", status, "queued_trigger_placed",
+                                      f"trigger queued at {row['fired_at_ist']} (market closed) passed fresh "
+                                      f"re-validation at the open; placed by the {row['engine']} engine with its SL")
+                out["placed"] += 1
+            elif status in OPEN_TRIGGER_RETRY_STATUSES:
+                conn.execute("UPDATE pending_open_triggers SET attempts = attempts + 1, outcome = ?, updated_at = ? "
+                             "WHERE id = ?", (f"{status}: {detail}"[:500], time.time(), row["id"]))
+                conn.commit()
+                out["requeued"] += 1
+            else:
+                _open_trigger_resolve(conn, row, "dropped", f"{status}: {detail}"[:500], "queued_trigger_dropped",
+                                      f"queued trigger failed fresh re-validation at the open: {status}")
+                out["dropped"] += 1
+    except Exception as e:  # noqa: BLE001
+        out["error"] = str(e)
+    return out
+
+
+def _expire_open_triggers(conn) -> int:
+    """Expire queued triggers whose session is over: an older session_day, or today's once the NSE session that
+    opened today has closed again. Each logged with its reason. Never raises."""
+    n = 0
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        st = _MARKET_OPEN_STATE.get("nse") or {}
+        over_today = 1 if (st.get("fired_day") == day and not st.get("open")) else 0
+        rows = conn.execute("SELECT * FROM pending_open_triggers WHERE status = 'queued' AND (session_day < ? OR "
+                            "(session_day = ? AND ? = 1))", (day, day, over_today)).fetchall()
+        for row in rows:
+            if row["engine"] == "swing" and conn.execute(
+                    "SELECT 1 FROM real_positions_swing WHERE symbol = ? AND day = ?",
+                    (row["symbol"], row["session_day"])).fetchone():
+                _open_trigger_resolve(conn, row, "placed", "confirmed: placed later in the session by the swing retry",
+                                      "queued_trigger_placed", "queued trigger was placed after the 30-min open window")
+                continue
+            _open_trigger_resolve(conn, row, "expired",
+                                  f"skipped_session_ended: session {row['session_day']} ended unplaced; last: "
+                                  f"{row['outcome'] or 'never replayed'}"[:500], "queued_trigger_expired",
+                                  "queued trigger was not placed before its session ended")
+            n += 1
+    except Exception as e:  # noqa: BLE001
+        print(f"[B-1512] expiry sweep failed (non-fatal): {e}")
+    return n
+
+
+def _queued_at_open_summary(conn, day: str) -> dict:
+    """/entry-funnel `queued_at_open`: the day's queue size and outcomes per engine, plus drop reasons."""
+    out = {"session_day": day, "queued": 0, "placed": 0, "dropped": 0, "expired": 0, "by_engine": {},
+           "drop_reasons": {}, "open_event_fired": (_MARKET_OPEN_STATE.get("nse") or {}).get("fired_day") == day}
+    try:
+        for eng, status, cnt in conn.execute("SELECT engine, status, COUNT(*) FROM pending_open_triggers "
+                                             "WHERE session_day = ? GROUP BY engine, status", (day,)).fetchall():
+            out[status] = out.get(status, 0) + int(cnt)
+            out["by_engine"].setdefault(eng, {})[status] = int(cnt)
+        for (outcome,) in conn.execute("SELECT outcome FROM pending_open_triggers WHERE session_day = ? "
+                                       "AND status IN ('dropped', 'expired')", (day,)).fetchall():
+            k = str(outcome or "").split(":", 1)[0] or "unknown"
+            out["drop_reasons"][k] = out["drop_reasons"].get(k, 0) + 1
+    except Exception as e:  # noqa: BLE001
+        out["error"] = str(e)
+    return out
 
 
 def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
