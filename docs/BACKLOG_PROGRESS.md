@@ -18,16 +18,15 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | OPEN | 56 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
+| DEPLOYED | 12 |
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| DEPLOYED | 10 |
 | USER | 10 |
 | P3 | 9 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
-| BUILT | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | IN | 4 |
@@ -42,6 +41,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | READY-TO-BUILD | 2 |
 | WIRED-GATE-CLOSED | 2 |
+| BUILT | 2 |
 | WIRED | 2 |
 | DONE-BUILT | 2 |
 | UNKNOWN | 2 |
@@ -49,6 +49,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | REAL | 2 |
 | JIOFIN26OCT217 | 2 |
 | KOTAK | 2 |
+| WATCHDOG | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
@@ -74,7 +75,6 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | NATIONALUM | 1 |
 | SPAWNED | 1 |
 | B-1359 | 1 |
-| WATCHDOG | 1 |
 | RESIDUAL | 1 |
 | SWING | 1 |
 | F | 1 |
@@ -82,6 +82,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | FOUND | 1 |
 | O | 1 |
 | B-1484 | 1 |
+| IOC | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -446,7 +447,7 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up |
 | B-1363 | P0 | P0 | FIX COMMITTED 2026-11-02 (branch work-b1363, not deployed); owed: deploy + a week of opens all before 09:16... | owed, pending, verify, follow-up |
 | B-1440 | P0 | USER | 2026-11-02 18:50 IST | verify |
-| B-1520 | P0 | BUILT | 2026-11-09 | owed, pending |
+| B-1520 | P0 | IOC | 2026-11-09 | owed, pending |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
@@ -482,14 +483,14 @@ Total rows: 1287 | closed: 645 | not closed: 642
 | B-1407 | P1 | OPEN | 2026-10-28 14:30 IST | owed |
 | B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-1441 | P1 | USER | 2026-11-02 18:50 IST | verify |
-| B-1447 | P1 | BUILT | 2026-11-02 22:40 IST | owed, remaining, verify |
+| B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1459 | P1 | FROM | 2026-11-03 00:55 IST | owed, owner |
 | B-1467 | P1 | IN | 2026-11-04 | open:, pending, needs, owner |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
 | B-1482 | P1 | OPEN | 2026-11-05 | needs, follow-up |
 | B-1485 | P1 | B-1484 | 2026-11-05 | owed, needs |
-| B-1517 | P1 | BUILT | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed, awaiting, waiting |
-| B-1518 | P1 | BUILT | Session-aware NSE open/close for every engine (user 2026-11-09: swing signal bar = previous trading session... | awaiting, waiting |
+| B-1517 | P1 | DEPLOYED | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed, awaiting, waiting |
+| B-1518 | P1 | DEPLOYED | Session-aware NSE open/close for every engine (user 2026-11-09: swing signal bar = previous trading session... | awaiting, waiting |
 | B-1533 | P1 | OPEN | real_trades grows ~12k rows/day from repeated skip rows (09-Nov: 11,799 rows, ~109 per symbol: skipped_stra... |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
