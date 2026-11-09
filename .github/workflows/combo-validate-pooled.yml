@@ -1,0 +1,77 @@
+name: Combo holdout for pooled PFnet (B-1472)
+
+# Research-only. Re-runs EVERY combo_lab cell with in-sample PFnet > 1 (CANDS=all_pf1, about 5,400 long cells) on the
+# same seeded symbol holdout combo_validate.py used for its top-80 pick (full NSE universe minus the swing watchlist,
+# 500 symbols, 5y daily, 0.8% cost), so strategy_registry_sweeps registers an exact pooled (in-sample + holdout) "_pool"
+# twin per tag (user 2026-11-05/06: pooled PFnet decides wiring, OOS is recorded but never a veto).
+# Output docs/combo_validate_results_all.json, committed to claude/confident-fermi-mlqbka by the merge job.
+# Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued or running.
+on:
+  workflow_dispatch:
+    inputs:
+      oos_symbols:
+        description: "Holdout sample size (default 500, the B-18 value)"
+        required: false
+        default: "500"
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -r requirements.txt yfinance
+      - name: Holdout shard
+        env:
+          CANDS: all_pf1
+          SHARD: ${{ matrix.shard }}
+          SHARDS: "10"
+          OOS_SYMBOLS: ${{ inputs.oos_symbols || '500' }}
+          OUT_FILE: docs/combo_validate_all_s${{ matrix.shard }}.json
+        run: |
+          set -o pipefail
+          python3 scripts/combo_validate.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combo-validate-s${{ matrix.shard }}
+          path: docs/combo_validate_all_s${{ matrix.shard }}.json
+
+  merge:
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge shards
+        run: |
+          python3 - <<'EOF'
+          import glob, json
+          res = {}
+          for f in sorted(glob.glob("shards/*/*.json")):
+              res.update(json.load(open(f)).get("results", {}))
+          json.dump({"results": res}, open("docs/combo_validate_results_all.json", "w"), indent=0)
+          print("cells", len(res), "holdout pfnet>1", sum(1 for m in res.values() if (m.get("pfnet") or 0) > 1))
+          EOF
+      - name: Commit results
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git add docs/combo_validate_results_all.json
+          git commit -m "B-1472 combo holdout (all in-sample PFnet > 1) [skip render]" || exit 0
+          git pull --rebase origin claude/confident-fermi-mlqbka && git push origin HEAD:claude/confident-fermi-mlqbka

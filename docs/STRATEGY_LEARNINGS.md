@@ -1871,3 +1871,63 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - **Reuse:** every durability push gets a retry path for its restore and a visible health flag, never a silent `return False`. Every real-sizing decision logs the numbers it used.
 - **Profit-booking / exit takeaway:** cash freed by exits (IRCTC/RECLTD/SAIL max-hold sells) raises the 1-share risk limit within minutes, so the next fired signal can enter at a wider stop. That is intended, but it means wider-stop 1-share entries cluster right after exits. Watch those entries' net P&L in the Kotak trade book before changing REAL_ONE_SHARE_RISK_PCT.
 
+
+## B-1517 - sector cap charged the paper size, not the real order (2026-11-09)
+- The swing sector cap (25% of whole account per sector) was evaluated before real sizing, using the paper qty x paper price. Paper qty is sized off paper capital, so a 1-share real BOSCHLTD order was charged ~Rs52,603 and could be refused as over the cap.
+- Fix: check the cap after real sizing on real qty x live price. Open-position exposure already came from real_positions_swing (real qty).
+- Lesson: every real-money gate must measure the real order, never the paper mirror; audit other gates for paper-qty inputs.
+- Profit-booking / exit takeaway: none for exits; on entries, false sector blocks cost real trades with no risk benefit, so gates must price the actual order.
+
+## B-1518 - every engine reads today's real NSE session, not fixed 09:15-15:30 (2026-11-09)
+- Swing signals use the previous session's completed daily bar; that session may be a Friday, a Muhurat Sunday or the day before a holiday. Today's bar counts only after today's session has closed (a pre-open/partial Yahoo bar is never treated as complete).
+- Intraday engines take the session's own open, close and square-off (Muhurat 14:20 open, 15:14 square-off). When only live ticks prove the market is open (no calendar close), no new intraday position is opened, because it could not be squared off before an unknown close; protection and exits keep running.
+- Lesson: session hours are data per day (special sessions, holidays), never constants in engine code.
+- Profit-booking / exit takeaway: an intraday position must always have a known square-off time before entry; on special sessions the square-off moves with the session close.
+
+## B-1519 - no sector cap for intraday (user decision, 2026-11-09)
+- The 25%-of-account sector cap stays a swing-long rule only; intraday buy/short and options get none (user: "No sector cap for intra day"). Intraday positions are flat by 15:14 IST, so overnight sector concentration does not build up.
+- Profit-booking / exit takeaway: intraday concentration risk is bounded by the same-day square-off and the per-trade 1% stop, not by a sector cap.
+## Live stop-loss correctness audit, 3-9 Nov 2026 (B-1438, B-1440, B-1441, B-1459, B-1482)
+
+- Entry-day floor holds live: no SL sent below a position's entry-day stop from 3 to 9 Nov (WIPRO 194.11 >= 185.35; IRCTC 440.21 raised to the 440.25 floor). Trails only rose (IOC 136.38 -> 143.43, TATASTEEL, COLPAL, COCHINSHIP, ZYDUSLIFE, PNB).
+- A stop that sits under the lower circuit band rests at the band floor, which moves with each day's previous close (UNIONBANK 169.71 then 168.80). That is exchange-forced and still above the strategy stop; it is not ratcheted, because a higher artifact would exit tighter than the validated strategy.
+- A peak-LTP trail can sit close to the opening price after a weekend. On 9 Nov IOC rested no SL for ~11 minutes after 09:15 IST while every other holding was protected; the cause could not be proven because the morning log rows were lost (B-1516). Open as B-1520 (P0).
+- Trail backtests on frozen-stop cells (B-1484 run 41978699531): only peak-LTP 0.5R on gap runaway beat the fixed stop (1.160 -> 1.236, hold 17.4 -> 7.7 days); every macddiv 1h trail lost and the 1h cells are below 1.00 under the live resting-stop model.
+- Options: when the premium is already at or under the intended trail, exit at market (B-1459). That matches how every trail replay fills, so keeping an older, lower stop would be the untested choice.
+- Profit-booking / exit takeaway: a tight peak-LTP trail books profit sooner and shortens the hold on runaway-gap cells, but near the open it must still rest a placeable stop (or exit) immediately, never leave the holding naked while waiting for the price to move away from the trail.
+## B-1439 / B-1447 / B-1477 / B-1489 / B-1451 / B-1456 - Group C investigations (2026-11-09)
+- RELIANCE 02-Nov short closed 2 minutes after entry by a replay-mask bug (fixed cf3c1c76); IOC qty 1 matches Kotak holdings. New 09-Nov real entries (ZYDUSLIFE, PNB) had their stops ratcheted to near entry within minutes (B-1523), so the trade risked much less than it was sized for and can be stopped out by noise before it works.
+- Memory: yfinance's curl_cffi Session holds one Curl handle per THREAD; a fresh thread pool per tick/poll rebuilt handles and TLS sessions every 30 s. Reuse long-lived pools for any network fetch fan-out.
+- Charges: Kotak's delivery charges are not in the API; STT appears rounded per contract note (to verify with Kotak lines), so per-trade statutory estimates can over-charge small delivery trades by ~0.1% of value. Small-ticket delivery trades are where rounding matters most.
+- SLBM is not reachable via the Neo trade API (no SLB segment/product), so overnight cash shorts stay F&O-only.
+- Zero-entry days are normal for this system (3 of 10 days had real entries); diagnose them from the git-tier signal_shadow_log, not memory.
+- Profit-booking / exit takeaway: a stop tightened to near entry on the entry day turns a swing trade into a scalp; check that live trail timing matches the backtested exit before trusting live win rates.
+
+## B-1466 / B-1472 / B-1427 / B-1494 / B-1455 / B-1479 / B-1486 - registry evidence hygiene (2026-11-09)
+- B-1466: a live tag must gate on the replay that called the real main.py functions when one exists. The swingminrr VCP tags now map to their `_mr` rows (run 38318986997: rr4 2.845 n51, rr3 2.295 n110, rr2 1.589 n327, base 1.351 n2404); the research-sim rows (2.698/2.062/1.263/1.155) stay registered. The main.py replay was HIGHER than the sim here, unlike B-1416 where the sim ran 0.1-0.18 above.
+- B-1472: OOS vetoes hide in registry loaders, not only in wiring code. Audit found the Elder dirsys13 loader headlining the OOS slice and dropping OOS n < 30 rows; it now also registers the pooled `_pool` tag (none > 1.00). Combos with no holdout get their pooled number from a new all-cells holdout run (combo-validate-pooled.yml) rather than from the best-of-thousands in-sample number.
+- B-1427 / B-1494: under the every-variant wiring rule, an exit change on the same entry is a VARIANT of that entry, ranked by return per day. A replay that does not store avg_net_pct cannot be ranked, so every research output must keep avg net % per trade (data-intact rule). B-1494's be2 ties were already wired by B-1500's live_be2 mode.
+- B-1455: a merge step that copies file-level metadata from each shard keeps the LAST shard's value; a multi-interval run must store period per interval. The brk20 run was 1d 5y / 1h 730d / 15m 60d, not 730d.
+- B-1479: 86 of 102 "awaiting run" Elder rows had in fact run, but at 1d only; the label said "not run" when the truth was "one candle size". Reconcile against the registry, never against row labels.
+- Profit-booking / exit takeaway: exit variants on a proven entry (trail, breakeven, exhaustion) are the cheapest way to add profitable entries, but they must be ranked by return per day from complete data; the gap_and_go peak-LTP 0.5R trail (0.306 %/day) still beats every exit-family exit (PFnet 1.09-1.21 at 10-11 bar holds).
+
+## B-1452 / B-1430 / B-1464 / B-1446 - paper gateway, real sizing and test hygiene (2026-11-09)
+- A paper row is the only gateway to a real order. Any paper-side rounding to 0 shares (or a paper-only minimum notional) silently kills the real leg, even when Kotak Net could buy a share. Every real-mirrored chan entry (chan_gap long/short, chan_kalman long/short) now floors its paper qty at 1 share; the real order sizes itself from Kotak Net and logs its own money reject.
+- Real sizing must use only real exposure (Kotak Net); paper-only positions never shrink real qty (B-1430, verified on main).
+- Flaky tests here came from daemon threads (5-min unprotected backcheck, chan_gap universe build) that an earlier test started and that later acted on another test's DB. Tests must never start process-lifetime threads; loops are tested with a bounded rounds=N.
+- Logging every repeated skip on every scan made real_trades grow ~12k rows/day (B-1533): log volume is a cost too (journal size, Upstash payload, memory).
+- Profit-booking / exit takeaway: a fired, viable signal that never reaches Kotak is lost profit with no trace; check the paper gateway first whenever a viable strategy shows triggers but no real entries.
+
+## Stop through the market at placement; entry-day chandelier ratchet (B-1520, B-1523, 9 Nov 2026)
+
+- IOC (gap runaway, peak-LTP trail) rested no SL from 09:15 to 09:26 IST. The first stop that rested was exactly its trailed 141.66, so the market had been at or under it. Kotak refuses a SELL SL at/above LTP, often without an order id. The bot kept re-sending the same level, and the never-loosen rules kept every fallback at or above it. Fix: every equity SL send checks a fresh live tick. A stop through the market rests just under the price, so the holding is never naked, and the swing engine then sells at market. That matches the replay, which fills at the open when the open is through the stop.
+- The minervini/primary_base chandelier ratchet to entry - 2 x ATR within minutes of entry (ZYDUSLIFE 1159.80, PNB 125.63) is the backtested stop. The replay rests that level from the first bar after the signal bar, which is the live entry day. It is not a live bug.
+- Profit-booking / exit takeaway: when the open gaps through a stop, take the exit at market immediately (the backtest fills there). Holding a position with no stop while waiting for a bounce is unmeasured risk that the PFnet never priced in.
+
+## B-1453/1454/1457/1483/1485 - research runs that were "queued" but never ran (2026-11-09)
+- Seven B-1485 trail-overlay dispatches, the brk20 short F&O/cash-split replays (B-1453/B-1454) and the O'Neil n200 cup replay (B-1483) were listed as queued in backlog notes, but `gh run list` showed none ran after 11-05. A queue written in a row note is a claim; check the run history before treating a result as pending.
+- An Actions run that only uploads an artifact can lose its result: the 4h ATR run 39361657874 succeeded on 10-20, but its artifact cannot be fetched through the session proxy, so the 4h stop-% never reached git. Research workflows should commit their result or print it to the log.
+- The "re-run atrnone tags with a stop" item was already done in practice: 180 of 189 viable atrnone tags have stopped siblings from the same sweep. Before dispatching a re-run, check whether the registry already holds the sibling.
+- brk20 short: universe=nonfno (full minus F&O names) now exists, so the question of where the short edge lives (cash small caps vs F&O names) is answered by three runs with the same cells and different universes, each with its own tag.
+- O'Neil rs80 cells need the RS rank over the live population (RS_UNIVERSE=n200). A per-shard rank uses a different population than the live scan, so a shard-ranked PFnet does not support wiring.
+- Profit-booking / exit takeaway: trail-vs-fixed decisions for chan_kalman 1d/1h, Minervini lab cells, brk20 1h and the O'Neil daily cells are still unmeasured; until those runs land, these cells exit on their fixed stops. The B-1484 lesson (peak-LTP 0.5R is the only trail that wins broadly) is the prior to test first.

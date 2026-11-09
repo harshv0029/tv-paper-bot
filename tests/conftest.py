@@ -234,3 +234,19 @@ def _b1448_clear_pending_kotak_sends():
     if _k is not None and hasattr(_k, "_LAST_REJECTION"):
         _k._LAST_REJECTION.clear()
     yield
+
+
+@pytest.fixture(autouse=True)
+def _b1464_no_leaked_background_work(request, monkeypatch):
+    """B-1464: order-dependent flakes (T1-flag exit, short auto-heal, stray IREDA.NS prefetch, short-signal halts) came
+    from daemon threads an EARLIER test left running, acting on whatever DB_PATH / patches a LATER test had set:
+    (1) _start_scheduler (test_start_scheduler_concurrent_hydration.py) started the process-lifetime
+    'unprotected-backcheck' loop (a full _reconcile_real_positions_core(adopt="*") immediately, then every 300 s, i.e.
+    mid-way through some later test) and 'git-tier-push'; (2) any auto-signal test started a 'chan-gap-select' build that
+    fetched the whole universe on its own thread. Production is unchanged: tests mark the once-per-process background
+    threads as already started (the loops themselves are unit-tested with rounds=N), and the chan_gap universe build is
+    an empty stub except in the chan tests, which pass their own builder or call it directly."""
+    import main
+    monkeypatch.setattr(main, "_BACKGROUND_THREADS_STARTED", True)
+    if "chan" not in request.node.fspath.basename:
+        monkeypatch.setattr(main, "_chan_gap_build_selection", lambda *a, **k: {})

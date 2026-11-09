@@ -3619,6 +3619,77 @@ def nse_special_session(date=None):
         return None
 
 
+NSE_REGULAR_OPEN_MIN = 9 * 60 + 15
+NSE_REGULAR_CLOSE_MIN = 15 * 60 + 30
+# Square-off sits this many minutes before the session close (regular 15:30 close -> 15:14, the 2026-09-30 rule).
+NSE_SQUAREOFF_BEFORE_CLOSE_MIN = 16
+
+
+def nse_session_today(now_local=None) -> dict | None:
+    """B-1518 (2026-11-09, user: know the live open AND close; intraday only when the close is known): today's NSE
+    cash/F&O session in IST minutes. {"source": "special"|"regular"|"tick", "open_min", "close_min",
+    "squareoff_min"}; close_min/squareoff_min are None for "tick" (live ticks prove NSE trades on a day no calendar
+    lists, so the close is unknown). None on a closed day. Never raises."""
+    try:
+        n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+        if getattr(n, "tzinfo", None) is not None:
+            n = n.replace(tzinfo=None)
+        sp = nse_special_session(n)
+        if sp:
+            return {"source": "special", "open_min": sp[0], "close_min": sp[1],
+                    "squareoff_min": sp[1] - NSE_SQUAREOFF_BEFORE_CLOSE_MIN}
+        if _nse_calendar_trading_day(n):
+            return {"source": "regular", "open_min": NSE_REGULAR_OPEN_MIN, "close_min": NSE_REGULAR_CLOSE_MIN,
+                    "squareoff_min": NSE_REGULAR_CLOSE_MIN - NSE_SQUAREOFF_BEFORE_CLOSE_MIN}
+        if _tick_open_override(n, "nse"):
+            return {"source": "tick", "open_min": None, "close_min": None, "squareoff_min": None}
+    except Exception:
+        pass
+    return None
+
+
+def _is_nse_symbol(symbol) -> bool:
+    u = str(symbol or "").upper()
+    return u.endswith((".NS", ".BO")) or u.startswith("^")
+
+
+def _nse_session_minutes(symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local=None):
+    """B-1518: (open_min, close_min, squareoff_min, close_known) for an intraday engine call. NSE symbols in IST take
+    today's real session (a special session such as Muhurat 14:20-15:30 replaces the 09:15-15:30 defaults); a
+    tick-only session returns close_known=False so the caller opens NO new intraday position (it cannot square off
+    before an unknown close). Non-NSE symbols and the regular day keep the caller's own config unchanged."""
+    if tz_offset_min != IST_OFFSET_MIN or not _is_nse_symbol(symbol):
+        return open_min, close_min, squareoff_min, True
+    sess = nse_session_today(now_local)
+    if not sess:
+        return open_min, close_min, squareoff_min, True
+    if sess["source"] == "tick":
+        return open_min, close_min, squareoff_min, False
+    if sess["source"] == "special":
+        so = sess["squareoff_min"] - (NSE_REGULAR_CLOSE_MIN - NSE_SQUAREOFF_BEFORE_CLOSE_MIN - squareoff_min)
+        return sess["open_min"], sess["close_min"], so, True
+    return open_min, close_min, squareoff_min, True
+
+
+def nse_session_closed_for_day(now_local=None) -> bool:
+    """B-1518: True once today's NSE session (regular or special) has ended, so today's daily bar is COMPLETE.
+    False before/during the session, on a tick-only day (close unknown) and on a closed day."""
+    n = now_local or (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN))
+    sess = nse_session_today(n)
+    if not sess or sess["close_min"] is None:
+        return False
+    return n.hour * 60 + n.minute > sess["close_min"]
+
+
+def swing_entry_cutoff_min(now_local=None) -> int:
+    """B-1518: swing real entries refused from this IST minute: today's session close minus the regular day's gap
+    (SWING_REAL_ENTRY_CUTOFF_MIN before NSE_REGULAR_CLOSE_MIN, i.e. 16 min -> 15:14 regular, 15:14 Muhurat)."""
+    sess = nse_session_today(now_local)
+    if sess and sess.get("source") == "special":
+        return sess["close_min"] - (NSE_REGULAR_CLOSE_MIN - SWING_REAL_ENTRY_CUTOFF_MIN)
+    return SWING_REAL_ENTRY_CUTOFF_MIN
+
+
 def _nse_special_session_open(now_local=None, symbol: str | None = None) -> bool:
     """B-1511: True inside a special session's window (IST). symbol, when given, must be NSE (.NS/.BO or a ^ index);
     MCX (=F proxies), US and any other symbol never open through this."""
@@ -12506,6 +12577,14 @@ def _options_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        underlying, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"underlying": underlying, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, underlying):
         return {"underlying": underlying, "status": "closed_weekend", "time_local": str(now_local)}
@@ -12929,6 +13008,14 @@ def _auto_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"symbol": symbol, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
@@ -14144,13 +14231,13 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
     stop_dist = last_close - stop_loss
     if stop_loss <= 0 or stop_dist <= 0:
         return None
-    available = max(0.0, capital - deployed_notional(conn))
-    usable = min(available, capital / CAPITAL_TRANCHES)
+    usable = _chan_gap_paper_usable(conn, capital, real_mirrored=require_real_tradability)  # B-1452 (chan long)
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, require_real_tradability)  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     if require_real_tradability:
         if _is_t1_restricted(conn, symbol):
@@ -14325,6 +14412,18 @@ def _chan_gap_paper_usable(conn, capital, real_mirrored=False) -> float:
     return min(max(0.0, capital - deployed_notional(conn)), tranche)
 
 
+def _chan_gap_paper_qty(raw_qty: float, unit_inr: float, capital: float, real_mirrored: bool) -> float:
+    """B-1452 (2026-11-09, per the 2026-11-06 "paper sizing never drops a fired signal" rule): the paper row is the
+    only gateway to the real order, and the real order sizes itself from Kotak Net (B-1430/B-1509, with its own logged
+    money reject). So a real-mirrored chan entry (chan_gap long/short, chan_kalman long/short) floors its paper qty at
+    1 share and skips the paper-only Rs100 minimum notional instead of silently writing no row. Paper-only entries keep
+    the old rule (0 -> no row)."""
+    q = math.floor(raw_qty) if raw_qty == raw_qty and raw_qty > 0 else 0
+    if real_mirrored:
+        return float(max(q, 1)) if capital > 0 and unit_inr > 0 else 0.0
+    return float(q) if q > 0 and q * unit_inr >= 100.0 else 0.0
+
+
 def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                              risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
                              mins_now=None, universe=None, agg_blocked=False):
@@ -14373,8 +14472,9 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, require_real_tradability)  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     if require_real_tradability:
         if _is_t1_restricted(conn, symbol):
@@ -14514,13 +14614,13 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
     stop_dist = stop_loss - last_close
     if stop_dist <= 0:
         return None
-    available = max(0.0, capital - deployed_notional(conn))
-    usable = min(available, capital / CAPITAL_TRANCHES)
+    usable = _chan_gap_paper_usable(conn, capital, real_mirrored=symbol.endswith(".NS"))  # B-1452 (chan short)
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, symbol.endswith(".NS"))  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     target = round(last_close * 0.01, 4)  # unreachable on purpose: exits are stop / state / hold / flatten
     conn.execute(
@@ -14609,6 +14709,14 @@ def _short_signal_core(
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
     mins_now = now_local.hour * 60 + now_local.minute
+    # B-1518: NSE symbols take today's real session (Muhurat/special sessions replace the 09:15-15:30 defaults).
+    open_min, close_min, squareoff_min, _close_known = _nse_session_minutes(
+        symbol, tz_offset_min, open_min, close_min, squareoff_min, now_local)
+    if not _close_known:
+        return {"symbol": symbol, "status": "session_close_unknown",
+                "time_local": str(now_local),
+                "detail": "B-1518: live ticks show NSE trading but no calendar lists today's close; no new intraday "
+                          "position (cannot square off before an unknown close)"}
 
     if not trade_weekends and _nse_closed_day(now_local, symbol):
         return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
@@ -15583,10 +15691,13 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
     "gaps__exhaust_fade__long__1d__atr3_nb5__v1": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
     "gaps__common_fade__long__1d__atr3_nb5__v1": "gaps__common_fade__long__1d__atr3_nb5__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
-    "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+    # B-1466 (2026-11-09): the live swingminrr VCP tags gate on their main.py-calling replay rows (`_mr`, swing-short-
+    # main-replay.yml run 38318986997, full NSE 5y, 0.8% cost: rr4 2.845 n51 / rr3 2.295 n110 / rr2 1.589 n327 / base
+    # 1.351 n2404), not the scripts/swing_min_rr_research.py sim rows (2.698 / 2.062 / 1.263 / 1.155), which stay registered.
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr2__v1",
+    "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": "swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
@@ -21934,7 +22045,8 @@ def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None 
         cfg = watchlist_by_symbol.get(sym, {}) or {}
         return float(fetch_ohlc(sym, "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
 
-    ex = _cf.ThreadPoolExecutor(max_workers=min(8, len(todo)))
+    ex = _prefetch_pool(8, "op-price")  # B-1447: persistent pool (a fresh 8-thread pool per dashboard poll churned Curl handles)
+    futs = {}
     try:
         futs = {ex.submit(_one, s): s for s in todo}
         done, _ = _cf.wait(futs, timeout=OPEN_POSITIONS_PRICE_BUDGET_S if budget_s is None else budget_s)
@@ -21944,7 +22056,8 @@ def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None 
             except Exception:
                 pass
     finally:
-        ex.shutdown(wait=False)
+        for f in futs:
+            f.cancel()
     return out
 
 
@@ -22921,6 +23034,29 @@ def _scan_prefetch_intervals() -> list:
     return ["5m", *sorted(set(CHAN_SHORT_CELL_INTERVAL.values()) - {"5m"})]
 
 
+# B-1447 (tick_prefetch +180-200 MB per run on /health stage_rss): yfinance's curl_cffi Session keeps one Curl
+# handle (own TLS context and connection cache) PER THREAD (threading.local, curl_cffi requests/session.py). The
+# prefetch built a fresh 8-thread ThreadPoolExecutor every ~30 s tick, so every tick created up to 8 new Curl
+# handles, re-did the TLS handshakes to Yahoo, and freed them when the threads exited: native-heap churn that glibc
+# keeps as RSS. One persistent pool per worker count reuses the same threads, so the handle set (and the kept-alive
+# connections) is created once per process. Read-only cache warm-up; no DB, order or SL code touched.
+_PREFETCH_POOLS: dict = {}
+_PREFETCH_POOLS_LOCK = threading.Lock()
+
+
+def _prefetch_pool(n_workers: int, name: str = "scan-prefetch"):
+    """B-1447: the shared, long-lived fetch pool for this (name, worker count), created once and never shut down,
+    so its threads (and their curl_cffi handles) are reused instead of rebuilt on every call."""
+    import concurrent.futures as _cf
+    key = (name, int(n_workers))
+    with _PREFETCH_POOLS_LOCK:
+        pool = _PREFETCH_POOLS.get(key)
+        if pool is None:
+            pool = _cf.ThreadPoolExecutor(max_workers=int(n_workers), thread_name_prefix=name)
+            _PREFETCH_POOLS[key] = pool
+        return pool
+
+
 def _prefetch_one_frame(symbol: str, period: str, interval: str):
     """(fetch time, frame) for one prefetch key; the time is the shared cache entry's own, so a pinned copy expires
     exactly when the cached one would."""
@@ -22950,8 +23086,9 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
     ivs = list(intervals) if intervals else [interval]
     t0 = time.time()
     ok = failed = 0
-    n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
-    pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
+    # Fixed size (not min(len(syms))): one pool for the process; ThreadPoolExecutor starts threads lazily.
+    pool = _prefetch_pool(max(1, int(workers or SCAN_PREFETCH_WORKERS)))
+    futs = []
     try:
         # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
         keys = [(s, period, iv) for s in syms for iv in ivs]
@@ -22969,7 +23106,8 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
         except _cf.TimeoutError:
             failed += sum(1 for f in futs if not f.done())
     finally:
-        pool.shutdown(wait=False, cancel_futures=True)
+        for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+            f.cancel()
     return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
 
 
@@ -25384,9 +25522,11 @@ def _market_open_for_cfg(cfg: dict) -> bool:
     position the cursor happened to be in."""
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=cfg.get("tz_offset_min", IST_OFFSET_MIN))
     mins_now = now_local.hour * 60 + now_local.minute
-    if not cfg.get("trade_weekends", False) and now_local.weekday() >= 5:
+    if not cfg.get("trade_weekends", False) and _nse_closed_day(now_local, cfg.get("symbol")):
         return False
-    return cfg.get("open_min", 0) <= mins_now <= cfg.get("close_min", 1439)
+    o, c, _sq, _known = _nse_session_minutes(cfg.get("symbol"), cfg.get("tz_offset_min", IST_OFFSET_MIN),
+                                             cfg.get("open_min", 0), cfg.get("close_min", 1439), 0, now_local)
+    return o <= mins_now <= c  # B-1518: a Muhurat/special session's own hours
 
 
 async def _scheduler_loop():
@@ -25543,7 +25683,7 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
             return
         _n = ist_now()
-        if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+        if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_after_entry_cutoff")
             return
         import kotak_live_feed, nse_fo_chain
@@ -25904,16 +26044,14 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # B-131/B-132 (owner decision 2026-10-10): sector exposure cap - one sector may hold at most
     # SECTOR_EXPOSURE_CAP_PCT of capital across open real swing positions (also the correlation guard:
     # same-sector names move together). Blocks only; never touches an already-open position.
-    _cap_block = _sector_cap_blocks(conn, symbol, paper_qty, paper_entry_price)
-    if _cap_block:
-        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", strategy=strategy, detail=_cap_block)
-        return
+    # B-1517: the check itself now runs after real sizing (below), on the REAL qty x live price; the paper qty
+    # here is sized off paper capital and over-charged the cap (BOSCHLTD 2026-11-09: Rs52,603 for a 1-share order).
 
     # 2026-10-06: no new real swing entry from 15:14 IST (user allows through 15:13) - the closing auction
     # (15:15+) cancels SLs and rejects orders, so such a position could not be
     # protected or exited (RVNL/SAIL/DRREDDY/VBL bought 15:10-15:11 IST).
     _n = ist_now()
-    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+    if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
         _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff", strategy=strategy,
                           detail="no new real swing entries from 15:14 IST (user: allowed through 15:13)")
         return
@@ -25986,6 +26124,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
+        return
+
+    _cap_block = _sector_cap_blocks(conn, symbol, qty, ltp)  # B-1517: real qty x live price
+    if _cap_block:
+        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy, detail=_cap_block)
         return
 
     # Same joint (equity + F&O + swing) real daily-loss cap as every other
@@ -26491,8 +26635,12 @@ def _run_swing_scan_pass(conn):
         # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
         try:
-            if str(df.index[-1])[:10] == today and _nse_equity_market_open_now():
-                _SWING_LIVE_PX[symbol] = float(df["Close"].iloc[-1])  # B-1463: today's forming close = live entry ref
+            # B-1518: the signal bar is the PREVIOUS SESSION's completed bar (Friday, a Muhurat Sunday, the day before a
+            # holiday...): today's bar is kept only once today's own session (regular or special) has closed, so a
+            # pre-open or tick-only partial bar is never read as complete.
+            if str(df.index[-1])[:10] == today and (_nse_equity_market_open_now() or not nse_session_closed_for_day()):
+                if _nse_equity_market_open_now():
+                    _SWING_LIVE_PX[symbol] = float(df["Close"].iloc[-1])  # B-1463: today's forming close = live entry ref
                 df = df.iloc[:-1]
         except Exception:
             pass
@@ -28379,8 +28527,9 @@ def _run_chan_gap_short_scan(conn=None):
                 continue
             risk_pct = float((cfg_by_sym.get(sym) or {}).get("risk_pct", 1.0))
             usable = _chan_gap_paper_usable(conn, capital, real_mirrored=True)  # B-1452: batch always mirrors real
-            qty = float(math.floor(min(usable * risk_pct / 100 / stop_dist, usable / px)))
-            if qty <= 0 or qty * px < 100.0:
+            qty = _chan_gap_paper_qty(min(usable * risk_pct / 100 / stop_dist, usable / px), px, capital,
+                                      True)  # B-1452: real-mirrored, floors at 1 (real leg sizes from Kotak Net)
+            if qty <= 0:
                 continue
             conn.execute(
                 "INSERT INTO signal_state_short "
@@ -28538,7 +28687,7 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
         _log_signal_shadow(conn, strategy, symbol, "short", False, "real entry: strategy below PFnet floor", hard_gate=True)
         return
     _n = ist_now()
-    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+    if _n.hour * 60 + _n.minute >= swing_entry_cutoff_min(_n):
         _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff", strategy=strategy,
                           detail="no new real swing entries from 15:14 IST (SL cannot rest after 15:15)")
         return
@@ -34834,9 +34983,36 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
         return None
 
 
+REAL_SL_LTP_MAX_AGE_S = 120  # B-1520: a tick older than this is not "the market" for the stop-through-market check
+
+
+def _fresh_ltp_for_trdsym(kotak_trading_symbol: str, now=None):
+    """B-1520: today's live LTP for a Kotak trading symbol from the Kotak feed, only when the tick is fresh (received
+    within REAL_SL_LTP_MAX_AGE_S and its last trade is from today, IST). A pre-open / previous-session tick returns
+    None, so a stale price can never move a stop. Never raises."""
+    try:
+        import kotak_live_feed
+        now = time.time() if now is None else now
+        ticks = kotak_live_feed.get_live_ticks()
+        t = ticks.get(_nse_symbol_from_trdsym(kotak_trading_symbol))
+        if not t:
+            t = next((v for v in ticks.values() if v.get("trading_symbol") == kotak_trading_symbol), None)
+        if not t or not t.get("ltp"):
+            return None
+        if now - float(t.get("updated_at_utc") or 0) > REAL_SL_LTP_MAX_AGE_S:
+            return None
+        ltt = t.get("last_trade_epoch")
+        if not ltt or kotak_live_feed._ist_date(ltt) != kotak_live_feed._ist_date(now):
+            return None
+        return float(t["ltp"])
+    except Exception:  # noqa: BLE001
+        return None
+
+
 try:
     import kotak_real_orders as _kro_for_floor
     _kro_for_floor.set_stop_floor_provider(_real_stop_floor_for_trdsym)
+    _kro_for_floor.set_ltp_provider(_fresh_ltp_for_trdsym)  # B-1520
 except Exception as _e:  # noqa: BLE001
     print(f"[REAL SL FLOOR] provider not registered: {_e}")
 
@@ -34986,6 +35162,27 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label:
     conn.commit()
     _maybe_place_real_swing_exit(conn, symbol, reason=why)  # step 3: market SELL
     return True
+
+
+def _swing_exit_if_stop_through_market(conn, symbol: str, res: dict) -> bool:
+    """B-1520: a placement whose strategy stop was already through the market (kotak_real_orders.clamp_stop_to_market
+    rested it just under the LTP instead) means the stop has been hit: the replay fills at the open. Log it with its
+    reason and close at market through the existing breach path (Kotak holdings + whole order book first, cancel every
+    open sell, then a market SELL). Never raises; False when nothing was due."""
+    try:
+        req = res.get("stop_through_market") if res else None
+        ltp = res.get("ltp") if res else None
+        if not req or not ltp:
+            return False
+        _log_real_order_event(conn, symbol, "sl", "stop_through_market", new_state=f"resting SELL trigger Rs{float(res.get('trigger_price') or 0):.2f}",
+                              detail=f"strategy stop Rs{float(req):.2f}, live Rs{float(ltp):.2f}",
+                              reason="the stop was already through the market when placed; a protective SL rests just "
+                                     "under the price and the holding is closed at market (B-1520)")
+        return bool(_swing_stop_breached_exit(conn, symbol, float(req), float(ltp),
+                                              label="strategy stop through the market at placement (B-1520)"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL SWING] B-1520 stop-through-market exit failed for {symbol} (non-fatal): {e}")
+        return False
 
 
 def _swing_entry_stop_breach_sweep(conn) -> list:
@@ -35678,7 +35875,7 @@ def _watchdog_day_bump(now=None, put=None, info=None) -> None:
         ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
                                            + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
               "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
-              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch"))),
+              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch", "op-price"))),
                                key=lambda t: "(event loop)" not in t)[:5]}  # B-1422: the loop thread first
         _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
@@ -36452,6 +36649,7 @@ def _open_protect_place(plan: dict) -> dict:
                 _log_swing_ensure_sl_result(conn, it["symbol"], it["kotak_trading_symbol"], res, it["stop"],
                                             "09:15 IST open protect-first pass: overnight holding had no resting "
                                             "stop-loss (the exchange cancels every resting order at 15:15 IST)")
+                _swing_exit_if_stop_through_market(conn, it["symbol"], res)  # B-1520
             else:
                 failed.append(it["kotak_trading_symbol"])
                 _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
@@ -37591,6 +37789,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 )
                 _log_swing_ensure_sl_result(conn, r["symbol"], r["kotak_trading_symbol"], sl_result, _bf_stop,
                                             "swing position had no resting stop-loss (5-min governance backfill)")
+                _swing_exit_if_stop_through_market(conn, r["symbol"], sl_result)  # B-1520
                 backfill_entry["sl_order_id"] = sl_result["order_id"]
                 backfill_entry["sl_placed"] = True
             else:
