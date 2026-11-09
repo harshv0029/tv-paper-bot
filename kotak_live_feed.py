@@ -35,7 +35,9 @@ import kotak_neo
 # data, stale the instant the process restarts, and nothing downstream
 # needs it to survive a restart (unlike the journal-synced trading state).
 # {watchlist_symbol: {"ltp": float, "trading_symbol": str,
-#                      "instrument_token": str, "updated_at_utc": float}}
+#                      "instrument_token": str, "updated_at_utc": float,
+#                      B-1512: "exchange_segment", "last_trade_epoch", "volume_traded_today",
+#                      "trade_advanced_at_utc"}}
 _live_ticks: dict = {}
 
 _feed_status = {
@@ -156,6 +158,99 @@ async def retiring(ws):
                 retire_ws(ws)
     finally:
         clear_ws_queues(ws)
+
+
+# B-1512 (2026-11-09, user: "when you receive a live ticker ... assume the market is open"): tick evidence of an
+# OPEN market. Kotak sends a snapshot on every subscribe even when the exchange is closed, so a tick arriving is never
+# proof by itself. A symbol counts as TRADING when a tick shows a NEW trade versus its previous tick (volume_traded_today
+# grew or last_trade_time advanced) AND both ticks' last_trade_time fall on today's IST date (the pre-open equilibrium
+# print is the first trade of the day, its baseline is yesterday, so it never counts) AND the trade time is within
+# LIVE_LTT_FRESH_SECONDS of the receipt (a reconnect snapshot carrying old prints never counts). A segment is
+# live-open when >= LIVE_OPEN_MIN_SYMBOLS of its symbols traded within LIVE_OPEN_WINDOW_SECONDS.
+LIVE_OPEN_WINDOW_SECONDS = 120
+LIVE_OPEN_MIN_SYMBOLS = 2
+LIVE_LTT_FRESH_SECONDS = 300
+_NSE_EPOCH_OFFSET = 315513000  # NSE/BSE exchange time counts seconds from 1980-01-01 00:00 IST
+_IST = 19800
+SEGMENTS = {"nse": ("nse_cm",), "mcx": ("mcx_fo",)}
+on_trade_advance = None  # optional hook(segment) set by main.py: wakes the market-open event detector
+
+
+def _ltt_epoch(v):
+    """Unix seconds of an SFeedScrip last_trade_time (unix s, unix ms, or exchange-1980 s), else None."""
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return None
+    if v <= 0:
+        return None
+    if v > 1e11:
+        v /= 1000.0
+    if v < 1577836800:  # before 2020 as unix -> exchange 1980 epoch
+        v += _NSE_EPOCH_OFFSET
+    return v
+
+
+def _ist_date(epoch):
+    return time.strftime("%Y-%m-%d", time.gmtime(epoch + _IST))
+
+
+def segment_of(exchange_segment) -> str | None:
+    seg = str(exchange_segment or "").lower()
+    for name, segs in SEGMENTS.items():
+        if seg in segs:
+            return name
+    return None
+
+
+def note_tick(key, exchange_segment, ltp, trading_symbol, instrument_token, last_trade_time=None,
+              volume_traded_today=None, now=None):
+    """Store one SFeedScrip tick and update its trade-advance evidence. Never raises."""
+    now = time.time() if now is None else now
+    prev = _live_ticks.get(key) or {}
+    ltt = _ltt_epoch(last_trade_time)
+    try:
+        vol = int(volume_traded_today) if volume_traded_today is not None else None
+    except (TypeError, ValueError):
+        vol = None
+    today = _ist_date(now)
+    advanced_at = prev.get("trade_advanced_at_utc")
+    p_ltt, p_vol = prev.get("last_trade_epoch"), prev.get("volume_traded_today")
+    if prev and ltt and p_ltt and _ist_date(ltt) == today and _ist_date(p_ltt) == today \
+            and abs(now - ltt) <= LIVE_LTT_FRESH_SECONDS \
+            and ((vol is not None and p_vol is not None and vol > p_vol) or ltt > p_ltt):
+        advanced_at = now
+    _live_ticks[key] = {
+        "ltp": ltp, "trading_symbol": trading_symbol, "instrument_token": str(instrument_token),
+        "updated_at_utc": now, "exchange_segment": exchange_segment, "last_trade_epoch": ltt,
+        "volume_traded_today": vol, "trade_advanced_at_utc": advanced_at,
+    }
+    if advanced_at == now and on_trade_advance is not None:
+        seg = segment_of(exchange_segment)
+        if seg:
+            try:
+                on_trade_advance(seg)
+            except Exception:  # noqa: BLE001
+                pass
+
+
+def market_live_evidence(segment="nse", now=None, ticks=None) -> dict:
+    """{"open": bool, "reason": str, "symbols": [...], "count": n} from tick evidence only (see note above)."""
+    now = time.time() if now is None else now
+    segs = SEGMENTS.get(str(segment).lower(), ())
+    ticks = _live_ticks if ticks is None else ticks
+    live = []
+    for k, t in list(ticks.items()):
+        if str(t.get("exchange_segment") or "").lower() not in segs:
+            continue
+        a = t.get("trade_advanced_at_utc")
+        if a and now - a <= LIVE_OPEN_WINDOW_SECONDS:
+            live.append(k)
+    ok = len(live) >= LIVE_OPEN_MIN_SYMBOLS
+    reason = (f"{len(live)} {segment} symbols printed new trades today within {LIVE_OPEN_WINDOW_SECONDS}s"
+              if ok else f"only {len(live)} {segment} symbols with a new trade in {LIVE_OPEN_WINDOW_SECONDS}s "
+                         f"(need {LIVE_OPEN_MIN_SYMBOLS}; snapshots never count)")
+    return {"open": ok, "reason": reason, "symbols": sorted(live)[:10], "count": len(live), "segment": segment}
 
 
 def get_live_ticks() -> dict:
@@ -427,12 +522,10 @@ async def run_feed(watchlist_symbols: list):
                         if isinstance(message, SFeedScrip):
                             key = reverse_lookup.get((message.exchange_segment, str(message.instrument_token)))
                             if key:
-                                _live_ticks[key] = {
-                                    "ltp": message.last_traded_price,
-                                    "trading_symbol": message.trading_symbol,
-                                    "instrument_token": str(message.instrument_token),
-                                    "updated_at_utc": time.time(),
-                                }
+                                note_tick(key, message.exchange_segment, message.last_traded_price,
+                                          message.trading_symbol, message.instrument_token,
+                                          last_trade_time=getattr(message, "last_trade_time", None),
+                                          volume_traded_today=getattr(message, "volume_traded_today", None))
         except Exception as e:
             _feed_status["connected"] = False
             _feed_status["last_error"] = str(e)
