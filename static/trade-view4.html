@@ -152,14 +152,17 @@
 </div>
 <!-- B-1420: capital card - free cash (the sizing capital) vs capital tied in open real positions. Read-only. -->
 <!-- B-1510: entry reject flags per category (viability / money / other), from /entry-funnel every 30 s. Read-only. -->
-<div class="box" id="rejBox" style="margin:12px 0;overflow-x:auto"><h2>Entry rejects today (IST) · viability / money / other <span class="n mono" id="rejN"></span></h2>
+<!-- B-1514: rolling 24 h by default (durable entry_funnel_events, survives restarts and the IST midnight reset); toggle to today. -->
+<div class="box" id="rejBox" style="margin:12px 0;overflow-x:auto"><h2><span id="rejTitle">Entry rejects · rolling 24 h (IST)</span> · viability / money / other <span class="n mono" id="rejN"></span>
+  <span style="float:right;font-weight:normal"><button id="rejMode24" class="mono" style="font-size:11px">Rolling 24 h</button> <button id="rejModeToday" class="mono" style="font-size:11px">Today (IST)</button></span></h2>
+  <div class="dim mono" id="rejWin" style="font-size:10.5px;margin:-4px 0 4px"></div>
   <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
     <th>Category</th><th title="Signals fired today: real-entry attempts plus gate-closed triggers">Fired</th><th>Placed</th>
     <th title="Rejected by your View 1 viability definition / PFnet floor">Viability</th>
     <th title="Rejected because Kotak free cash could not buy it">Money</th>
     <th title="Rejected by another rule: sector cap (25% of invested + available), entry cutoff, no live tick, price tolerance, duplicate...">Other</th>
-    <th>Top skip reasons</th><th>Verdict</th></tr></thead>
-    <tbody id="rejRows"><tr><td colspan="8" class="dim">loading…</td></tr></tbody></table></div>
+    <th>Top skip reasons</th><th title="B-1513: View 1 viability slot that admitted each placed real entry">Placed by slot</th><th>Verdict</th></tr></thead>
+    <tbody id="rejRows"><tr><td colspan="9" class="dim">loading…</td></tr></tbody></table></div>
 <div class="box" id="capBox" style="margin:12px 0"><h2>Capital · free vs tied in open positions</h2>
   <div class="mono" id="capLine" style="font-size:12px">loading…</div>
   <div class="dim mono" style="font-size:10.5px;margin-top:4px">Free cash = Kotak live free balance (new positions are sized to it). Tied = entry price x qty over open buy, short and swing positions.</div>
@@ -585,9 +588,32 @@
     } catch (e) {}
   }
   // B-1510: reject flags per category from /entry-funnel (every non-entry is viability, money or other).
+  // B-1514: rolling 24 h (default) or today (IST); the choice is remembered per browser.
+  let rejMode = "rolling";
+  try { rejMode = localStorage.getItem("v4rejMode") || "rolling"; } catch (e) {}
+  let rejLast = null;
+  function setRejMode(m) {
+    rejMode = m;
+    try { localStorage.setItem("v4rejMode", m); } catch (e) {}
+    $("rejMode24").style.fontWeight = m === "rolling" ? "700" : "400";
+    $("rejModeToday").style.fontWeight = m === "today" ? "700" : "400";
+    if (rejLast) drawRej(rejLast);
+  }
+  $("rejMode24").onclick = () => setRejMode("rolling");
+  $("rejModeToday").onclick = () => setRejMode("today");
   async function pollRej() {
     try {
-      const d = await getJSON("/entry-funnel"), cats = d.categories || {};
+      rejLast = await getJSON("/entry-funnel");
+      drawRej(rejLast);
+    } catch (e) { $("rejN").textContent = "unavailable: " + (e.message || e); }
+  }
+  function drawRej(d) {
+    try {
+      const roll = rejMode === "rolling" && d.rolling_24h && d.rolling_24h.categories;
+      const cats = roll ? d.rolling_24h.categories : (d.categories || {});
+      $("rejTitle").textContent = roll ? "Entry rejects · rolling 24 h (IST)" : `Entry rejects today (IST, ${d.day || ""})`;
+      $("rejWin").textContent = roll ? `window ${d.rolling_24h.since_ist} → ${d.rolling_24h.until_ist} · ${d.rolling_24h.bucket_minutes}-min buckets · oldest stored event ${d.rolling_24h.oldest_event_ist || "-"} · kept across restarts`
+        : "since IST midnight; resets at 00:00 IST";
       let tot = {v: 0, m: 0, o: 0, p: 0};
       $("rejRows").innerHTML = Object.entries(cats).map(([c, o]) => {
         const f = o.reject_flags || {}, v = f.viability || 0, m = f.money || 0, ot = f.other || 0;
@@ -595,13 +621,15 @@
         const reasons = (o.attempts || []).filter(a => String(a.status).startsWith("skipped")).slice(0, 3)
           .map(a => `${esc(String(a.status).replace("skipped_", ""))} ${a.attempts}`).join(", ");
         const red = (v + m + ot) > 0 && !(o.placed > 0);
+        const bySlot = Object.entries(o.placed_by_slot || {}).map(([k, n]) => `${esc(k)} ${n}`).join(", ");
         return `<tr style="border-bottom:1px solid #8882"><td>${esc(c)}</td><td>${(o.attempts_total || 0) + (o.blocked_triggers || 0)}</td>` +
           `<td>${o.placed || 0}</td><td>${v}</td><td>${m}</td><td>${ot}</td><td class="dim">${reasons || "-"}</td>` +
-          `<td style="color:${red ? "#e5484d" : "inherit"}">${esc(o.verdict || "")}</td></tr>`;
-      }).join("") || '<tr><td colspan="8" class="dim">no data</td></tr>';
+          `<td class="dim">${bySlot || "-"}</td><td style="color:${red ? "#e5484d" : "inherit"}">${esc(o.verdict || "")}</td></tr>`;
+      }).join("") || '<tr><td colspan="9" class="dim">no data</td></tr>';
       $("rejN").textContent = `placed ${tot.p} · viability ${tot.v} · money ${tot.m} · other ${tot.o}`;
     } catch (e) { $("rejN").textContent = "unavailable: " + (e.message || e); }
   }
+  setRejMode(rejMode);
   pollRej(); setInterval(pollRej, 30000);
   pollRoc(); setInterval(pollRoc, 60000);
 
@@ -803,7 +831,8 @@
     if (!h || !(h.per_strategy || []).length) return "";
     const f = (k, v) => k === "max_hold_hrs" ? (v == null ? "any" : (+v).toFixed(1) + " h") : k === "min_trades" ? v : (+v).toFixed(2);
     const lbl = {pf_min: "PFnet min", pf_max: "PFnet max", min_trades: "min trades", max_hold_hrs: "max hold"};
-    const c = h.criteria, chg = e => e.changes.map(k => `${lbl[k]} ${f(k, c[k])} → <b>${f(k, e.needs[k])}</b>`).join(", ");
+    const c = h.criteria, cr = e => e.criteria || c;
+    const chg = e => (e.slot && (h.slots || []).length > 1 ? `in slot "${esc(e.slot)}": ` : "") + e.changes.map(k => `${lbl[k]} ${f(k, cr(e)[k])} → <b>${f(k, e.needs[k])}</b>`).join(", ");
     const one = e => !e.fixable || !e.changes || !e.changes.length || !c ? `${e.strategy}: ${e.note || "-"}`
       : `${e.strategy} (PFnet ${(+e.pfnet).toFixed(2)}, ${e.n_trades} trades, hold ${e.hold_hrs == null ? "?" : (+e.hold_hrs).toFixed(1) + " h"}): ${chg(e)}`;
     const ez = h.easiest;
@@ -816,10 +845,18 @@
       const d = await getJSON("/strategy-viable-stack"), a = (d.stack || [])[0], g = d.live_gate || {};
       const c = a && a.criteria, ok = (b, t) => `<span class="${b ? "up" : "down"}">${t}</span>`;
       const def = !a ? ok(false, "NONE loaded - no real entry can open")
-        : (c ? `PFnet ${c.pf_min}–${c.pf_max} · min ${c.min_trades} trades · max avg hold ${c.max_hold_hrs == null ? "any" : c.max_hold_hrs + " h"}` : (a.label || "saved list"))
+        : ((a.slots || []).length > 1 ? `${a.slots.length} rule slots (OR)` : c ? `PFnet ${c.pf_min}–${c.pf_max} · min ${c.min_trades} trades · max avg hold ${c.max_hold_hrs == null ? "any" : c.max_hold_hrs + " h"}` : (a.label || "saved list"))
           + ` · <b>${a.count}</b> strategies pass · saved ${ist(a.created_at * 1000)} IST`;
+      // B-1513: every rule slot of the active definition (OR), with entries it admitted and today's rejects per slot
+      const sl = g.slots || [];
+      const fac = r => Object.entries(r || {}).map(([k, v]) => `${k} ${v}`).join(", ");
+      const slotsHtml = sl.length > 1 || (sl.length === 1 && a && String(a.label || "").startsWith("slots:")) ?
+        `&nbsp;&nbsp;↳ ${sl.filter(x => x.enabled).length} of ${sl.length} slots enabled (viable if ANY enabled slot admits):<br>` + sl.map(x =>
+          `&nbsp;&nbsp;&nbsp;&nbsp;${x.index}. ${x.enabled ? ok(true, "ON") : ok(false, "OFF")} <b>${esc(x.name)}</b>: ` +
+          (x.criteria ? `PFnet ${x.criteria.pf_min}–${x.criteria.pf_max} · min ${x.criteria.min_trades} · max hold ${x.criteria.max_hold_hrs == null ? "any" : x.criteria.max_hold_hrs + " h"}` : "saved list") +
+          ` · ${x.count} pass (${x.admits_first} first) · placed today <b>${x.placed_today}</b> · viability rejects today ${x.rejects_today}${x.rejects_today ? ` (${fac(x.rejects_by_factor)})` : ""}`).join("<br>") + "<br>" : "";
       $("viaTxt").innerHTML =
-        `1. Active definition (newest saved in View 1): ${def}<br>` +
+        `1. Active definition (newest saved in View 1): ${def}<br>` + slotsHtml +
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +

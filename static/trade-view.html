@@ -380,6 +380,19 @@
     <button id="sx-rename" title="Name the selected stack entry (e.g. legacy one showing N strategies)">Rename selected</button>
     <span id="sx-msg" style="color:#64748b"></span>
   </div>
+  <!-- B-1513: several viability rule slots; a strategy may take real money when ANY enabled slot admits it (OR). -->
+  <div id="sx-slots-box" style="padding:4px 10px 8px;font-size:.85em">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <b>Viability rule slots</b>
+      <span class="scan-idle">a strategy is viable for real money when ANY enabled slot admits it; the first admitting slot (top to bottom) is recorded on the entry</span>
+      <button id="sx-slot-add" title="Adds a slot holding the PFnet / min sample / max hold filters above">Add slot from current filters</button>
+      <button id="sx-slot-save" title="Pushes these slots as the new live definition (same stack of 10, Undo restores the previous one)">Save slots as live definition</button>
+      <button id="sx-slot-reset" title="Discard unsaved slot edits and reload the live slots">Discard edits</button>
+      <span id="sx-slot-msg" style="color:#64748b"></span>
+    </div>
+    <div class="counts-scroll"><table class="counts"><thead><tr><th class="num">#</th><th>On</th><th>Slot name</th><th class="num">PFnet min</th><th class="num">PFnet max</th><th class="num">Min trades</th><th class="num">Max hold (h)</th><th class="num">Strategies pass (saved)</th><th class="num">Admitted first</th><th></th></tr></thead>
+      <tbody id="sx-slots"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody></table></div>
+  </div>
   <div class="counts-scroll"><table class="counts">
     <thead><tr id="sx-head"><th class="num">#</th><th data-k="name" data-t="Strategy" style="cursor:pointer">Strategy</th><th data-k="categories" data-t="Category" style="cursor:pointer">Category</th><th data-k="timeframe" data-t="TF" style="cursor:pointer">TF</th><th class="num" data-k="pfnet" data-t="PFnet" style="cursor:pointer">PFnet ▼</th><th class="num" data-k="win_rate_pct" data-t="Win %" style="cursor:pointer">Win %</th><th class="num" data-k="n_trades" data-t="Trades" style="cursor:pointer">Trades</th><th class="num" data-k="avg_held_hrs" data-t="Avg hold (h)" style="cursor:pointer">Avg hold (h)</th><th>Override</th></tr></thead>
     <tbody id="sx-body"><tr><td colspan="9" class="scan-idle">Press Show.</td></tr></tbody>
@@ -428,9 +441,56 @@
     // B-1366: show the definition the LIVE bot is actually using (top of its stack), refreshed every 30 s
     var lv=document.getElementById("sx-live"), a=(st||[])[0];
     if(lv){lv.textContent=a?("Live viability definition (bot is using now): "+((a.criteria)?("PFnet "+a.criteria.pf_min+"-"+a.criteria.pf_max+", min "+a.criteria.min_trades+" trades, max avg hold "+(a.criteria.max_hold_hrs==null?"any":a.criteria.max_hold_hrs+" h")):(a.label||"saved list"))+" | "+a.count+" strategies pass | saved "+new Date(a.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST | checked "+new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata"})+" IST"):"Live viability definition: NONE loaded - no real entries can open";}
+    if(a&&a.slots&&a.slots.length>1&&lv){lv.textContent="Live viability definition (bot is using now): "+a.slots.filter(function(x){return x.enabled;}).length+" of "+a.slots.length+" slots enabled (OR) | "+a.count+" strategies pass | saved "+new Date(a.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST | checked "+new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata"})+" IST";}
+    if(!slotDirty){slotDraft=((a&&a.slots)||[]).map(function(x){var c=x.criteria||{};return {name:x.name,enabled:x.enabled,pf_min:c.pf_min,pf_max:c.pf_max,min_trades:c.min_trades,max_hold_hrs:c.max_hold_hrs,count:x.count,admits_first:x.admits_first,legacy_list:!x.criteria};});renderSlots();}
     var sel=document.getElementById("sx-stack");
-    sel.innerHTML=st.map(function(e,i){var lbl=(e.label&&e.label.indexOf("pfnet(")===0)?e.label:e.count+" strategies";return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+lbl+", "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
+    sel.innerHTML=st.map(function(e,i){var lbl=(e.label&&e.label.indexOf("slots:")===0)?(e.slots.length+" slots, "+e.count+" strategies"):(e.label&&e.label.indexOf("pfnet(")===0)?e.label:e.count+" strategies";return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+lbl+", "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
   }
+  // B-1513: slot editor (client-side draft; the 30 s live refresh never overwrites unsaved edits)
+  var slotDraft=[], slotDirty=false;
+  function slotMsg(t){document.getElementById("sx-slot-msg").textContent=t;}
+  function renderSlots(){
+    var tb=document.getElementById("sx-slots"); if(!tb)return;
+    var num=function(i,k,v,st){return '<td class="num"><input data-i="'+i+'" data-k="'+k+'" type="number" step="'+st+'" value="'+(v==null?"":v)+'" placeholder="any" style="width:64px"></td>';};
+    tb.innerHTML=slotDraft.length?slotDraft.map(function(x,i){
+      return '<tr><td class="num">'+(i+1)+'</td><td><input type="checkbox" data-i="'+i+'" data-k="enabled"'+(x.enabled?" checked":"")+'></td>'+
+        '<td><input data-i="'+i+'" data-k="name" value="'+esc(x.name||"").replace(/"/g,"&quot;")+'" maxlength="40" style="width:130px"></td>'+
+        (x.legacy_list?'<td colspan="4" class="scan-idle">saved strategy list (legacy); replace it by adding a slot from filters</td>':
+          num(i,"pf_min",x.pf_min,"0.01")+num(i,"pf_max",x.pf_max,"0.01")+num(i,"min_trades",x.min_trades,"1")+num(i,"max_hold_hrs",x.max_hold_hrs,"0.25"))+
+        '<td class="num">'+(x.count==null?"\u2014":x.count)+'</td><td class="num">'+(x.admits_first==null?"\u2014":x.admits_first)+'</td>'+
+        '<td><button data-i="'+i+'" data-a="up" title="Move up (earlier slots are recorded first)">\u2191</button> <button data-i="'+i+'" data-a="load" title="Copy this slot into the filters above and Show">Load to filters</button> <button data-i="'+i+'" data-a="del">Delete</button></td></tr>';
+    }).join(""):'<tr><td colspan="10" class="scan-idle">No slots saved: no real entry can open. Add one from the filters.</td></tr>';
+  }
+  document.getElementById("sx-slots").addEventListener("input",function(e){
+    var i=e.target.getAttribute("data-i"),k=e.target.getAttribute("data-k"); if(i==null||!k)return;
+    var x=slotDraft[+i]; x[k]=k==="enabled"?e.target.checked:(k==="name"?e.target.value:(e.target.value===""?null:Number(e.target.value)));
+    x.count=null; x.admits_first=null; slotDirty=true; slotMsg("unsaved edits");
+  });
+  document.getElementById("sx-slots").addEventListener("change",function(e){if(e.target.getAttribute("data-k")==="enabled"){slotDirty=true;slotMsg("unsaved edits");}});
+  document.getElementById("sx-slots").addEventListener("click",function(e){
+    var a=e.target.getAttribute&&e.target.getAttribute("data-a"),i=Number(e.target.getAttribute("data-i")); if(!a)return;
+    if(a==="del"){slotDraft.splice(i,1);}
+    else if(a==="up"&&i>0){var t=slotDraft[i-1];slotDraft[i-1]=slotDraft[i];slotDraft[i]=t;}
+    else if(a==="load"){var x=slotDraft[i];[["sx-pfmin","pf_min"],["sx-pfmax","pf_max"],["sx-minn","min_trades"],["sx-hold","max_hold_hrs"]].forEach(function(p){document.getElementById(p[0]).value=x[p[1]]==null?"":x[p[1]];});go();return;}
+    else return;
+    slotDirty=true; slotMsg("unsaved edits"); renderSlots();
+  });
+  document.getElementById("sx-slot-add").addEventListener("click",function(){
+    if(slotDraft.length>=8){slotMsg("At most 8 slots.");return;}
+    var g=function(id){var v=document.getElementById(id).value;return v===""?null:Number(v);};
+    var nm="Slot "+(slotDraft.length+1),k=1; while(slotDraft.some(function(x){return String(x.name).toLowerCase()===nm.toLowerCase();})){k++;nm="Slot "+(slotDraft.length+k);}
+    slotDraft.push({name:nm,enabled:true,pf_min:g("sx-pfmin"),pf_max:g("sx-pfmax"),min_trades:g("sx-minn"),max_hold_hrs:g("sx-hold"),count:null,admits_first:null});
+    slotDirty=true; slotMsg("unsaved edits"); renderSlots();
+  });
+  document.getElementById("sx-slot-reset").addEventListener("click",function(){slotDirty=false;slotMsg("");fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){stackUi(d.stack||[]);});});
+  document.getElementById("sx-slot-save").addEventListener("click",function(){
+    var rows=slotDraft.filter(function(x){return !x.legacy_list;});
+    if(!rows.length){slotMsg("Add at least one slot.");return;}
+    if(!rows.some(function(x){return x.enabled;})){slotMsg("Keep at least one slot enabled (use ALL TRADING to stop new trades).");return;}
+    if(rows.length<slotDraft.length&&!window.confirm("The legacy saved-list slot cannot be kept in a multi-slot definition and will be dropped. Continue?"))return;
+    slotDirty=false; slotMsg("");
+    post({action:"set_slots",slots:rows.map(function(x){return {name:x.name,enabled:x.enabled,pf_min:x.pf_min,pf_max:x.pf_max,min_trades:x.min_trades,max_hold_hrs:x.max_hold_hrs};})});
+  });
   function post(body){
     var msg=document.getElementById("sx-msg"); msg.textContent="Saving…";
     fetch("/strategy-viable-override",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
