@@ -57,10 +57,12 @@ def universe_symbols(m, universe: str):
     """full = main._load_nse_universe_from_file(); fno = its intersection with nse_fo_chain.STOCK_FO_UNDERLYINGS
     (B-1339: a multi-day short can only be held overnight as a stock future, Kotak rejects NRML cash shorts)."""
     syms = sorted(set(m._load_nse_universe_from_file()))
-    if universe == "fno":
+    if universe in ("fno", "nonfno"):
+        # B-1454: nonfno = the cash complement (full minus F&O underlyings), to show where the short edge lives
         import nse_fo_chain
         fo = set(nse_fo_chain.STOCK_FO_UNDERLYINGS)
-        syms = [s for s in syms if s.split(".")[0].upper() in fo]
+        keep = universe == "fno"
+        syms = [s for s in syms if (s.split(".")[0].upper() in fo) == keep]
     elif universe != "full":
         raise SystemExit(f"bad universe {universe}")
     return syms

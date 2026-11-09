@@ -36,6 +36,8 @@ INTERVAL (1d|1w: re-tag every spec to that candle size, B-786), PERIOD (yfinance
 FAMILIES (B-1472 b: cup | comma list of cup_handle,saucer,cup_nohandle,double_bottom -> full pattern grid via main.py
 oneil_pattern_signals; INTERVAL is then a comma list, blank = 1d,1w), PATTERN_EXITS (default atr2,atr3,pct7,pct8,tgt20,trl3).
 RS rank (rs80 filters) is the 12-month return percentile across the symbols loaded in the shard (as in the research).
+B-1483: RS_UNIVERSE=n200 ranks RS across the WHOLE main.SWING_WATCHLIST (every shard fetches it all, trades its own slice),
+the live swing scan's population (B-1468 pattern); tags gain param rsn200 so they never collide with shard-ranked rows.
 B-1485 (B-1484 stage 2 trailing-stop overlay): BAND_CAP = off (default, unchanged) | one swing_bandcap mode (single pass,
 as before) | trail (off + live + every swing_bandcap.TRAIL_MODES pass of every spec in ONE run, each its own tag via
 swing_bandcap.band_tag, so the same-run fixed-stop baseline sits next to every trail) | a comma list. 1d specs only.
@@ -486,8 +488,45 @@ def load_data(syms, tf, cfg):
     return data
 
 
-def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
-    """Replay every spec on every symbol of one timeframe. Returns (cells, crosscheck_notes)."""
+def add_rsn_param(tag, rsn="200"):
+    """B-1483: RS ranked inside the live swing watchlist (NIFTY-200 population, the B-1468 pattern) is its own tag:
+    params gain rsn<rsn>, inserted in key order (after rs*, before rsqual*/later keys), never colliding with the
+    shard-ranked tags."""
+    parts = tag.split("__")
+    if len(parts) != 6:
+        raise ValueError(f"not a grammar tag: {tag}")
+    toks = [t for t in parts[4].split("_") if t]
+    if any(re.fullmatch(r"rsn\d+", t) for t in toks):
+        return tag
+    key = lambda t: re.match(r"[a-z]+", t).group(0)
+    pos = next((i for i, t in enumerate(toks) if key(t) > "rsn"), len(toks))
+    toks.insert(pos, f"rsn{rsn}")
+    parts[4] = "_".join(toks)
+    return "__".join(parts)
+
+
+def rs_universe_split(app, shard, nsh, rs_universe="full", cap=0):
+    """(fetch_syms, trade_syms). full = the shard's full-universe slice for both (RS ranked inside the shard, as before).
+    n200 (B-1483) = every shard fetches the WHOLE main.SWING_WATCHLIST so the RS rank population matches the live
+    swing scan, and trades only its own slice of it."""
+    if rs_universe == "n200":
+        fetch = sorted(set(app.SWING_WATCHLIST))
+        trade = fetch[shard::nsh]
+    elif rs_universe in ("", "full"):
+        fetch = sorted(app._load_nse_universe_from_file())[shard::nsh]  # NOT main.NSE_FULL_UNIVERSE
+        trade = fetch
+    else:
+        raise SystemExit(f"bad RS_UNIVERSE {rs_universe}")
+    if cap:
+        trade = trade[:cap]
+        if rs_universe in ("", "full"):
+            fetch = trade
+    return fetch, trade
+
+
+def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False, trade_set=None):
+    """Replay every spec on every symbol of one timeframe. Returns (cells, crosscheck_notes). trade_set (B-1483): RS is
+    ranked over every loaded symbol but only these symbols are traded (None = all)."""
     cells = {bc.band_tag(s["tag"], s.get("band_cap", "off")): new_cell() for s in specs}
     notes = []
     if not data:
@@ -496,6 +535,8 @@ def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
     closes = pd.DataFrame({s: df["Close"] for s, df in data.items()})
     rs_all = orx.rs_rank_matrix(closes, CFG[tf]["rs_lb"])
     for i, (sym, df) in enumerate(data.items()):
+        if trade_set is not None and sym not in trade_set:
+            continue
         sig_cache = {}
         for sp in specs:
             mode = sp.get("band_cap", "off")
@@ -563,25 +604,29 @@ def main_run():
     modes = run_modes(os.environ.get("BAND_CAP"))
     if use_main:   # B-1070: the main.py-calling run is a NEW tag set (v1 -> v2); v1 results stay untouched
         tags = [re.sub(r"__v1$", "__v2", t) for t in tags]
+    rs_universe = (os.environ.get("RS_UNIVERSE") or "full").strip().lower()
+    if rs_universe == "n200":   # B-1483: own tags (rsn200), RS rank inside the live NIFTY-200 swing population
+        tags = [add_rsn_param(t) for t in tags]
     specs = [dict(parse_tag(t), band_cap=md) for t in tags for md in modes]
     period_override = (os.environ.get("PERIOD") or "").strip()
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0
     slip = float(os.environ.get("SLIP_PCT", "0") or 0) / 100.0
-    universe = sorted(app._load_nse_universe_from_file())  # NOT main.NSE_FULL_UNIVERSE (NIFTY-200 after import)
-    syms = universe[shard::nsh]
+    universe = (sorted(set(app.SWING_WATCHLIST)) if rs_universe == "n200"
+                else sorted(app._load_nse_universe_from_file()))  # NOT main.NSE_FULL_UNIVERSE (NIFTY-200 after import)
     cap = int(os.environ.get("MAXSYM", "0") or 0)
-    if cap:
-        syms = syms[:cap]
+    syms, trade_syms = rs_universe_split(app, shard, nsh, rs_universe, cap)
+    trade_set = set(trade_syms) if rs_universe == "n200" else None
     cells_all, notes_all, loaded = {}, [], {}
     for tf in sorted({s["tf"] for s in specs}):
         data = load_data(syms, tf, dict(CFG[tf], period=period_override) if period_override else CFG[tf])
-        loaded[tf] = len(data)
-        cells, notes = run_specs([s for s in specs if s["tf"] == tf], data, cost, slip, os.environ.get("CROSSCHECK") == "1", use_main)
+        loaded[tf] = len(data) if trade_set is None else sum(1 for k in data if k in trade_set)
+        cells, notes = run_specs([s for s in specs if s["tf"] == tf], data, cost, slip, os.environ.get("CROSSCHECK") == "1",
+                                 use_main, trade_set)
         cells_all.update(cells)
         notes_all += notes
     out = os.path.join(ROOT, "docs", f"oneil_replay_s{shard}.json")
-    json.dump(dict(shard=shard, nshards=nsh, universe_total=len(universe), loaded=loaded, cost=cost, slip=slip,
+    json.dump(dict(shard=shard, nshards=nsh, universe_total=len(universe), rs_universe=rs_universe, loaded=loaded, cost=cost, slip=slip,
                    crosscheck_notes=notes_all, cells=cells_all), open(out, "w"))
     print("wrote", out, "universe", len(universe), "loaded", loaded, "crosscheck diffs", len(notes_all))
 
