@@ -27,7 +27,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 347.9,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 305.3714686802455,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "BIOCON.NS"
@@ -43,7 +43,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1203.7,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1172.3244247402556,
    "strategy": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
    "symbol": "COCHINSHIP.NS"
@@ -59,7 +59,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1658.0,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1623.105172886939,
    "strategy": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
    "symbol": "COLPAL.NS"
@@ -91,7 +91,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 125.63,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 95.71672519141161,
    "strategy": "primary_base",
    "symbol": "PNB.NS"
@@ -107,7 +107,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 179.83,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 169.4657265799386,
    "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": "TATASTEEL.NS"
@@ -139,7 +139,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1159.8,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1123.699951171875,
    "strategy": "minervini_vcp_livermore",
    "symbol": "ZYDUSLIFE.NS"
