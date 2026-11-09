@@ -1917,3 +1917,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Flaky tests here came from daemon threads (5-min unprotected backcheck, chan_gap universe build) that an earlier test started and that later acted on another test's DB. Tests must never start process-lifetime threads; loops are tested with a bounded rounds=N.
 - Logging every repeated skip on every scan made real_trades grow ~12k rows/day (B-1533): log volume is a cost too (journal size, Upstash payload, memory).
 - Profit-booking / exit takeaway: a fired, viable signal that never reaches Kotak is lost profit with no trace; check the paper gateway first whenever a viable strategy shows triggers but no real entries.
+
+## Stop through the market at placement; entry-day chandelier ratchet (B-1520, B-1523, 9 Nov 2026)
+
+- IOC (gap runaway, peak-LTP trail) rested no SL from 09:15 to 09:26 IST. The first stop that rested was exactly its trailed 141.66, so the market had been at or under it. Kotak refuses a SELL SL at/above LTP, often without an order id. The bot kept re-sending the same level, and the never-loosen rules kept every fallback at or above it. Fix: every equity SL send checks a fresh live tick. A stop through the market rests just under the price, so the holding is never naked, and the swing engine then sells at market. That matches the replay, which fills at the open when the open is through the stop.
+- The minervini/primary_base chandelier ratchet to entry - 2 x ATR within minutes of entry (ZYDUSLIFE 1159.80, PNB 125.63) is the backtested stop. The replay rests that level from the first bar after the signal bar, which is the live entry day. It is not a live bug.
+- Profit-booking / exit takeaway: when the open gaps through a stop, take the exit at market immediately (the backtest fills there). Holding a position with no stop while waiting for a bounce is unmeasured risk that the PFnet never priced in.
