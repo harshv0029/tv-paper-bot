@@ -97,6 +97,22 @@
    "symbol": "SAIL.NS"
   },
   {
+   "day": "2026-11-09",
+   "entry_order_id": "261109000035814",
+   "entry_price": 189.2,
+   "first_seen_day": "2026-11-09",
+   "is_short": 0,
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "opened_at": 1794196131.4697149,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": 169.4657265799386,
+   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
+   "symbol": "TATASTEEL.NS"
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
