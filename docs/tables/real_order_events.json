@@ -20387,7 +20387,19 @@
    "prev_state": "resting SELL trigger Rs1123.70",
    "new_state": "resting SELL trigger Rs1159.80",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1123.70 to Rs1159.80 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 1700,
+   "ts": 1794211026.0066233,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261109000650517",
+   "prev_state": "resting SELL trigger Rs142.10",
+   "new_state": "resting SELL trigger Rs142.20",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs142.10 to Rs142.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T06:56:54Z"
+ "synced_at_utc": "2026-11-09T07:57:10Z"
 }
