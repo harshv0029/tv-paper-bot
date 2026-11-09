@@ -82,6 +82,22 @@
   },
   {
    "day": "2026-11-09",
+   "entry_order_id": "261109000822429",
+   "entry_price": 131.87,
+   "first_seen_day": "2026-11-09",
+   "is_short": 0,
+   "kotak_trading_symbol": "PNB-EQ",
+   "opened_at": 1794215709.5300095,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 114.24,
+   "source": "position",
+   "stop_loss": 95.71672519141161,
+   "strategy": "primary_base",
+   "symbol": "PNB.NS"
+  },
+  {
+   "day": "2026-11-09",
    "entry_order_id": "261109000035814",
    "entry_price": 189.2,
    "first_seen_day": "2026-11-09",
