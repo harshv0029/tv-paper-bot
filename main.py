@@ -857,6 +857,28 @@ def init_db():
             )
             """
         )
+        # B-1514 (user 2026-11-09: "Entry rejects today gets reset. At least keep the data restored for rolling 24
+        # hours"): entry-funnel events (real-entry attempts: placed / failed / skipped_* rejects, and gate-closed
+        # triggers) in 15-min buckets, so /entry-funnel can show a rolling 24 h window that survives a Render restart
+        # (generic Upstash mirror) and the IST midnight reset. Pruned beyond 48 h. No qty/price (balance-free).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS entry_funnel_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                bucket_ts REAL NOT NULL,          -- epoch floored to 15 min
+                last_ts REAL NOT NULL,            -- epoch of the newest event in the bucket
+                kind TEXT NOT NULL,               -- 'placed' | 'failed' | 'reject' | 'blocked_trigger'
+                strategy TEXT NOT NULL DEFAULT '',
+                side TEXT NOT NULL DEFAULT '',
+                symbol TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT '',
+                flag TEXT NOT NULL DEFAULT '',    -- reject flag: viability | money | other
+                slot TEXT NOT NULL DEFAULT '',    -- B-1513 viability slot that admitted a placed entry
+                n INTEGER NOT NULL DEFAULT 1,
+                UNIQUE (bucket_ts, kind, strategy, side, symbol, status, slot)
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS swing_entry_stop (
@@ -15878,6 +15900,107 @@ def _names_meeting_criteria(crit: dict) -> set:
     return out
 
 
+# B-1513 (user 2026-11-09: "I want multiple viability rules to be applicable. Give me multiple slots in View 1"): a
+# saved stack entry may hold an ORDERED list of named rule slots, each with the same 3 factors as the single rule.
+# Stored in the entry's label as "slots:" + JSON, so every existing durability layer (generic mirror, dedicated
+# Upstash key, git side branch, docs/viable_stack.json) carries it with no schema change. A strategy is viable when
+# ANY enabled slot admits it (OR); the first admitting slot (in order) is recorded. A legacy single-rule label reads
+# as slot 1 (no behaviour change), a legacy name list as a slot holding that list. Zero enabled slots = no
+# definition loaded, exactly today's empty-stack behaviour (reason no_stack, no real entry); the save endpoint
+# refuses it so it only happens on hand-edited data.
+VIABLE_SLOTS_PREFIX = "slots:"
+VIABLE_SLOTS_MAX = 8
+_VIABLE_ADMIT_SLOT: dict = {}  # registry name -> name of the first enabled slot that admits it (active definition)
+
+
+def _slot_from_dict(d: dict, idx: int) -> dict | None:
+    """Normalize one slot dict from the API/label; None when its factors are unusable."""
+    try:
+        pf_min = float(d.get("pf_min", 0) if d.get("pf_min") not in (None, "") else 0)
+        pf_max = float(d.get("pf_max", 100) if d.get("pf_max") not in (None, "") else 100)
+        mt = int(float(d.get("min_trades", 0) if d.get("min_trades") not in (None, "") else 0))
+        mh = d.get("max_hold_hrs")
+        mh = None if mh in (None, "", "any") else float(mh)
+    except (TypeError, ValueError):
+        return None
+    if pf_min > pf_max or mt < 0 or (mh is not None and mh < 0):
+        return None
+    name = re.sub(r"\s+", " ", str(d.get("name") or f"Slot {idx}")).strip()[:40] or f"Slot {idx}"
+    return {"name": name, "enabled": bool(d.get("enabled", True)),
+            "criteria": {"pf_min": pf_min, "pf_max": pf_max, "min_trades": mt, "max_hold_hrs": mh}}
+
+
+def _stack_slots(label, names_json=None) -> list:
+    """The ordered rule slots of one stack entry (see VIABLE_SLOTS_PREFIX). Never raises."""
+    lab = str(label or "")
+    if lab.startswith(VIABLE_SLOTS_PREFIX):
+        try:
+            raw = json.loads(lab[len(VIABLE_SLOTS_PREFIX):])
+        except (TypeError, ValueError):
+            raw = []
+        out = []
+        for i, d in enumerate(raw if isinstance(raw, list) else [], start=1):
+            s = _slot_from_dict(d, i) if isinstance(d, dict) else None
+            if s is not None:
+                out.append(s)
+        return out
+    crit = _stack_criteria(lab)
+    if crit:
+        return [{"name": "Slot 1", "enabled": True, "criteria": crit}]
+    try:
+        names = json.loads(names_json) if names_json else []
+    except (TypeError, ValueError):
+        names = []
+    return [{"name": "Slot 1 (saved list)", "enabled": True, "criteria": None, "names": list(names or [])}]
+
+
+def _slots_label(slots: list) -> str:
+    return VIABLE_SLOTS_PREFIX + json.dumps(
+        [{"name": s["name"], "enabled": bool(s["enabled"]), **s["criteria"]} for s in slots], separators=(",", ":"))
+
+
+def _slot_names(slot: dict) -> set:
+    return _names_meeting_criteria(slot["criteria"]) if slot.get("criteria") else set(slot.get("names") or [])
+
+
+def _slots_admit_map(slots: list) -> dict:
+    """registry name -> first ENABLED slot (in order) that admits it. Union of the enabled slots = the keys."""
+    admit: dict = {}
+    for s in slots:
+        if not s.get("enabled"):
+            continue
+        for n in _slot_names(s):
+            admit.setdefault(n, s["name"])
+    return admit
+
+
+def _slot_fail_factors(crit: dict, m) -> list:
+    """Which of a slot's 3 factors a strategy's stored metrics fail (empty = passes)."""
+    if m is None or m.pfnet is None:
+        return ["no_metrics"]
+    out = []
+    if not (crit["pf_min"] <= m.pfnet <= crit["pf_max"]):
+        out.append("pfnet")
+    if (m.n_trades or 0) < crit["min_trades"]:
+        out.append("min_trades")
+    mh = crit["max_hold_hrs"]
+    if mh is not None and (m.avg_held_hrs is None or m.avg_held_hrs > mh):
+        out.append("max_hold")
+    return out
+
+
+def _viability_admit_slot(registry_name: str | None) -> str | None:
+    """B-1513: the slot of the active definition that admitted this registry name (None if none did)."""
+    if not registry_name:
+        return None
+    _load_viable_overrides()
+    return _VIABLE_ADMIT_SLOT.get(registry_name)
+
+
+def _viability_admit_slot_for_tag(strategy_tag: str | None) -> str | None:
+    return _viability_admit_slot(_STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or ""))
+
+
 _VIABLE_OVERRIDES_CACHE: dict = {}
 _VIABLE_OVERRIDES_TTL_S = 3.0
 
@@ -15920,15 +16043,24 @@ def _load_viable_overrides() -> set:
         key = (tuple(row) if row else None, id(sr.REGISTRY), len(sr.REGISTRY))
         if _VIABLE_OVERRIDES_CACHE.get("key") == key:
             names = _VIABLE_OVERRIDES_CACHE["names"]
+            admit = _VIABLE_OVERRIDES_CACHE["admit"]
+            active = _VIABLE_OVERRIDES_CACHE["active"]
         else:
-            crit = _stack_criteria(row[1]) if row else None
-            names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
-            _VIABLE_OVERRIDES_CACHE.update(key=key, names=names)
+            # B-1513: OR over the enabled rule slots of the newest entry (a legacy entry is one slot).
+            slots = _stack_slots(row[1], row[0]) if row else []
+            admit = _slots_admit_map(slots)
+            names = set(admit)
+            active = any(s.get("enabled") for s in slots)
+            _VIABLE_OVERRIDES_CACHE.update(key=key, names=names, admit=admit, active=active)
         _VIABLE_OVERRIDES_CACHE["ts"] = _now
         if sr.VIABLE_OVERRIDES != names:  # B-1379: never empty the shared set under a concurrent reader when unchanged
             sr.VIABLE_OVERRIDES.clear()
             sr.VIABLE_OVERRIDES.update(names)
-        sr.VIABLE_STACK_ACTIVE = row is not None
+        if _VIABLE_ADMIT_SLOT != admit:
+            _VIABLE_ADMIT_SLOT.clear()
+            _VIABLE_ADMIT_SLOT.update(admit)
+        # Zero enabled slots = no definition loaded (today's empty-stack behaviour), never a silent open.
+        sr.VIABLE_STACK_ACTIVE = bool(row is not None and active)
     except Exception:
         pass
     return sr.VIABLE_OVERRIDES
@@ -16311,11 +16443,57 @@ def _entry_reject_flag(status) -> str:
     return "other"
 
 
+def _is_placed_entry_status(status) -> bool:
+    st = str(status or "")
+    return st in ("confirmed", "placed", "filled", "ok") or st.startswith(("placed", "filled", "ok", "confirmed"))
+
+
+ENTRY_FUNNEL_BUCKET_S = 900          # B-1514: 15-min buckets
+ENTRY_FUNNEL_KEEP_S = 48 * 3600      # prune beyond 48 h (the view is rolling 24 h)
+ENTRY_FUNNEL_PRUNE_EVERY_S = 600
+_entry_funnel_last_prune = [0.0]
+
+
+def _record_funnel_event(conn, kind, strategy=None, side=None, symbol=None, status=None, flag=None, slot=None,
+                         ts=None) -> None:
+    """B-1514: one entry-funnel event into entry_funnel_events (15-min bucket upsert). Never raises."""
+    try:
+        now = float(ts if ts is not None else time.time())
+        bucket = now - (now % ENTRY_FUNNEL_BUCKET_S)
+        conn.execute(
+            "INSERT INTO entry_funnel_events (bucket_ts, last_ts, kind, strategy, side, symbol, status, flag, slot, n) "
+            "VALUES (?,?,?,?,?,?,?,?,?,1) ON CONFLICT (bucket_ts, kind, strategy, side, symbol, status, slot) "
+            "DO UPDATE SET n = n + 1, last_ts = MAX(last_ts, excluded.last_ts)",
+            (bucket, now, str(kind), str(strategy or ""), str(side or ""), str(symbol or ""), str(status or ""),
+             str(flag or ""), str(slot or "")))
+        if now - _entry_funnel_last_prune[0] >= ENTRY_FUNNEL_PRUNE_EVERY_S:
+            _entry_funnel_last_prune[0] = now
+            conn.execute("DELETE FROM entry_funnel_events WHERE last_ts < ?", (now - ENTRY_FUNNEL_KEEP_S,))
+    except Exception as e:  # noqa: BLE001
+        print(f"[entry_funnel] event record failed (non-fatal): {e}")
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
                        strategy=None, leg=None):
     if status == "skipped_strategy_not_viable":
         detail = _stamp_viability_reason(detail, strategy)
+    _slot = None
+    if leg != "exit" and strategy and _is_placed_entry_status(status):
+        # B-1513: which View 1 viability slot admitted this real entry (stamped for View 4 / the audit trail)
+        try:
+            _slot = _viability_admit_slot_for_tag(strategy)
+        except Exception:
+            _slot = None
+        if _slot:
+            _tail = "viability_slot=" + re.sub(r"\s+", "_", _slot)
+            detail = f"{detail} {_tail}" if detail else _tail
+    if leg != "exit":
+        _st = str(status or "")
+        _record_funnel_event(
+            conn, "reject" if _st.startswith("skipped") else ("placed" if _is_placed_entry_status(_st) else "failed"),
+            strategy=strategy, side=side, symbol=symbol, status=_st,
+            flag=_entry_reject_flag(_st) if _st.startswith("skipped") else None, slot=_slot)
     if leg == "exit":
         # B-1408: exit/cover rows carry their position's strategy tag, so /entry-funnel cannot tell them from entries
         # by tag or side (NHPC's cover read as a 'placed' gap_and_go entry, 2026-10-28). Mark them explicitly.
@@ -22890,6 +23068,7 @@ _GENERIC_MIRROR_TABLES = (
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
     "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
+    "entry_funnel_events",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -22937,7 +23116,7 @@ _generic_mirror_last_hash: dict = {}
 # the Upstash tier pushes at most every _GENERIC_MIRROR_SLOW_SEC on the tick path; an explicit only=(...) call is immediate.
 _GENERIC_MIRROR_SLOW_TABLES = ("nse_straddle_state", "signal_state_fo_options", "tracked_union",
                                "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today",
-                               "kotak_fill_ledger")
+                               "kotak_fill_ledger", "entry_funnel_events")
 _GENERIC_MIRROR_SLOW_SEC = 300
 _generic_mirror_last_push_ts: dict = {}
 
@@ -24332,6 +24511,32 @@ def _record_blocked_trigger(tag: str):
         _strategy_blocked_triggers.clear()
         _strategy_blocked_triggers["_day"] = day
     _strategy_blocked_triggers[tag] = _strategy_blocked_triggers.get(tag, 0) + 1
+    # B-1514: durable, rolling-24h copy (the in-memory counter resets at restart and at IST midnight). Buffered, not
+    # written here: call sites sit inside scan loops that may hold their own write transaction.
+    with _FUNNEL_PENDING_LOCK:
+        _FUNNEL_PENDING.append((time.time(), str(tag)))
+
+
+_FUNNEL_PENDING: list = []
+_FUNNEL_PENDING_LOCK = threading.Lock()
+
+
+def _flush_funnel_pending() -> int:
+    """B-1514: write buffered gate-closed triggers into entry_funnel_events (scheduler tick + /entry-funnel)."""
+    with _FUNNEL_PENDING_LOCK:
+        items = list(_FUNNEL_PENDING)
+        _FUNNEL_PENDING.clear()
+    if not items:
+        return 0
+    try:
+        with closing(get_db()) as _c:
+            for ts, tag in items:
+                _record_funnel_event(_c, "blocked_trigger", strategy=tag, status="gate_closed", flag="viability", ts=ts)
+            _c.commit()
+        return len(items)
+    except Exception as e:  # noqa: BLE001
+        print(f"[entry_funnel] blocked-trigger flush failed (non-fatal): {e}")
+        return 0
 
 
 # B-1274 stage 1: per-symbol record of every distinct strategy tag evaluated today (IST day), fed by
@@ -30692,6 +30897,10 @@ async def _scheduler_tick():
     global _scheduler_tick_count
     _scheduler_tick_count += 1
     try:
+        await asyncio.to_thread(_flush_funnel_pending)  # B-1514: before the mirror push so it rides this pass
+    except Exception as e:
+        print(f"[entry_funnel] tick flush failed (non-fatal): {e}")
+    try:
         await asyncio.to_thread(sync_generic_tables_external)
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
@@ -31524,9 +31733,15 @@ def _viable_stack_rows(c, full: bool = False) -> list:
     rows = []
     for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall():
         names = json.loads(r[3])
-        crit = _stack_criteria(r[2])
-        e = {"id": r[0], "created_at": r[1], "label": r[2], "criteria": crit,
-             "count": len(_names_meeting_criteria(crit)) if crit else len(names)}
+        slots = _stack_slots(r[2], r[3])
+        admit = _slots_admit_map(slots)
+        # B-1513: `criteria` stays the single-rule view (legacy readers); `slots` carries every rule with its count.
+        crit = _stack_criteria(r[2]) or (slots[0]["criteria"] if len(slots) == 1 else None)
+        e = {"id": r[0], "created_at": r[1], "label": r[2], "criteria": crit, "count": len(admit),
+             "slots": [{"name": s["name"], "enabled": s["enabled"], "criteria": s.get("criteria"),
+                        "count": len(_slot_names(s)),
+                        "admits_first": sum(1 for v in admit.values() if v == s["name"])} for s in slots],
+             "enabled_slots": sum(1 for s in slots if s["enabled"])}
         if full:
             e["created_at_ist"] = dt.datetime.fromtimestamp(r[1], tz=dt.timezone(dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S IST")
             e["names"] = names
@@ -31850,9 +32065,9 @@ def viable_strategy_names():
         r = c.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
     if not r:
         return {"count": 0, "names": [], "label": None}
-    crit = _stack_criteria(r[0])
-    names = sorted(_names_meeting_criteria(crit)) if crit else sorted(json.loads(r[1]))
-    return {"count": len(names), "names": names, "label": r[0]}
+    admit = _slots_admit_map(_stack_slots(r[0], r[1]))  # B-1513: union of the enabled slots
+    names = sorted(admit)
+    return {"count": len(names), "names": names, "label": r[0], "slot_of": {n: admit[n] for n in names}}
 
 
 @app.get("/strategy-viable-stack")
@@ -31888,6 +32103,53 @@ def _live_entry_gate_summary(conn) -> dict:
         "checked_at": time.time(),
     }
     out["unlock_hint"] = _viability_unlock_hint(conn, out["rejected_today"])
+    try:
+        out["slots"] = _viability_slots_summary(conn, out["rejected_today"])
+    except Exception as e:  # noqa: BLE001
+        out["slots"] = []
+        print(f"[viability] slots summary failed (non-fatal): {e}")
+    return out
+
+
+def _viability_slots_summary(conn, rejected: dict | None = None, day: str | None = None) -> list:
+    """B-1513: per slot of the active definition (View 4): enabled, the 3 factors, how many strategies it admits
+    (and admits first, in slot order), real entries it admitted today, and today's viability rejects counted against
+    it by failing factor (every rejected attempt failed every enabled slot, or it would have been admitted)."""
+    row = conn.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+    if not row:
+        return []
+    slots = _stack_slots(row[0], row[1])
+    admit = _slots_admit_map(slots)
+    day = day or ist_now().strftime("%Y-%m-%d")
+    placed: dict = {}
+    try:
+        for (det,) in conn.execute("SELECT detail FROM real_trades WHERE day = ? AND detail LIKE ?",
+                                   (day, "%viability_slot=%")).fetchall():
+            m = re.search(r"viability_slot=(\S+)", str(det or ""))
+            if m and not str(det).startswith(REAL_EXIT_ROW_MARK):
+                placed[m.group(1)] = placed.get(m.group(1), 0) + 1
+    except Exception:
+        pass
+    out = []
+    for i, sl in enumerate(slots, start=1):
+        fails = {"pfnet": 0, "min_trades": 0, "max_hold": 0, "no_metrics": 0, "not_in_list": 0}
+        rej = 0
+        for r in ((rejected or {}).get("by_strategy", []) if sl["enabled"] else []):  # a disabled slot judges nothing
+            reg = _STRATEGY_TAG_TO_REGISTRY_NAME.get(r["strategy"])
+            strat = _registry_entry(reg) if reg else None
+            m = strat.metrics if strat is not None else None
+            if sl.get("criteria"):
+                ff = _slot_fail_factors(sl["criteria"], m)
+            else:
+                ff = [] if (reg and reg in set(sl.get("names") or [])) else ["not_in_list"]
+            if ff:
+                rej += r["count"]
+                for f in ff:
+                    fails[f] = fails.get(f, 0) + r["count"]
+        out.append({"index": i, "name": sl["name"], "enabled": sl["enabled"], "criteria": sl.get("criteria"),
+                    "count": len(_slot_names(sl)), "admits_first": sum(1 for v in admit.values() if v == sl["name"]),
+                    "placed_today": placed.get(re.sub(r"\s+", "_", sl["name"]), 0),
+                    "rejects_today": rej, "rejects_by_factor": {k: v for k, v in fails.items() if v}})
     return out
 
 
@@ -31992,9 +32254,13 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
     metrics. `easiest` is the one needing the fewest factor changes (then the smallest PFnet drop, then the most
     rejected attempts). A guide only: nothing here changes the live definition."""
     crit = None
+    slot_crits = []  # B-1513: (slot name, criteria) of every enabled 3-factor slot; the hint picks the easiest slot
     try:
-        row = conn.execute("SELECT label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
-        crit = _stack_criteria(row[0]) if row else None
+        row = conn.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            slot_crits = [(sl["name"], sl["criteria"]) for sl in _stack_slots(row[0], row[1])
+                          if sl.get("enabled") and sl.get("criteria")]
+        crit = slot_crits[0][1] if slot_crits else None
     except Exception:
         pass
     per = []
@@ -32023,13 +32289,21 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
             e["replay_owed"] = True
         if tag in REPLAY_FAILED_TAGS:
             e["replay_below_floor"] = True
-        needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
-                 "min_trades": min(crit["min_trades"], e["n_trades"]),
-                 "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (
-                     m.avg_held_hrs is not None and m.avg_held_hrs <= crit["max_hold_hrs"]) else (
-                     None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        def _needs(cr):
+            return {"pf_min": min(cr["pf_min"], m.pfnet), "pf_max": max(cr["pf_max"], m.pfnet),
+                    "min_trades": min(cr["min_trades"], e["n_trades"]),
+                    "max_hold_hrs": cr["max_hold_hrs"] if cr["max_hold_hrs"] is None or (
+                        m.avg_held_hrs is not None and m.avg_held_hrs <= cr["max_hold_hrs"]) else (
+                        None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        best = None
+        for _sn, _cr in slot_crits:
+            _nd = _needs(_cr)
+            _ch = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if _nd[k] != _cr[k]]
+            _rank = (len(_ch), _cr["pf_min"] - _nd["pf_min"])
+            if best is None or _rank < best[0]:
+                best = (_rank, _sn, _cr, _nd, _ch)
+        _, e["slot"], e["criteria"], needs, e["changes"] = best
         e["needs"] = needs
-        e["changes"] = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if needs[k] != crit[k]]
         if not e["changes"]:
             # B-1390: the stamped reasons (recorded at skip time) replace the old guess. Rows logged before the stamp
             # existed read not_recorded.
@@ -32038,8 +32312,9 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
                 "passes the active definition now; reason not recorded"
         per.append(e)
     fix = [e for e in per if e["fixable"] and e.get("changes")]
-    easiest = min(fix, key=lambda e: (len(e["changes"]), crit["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
-    return {"criteria": crit, "per_strategy": per, "easiest": easiest}
+    easiest = min(fix, key=lambda e: (len(e["changes"]), e["criteria"]["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
+    return {"criteria": crit, "per_strategy": per, "easiest": easiest,
+            "slots": [{"name": n, "criteria": c} for n, c in slot_crits]}
 
 
 @app.post("/strategy-viable-override")
@@ -32053,10 +32328,30 @@ async def strategy_viable_override(request: Request):
     import strategy_registry as sr
     body = await request.json()
     action = body.get("action", "set")
-    if action not in ("set", "undo", "restore", "relabel"):
-        raise HTTPException(status_code=400, detail="action must be set, undo, restore or relabel")
+    if action not in ("set", "set_slots", "undo", "restore", "relabel"):
+        raise HTTPException(status_code=400, detail="action must be set, set_slots, undo, restore or relabel")
     with closing(get_db()) as c:
-        if action == "set":
+        if action == "set_slots":
+            # B-1513: push a NEW definition holding an ordered list of named rule slots (OR of the enabled ones).
+            raw = body.get("slots")
+            if not isinstance(raw, list) or not raw:
+                raise HTTPException(status_code=400, detail="slots must be a non-empty list")
+            if len(raw) > VIABLE_SLOTS_MAX:
+                raise HTTPException(status_code=400, detail=f"at most {VIABLE_SLOTS_MAX} slots")
+            slots = []
+            for i, d in enumerate(raw, start=1):
+                sl = _slot_from_dict(d, i) if isinstance(d, dict) else None
+                if sl is None:
+                    raise HTTPException(status_code=400, detail=f"slot {i}: bad PFnet range / min trades / max hold")
+                slots.append(sl)
+            if len({sl["name"].lower() for sl in slots}) != len(slots):
+                raise HTTPException(status_code=400, detail="slot names must be unique")
+            if not any(sl["enabled"] for sl in slots):
+                raise HTTPException(status_code=400, detail="keep at least one slot enabled (use the ALL TRADING "
+                                                            "switch to stop new real trades)")
+            c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                      (time.time(), _slots_label(slots), json.dumps(sorted(_slots_admit_map(slots)))))
+        elif action == "set":
             known = {d.name for d in sr.REGISTRY if d.metrics is not None}
             names = sorted({n for n in (body.get("names") or []) if n in known})
             if not names:
@@ -32066,6 +32361,10 @@ async def strategy_viable_override(request: Request):
         elif action == "relabel":
             # B-897: name a legacy entry (saved before filters were stored) in place; names/created_at untouched.
             label = str(body.get("label") or "").strip()[:120]
+            _cur = c.execute("SELECT label FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
+            if _cur and str(_cur[0] or "").startswith(VIABLE_SLOTS_PREFIX):
+                # B-1513: a slots entry's label IS its definition; renaming would erase it. Edit slots instead.
+                raise HTTPException(status_code=400, detail="a multi-slot entry is renamed by editing its slots")
             if not label:
                 raise HTTPException(status_code=400, detail="label required")
             cur = c.execute("UPDATE strategy_viable_stack SET label = ? WHERE id = ?", (label, body.get("id")))
@@ -32126,6 +32425,7 @@ def entry_funnel():
     statuses (every skipped_* reason _log_real_attempt records) and a verdict
     ('no viable strategy' vs 'no setup fired' vs 'setups blocked by ...')."""
     day = ist_now().strftime("%Y-%m-%d")
+    _flush_funnel_pending()  # B-1514: buffered gate-closed triggers land before the rolling window is read
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
                "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
@@ -32199,7 +32499,26 @@ def entry_funnel():
             key = "blocked" if _skipped else ("placed" if _is_placed else "failed")  # B-1285: rejected/errored = failed
             _r[key] += n
             o[key] += n
+    try:  # B-1513: which View 1 viability slot admitted each placed entry today (stamped by _log_real_attempt)
+        with closing(get_db()) as _c:
+            _top = _c.execute("SELECT label, names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+            _slot_by_stamp = {re.sub(r"\s+", "_", sl["name"]): sl["name"] for sl in
+                              (_stack_slots(_top[0], _top[1]) if _top else [])}
+            for strat, side, det in _c.execute(
+                    "SELECT strategy, side, detail FROM real_trades WHERE day = ? AND detail LIKE ?",
+                    (day, "%viability_slot=%")).fetchall():
+                if str(det or "").startswith(REAL_EXIT_ROW_MARK):
+                    continue
+                _m = re.search(r"viability_slot=(\S+)", str(det or ""))
+                for c in (tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]):
+                    if c in out and _m:
+                        _pb = out[c].setdefault("placed_by_slot", {})
+                        _sn = _slot_by_stamp.get(_m.group(1), _m.group(1))
+                        _pb[_sn] = _pb.get(_sn, 0) + 1
+    except Exception:
+        pass
     for c, o in out.items():
+        o.setdefault("placed_by_slot", {})
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         # B-1509: gate-closed triggers (wired cell fired, viability closed before the paper row) are viability rejects
         _fl = o.setdefault("reject_flags", {"viability": 0, "money": 0, "other": 0})
@@ -32220,7 +32539,122 @@ def entry_funnel():
         else:
             o["verdict"] = "entries flowing"
         o["attempts"] = [{"status": k, **v} for k, v in sorted(o["attempts"].items(), key=lambda kv: -kv[1]["attempts"])]
-    return {"day": day, "categories": out, "as_of_epoch": time.time()}
+    now = time.time()
+    try:
+        rolling = _entry_funnel_window(now - 24 * 3600, tag_cats, {c: o["viable_strategies"] for c, o in out.items()})
+    except Exception as e:  # noqa: BLE001
+        rolling = {"error": str(e)[:200], "categories": {}}
+    # B-1514: `day`/`categories` kept as-is (today, IST) for existing readers; `today` repeats it, `rolling_24h` adds
+    # the last 24 h from the durable entry_funnel_events table (survives a restart and the IST midnight reset).
+    return {"day": day, "categories": out, "as_of_epoch": now,
+            "today": {"day": day, "categories": out}, "rolling_24h": rolling}
+
+
+def _paper_entries_since(since_ts: float) -> dict:
+    """Paper 'buy' entries per strategy tag since since_ts (swing rows carry the tag in raw_payload.entry_reason)."""
+    out: dict = {}
+    with closing(get_db()) as conn:
+        for r in conn.execute("SELECT strategy, raw_payload FROM trades WHERE action = 'buy' AND ts >= ?",
+                              (since_ts,)).fetchall():
+            tag = r["strategy"]
+            if tag == SWING_STRATEGY_TAG:
+                try:
+                    tag = (json.loads(r["raw_payload"]) or {}).get("entry_reason") or tag
+                except (TypeError, ValueError):
+                    pass
+            out[str(tag)] = out.get(str(tag), 0) + 1
+    return out
+
+
+def _entry_funnel_window(since_ts: float, tag_cats: dict, viable_by_cat: dict | None = None) -> dict:
+    """B-1514: the entry funnel over [since_ts, now] from entry_funnel_events (15-min bucket resolution: a bucket is
+    included when its newest event is inside the window). Same per-category shape and same rules as the today block
+    (exits are never recorded; untagged non-skipped rows are not entry attempts; a long's sell / short's cover is not
+    an entry), plus `placed_by_slot` (B-1513: the View 1 viability slot that admitted each placed entry)."""
+    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    out = {c: {"attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "blocked_triggers": 0,
+               "paper_entries": 0, "reject_flags": {"viability": 0, "money": 0, "other": 0},
+               "placed_by_slot": {}, "_strats": {}, "_fired": set()} for c in cats}
+
+    def _srow(o, tag):
+        return o["_strats"].setdefault(str(tag), {"strategy": str(tag), "fired": 0, "placed": 0, "blocked": 0,
+                                                 "failed": 0, "blocked_triggers": 0, "symbols_fired": 0,
+                                                 "skip_reasons": {}, "slots": {}})
+    with closing(get_db()) as conn:
+        rows = conn.execute(
+            "SELECT kind, strategy, side, status, flag, slot, SUM(n), COUNT(DISTINCT symbol) FROM entry_funnel_events "
+            "WHERE last_ts >= ? GROUP BY kind, strategy, side, status, flag, slot", (since_ts,)).fetchall()
+        oldest = conn.execute("SELECT MIN(bucket_ts) FROM entry_funnel_events WHERE last_ts >= ?",
+                              (since_ts,)).fetchone()[0]
+    for kind, strat, side, status, flag, slot, n, syms in rows:
+        n = int(n or 0)
+        if kind == "blocked_trigger":
+            for c in (tag_cats.get(strat) or []):
+                if c in out:
+                    out[c]["blocked_triggers"] += n
+                    out[c]["reject_flags"]["viability"] += n
+                    _srow(out[c], strat)["blocked_triggers"] += n
+                    out[c]["_fired"].add(strat)
+            continue
+        _skipped = kind == "reject"
+        if not strat and not _skipped:
+            continue
+        cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
+        _short_tag = "short" in re.split(r"[_\-]+", str(strat or "").lower())
+        for c in cs:
+            if c not in out:
+                continue
+            if not _skipped and c != "bidirectional":
+                _entry_side = "S" if (c == "short_sell" or _short_tag) else "B"
+                if not str(side).upper().startswith(_entry_side):
+                    continue
+            o = out[c]
+            o["_fired"].add(strat)
+            d = o["attempts"].setdefault(status, {"attempts": 0, "symbols": 0})
+            d["attempts"] += n
+            d["symbols"] += int(syms or 0)
+            r = _srow(o, strat)
+            r["symbols_fired"] += int(syms or 0)
+            if _skipped:
+                r["skip_reasons"][status] = r["skip_reasons"].get(status, 0) + n
+                o["reject_flags"][flag if flag in o["reject_flags"] else _entry_reject_flag(status)] += n
+            key = "blocked" if _skipped else ("placed" if kind == "placed" else "failed")
+            r[key] += n
+            o[key] += n
+            if key == "placed":
+                _sk = slot or "not_recorded"
+                o["placed_by_slot"][_sk] = o["placed_by_slot"].get(_sk, 0) + n
+                r["slots"][_sk] = r["slots"].get(_sk, 0) + n
+    try:
+        paper = _paper_entries_since(since_ts)
+    except Exception:
+        paper = {}
+    for tag, n in paper.items():
+        for c in (tag_cats.get(tag) or []):
+            if c in out:
+                out[c]["paper_entries"] += n
+                _srow(out[c], tag)["fired"] += n
+                out[c]["_fired"].add(tag)
+    for c, o in out.items():
+        o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
+        o["strategies_fired"] = len(o.pop("_fired"))
+        o["strategies"] = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
+        for r in o["strategies"]:
+            r["attempts_total"] = r["attempts"] = r["placed"] + r["blocked"] + r["failed"]
+        o["attempts"] = [{"status": k, **v} for k, v in sorted(o["attempts"].items(), key=lambda kv: -kv[1]["attempts"])]
+        if viable_by_cat is not None and not viable_by_cat.get(c):
+            o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
+        elif o["blocked"] and not o["placed"]:
+            o["verdict"] = "setups fired but every real entry was blocked - see reasons"
+        elif not o["paper_entries"] and not o["placed"] and not o["attempts_total"]:
+            o["verdict"] = "no setup fired in the last 24 h"
+        else:
+            o["verdict"] = "entries flowing"
+    ist = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    _f = lambda e: dt.datetime.fromtimestamp(e, tz=ist).strftime("%Y-%m-%d %H:%M IST")  # noqa: E731
+    return {"window_hours": 24, "since_epoch": since_ts, "since_ist": _f(since_ts), "until_ist": _f(time.time()),
+            "bucket_minutes": ENTRY_FUNNEL_BUCKET_S // 60,
+            "oldest_event_ist": _f(oldest) if oldest else None, "categories": out}
 
 
 @app.get("/strategy-viable-buckets")
