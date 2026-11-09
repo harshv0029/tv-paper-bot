@@ -25,6 +25,33 @@ def _load(fn):
         return None
 
 
+def _pool_row(out, seen, r, uni):
+    """B-1472 (2026-11-09; user 2026-11-05/06: pooled PFnet decides, OOS is recorded but never a veto): the Elder
+    dirsys13 headline row above carries the OOS hold-out PFnet, so the POOLED (whole-run) figures are registered as
+    their own "_pool" variant tag, every row with a pooled PFnet (no n / OOS-n filter). The OOS row is unchanged."""
+    p = r["tag"].split("__")
+    if len(p) < 6 or r.get("pfnet") is None or not r.get("n"):
+        return
+    p[1] = p[1] + "_pool"
+    tag = "__".join(p)
+    if tag in seen:
+        return
+    seen.add(tag)
+    out.append(sr.StrategyDef(
+        name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
+        categories=(sr.TradeCategory.SHORT_SELL if "__short__" in tag else sr.TradeCategory.SWING,), timeframe="1d",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None,
+        metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0),
+                           win_rate_pct=float(r.get("win_pct") or 0.0), n_trades=int(r["n"]),
+                           avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * _D,
+                           avg_held_raw_unit="1d bars", universe=uni, run_ref=_REF_E.replace("OOS headline", "POOLED headline")),
+        source="scripts/elder_dirsys13_research (B-588)",
+        evidence=(f"{_REF_E}: POOLED[n={r['n']} pfnet={r['pfnet']} pfnet_trim1={r.get('pfnet_trim1')} win={r.get('win_pct')}%]; "
+                  f"avg_net={r.get('avg_net_ret_pct')}%; OOS[n={r.get('oos_n')} pfnet={r.get('oos_pfnet')}] (recorded, not a veto)"),
+        notes=("B-1472 pooled variant of the Elder dirsys13 cell (overlapping signals, not strict FIFO: pooled n is inflated). "
+               "No main.py dirsys13 live path, so nothing is wired. Viability derived vs PFNET_LIVE_FLOOR.")))
+
+
 def _elder(seen):
     out = []
     d = _load("elder_dirsys13_results_1d.json")
@@ -32,6 +59,10 @@ def _elder(seen):
         return out
     uni = f"full NSE universe file, {d.get('symbols_fetched')} symbols fetched with data, cost {d.get('cost_round_trip')} round trip"
     for r in d.get("rows", []):
+        try:
+            _pool_row(out, seen, r, uni)
+        except Exception:
+            pass
         try:
             tag = r["tag"]
             if tag in seen or r.get("n", 0) < 30 or r.get("oos_n", 0) < 30 or r.get("oos_pfnet") is None:

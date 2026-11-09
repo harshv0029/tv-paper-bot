@@ -44,3 +44,38 @@ def test_exit_only_union_with_previous():
     g = importlib.util.module_from_spec(spec); spec.loader.exec_module(g)
     prev = {"cells": [["a", "r", 20, 6.0, 1.2], ["b", "r", 20, 6.0, 1.1]], "exit_only": [["z", "q", 10, 6.0, 1.0]]}
     assert [r[0] for r in g.exit_only([["a", "r", 20, 6.0, 1.3]], prev)] == ["b", "z"]
+
+
+def test_combo_holdout_all_file_fills_gaps_top80_wins(monkeypatch):
+    """2026-11-09: combo_validate_results_all.json (every in-sample PFnet > 1 combo) fills tags the top-80 file lacks."""
+    files = {"combo_validate_results.json": {"results": {"A": {"pfnet": 1.2}}},
+             "combo_validate_results_all.json": {"results": {"A": {"pfnet": 0.9}, "B": {"pfnet": 1.1}}}}
+    monkeypatch.setattr(srs, "_load", lambda n: files.get(n, {}))
+    got = srs._combo_holdout()
+    assert got == {"A": {"pfnet": 1.2}, "B": {"pfnet": 1.1}}
+
+
+def test_combo_validate_all_pf1_selection_shards_partition():
+    import importlib.util
+    import os
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    spec = importlib.util.spec_from_file_location("combo_validate_t", os.path.join(root, "scripts", "combo_validate.py"))
+    cv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cv)
+    cells = {f"combo__a{i}_x_b__long__1d__atr6_h20__v1": {"pfnet": 1.0 + (i % 3) * 0.2, "pfnet_trim1": None, "n": 50}
+             for i in range(30)}
+    cells["combo__s_x_b__short__1d__atr6_h20__v1"] = {"pfnet": 2.0, "pfnet_trim1": None, "n": 900}
+    want = sorted(t for t, m in cells.items() if m["pfnet"] > 1 and "__long__" in t)
+    shards = [cv.select_cells(cells, mode="all_pf1", shard=k, shards=4) for k in range(4)]
+    assert sorted(sum(shards, [])) == want and len(set(sum(shards, []))) == len(want)
+    assert cv.select_cells(cells, mode="top", top=80) == []  # B-18 pick unchanged: n >= 300 required
+
+
+def test_dirsys13_pooled_variant_rows_registered():
+    import strategy_registry as sr
+    by = {d.name: d for d in sr.REGISTRY}
+    pool = [n for n in by if n.startswith("dirsys13__") and "_pool__" in n]
+    assert pool
+    n = pool[0]
+    base = n.replace("_pool__", "__", 1)
+    assert base in by and by[base].metrics.n_trades < by[n].metrics.n_trades  # OOS headline kept, pooled is its own tag

@@ -15678,10 +15678,13 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
     "gaps__exhaust_fade__long__1d__atr3_nb5__v1": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
     "gaps__common_fade__long__1d__atr3_nb5__v1": "gaps__common_fade__long__1d__atr3_nb5__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
-    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
-    "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+    # B-1466 (2026-11-09): the live swingminrr VCP tags gate on their main.py-calling replay rows (`_mr`, swing-short-
+    # main-replay.yml run 38318986997, full NSE 5y, 0.8% cost: rr4 2.845 n51 / rr3 2.295 n110 / rr2 1.589 n327 / base
+    # 1.351 n2404), not the scripts/swing_min_rr_research.py sim rows (2.698 / 2.062 / 1.263 / 1.155), which stay registered.
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": "swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr2__v1",
+    "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": "swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
