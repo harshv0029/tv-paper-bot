@@ -20411,7 +20411,19 @@
    "prev_state": "resting SELL trigger Rs142.10",
    "new_state": "resting SELL trigger Rs142.20",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs142.10 to Rs142.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 1702,
+   "ts": 1794213554.850144,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261109000730751",
+   "prev_state": "resting SELL trigger Rs142.20",
+   "new_state": "resting SELL trigger Rs143.43",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs142.20 to Rs143.43 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T07:59:41Z"
+ "synced_at_utc": "2026-11-09T08:39:19Z"
 }
