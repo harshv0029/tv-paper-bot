@@ -1910,3 +1910,10 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - B-1455: a merge step that copies file-level metadata from each shard keeps the LAST shard's value; a multi-interval run must store period per interval. The brk20 run was 1d 5y / 1h 730d / 15m 60d, not 730d.
 - B-1479: 86 of 102 "awaiting run" Elder rows had in fact run, but at 1d only; the label said "not run" when the truth was "one candle size". Reconcile against the registry, never against row labels.
 - Profit-booking / exit takeaway: exit variants on a proven entry (trail, breakeven, exhaustion) are the cheapest way to add profitable entries, but they must be ranked by return per day from complete data; the gap_and_go peak-LTP 0.5R trail (0.306 %/day) still beats every exit-family exit (PFnet 1.09-1.21 at 10-11 bar holds).
+
+## B-1452 / B-1430 / B-1464 / B-1446 - paper gateway, real sizing and test hygiene (2026-11-09)
+- A paper row is the only gateway to a real order. Any paper-side rounding to 0 shares (or a paper-only minimum notional) silently kills the real leg, even when Kotak Net could buy a share. Every real-mirrored chan entry (chan_gap long/short, chan_kalman long/short) now floors its paper qty at 1 share; the real order sizes itself from Kotak Net and logs its own money reject.
+- Real sizing must use only real exposure (Kotak Net); paper-only positions never shrink real qty (B-1430, verified on main).
+- Flaky tests here came from daemon threads (5-min unprotected backcheck, chan_gap universe build) that an earlier test started and that later acted on another test's DB. Tests must never start process-lifetime threads; loops are tested with a bounded rounds=N.
+- Logging every repeated skip on every scan made real_trades grow ~12k rows/day (B-1533): log volume is a cost too (journal size, Upstash payload, memory).
+- Profit-booking / exit takeaway: a fired, viable signal that never reaches Kotak is lost profit with no trace; check the paper gateway first whenever a viable strategy shows triggers but no real entries.

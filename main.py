@@ -14231,13 +14231,13 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
     stop_dist = last_close - stop_loss
     if stop_loss <= 0 or stop_dist <= 0:
         return None
-    available = max(0.0, capital - deployed_notional(conn))
-    usable = min(available, capital / CAPITAL_TRANCHES)
+    usable = _chan_gap_paper_usable(conn, capital, real_mirrored=require_real_tradability)  # B-1452 (chan long)
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, require_real_tradability)  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     if require_real_tradability:
         if _is_t1_restricted(conn, symbol):
@@ -14412,6 +14412,18 @@ def _chan_gap_paper_usable(conn, capital, real_mirrored=False) -> float:
     return min(max(0.0, capital - deployed_notional(conn)), tranche)
 
 
+def _chan_gap_paper_qty(raw_qty: float, unit_inr: float, capital: float, real_mirrored: bool) -> float:
+    """B-1452 (2026-11-09, per the 2026-11-06 "paper sizing never drops a fired signal" rule): the paper row is the
+    only gateway to the real order, and the real order sizes itself from Kotak Net (B-1430/B-1509, with its own logged
+    money reject). So a real-mirrored chan entry (chan_gap long/short, chan_kalman long/short) floors its paper qty at
+    1 share and skips the paper-only Rs100 minimum notional instead of silently writing no row. Paper-only entries keep
+    the old rule (0 -> no row)."""
+    q = math.floor(raw_qty) if raw_qty == raw_qty and raw_qty > 0 else 0
+    if real_mirrored:
+        return float(max(q, 1)) if capital > 0 and unit_inr > 0 else 0.0
+    return float(q) if q > 0 and q * unit_inr >= 100.0 else 0.0
+
+
 def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                              risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
                              mins_now=None, universe=None, agg_blocked=False):
@@ -14460,8 +14472,9 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, require_real_tradability)  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     if require_real_tradability:
         if _is_t1_restricted(conn, symbol):
@@ -14601,13 +14614,13 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
     stop_dist = stop_loss - last_close
     if stop_dist <= 0:
         return None
-    available = max(0.0, capital - deployed_notional(conn))
-    usable = min(available, capital / CAPITAL_TRANCHES)
+    usable = _chan_gap_paper_usable(conn, capital, real_mirrored=symbol.endswith(".NS"))  # B-1452 (chan short)
     unit_inr = last_close * fx_to_inr
     if unit_inr <= 0:
         return None
-    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
-    if qty <= 0 or qty * unit_inr < 100.0:
+    qty = _chan_gap_paper_qty(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr),
+                              unit_inr, capital, symbol.endswith(".NS"))  # B-1452: real-mirrored floors at 1
+    if qty <= 0:
         return None
     target = round(last_close * 0.01, 4)  # unreachable on purpose: exits are stop / state / hold / flatten
     conn.execute(
@@ -28514,8 +28527,9 @@ def _run_chan_gap_short_scan(conn=None):
                 continue
             risk_pct = float((cfg_by_sym.get(sym) or {}).get("risk_pct", 1.0))
             usable = _chan_gap_paper_usable(conn, capital, real_mirrored=True)  # B-1452: batch always mirrors real
-            qty = float(math.floor(min(usable * risk_pct / 100 / stop_dist, usable / px)))
-            if qty <= 0 or qty * px < 100.0:
+            qty = _chan_gap_paper_qty(min(usable * risk_pct / 100 / stop_dist, usable / px), px, capital,
+                                      True)  # B-1452: real-mirrored, floors at 1 (real leg sizes from Kotak Net)
+            if qty <= 0:
                 continue
             conn.execute(
                 "INSERT INTO signal_state_short "
