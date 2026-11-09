@@ -34983,9 +34983,36 @@ def _real_stop_floor_for_trdsym(kotak_trading_symbol: str, side: str = "long"):
         return None
 
 
+REAL_SL_LTP_MAX_AGE_S = 120  # B-1520: a tick older than this is not "the market" for the stop-through-market check
+
+
+def _fresh_ltp_for_trdsym(kotak_trading_symbol: str, now=None):
+    """B-1520: today's live LTP for a Kotak trading symbol from the Kotak feed, only when the tick is fresh (received
+    within REAL_SL_LTP_MAX_AGE_S and its last trade is from today, IST). A pre-open / previous-session tick returns
+    None, so a stale price can never move a stop. Never raises."""
+    try:
+        import kotak_live_feed
+        now = time.time() if now is None else now
+        ticks = kotak_live_feed.get_live_ticks()
+        t = ticks.get(_nse_symbol_from_trdsym(kotak_trading_symbol))
+        if not t:
+            t = next((v for v in ticks.values() if v.get("trading_symbol") == kotak_trading_symbol), None)
+        if not t or not t.get("ltp"):
+            return None
+        if now - float(t.get("updated_at_utc") or 0) > REAL_SL_LTP_MAX_AGE_S:
+            return None
+        ltt = t.get("last_trade_epoch")
+        if not ltt or kotak_live_feed._ist_date(ltt) != kotak_live_feed._ist_date(now):
+            return None
+        return float(t["ltp"])
+    except Exception:  # noqa: BLE001
+        return None
+
+
 try:
     import kotak_real_orders as _kro_for_floor
     _kro_for_floor.set_stop_floor_provider(_real_stop_floor_for_trdsym)
+    _kro_for_floor.set_ltp_provider(_fresh_ltp_for_trdsym)  # B-1520
 except Exception as _e:  # noqa: BLE001
     print(f"[REAL SL FLOOR] provider not registered: {_e}")
 
@@ -35135,6 +35162,27 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label:
     conn.commit()
     _maybe_place_real_swing_exit(conn, symbol, reason=why)  # step 3: market SELL
     return True
+
+
+def _swing_exit_if_stop_through_market(conn, symbol: str, res: dict) -> bool:
+    """B-1520: a placement whose strategy stop was already through the market (kotak_real_orders.clamp_stop_to_market
+    rested it just under the LTP instead) means the stop has been hit: the replay fills at the open. Log it with its
+    reason and close at market through the existing breach path (Kotak holdings + whole order book first, cancel every
+    open sell, then a market SELL). Never raises; False when nothing was due."""
+    try:
+        req = res.get("stop_through_market") if res else None
+        ltp = res.get("ltp") if res else None
+        if not req or not ltp:
+            return False
+        _log_real_order_event(conn, symbol, "sl", "stop_through_market", new_state=f"resting SELL trigger Rs{float(res.get('trigger_price') or 0):.2f}",
+                              detail=f"strategy stop Rs{float(req):.2f}, live Rs{float(ltp):.2f}",
+                              reason="the stop was already through the market when placed; a protective SL rests just "
+                                     "under the price and the holding is closed at market (B-1520)")
+        return bool(_swing_stop_breached_exit(conn, symbol, float(req), float(ltp),
+                                              label="strategy stop through the market at placement (B-1520)"))
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL SWING] B-1520 stop-through-market exit failed for {symbol} (non-fatal): {e}")
+        return False
 
 
 def _swing_entry_stop_breach_sweep(conn) -> list:
@@ -36601,6 +36649,7 @@ def _open_protect_place(plan: dict) -> dict:
                 _log_swing_ensure_sl_result(conn, it["symbol"], it["kotak_trading_symbol"], res, it["stop"],
                                             "09:15 IST open protect-first pass: overnight holding had no resting "
                                             "stop-loss (the exchange cancels every resting order at 15:15 IST)")
+                _swing_exit_if_stop_through_market(conn, it["symbol"], res)  # B-1520
             else:
                 failed.append(it["kotak_trading_symbol"])
                 _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
@@ -37740,6 +37789,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 )
                 _log_swing_ensure_sl_result(conn, r["symbol"], r["kotak_trading_symbol"], sl_result, _bf_stop,
                                             "swing position had no resting stop-loss (5-min governance backfill)")
+                _swing_exit_if_stop_through_market(conn, r["symbol"], sl_result)  # B-1520
                 backfill_entry["sl_order_id"] = sl_result["order_id"]
                 backfill_entry["sl_placed"] = True
             else:
