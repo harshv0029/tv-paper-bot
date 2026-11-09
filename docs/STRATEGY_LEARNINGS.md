@@ -1877,3 +1877,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: check the cap after real sizing on real qty x live price. Open-position exposure already came from real_positions_swing (real qty).
 - Lesson: every real-money gate must measure the real order, never the paper mirror; audit other gates for paper-qty inputs.
 - Profit-booking / exit takeaway: none for exits; on entries, false sector blocks cost real trades with no risk benefit, so gates must price the actual order.
+
+## B-1518 - every engine reads today's real NSE session, not fixed 09:15-15:30 (2026-11-09)
+- Swing signals use the previous session's completed daily bar; that session may be a Friday, a Muhurat Sunday or the day before a holiday. Today's bar counts only after today's session has closed (a pre-open/partial Yahoo bar is never treated as complete).
+- Intraday engines take the session's own open, close and square-off (Muhurat 14:20 open, 15:14 square-off). When only live ticks prove the market is open (no calendar close), no new intraday position is opened, because it could not be squared off before an unknown close; protection and exits keep running.
+- Lesson: session hours are data per day (special sessions, holidays), never constants in engine code.
+- Profit-booking / exit takeaway: an intraday position must always have a known square-off time before entry; on special sessions the square-off moves with the session close.
