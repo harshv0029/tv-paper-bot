@@ -81,54 +81,6 @@
    "symbol": "IOC.NS"
   },
   {
-   "day": "2026-11-02",
-   "entry_order_id": "261102000488589",
-   "entry_price": 450.75,
-   "first_seen_day": "2026-11-02",
-   "is_short": 0,
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "opened_at": 1793620636.9493418,
-   "owner": "swing",
-   "qty": 4,
-   "sl_trigger_price": 440.25,
-   "source": "holding",
-   "stop_loss": 440.21311188083456,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "IRCTC.NS"
-  },
-  {
-   "day": "2026-11-02",
-   "entry_order_id": "261102000494771",
-   "entry_price": 287.15,
-   "first_seen_day": "2026-11-02",
-   "is_short": 0,
-   "kotak_trading_symbol": "RECLTD-EQ",
-   "opened_at": 1793620638.1538227,
-   "owner": "swing",
-   "qty": 4,
-   "sl_trigger_price": 279.25,
-   "source": "holding",
-   "stop_loss": 279.235471104135,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "RECLTD.NS"
-  },
-  {
-   "day": "2026-11-02",
-   "entry_order_id": "261102000496077",
-   "entry_price": 164.93,
-   "first_seen_day": "2026-11-02",
-   "is_short": 0,
-   "kotak_trading_symbol": "SAIL-EQ",
-   "opened_at": 1793620639.3844962,
-   "owner": "swing",
-   "qty": 5,
-   "sl_trigger_price": 158.47,
-   "source": "holding",
-   "stop_loss": 158.4723431840611,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "SAIL.NS"
-  },
-  {
    "day": "2026-11-09",
    "entry_order_id": "261109000035814",
    "entry_price": 189.2,
@@ -159,6 +111,22 @@
    "stop_loss": 164.8,
    "strategy": "order_block_delta",
    "symbol": "UNIONBANK.NS"
+  },
+  {
+   "day": "2026-11-09",
+   "entry_order_id": "261109000519865",
+   "entry_price": 1207.5,
+   "first_seen_day": "2026-11-09",
+   "is_short": 0,
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "opened_at": 1794206983.7167838,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1123.7,
+   "source": "position",
+   "stop_loss": 1123.699951171875,
+   "strategy": "minervini_vcp_livermore",
+   "symbol": "ZYDUSLIFE.NS"
   }
  ]
 }
