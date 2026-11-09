@@ -22,7 +22,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 373.3,
       "stop_loss": 305.3714686802455,
       "sl_trigger_price": 347.9,
@@ -38,7 +38,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 1239.7,
       "stop_loss": 1172.3244247402556,
       "sl_trigger_price": 1203.7,
@@ -54,7 +54,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 1673.4,
       "stop_loss": 1623.105172886939,
       "sl_trigger_price": 1658.0,
@@ -86,7 +86,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 131.87,
       "stop_loss": 95.71672519141161,
       "sl_trigger_price": 125.63,
@@ -102,7 +102,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 189.2,
       "stop_loss": 169.4657265799386,
       "sl_trigger_price": 179.83,
@@ -134,7 +134,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 1207.5,
       "stop_loss": 1123.699951171875,
       "sl_trigger_price": 1159.8,
@@ -145,5 +145,5 @@
       "first_seen_day": "2026-11-09"
     }
   ],
-  "synced_at_utc": "2026-11-09T10:35:35Z"
+  "synced_at_utc": "2026-11-09T21:01:08Z"
 }
