@@ -37,7 +37,7 @@ on:
         description: "Universe shards per (interval, direction)"
         default: "6"
       universe:
-        description: "full (main._load_nse_universe_from_file) or fno (stock-futures underlyings only, B-1339; own tag variant main_replay_fno)"
+        description: "full (main._load_nse_universe_from_file) or fno (stock-futures underlyings only, B-1339; own tag variant main_replay_fno) or nonfno (full minus F&O underlyings, B-1454; variant main_replay_nonfno)"
         default: "full"
       band_cap:
         description: "B-1485: blank/off = unchanged; live or one swing_bandcap mode = single pass; trail = off + live + every trailing-stop overlay (each its own tag)"
