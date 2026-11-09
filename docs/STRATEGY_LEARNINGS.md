@@ -1883,3 +1883,7 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Intraday engines take the session's own open, close and square-off (Muhurat 14:20 open, 15:14 square-off). When only live ticks prove the market is open (no calendar close), no new intraday position is opened, because it could not be squared off before an unknown close; protection and exits keep running.
 - Lesson: session hours are data per day (special sessions, holidays), never constants in engine code.
 - Profit-booking / exit takeaway: an intraday position must always have a known square-off time before entry; on special sessions the square-off moves with the session close.
+
+## B-1519 - no sector cap for intraday (user decision, 2026-11-09)
+- The 25%-of-account sector cap stays a swing-long rule only; intraday buy/short and options get none (user: "No sector cap for intra day"). Intraday positions are flat by 15:14 IST, so overnight sector concentration does not build up.
+- Profit-booking / exit takeaway: intraday concentration risk is bounded by the same-day square-off and the per-trade 1% stop, not by a sector cap.
