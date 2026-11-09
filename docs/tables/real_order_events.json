@@ -20161,6 +20161,18 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 09-Nov-2026 09:16:59 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
+   "id": 1682,
+   "ts": 1794202495.288865,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261109000027026",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 1681,
    "ts": 1794202508.7552536,
    "symbol": "COLPAL.NS",
@@ -20171,7 +20183,19 @@
    "prev_state": "resting SELL trigger Rs1623.20",
    "new_state": "resting SELL trigger Rs1658.00",
    "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1623.20 to Rs1658.00 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 1683,
+   "ts": 1794202532.992646,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261109000321987",
+   "prev_state": "resting SELL trigger Rs177.52",
+   "new_state": "resting SELL trigger Rs179.83",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs177.52 to Rs179.83 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-09T05:35:30Z"
+ "synced_at_utc": "2026-11-09T05:35:43Z"
 }
