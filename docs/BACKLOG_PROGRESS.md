@@ -15,7 +15,7 @@ Total rows: 1274 | closed: 614 | not closed: 660
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 56 |
+| OPEN | 55 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -32,10 +32,10 @@ Total rows: 1274 | closed: 614 | not closed: 660
 | PARKED | 4 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
+| BUILT | 4 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
-| BUILT | 3 |
 | UNKNOWN | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
@@ -554,7 +554,7 @@ Total rows: 1274 | closed: 614 | not closed: 660
 | B-1485 | P1 | OPEN | 2026-11-05 | owed |
 | B-1486 | P1 | B-1484 | 2026-11-05 |  |
 | B-1489 | P1 | OPEN | 2026-11-05 | owed, blocked, follow-up |
-| B-1517 | P1 | OPEN | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed |
+| B-1517 | P1 | BUILT | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed, awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |

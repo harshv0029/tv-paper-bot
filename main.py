@@ -25904,10 +25904,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # B-131/B-132 (owner decision 2026-10-10): sector exposure cap - one sector may hold at most
     # SECTOR_EXPOSURE_CAP_PCT of capital across open real swing positions (also the correlation guard:
     # same-sector names move together). Blocks only; never touches an already-open position.
-    _cap_block = _sector_cap_blocks(conn, symbol, paper_qty, paper_entry_price)
-    if _cap_block:
-        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", strategy=strategy, detail=_cap_block)
-        return
+    # B-1517: the check itself now runs after real sizing (below), on the REAL qty x live price; the paper qty
+    # here is sized off paper capital and over-charged the cap (BOSCHLTD 2026-11-09: Rs52,603 for a 1-share order).
 
     # 2026-10-06: no new real swing entry from 15:14 IST (user allows through 15:13) - the closing auction
     # (15:15+) cancels SLs and rejects orders, so such a position could not be
@@ -25986,6 +25984,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
+        return
+
+    _cap_block = _sector_cap_blocks(conn, symbol, qty, ltp)  # B-1517: real qty x live price
+    if _cap_block:
+        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy, detail=_cap_block)
         return
 
     # Same joint (equity + F&O + swing) real daily-loss cap as every other
