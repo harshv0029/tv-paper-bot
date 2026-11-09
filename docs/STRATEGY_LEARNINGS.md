@@ -1887,3 +1887,11 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 ## B-1519 - no sector cap for intraday (user decision, 2026-11-09)
 - The 25%-of-account sector cap stays a swing-long rule only; intraday buy/short and options get none (user: "No sector cap for intra day"). Intraday positions are flat by 15:14 IST, so overnight sector concentration does not build up.
 - Profit-booking / exit takeaway: intraday concentration risk is bounded by the same-day square-off and the per-trade 1% stop, not by a sector cap.
+## Live stop-loss correctness audit, 3-9 Nov 2026 (B-1438, B-1440, B-1441, B-1459, B-1482)
+
+- Entry-day floor holds live: no SL sent below a position's entry-day stop from 3 to 9 Nov (WIPRO 194.11 >= 185.35; IRCTC 440.21 raised to the 440.25 floor). Trails only rose (IOC 136.38 -> 143.43, TATASTEEL, COLPAL, COCHINSHIP, ZYDUSLIFE, PNB).
+- A stop that sits under the lower circuit band rests at the band floor, which moves with each day's previous close (UNIONBANK 169.71 then 168.80). That is exchange-forced and still above the strategy stop; it is not ratcheted, because a higher artifact would exit tighter than the validated strategy.
+- A peak-LTP trail can sit close to the opening price after a weekend. On 9 Nov IOC rested no SL for ~11 minutes after 09:15 IST while every other holding was protected; the cause could not be proven because the morning log rows were lost (B-1516). Open as B-1520 (P0).
+- Trail backtests on frozen-stop cells (B-1484 run 41978699531): only peak-LTP 0.5R on gap runaway beat the fixed stop (1.160 -> 1.236, hold 17.4 -> 7.7 days); every macddiv 1h trail lost and the 1h cells are below 1.00 under the live resting-stop model.
+- Options: when the premium is already at or under the intended trail, exit at market (B-1459). That matches how every trail replay fills, so keeping an older, lower stop would be the untested choice.
+- Profit-booking / exit takeaway: a tight peak-LTP trail books profit sooner and shortens the hold on runaway-gap cells, but near the open it must still rest a placeable stop (or exit) immediately, never leave the holding naked while waiting for the price to move away from the trail.

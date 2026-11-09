@@ -33096,6 +33096,8 @@ def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
     else Trail when _SWING_SL_RULES says the stop trails; every other tag exits off its frozen initial stop
     (_swing_strategy_stop_level's default for an unrecognised tag), so Fixed."""
     tag = tag or ""
+    if category in ("options", "option", "fo_option", "mcx_option") or tag.startswith(("single_leg_", "strike_setup_")):
+        return "Trail"  # B-1441 every-category check: every single-strike option (NSE or MCX) trails (2026-10-08 rule)
     if category in ("buy", "short_sell"):
         return "Fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "Trail"
     if category == "swing" and symbol and tag in SWING_EXIT_VARIANTS:
