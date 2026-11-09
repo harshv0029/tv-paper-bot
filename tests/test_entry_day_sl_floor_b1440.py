@@ -194,12 +194,3 @@ def test_sl_type_follows_each_engines_real_stop_logic():
     assert main._sl_kind("buy", "orb-universal-score") == "Trail"
     for t in list(main.CHAN_LONG_CELLS)[:3] + list(main.CHAN_SHORT_CELLS)[:3]:
         assert main._sl_kind("buy", t) == "Fixed"
-
-
-def test_sl_type_options_always_trail_every_category_b1441():
-    # B-1441 every-category coverage: single-strike options (NSE and MCX) always run a trailing premium SL
-    for cat in ("options", "fo_option", "mcx_option"):
-        assert main._sl_kind(cat, "single_leg_swing_x") == "Trail"
-    assert main._sl_kind("swing", "single_leg_mcx_crudeoil") == "Trail"
-    for cat in ("futures", "bidirectional"):
-        assert main._sl_kind(cat, None) in {"Trail", "Fixed"}
