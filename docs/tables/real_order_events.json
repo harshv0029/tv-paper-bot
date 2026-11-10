@@ -54971,7 +54971,91 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000003820 rejected: ADAPTER is down"
+  },
+  {
+   "id": 4582,
+   "ts": 1794292030.6403856,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003821",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 4583,
+   "ts": 1794292031.0966387,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003822",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 4584,
+   "ts": 1794292032.0858011,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003823",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :329.60,  Low Price Range:331.65 High Price Range:405.35  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 4585,
+   "ts": 1794292032.1524808,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003824",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 4586,
+   "ts": 1794292032.315528,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003825",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 4587,
+   "ts": 1794292032.483279,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003826",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 4588,
+   "ts": 1794292034.4353034,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003827",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T06:27:11Z"
+ "synced_at_utc": "2026-11-10T06:27:17Z"
 }
