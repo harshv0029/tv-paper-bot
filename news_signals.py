@@ -47,6 +47,12 @@ MARKET_FEEDS = (
 )
 TRUSTED_PUBLISHERS = ("moneycontrol", "economictimes", "economic times", "livemint", "mint",
                       "business-standard", "business standard", "reuters", "cnbctv18", "cnbc tv18", "ndtv profit")
+_PUBLISHER_ALIAS = {"moneycontrol": "moneycontrol", "economictimes": "economictimes", "economic times": "economictimes",
+                    "livemint": "livemint", "mint": "livemint", "business-standard": "business-standard",
+                    "business standard": "business-standard", "reuters": "reuters", "cnbctv18": "cnbctv18",
+                    "cnbc tv18": "cnbctv18", "ndtv profit": "ndtvprofit"}
+CONFIRM_MIN_PUBLISHERS = 2   # "confirmed": the same kind of hard event from at least 2 different trusted publishers
+CONFIDENT_SCORE = 0.2        # "confident": overall stock score at least this far against the trade, no opposing hard event
 UNTRUSTED_WEIGHT = 0.6
 HALF_LIFE_HOURS = 12.0
 MAX_AGE_HOURS = 48.0
@@ -166,6 +172,26 @@ def _source_weight(source: str) -> float:
     return 1.0 if any(p in s for p in TRUSTED_PUBLISHERS) else UNTRUSTED_WEIGHT
 
 
+def publisher_of(source: str):
+    """Canonical trusted publisher name for a source string, or None for an untrusted one."""
+    s = (source or "").lower()
+    return next((v for k, v in _PUBLISHER_ALIAS.items() if k in s), None)
+
+
+def confirmation(stock: dict, direction: str) -> dict:
+    """Is the stock news against a trade in `direction` CONFIRMED (>= CONFIRM_MIN_PUBLISHERS different trusted
+    publishers report a hard event against it) and CONFIDENT (score at least CONFIDENT_SCORE against it and no hard
+    event in the trade's favour)? Only actionable=True may ever change a real order."""
+    short = direction == "short"
+    against = (stock.get("hard_pos") if short else stock.get("hard_neg")) or []
+    favour = (stock.get("hard_neg") if short else stock.get("hard_pos")) or []
+    pubs = sorted({h[2] for h in against if len(h) > 2 and h[2]})
+    confirmed = len(pubs) >= CONFIRM_MIN_PUBLISHERS
+    confident = bool(against) and not favour and (1.0 if short else -1.0) * float(stock.get("score") or 0) >= CONFIDENT_SCORE
+    return {"confirmed": confirmed, "confident": confident, "actionable": confirmed and confident, "publishers": pubs,
+            "event": against[0][0] if against else None, "headline": against[0][1] if against else None}
+
+
 def aggregate(items: list, now: float = None) -> dict:
     """Recency-weighted score over headlines. Undated items count as 6h old; items older than MAX_AGE_HOURS drop.
     Shrinkage (+1 in the denominator) keeps one lone headline from reading as +/-1."""
@@ -186,11 +212,12 @@ def aggregate(items: list, now: float = None) -> dict:
             top.append((abs(w * sc["score"]), {"title": it["title"], "score": sc["score"], "age_h": round(age_h, 1),
                                               "source": (it.get("source") or "")[:40]}))
         if _source_weight(it.get("source")) >= 1.0:  # a hard event counts only from a trusted publisher
-            hard_neg += [(p, it["title"]) for p in sc["hard_neg"]]
-            hard_pos += [(p, it["title"]) for p in sc["hard_pos"]]
+            pub = publisher_of(it.get("source"))
+            hard_neg += [(p, it["title"], pub) for p in sc["hard_neg"]]
+            hard_pos += [(p, it["title"], pub) for p in sc["hard_pos"]]
     top.sort(key=lambda x: -x[0])
     return {"score": round(num / (den + 1.0), 3) if n else 0.0, "n": n,
-            "hard_neg": hard_neg[:5], "hard_pos": hard_pos[:5], "top": [t for _, t in top[:5]]}
+            "hard_neg": hard_neg[:12], "hard_pos": hard_pos[:12], "top": [t for _, t in top[:5]]}
 
 
 _cache: dict = {}
