@@ -22748,6 +22748,8 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                      f"{favour['event']} confirmed by {', '.join(favour['publishers'])}", (favour["headline"] or "")[:200],
                      len(favour["publishers"]), score, score, now_ts, _news_evidence(stock)))
                 acts.append((symbol, direction, "open"))
+                if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):  # B-1543
+                    acts.append((symbol, direction, "real_open"))
             continue
         move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
         peak = max(float(row["peak_score"] or 0), score)
@@ -22765,6 +22767,8 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                          "pnl_pct = ?, last_score = ?, peak_score = ?, last_ts = ? WHERE id = ?",
                          (now_ts, ltp, why, round(move - NEWS_TRADE_COST_PCT, 3), score, peak, now_ts, row["id"]))
             acts.append((symbol, direction, "close"))
+            if _news_real_close(conn, symbol, direction, why):  # B-1543
+                acts.append((symbol, direction, "real_close"))
         elif (favour["actionable"] and len(favour["publishers"]) > int(row["publishers_n"] or 0)
               and int(row["units"]) < NEWS_TRADE_MAX_UNITS):
             units = int(row["units"])
@@ -22823,6 +22827,67 @@ def _news_exit_real_holdings(conn, now_ts: float) -> list:
             except Exception as e:
                 print(f"[NEWS EXIT] {sym} {cat} failed (position stays under its own stop): {e}")
     return done
+
+
+NEWS_REAL_QTY_CAP = 1  # B-1543 (user 2026-11-10): real news buys are capped at 1 share until the user affirms a risk-based size
+
+
+def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, now_ts: float) -> bool:
+    """B-1543 (user 2026-11-10: "This news engine is one of entry criteria and skips viability rules ... uses real
+    money ... cap on qty"): a confirmed + confident GOOD-news paper open is mirrored as a REAL buy of at most
+    NEWS_REAL_QTY_CAP share through the swing engine (CNC, resting SL placed with the entry, 5-min backcheck, Upstash
+    mirror - all the swing engine's own). The PFnet/viability gate is skipped for the news tag by the user's explicit
+    override; every other gate (ALL TRADING switch, swing switch, session, cutoff, live tick, money, sector cap, daily
+    loss cap, placeable SL) still applies and logs its own skipped_* status. Shorts stay paper: an overnight cash
+    short is unconfirmed at Kotak (B-871) and an intraday short is squared off at 15:14, which cannot "track until the
+    sentiment weakens". One attempt only: a rejected entry leaves no pending row to chase. Never raises."""
+    if direction != "long":
+        return False
+    tag = NEWS_TRADE_TAGS["long"]
+    try:
+        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+            _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=tag,
+                              detail="news buy: another swing strategy already owns this symbol")
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, qty, "
+            "entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 1.0)",
+            (symbol, tag, ist_now().strftime("%Y-%m-%d"), ltp, stop, NEWS_REAL_QTY_CAP, now_ts))
+        conn.commit()
+        with _SCAN_DECISION_LOCK:
+            _maybe_place_real_swing_entry(conn, symbol, NEWS_REAL_QTY_CAP, ltp, stop, tag)
+        held = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ? AND strategy = ?", (symbol, tag)).fetchone()
+        if held:
+            conn.execute("UPDATE news_trades SET mode = 'real' WHERE symbol = ? AND direction = 'long' AND status = 'open'", (symbol,))
+        else:
+            conn.execute("DELETE FROM signal_state_swing WHERE symbol = ? AND strategy = ?", (symbol, tag))
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        return bool(held)
+    except Exception as e:
+        print(f"[NEWS REAL] open {symbol} failed (paper trade unaffected): {e}")
+        return False
+
+
+def _news_real_close(conn, symbol: str, direction: str, why: str) -> bool:
+    """B-1543: when a news trade closes (sentiment weak, news reversed, stop, max hold of one week) its REAL share is
+    sold by the swing engine's own exit (Kotak read first, resting SL cancelled, reason logged). Only a position this
+    news tag opened is touched; another strategy's holding on the same symbol is left to its own engine."""
+    if direction != "long":
+        return False
+    tag = NEWS_TRADE_TAGS["long"]
+    try:
+        held = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ? AND strategy = ?", (symbol, tag)).fetchone()
+        if held:
+            with _SCAN_DECISION_LOCK:
+                _maybe_place_real_swing_exit(conn, symbol, reason=f"news_exit: {why}"[:300])
+        conn.execute("DELETE FROM signal_state_swing WHERE symbol = ? AND strategy = ?", (symbol, tag))
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        return bool(held)
+    except Exception as e:
+        print(f"[NEWS REAL] close {symbol} failed (position stays under its resting stop): {e}")
+        return False
 
 
 def _news_trade_stats(rows: list) -> dict:
@@ -23059,9 +23124,12 @@ def news_monitor_view(days: int = 30):
                "live_rules": ["exit: a real holding is closed by its own engine when news against it is confirmed by 2+ trusted "
                               "publishers, the stock score agrees, and a live tick exists",
                               "entry: a NEW real entry is skipped (skipped_news_avoid) when stock news against it is confirmed "
-                              "by 2+ trusted publishers, the stock score agrees, and a live tick exists"],
+                              "by 2+ trusted publishers, the stock score agrees, and a live tick exists",
+                              "buy: good news confirmed by 2+ trusted publishers with an agreeing score and a live tick buys "
+                              f"{NEWS_REAL_QTY_CAP} real share (swing engine, 3% resting stop, viability gate skipped); sold when "
+                              "the sentiment weakens, the news reverses, the stop hits, or after one week"],
                "actionable_now": [{"symbol": k[0], "direction": k[1], **v} for k, v in list(_NEWS_ACTIONABLE.items())],
-               "mode_note": "live: blocks entries and exits holdings on confirmed + confident news with a live tick. News-driven buys/shorts/adds: paper trades until their PFnet is measured",
+               "mode_note": "live: blocks entries, exits holdings, and buys 1 real share on confirmed + confident good news with a live tick (viability gate skipped, user override). News shorts and adds: paper",
                "caused": [r for r in rows if r["mode"] == "live"], "events": rows[:400]}
         try:
             ms = news_signals.market_and_sector_scores()
@@ -26486,6 +26554,15 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     _var = _select_swing_exit_variant(conn, symbol, strategy)
     if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
+    # B-1543 (user 2026-11-10, explicit override): the news tag skips the PFnet/viability gate; it still obeys the
+    # ALL TRADING switch (checked here because that switch normally lives inside the viability verdict), buys no
+    # option leg, and is capped at NEWS_REAL_QTY_CAP shares.
+    _news_tag = strategy == NEWS_TRADE_TAGS["long"]
+    if _news_tag and not is_trading_enabled(conn):
+        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", strategy=strategy,
+                          detail="ALL TRADING switch is off (switch_off) - no new real entry, news tag included")
+        _log_signal_shadow(conn, strategy, symbol, "long", False, "real entry: ALL TRADING switch off", hard_gate=True)
+        return
     if strategy == ORPHAN_SWING_STRATEGY_TAG:
         # B-1405: an orphan tag marks an ADOPTED holding, never an entry signal. Once its real row is closed
         # (sold at Kotak), the leftover paper row must not re-buy it (NHPC 2026-10-28: 9 share + 9 option-leg
@@ -26500,7 +26577,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
                             signal_ref=f"signal_state_swing:{symbol}")  # B-1512: replayed at the market-open event
         return
 
-    _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
+    if not _news_tag:
+        _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
 
     if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
@@ -26526,7 +26604,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
                    and _viability_verdict_for_registry_name(_var["registry_tag"], strategy, check_switch=True)[0])
     if _news_gate_entry(conn, symbol, "B", "long", strategy):  # B-1540
         return
-    if not _var_ok and not _is_strategy_viable_for_real_money(strategy):
+    if not _var_ok and not _news_tag and not _is_strategy_viable_for_real_money(strategy):
         _log_real_attempt(
             conn, symbol, "B", "skipped_strategy_not_viable", strategy=strategy,
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
@@ -26609,6 +26687,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # B-1387: size from real Kotak capital (risk formula), not the paper qty, when the stop is known.
     risk_qty = _real_swing_qty_by_risk(conn, symbol, ltp, paper_stop_loss) if paper_stop_loss else paper_qty
     qty = int(min(risk_qty, max_by_cap, max_by_capital))
+    if _news_tag:
+        qty = min(qty, NEWS_REAL_QTY_CAP)  # B-1543
     _net_at_decision = get_scheduler_capital_inr()  # B-1515: the Net the sizing used (cache, same fetch)
     _size_note = _real_sizing_basis_note(ltp, paper_stop_loss, _net_at_decision, risk_qty)
     if qty <= 0:
@@ -26647,7 +26727,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
 
     # B-962: re-read the newest viable stack immediately before the order.
     _load_viable_overrides()
-    if not _is_strategy_viable_for_real_money(strategy):
+    if not _news_tag and not _is_strategy_viable_for_real_money(strategy):
         _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
                           strategy=strategy, detail=f"strategy {strategy!r} no longer viable on the fresh stack re-check just before the order")
         return
@@ -26694,7 +26774,9 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         order_id=result["order_id"], prev_state="no position",
         new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
-        reason=f"swing entry signal from strategy {strategy} passed the PFnet gate"
+        reason=(f"news entry: confirmed + confident good news ({strategy}); viability gate skipped by user override "
+                f"2026-11-10, capped at {NEWS_REAL_QTY_CAP} share" if _news_tag else
+                f"swing entry signal from strategy {strategy} passed the PFnet gate")
                + ("" if _var is None else
                   f"; B-1500 exit variant {_var['mode']} ({_var['registry_tag']}, "
                   f"{_var.get('ret_per_day')} %/day; "
@@ -27334,6 +27416,8 @@ def _run_swing_scan_pass(conn):
                 reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
             elif pos["strategy"] in SECTOR_ROT_CELLS:
                 reason = sector_rotation_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"])
+            elif pos["strategy"] in NEWS_TRADE_TAGS.values():
+                reason = None  # B-1543: exits are owned by the news lifecycle (_news_real_close) and the resting SL
             elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
                 new_running_max = max(float(pos["running_max_close"] or pos["entry_price"]), float(df["Close"].iloc[-1]))
                 conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",

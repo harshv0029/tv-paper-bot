@@ -1954,3 +1954,10 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - News-driven buys / shorts / adds are a NEW strategy with no backtest possible (no headline archive), so they run as paper trades (`news_event__confirmed__long/short__1d__v1`) with a 3% stop, and real money waits for measured PFnet > 1.00.
 - Risk to watch: headlines lag price, so a news exit can sell after the gap already happened; View 5 "move after" shows whether the exit saved or cost money.
 - Profit-booking / exit takeaway: hold a news trade only while sentiment stays at least half its peak; when it fades or reverses, close - the edge is the news, so no news means no reason to hold.
+
+## B-1542 / B-1543 - news chain in View 5 and the real 1-share news buy (2026-11-10)
+- B-1542: every news decision stores the headlines it was read from, so a wrong call can be traced to the exact headline and the lexicon fixed, not guessed at.
+- B-1543: by the user's explicit override the news tag skips the PFnet / viability gate and buys 1 real share on confirmed + confident good news with a live tick. There is no backtest (no headline archive), so the 1-share cap is the whole risk control until real results exist; qty rises to risk sizing only when the user affirms.
+- It rides the swing engine (CNC, resting SL with the entry, 5-minute Kotak backcheck, Upstash mirror) instead of a new engine or table, so every existing safety rule covers it from day one. Real shorts stay paper: no overnight cash short at Kotak.
+- With Kotak Net near Rs 5,900 the 1-share risk floor (stop loss at most 1% of Net, about Rs 59) rejects a 3% stop on any share above about Rs 1,970; those show as money rejects, not silent misses.
+- Profit-booking / exit takeaway: the real share is sold the moment the news trade closes - sentiment under half its peak, news reversed, 3% stop, or one week - never held on hope after the news fades.
