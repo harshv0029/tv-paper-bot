@@ -1,0 +1,392 @@
+{
+ "as_of_utc": "2026-11-10 04:18:37",
+ "feeds": {
+  "moneycontrol_0": {
+   "bytes": 230575,
+   "items": 100,
+   "fresh_48h": 100,
+   "newest_age_h": 0.2,
+   "sample": [
+    "Sensex falls 700 pts from day\u2019s high, Nifty near 24,850: Profit booking among key factors behind market... - M",
+    "Nifty target: 40,000 in long term | CLSA's Laurence Balanco sees 20% upside in banking stocks - Moneycontrol.c"
+   ],
+   "sources": [
+    "Moneycontrol.com https://"
+   ]
+  },
+  "moneycontrol_1": {
+   "bytes": 233942,
+   "items": 100,
+   "fresh_48h": 100,
+   "newest_age_h": 0.2,
+   "sample": [
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3% - Moneyc",
+    "Gland Pharma shares rally 8% to hit 4-year-high post strong Q2; what brokerages say, check target prices - Mon"
+   ],
+   "sources": [
+    "Moneycontrol.com https://"
+   ]
+  },
+  "economictimes_2": {
+   "bytes": 41892,
+   "items": 50,
+   "fresh_48h": 50,
+   "newest_age_h": 2.0,
+   "sample": [
+    "Anthropic retracts details of $69 billion IPO filing sent to bankers. Why analysts are raising worries over va",
+    "RBI said to query bank valuations of some bond derivative trades"
+   ],
+   "sources": [
+    "economictimes_2"
+   ]
+  },
+  "economictimes_3": {
+   "bytes": 33803,
+   "items": 50,
+   "fresh_48h": 50,
+   "newest_age_h": 16.5,
+   "sample": [
+    "Uno Minda among 7 stocks hitting 52-week highs; rally up to 26% in a month",
+    "FIIs cut stake in 10 smallcap stocks for 3 consecutive quarters; shares fall up to 70% in CY26"
+   ],
+   "sources": [
+    "economictimes_3"
+   ]
+  },
+  "livemint_4": {
+   "bytes": 37672,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.6,
+   "sample": [
+    "HUL dividend 2026: Tomorrow is the last day to buy | Check payout amount, record date, history, yield and retu",
+    "Four stocks with high dividend payout ratios to watch"
+   ],
+   "sources": [
+    "livemint_4"
+   ]
+  },
+  "livemint_5": {
+   "bytes": 37520,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.4,
+   "sample": [
+    "Who are James Gunn and Peter Safran of DC Studios \u2014 Why are they stepping down? Who from Marvel is replacing t",
+    "Who is RamG Vallath? Meet ex-Airtel COO who left corporate life to become a speaker; what he said about work s"
+   ],
+   "sources": [
+    "livemint_5"
+   ]
+  },
+  "business-standard_6": {
+   "bytes": 55536,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.6,
+   "sample": [
+    "Asian stocks rise amid falling oil prices on hopes of US-Iran talks",
+    "Stock market holiday: NSE, BSE to remain closed for Diwali-Balipratipada"
+   ],
+   "sources": [
+    "business-standard_6"
+   ]
+  },
+  "cnbctv18_7": {
+   "bytes": 215929,
+   "items": 200,
+   "fresh_48h": 72,
+   "newest_age_h": 0.8,
+   "sample": [
+    "Asian markets edge higher following Wall Street's rebound; KOSPI, Taiwan jump up to 4%",
+    "Dow Jones jumps 1,100 points for best day since April despite Nvidia - Here are factors that contributed to th"
+   ],
+   "sources": [
+    "cnbctv18_7"
+   ]
+  },
+  "ndtv profit_8": {
+   "bytes": 29276,
+   "items": 20,
+   "fresh_48h": 20,
+   "newest_age_h": 0.4,
+   "sample": [
+    "A New Samvat Wishlist: Inclusive Prosperity And Human Development",
+    "Punjab Wrestler Shot Dead While Bursting Firecrackers On Diwali In Kapurthala"
+   ],
+   "sources": [
+    "ndtv profit_8"
+   ]
+  }
+ },
+ "stocks": {
+  "RELIANCE.NS": {
+   "name": "Reliance",
+   "fetched": 13,
+   "relevant": 13,
+   "n_48h": 13,
+   "score": 0.048,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "How Analyst Upgrades Will Impact Reliance Stock Investors - Simply Wall St"
+   ]
+  },
+  "HDFCBANK.NS": {
+   "name": "HDFC Bank",
+   "fetched": 22,
+   "relevant": 15,
+   "n_48h": 15,
+   "score": 0.133,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "HDFC Bank rises Monday, outperforms market - MarketWatch",
+    "HDFC Bank shares jump 2%, rally 12% in a month: Is leadership reset reviving investor confidence? - ",
+    "Diwali Muhurat trading 2026: Why HDFC Bank shares a talking point today amid Samvat 2083 despite 13%"
+   ]
+  },
+  "IRCTC.NS": {
+   "name": "Indian Railway Catering And Tourism",
+   "fetched": 11,
+   "relevant": 8,
+   "n_48h": 8,
+   "score": 0.0,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": []
+  },
+  "YESBANK.NS": {
+   "name": "Yes Bank",
+   "fetched": 13,
+   "relevant": 2,
+   "n_48h": 2,
+   "score": -0.09,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "PC Jeweller, Vodafone Idea, YES Bank Shares Fall - HDFC Sky"
+   ]
+  },
+  "SAIL.NS": {
+   "name": "Steel Authority of",
+   "fetched": 21,
+   "relevant": 17,
+   "n_48h": 17,
+   "score": 0.031,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "SAIL FY26 PAT Rises 50%, Recommends Dividend \u20b92.35 - scanx.trade",
+    "SAIL Q1FY27 EBITDA surges 50% to \u20b94,356 cr on better realizations - scanx.trade",
+    "Metal sector stocks today, November 9: Welspun Corp jumps 3.48%, Tata Steel up 2.71%; SAIL drops 1.8"
+   ]
+  },
+  "RECLTD.NS": {
+   "name": "REC",
+   "fetched": 25,
+   "relevant": 10,
+   "n_48h": 10,
+   "score": 0.0,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": []
+  },
+  "ZYDUSLIFE.NS": {
+   "name": "Zydus Lifesciences",
+   "fetched": 6,
+   "relevant": 2,
+   "n_48h": 2,
+   "score": 0.0,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": []
+  },
+  "TCS.NS": {
+   "name": "Tata Consultancy Services",
+   "fetched": 18,
+   "relevant": 9,
+   "n_48h": 9,
+   "score": -0.049,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "IT Stocks Crash! TCS, Infosys, HCL Tech lead Rs 50,000 crore mcap erosion as Nifty IT falls 2% \u2013 Her"
+   ]
+  },
+  "INFY.NS": {
+   "name": "Infosys",
+   "fetched": 16,
+   "relevant": 12,
+   "n_48h": 12,
+   "score": -0.237,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3",
+    "Infosys falls Monday, underperforms competitors - MarketWatch",
+    "IT Stocks Crash! TCS, Infosys, HCL Tech lead Rs 50,000 crore mcap erosion as Nifty IT falls 2% \u2013 Her"
+   ]
+  },
+  "TATASTEEL.NS": {
+   "name": "Tata Steel",
+   "fetched": 38,
+   "relevant": 38,
+   "n_48h": 38,
+   "score": 0.109,
+   "hard_neg": [],
+   "hard_pos": [],
+   "entry_long": "allow",
+   "reason": "no adverse news",
+   "exit_long": "hold",
+   "entry_short": "allow",
+   "top": [
+    "Tata Steel shares: Nomura cuts target price but retains 'Buy' - Business Today",
+    "Strong Q2, future prospects keep Street bullish on Tata Steel stock - Business Standard",
+    "Tata Steel dips 1.5% after 5-day rally; brokerages stay upbeat on India biz - Business Standard"
+   ]
+  }
+ },
+ "market": {
+  "score": 0.299,
+  "n": 105,
+  "top": [
+   {
+    "title": "Asian stocks rise amid falling oil prices on hopes of US-Iran talks",
+    "score": 1.0,
+    "age_h": 0.6,
+    "source": "business-standard_6"
+   },
+   {
+    "title": "Asian markets edge higher following Wall Street's rebound; KOSPI, Taiwan jump up to 4%",
+    "score": 1.0,
+    "age_h": 0.8,
+    "source": "cnbctv18_7"
+   },
+   {
+    "title": "Four stocks with high dividend payout ratios to watch",
+    "score": 1.0,
+    "age_h": 0.8,
+    "source": "livemint_4"
+   },
+   {
+    "title": "South Korean stocks jump as chipmakers roar back on dip buying - Moneycontrol.com",
+    "score": 1.0,
+    "age_h": 2.6,
+    "source": "Moneycontrol.com https://www.moneycontro"
+   },
+   {
+    "title": "South Korean stocks jump as chipmakers roar back on dip buying - Moneycontrol.com",
+    "score": 1.0,
+    "age_h": 2.6,
+    "source": "Moneycontrol.com https://www.moneycontro"
+   }
+  ]
+ },
+ "sectors": {
+  "Financial Services": {
+   "score": 0.125,
+   "n": 35,
+   "top": [
+    "Sensex Today | Stock Market Highlights: Markets end higher as banks lead rally; Nifty hits 9-month h",
+    "RBI's $239 bn forward dollar position to limit rupee gains despite FPI inflows: Report"
+   ]
+  },
+  "Technology": {
+   "score": -0.365,
+   "n": 5,
+   "top": [
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3",
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3"
+   ]
+  },
+  "Healthcare": {
+   "score": 0.375,
+   "n": 14,
+   "top": [
+    "Gland Pharma shares rally 8% to hit 4-year-high post strong Q2; what brokerages say, check target pr",
+    "Gland Pharma shares rally 8% to hit 4-year-high post strong Q2; what brokerages say, check target pr"
+   ]
+  },
+  "Consumer Cyclical": {
+   "score": 0.0,
+   "n": 3,
+   "top": []
+  },
+  "Basic Materials": {
+   "score": 0.14,
+   "n": 17,
+   "top": [
+    "Tata Steel dips 1.5% after 5-day rally; brokerages stay upbeat on India biz",
+    "Vedanta Aluminium Metal among 5 stocks showing bullish RSI upswing"
+   ]
+  },
+  "Energy": {
+   "score": -0.026,
+   "n": 17,
+   "top": [
+    "Oil falls as Trump downplays prospect of escalation with Iran - Moneycontrol.com",
+    "Gold holds gain above $4,100 as lower oil eases inflation woes - Moneycontrol.com"
+   ]
+  },
+  "Industrials": {
+   "score": 0.328,
+   "n": 4,
+   "top": [
+    "AMD stock rallies 12% as Google Cloud taps its EPYC processors for next-generation AI infrastructure",
+    "IRB Infra share price climbs 7% as toll collections boost Q2 earnings"
+   ]
+  },
+  "Utilities": {
+   "score": 0.0,
+   "n": 6,
+   "top": []
+  },
+  "Real Estate": {
+   "score": 0.0,
+   "n": 2,
+   "top": []
+  },
+  "Communication Services": {
+   "score": 0.0,
+   "n": 1,
+   "top": []
+  }
+ }
+}
