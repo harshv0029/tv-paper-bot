@@ -22307,7 +22307,67 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1860,
+   "ts": 1794282386.2595742,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1861,
+   "ts": 1794282386.2680585,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1862,
+   "ts": 1794282388.4295237,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000000995",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 1863,
+   "ts": 1794282389.4585557,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000000997",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1864,
+   "ts": 1794282390.2525315,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000000998",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   }
  ],
- "synced_at_utc": "2026-11-10T03:46:27Z"
+ "synced_at_utc": "2026-11-10T03:46:34Z"
 }
