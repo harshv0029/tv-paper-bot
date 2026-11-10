@@ -45791,7 +45791,31 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :329.60,  Low Price Range:331.65 High Price Range:405.35  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 3817,
+   "ts": 1794288981.4417539,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003138",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 3818,
+   "ts": 1794288981.4598088,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000003138 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T05:36:15Z"
+ "synced_at_utc": "2026-11-10T05:36:23Z"
 }
