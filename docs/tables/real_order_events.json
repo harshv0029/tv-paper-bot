@@ -76067,7 +76067,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000005480 rejected: ADAPTER is down"
+  },
+  {
+   "id": 6340,
+   "ts": 1794299122.2281544,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000005482",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:130.50 High Price Range:159.50  for entity account-XUAEZ across exchange across"
   }
  ],
- "synced_at_utc": "2026-11-10T08:25:23Z"
+ "synced_at_utc": "2026-11-10T08:25:30Z"
 }
