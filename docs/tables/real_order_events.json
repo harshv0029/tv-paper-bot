@@ -34931,7 +34931,115 @@
    "prev_state": "sent to Kotak",
    "new_state": "not sent",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: Kotak Neo totp_login failed: too many request received"
+  },
+  {
+   "id": 2912,
+   "ts": 1794285351.7251287,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_login_failed",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "not sent",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: Kotak Neo totp_login failed: too many request received"
+  },
+  {
+   "id": 2913,
+   "ts": 1794285354.723469,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002220",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:130.50 High Price Range:159.50  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 2914,
+   "ts": 1794285356.6710277,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002221",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2915,
+   "ts": 1794285356.9214618,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002223",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2916,
+   "ts": 1794285356.991194,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002222",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2917,
+   "ts": 1794285357.1367824,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002224",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 2918,
+   "ts": 1794285357.2144158,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002225",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2919,
+   "ts": 1794285363.4356997,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002226",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2920,
+   "ts": 1794285363.4456105,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000002226 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T04:35:53Z"
+ "synced_at_utc": "2026-11-10T04:36:06Z"
 }
