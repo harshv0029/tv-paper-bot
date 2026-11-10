@@ -20941,7 +20941,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1756,
+   "id": 1746,
    "ts": 1794282333.4395452,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -20953,7 +20953,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1746,
+   "id": 1747,
    "ts": 1794282333.441777,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -20965,7 +20965,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1747,
+   "id": 1748,
    "ts": 1794282333.4590738,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -20977,7 +20977,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1748,
+   "id": 1749,
    "ts": 1794282333.4678495,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -20989,7 +20989,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; order 261110000000883 rejected: ADAPTER is down"
   },
   {
-   "id": 1749,
+   "id": 1750,
    "ts": 1794282333.473853,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -21001,7 +21001,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; order 261110000000878 rejected: ADAPTER is down"
   },
   {
-   "id": 1750,
+   "id": 1751,
    "ts": 1794282333.4816449,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -21013,7 +21013,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; order 261110000000871 rejected: ADAPTER is down"
   },
   {
-   "id": 1751,
+   "id": 1752,
    "ts": 1794282333.4924672,
    "symbol": "TATASTEEL.NS",
    "kotak_trading_symbol": "TATASTEEL-EQ",
@@ -21025,7 +21025,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; order 261110000000875 rejected: ADAPTER is down"
   },
   {
-   "id": 1752,
+   "id": 1753,
    "ts": 1794282333.497909,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -21037,7 +21037,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1753,
+   "id": 1754,
    "ts": 1794282333.5054216,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -21049,7 +21049,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1754,
+   "id": 1755,
    "ts": 1794282333.5108879,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -21061,7 +21061,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; order 261110000000870 rejected: ADAPTER is down"
   },
   {
-   "id": 1755,
+   "id": 1756,
    "ts": 1794282333.5181668,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -21265,7 +21265,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 1774,
+   "id": 1773,
    "ts": 1794282339.322734,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -21277,7 +21277,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 1773,
+   "id": 1774,
    "ts": 1794282339.3239868,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -21565,7 +21565,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 1799,
+   "id": 1798,
    "ts": 1794282344.3431244,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -21577,7 +21577,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 1798,
+   "id": 1799,
    "ts": 1794282344.3440073,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -22585,7 +22585,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   },
   {
-   "id": 1885,
+   "id": 1883,
    "ts": 1794282395.6045804,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -22597,7 +22597,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: ADAPTER is down"
   },
   {
-   "id": 1886,
+   "id": 1884,
    "ts": 1794282395.6048844,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -22609,7 +22609,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #7 within 300s: ADAPTER is down"
   },
   {
-   "id": 1883,
+   "id": 1885,
    "ts": 1794282395.6054866,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -22621,7 +22621,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #7 within 300s: ADAPTER is down"
   },
   {
-   "id": 1884,
+   "id": 1886,
    "ts": 1794282395.6150432,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -22813,7 +22813,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #7 within 300s: ADAPTER is down"
   },
   {
-   "id": 1903,
+   "id": 1902,
    "ts": 1794282413.9737053,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -22825,7 +22825,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
   },
   {
-   "id": 1904,
+   "id": 1903,
    "ts": 1794282413.9764485,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -22837,7 +22837,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #9 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 1902,
+   "id": 1904,
    "ts": 1794282413.9774992,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -30362,31 +30362,139 @@
   },
   {
    "id": 2531,
-   "ts": 1794283441.1862934,
+   "ts": 1794283456.7299206,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261110000001842",
-   "prev_state": "sent to Kotak",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001844",
+   "prev_state": null,
    "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:34:06 S SL qty 8 trg 132.04 status rejected rejRsn ADAPTER is down"
   },
   {
    "id": 2532,
-   "ts": 1794283450.0764732,
+   "ts": 1794283456.7301977,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001842",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:33:57 S SL qty 8 trg 126.73 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range"
+  },
+  {
+   "id": 2533,
+   "ts": 1794283471.2087865,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
    "leg": "sl",
    "event": "kotak_rejected",
-   "order_id": "261110000001844",
+   "order_id": "261110000001846",
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:130.50 High Price Range:159.50  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 2533,
-   "ts": 1794283450.0864382,
+   "id": 2534,
+   "ts": 1794283471.2309475,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001847",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2535,
+   "ts": 1794283471.5120044,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001849",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :168.80,  Low Price Range:177.30 High Price Range:216.70  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 2536,
+   "ts": 1794283473.4470987,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001852",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :329.60,  Low Price Range:331.65 High Price Range:405.35  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 2537,
+   "ts": 1794283475.120114,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001848",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2538,
+   "ts": 1794283475.1777236,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001855",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2539,
+   "ts": 1794283475.280988,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001850",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2540,
+   "ts": 1794283475.308316,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001854",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2541,
+   "ts": 1794283481.0986848,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001857",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2542,
+   "ts": 1794283481.115287,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
    "leg": "sl",
@@ -30394,35 +30502,107 @@
    "order_id": null,
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001844 rejected: ADAPTER is down"
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001857 rejected: ADAPTER is down"
   },
   {
-   "id": 2534,
-   "ts": 1794283462.9055772,
+   "id": 2543,
+   "ts": 1794283481.4097762,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
    "leg": "sl",
    "event": "kotak_rejected",
-   "order_id": "261110000001845",
+   "order_id": "261110000001858",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2544,
+   "ts": 1794283483.5910013,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001859",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2545,
+   "ts": 1794283487.6768763,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001861",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :114.24,  Low Price Range:118.96 High Price Range:145.38  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 2546,
+   "ts": 1794283492.2855031,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001863",
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 2535,
-   "ts": 1794283471.9525776,
+   "id": 2547,
+   "ts": 1794283492.3092942,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001862",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 2548,
+   "ts": 1794283497.451802,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001866",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 2549,
+   "ts": 1794283502.5705884,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
    "leg": "sl",
    "event": "kotak_rejected",
-   "order_id": "261110000001851",
+   "order_id": "261110000001870",
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 2536,
-   "ts": 1794283471.9626322,
+   "id": 2550,
+   "ts": 1794283502.5787385,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001869",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2555,
+   "ts": 1794283502.6054685,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
    "leg": "sl",
@@ -30430,23 +30610,131 @@
    "order_id": null,
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001851 rejected: ADAPTER is down"
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001870 rejected: ADAPTER is down"
   },
   {
-   "id": 2537,
-   "ts": 1794283486.1747756,
+   "id": 2551,
+   "ts": 1794283502.6201005,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001869 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2552,
+   "ts": 1794283502.6328356,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001858 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2553,
+   "ts": 1794283502.6458187,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001850 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2554,
+   "ts": 1794283502.6537945,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001855 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2556,
+   "ts": 1794283502.6592245,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001847 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2557,
+   "ts": 1794283502.674013,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001854 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2558,
+   "ts": 1794283502.6830487,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001859 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2559,
+   "ts": 1794283502.6886077,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001848 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2560,
+   "ts": 1794283502.694005,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001866 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2561,
+   "ts": 1794283514.3571174,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
    "leg": "sl",
    "event": "kotak_rejected",
-   "order_id": "261110000001860",
+   "order_id": "261110000001872",
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 2538,
-   "ts": 1794283486.1826727,
+   "id": 2562,
+   "ts": 1794283514.4241664,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
    "leg": "sl",
@@ -30454,32 +30742,8 @@
    "order_id": null,
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001860 rejected: ADAPTER is down"
-  },
-  {
-   "id": 2539,
-   "ts": 1794283498.8802652,
-   "symbol": "COLPAL.NS",
-   "kotak_trading_symbol": "COLPAL-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261110000001867",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
-  },
-  {
-   "id": 2540,
-   "ts": 1794283498.8898695,
-   "symbol": "COLPAL.NS",
-   "kotak_trading_symbol": "COLPAL-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001867 rejected: ADAPTER is down"
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001872 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T04:05:06Z"
+ "synced_at_utc": "2026-11-10T04:05:16Z"
 }
