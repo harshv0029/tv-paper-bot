@@ -1,0 +1,531 @@
+{
+ "as_of_utc": "2026-11-10 04:15:57",
+ "feeds": {
+  "mc_marketreports": {
+   "bytes": 4979,
+   "items": 4,
+   "fresh_48h": 0,
+   "newest_age_h": 22338.0,
+   "sample": [],
+   "sources": []
+  },
+  "mc_buzzingstocks": {
+   "bytes": 16690,
+   "items": 15,
+   "fresh_48h": 0,
+   "newest_age_h": 22332.4,
+   "sample": [],
+   "sources": []
+  },
+  "mc_business": {
+   "bytes": 16296,
+   "items": 15,
+   "fresh_48h": 0,
+   "newest_age_h": 22331.2,
+   "sample": [],
+   "sources": []
+  },
+  "mc_latestnews": {
+   "bytes": 15347,
+   "items": 15,
+   "fresh_48h": 0,
+   "newest_age_h": 22340.1,
+   "sample": [],
+   "sources": []
+  },
+  "mc_results": {
+   "bytes": 14616,
+   "items": 15,
+   "fresh_48h": 0,
+   "newest_age_h": 22342.4,
+   "sample": [],
+   "sources": []
+  },
+  "et_markets": {
+   "bytes": 41892,
+   "items": 50,
+   "fresh_48h": 50,
+   "newest_age_h": 2.0,
+   "sample": [
+    "Anthropic retracts details of $69 billion IPO filing sent to bankers. Why analysts are raising worries over va",
+    "RBI said to query bank valuations of some bond derivative trades"
+   ],
+   "sources": [
+    "et_markets"
+   ]
+  },
+  "et_stocks": {
+   "bytes": 33803,
+   "items": 50,
+   "fresh_48h": 50,
+   "newest_age_h": 16.4,
+   "sample": [
+    "Uno Minda among 7 stocks hitting 52-week highs; rally up to 26% in a month",
+    "FIIs cut stake in 10 smallcap stocks for 3 consecutive quarters; shares fall up to 70% in CY26"
+   ],
+   "sources": [
+    "et_stocks"
+   ]
+  },
+  "mint_markets": {
+   "bytes": 37672,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.5,
+   "sample": [
+    "HUL dividend 2026: Tomorrow is the last day to buy | Check payout amount, record date, history, yield and retu",
+    "Four stocks with high dividend payout ratios to watch"
+   ],
+   "sources": [
+    "mint_markets"
+   ]
+  },
+  "mint_companies": {
+   "bytes": 37520,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.4,
+   "sample": [
+    "Who are James Gunn and Peter Safran of DC Studios \u2014 Why are they stepping down? Who from Marvel is replacing t",
+    "Who is RamG Vallath? Meet ex-Airtel COO who left corporate life to become a speaker; what he said about work s"
+   ],
+   "sources": [
+    "mint_companies"
+   ]
+  },
+  "bs_markets": {
+   "bytes": 55536,
+   "items": 35,
+   "fresh_48h": 35,
+   "newest_age_h": 0.6,
+   "sample": [
+    "Asian stocks rise amid falling oil prices on hopes of US-Iran talks",
+    "Stock market holiday: NSE, BSE to remain closed for Diwali-Balipratipada"
+   ],
+   "sources": [
+    "bs_markets"
+   ]
+  },
+  "cnbctv18_market": {
+   "bytes": 215929,
+   "items": 200,
+   "fresh_48h": 72,
+   "newest_age_h": 0.7,
+   "sample": [
+    "Asian markets edge higher following Wall Street's rebound; KOSPI, Taiwan jump up to 4%",
+    "Dow Jones jumps 1,100 points for best day since April despite Nvidia - Here are factors that contributed to th"
+   ],
+   "sources": [
+    "cnbctv18_market"
+   ]
+  },
+  "ndtvprofit": {
+   "bytes": 29276,
+   "items": 20,
+   "fresh_48h": 20,
+   "newest_age_h": 0.3,
+   "sample": [
+    "A New Samvat Wishlist: Inclusive Prosperity And Human Development",
+    "Punjab Wrestler Shot Dead While Bursting Firecrackers On Diwali In Kapurthala"
+   ],
+   "sources": [
+    "ndtvprofit"
+   ]
+  },
+  "gn_site_moneycontrol_markets": {
+   "bytes": 231519,
+   "items": 100,
+   "fresh_48h": 100,
+   "newest_age_h": 0.1,
+   "sample": [
+    "South Korean stocks jump as chipmakers roar back on dip buying - Moneycontrol.com",
+    "Gland Pharma shares rally 8% to hit 4-year-high post strong Q2; what brokerages say, check target prices - Mon"
+   ],
+   "sources": [
+    "Moneycontrol.com https://"
+   ]
+  },
+  "gn_site_moneycontrol_sector": {
+   "bytes": 235160,
+   "items": 100,
+   "fresh_48h": 100,
+   "newest_age_h": 0.1,
+   "sample": [
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3% - Moneyc",
+    "Gland Pharma shares rally 8% to hit 4-year-high post strong Q2; what brokerages say, check target prices - Mon"
+   ],
+   "sources": [
+    "Moneycontrol.com https://"
+   ]
+  },
+  "gn_india_markets": {
+   "bytes": 193894,
+   "items": 100,
+   "fresh_48h": 100,
+   "newest_age_h": 0.2,
+   "sample": [
+    "Stock Market Holiday Today: NSE, BSE Shut, When Will Trading Resume? - NDTV",
+    "Sensex, Nifty extend gains to close at highest levels in over eight months, rally on - Telegraph India"
+   ],
+   "sources": [
+    "ANI News https://www.anin",
+    "Analytics Insight https:/",
+    "BBN Times https://www.bbn",
+    "Business News This Week h",
+    "Business Standard https:/",
+    "CNBC TV18 https://www.cnb"
+   ]
+  }
+ },
+ "stocks": {
+  "RELIANCE.NS": {
+   "ticker_query": {
+    "items": 14,
+    "n_48h": 14,
+    "score": 0.047,
+    "hard_neg": [],
+    "hard_pos": [
+     "upgrades"
+    ],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "avoid",
+    "top": [
+     "How Analyst Upgrades Will Impact Reliance Stock Investors - Simply Wall St"
+    ]
+   },
+   "name_query": {
+    "items": 16,
+    "n_48h": 16,
+    "score": -0.007,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "Whirlpool of India Q2 FY27 results: Net profit drops 39% YoY; cost upcharges impact margins - Upstox",
+     "Reliance Industries rallies Monday, underperforms market - MarketWatch"
+    ]
+   }
+  },
+  "HDFCBANK.NS": {
+   "ticker_query": {
+    "items": 9,
+    "n_48h": 9,
+    "score": 0.138,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "Weekly Recap: ADR gains, profit growth and Anup Bagchi named CEO - TradingView",
+     "HDFCBANK Limited Gains Over 3% but Profit Booking Caps Rally - Multibagg AI",
+     "Diwali Muhurat trading 2026: Why HDFC Bank shares a talking point today amid Samvat 2083 despite 13%"
+    ]
+   },
+   "name_query": {
+    "items": 20,
+    "n_48h": 20,
+    "score": 0.028,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "PC Jeweller, Vodafone Idea, YES Bank Shares Fall - HDFC Sky",
+     "HDFC Bank shares jump 2%, rally 12% in a month: Is leadership reset reviving investor confidence? - ",
+     "Diwali Muhurat trading 2026: Why HDFC Bank shares a talking point today amid Samvat 2083 despite 13%"
+    ]
+   }
+  },
+  "IRCTC.NS": {
+   "ticker_query": {
+    "items": 7,
+    "n_48h": 7,
+    "score": 0.0,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": []
+   },
+   "name_query": {
+    "items": 7,
+    "n_48h": 7,
+    "score": 0.0,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": []
+   }
+  },
+  "YESBANK.NS": {
+   "ticker_query": {
+    "items": 0,
+    "n_48h": 0,
+    "score": 0.0,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": []
+   },
+   "name_query": {
+    "items": 14,
+    "n_48h": 14,
+    "score": -0.025,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "PC Jeweller, Vodafone Idea, YES Bank Shares Fall - HDFC Sky"
+    ]
+   }
+  },
+  "SAIL.NS": {
+   "ticker_query": {
+    "items": 9,
+    "n_48h": 9,
+    "score": 0.053,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "SAIL FY26 PAT Rises 50%, Recommends Dividend \u20b92.35 - scanx.trade",
+     "SAIL Q1FY27 EBITDA surges 50% to \u20b94,356 cr on better realizations - scanx.trade",
+     "Metal sector stocks today, November 9: Welspun Corp jumps 3.48%, Tata Steel up 2.71%; SAIL drops 1.8"
+    ]
+   },
+   "name_query": {
+    "items": 9,
+    "n_48h": 9,
+    "score": 0.053,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "SAIL FY26 PAT Rises 50%, Recommends Dividend \u20b92.35 - scanx.trade",
+     "SAIL Q1FY27 EBITDA surges 50% to \u20b94,356 cr on better realizations - scanx.trade",
+     "Metal sector stocks today, November 9: Welspun Corp jumps 3.48%, Tata Steel up 2.71%; SAIL drops 1.8"
+    ]
+   }
+  },
+  "RECLTD.NS": {
+   "ticker_query": {
+    "items": 0,
+    "n_48h": 0,
+    "score": 0.0,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": []
+   },
+   "name_query": {
+    "items": 1,
+    "n_48h": 1,
+    "score": -0.042,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "Top 10 52-Week Low Shares To Buy In India November 2026 - Samco"
+    ]
+   }
+  },
+  "ZYDUSLIFE.NS": {
+   "ticker_query": {
+    "items": 1,
+    "n_48h": 1,
+    "score": 0.0,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": []
+   },
+   "name_query": {
+    "items": 8,
+    "n_48h": 8,
+    "score": 0.063,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "NIFTY Pharma rallies nearly 3% to hit fresh new peak; Divi\u2019s Labs, Gland Pharma lead gains after Q2 "
+    ]
+   }
+  },
+  "TCS.NS": {
+   "ticker_query": {
+    "items": 6,
+    "n_48h": 6,
+    "score": -0.072,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "IT Stocks Crash! TCS, Infosys, HCL Tech lead Rs 50,000 crore mcap erosion as Nifty IT falls 2% \u2013 Her"
+    ]
+   },
+   "name_query": {
+    "items": 6,
+    "n_48h": 6,
+    "score": -0.072,
+    "hard_neg": [],
+    "hard_pos": [],
+    "entry_long": "allow",
+    "reason": "no adverse news",
+    "exit_long": "hold",
+    "entry_short": "allow",
+    "top": [
+     "IT Stocks Crash! TCS, Infosys, HCL Tech lead Rs 50,000 crore mcap erosion as Nifty IT falls 2% \u2013 Her"
+    ]
+   }
+  }
+ },
+ "market": {
+  "score": 0.306,
+  "n": 196,
+  "top": [
+   {
+    "title": "Asian stocks rise amid falling oil prices on hopes of US-Iran talks - Business Standard",
+    "score": 1.0,
+    "age_h": 0.6,
+    "source": "Business Standard https://www.business-s"
+   },
+   {
+    "title": "Asian markets edge higher following Wall Street's rebound; KOSPI, Taiwan jump up to 4%",
+    "score": 1.0,
+    "age_h": 0.7,
+    "source": "cnbctv18_market"
+   },
+   {
+    "title": "Four stocks with high dividend payout ratios to watch",
+    "score": 1.0,
+    "age_h": 0.8,
+    "source": "mint_markets"
+   },
+   {
+    "title": "South Korean stocks jump as chipmakers roar back on dip buying - Moneycontrol.com",
+    "score": 1.0,
+    "age_h": 2.6,
+    "source": "Moneycontrol.com https://www.moneycontro"
+   },
+   {
+    "title": "South Korean stocks jump as chipmakers roar back on dip buying - Moneycontrol.com",
+    "score": 1.0,
+    "age_h": 2.6,
+    "source": "Moneycontrol.com https://www.moneycontro"
+   }
+  ]
+ },
+ "sectors": {
+  "Financial Services": {
+   "score": 0.263,
+   "n": 59,
+   "top": [
+    "Sensex and Nifty Edge Higher as Banking and Pharma Sectors Lead Gains - MarketsMojo",
+    "Sensex, Nifty end higher in volatile trade as PSU Banks, Pharma stocks lead gains - Social News XYZ"
+   ]
+  },
+  "Technology": {
+   "score": -0.186,
+   "n": 10,
+   "top": [
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3",
+    "Nifty IT index falls over 1% as global AI stocks stage recovery; Mphasis, HCL Tech, Infosys down 2-3"
+   ]
+  },
+  "Healthcare": {
+   "score": 0.515,
+   "n": 26,
+   "top": [
+    "Sensex and Nifty Edge Higher as Banking and Pharma Sectors Lead Gains - MarketsMojo",
+    "Sensex, Nifty end higher in volatile trade as PSU Banks, Pharma stocks lead gains - Social News XYZ"
+   ]
+  },
+  "Consumer Cyclical": {
+   "score": 0.0,
+   "n": 5,
+   "top": []
+  },
+  "Basic Materials": {
+   "score": 0.124,
+   "n": 19,
+   "top": [
+    "Top gainers and losers on Nov 9: SBI, Trent up 2%, Nestle gains 1.9%; Tata Steel, HCL Tech drop over",
+    "Tata Steel dips 1.5% after 5-day rally; brokerages stay upbeat on India biz"
+   ]
+  },
+  "Energy": {
+   "score": 0.236,
+   "n": 34,
+   "top": [
+    "Asian stocks rise amid falling oil prices on hopes of US-Iran talks - Business Standard",
+    "Oil falls as Trump downplays prospect of escalation with Iran - Moneycontrol.com"
+   ]
+  },
+  "Industrials": {
+   "score": 0.27,
+   "n": 5,
+   "top": [
+    "AMD stock rallies 12% as Google Cloud taps its EPYC processors for next-generation AI infrastructure",
+    "IRB Infra share price climbs 7% as toll collections boost Q2 earnings"
+   ]
+  },
+  "Utilities": {
+   "score": -0.082,
+   "n": 8,
+   "top": [
+    "European Power Prices Shoot Above \u20ac600 as Wind Generation Slumps"
+   ]
+  },
+  "Real Estate": {
+   "score": 0.0,
+   "n": 2,
+   "top": []
+  },
+  "Communication Services": {
+   "score": 0.0,
+   "n": 3,
+   "top": []
+  }
+ }
+}
