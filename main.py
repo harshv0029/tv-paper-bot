@@ -874,6 +874,7 @@ def init_db():
                 opened_ts REAL NOT NULL, entry_price REAL NOT NULL, units INTEGER NOT NULL DEFAULT 1,
                 stop_price REAL NOT NULL,         -- every news trade carries a stop
                 open_reason TEXT, headline TEXT, publishers_n INTEGER,
+                evidence TEXT,                    -- JSON: the headlines behind the open (title, source, link, score)
                 peak_score REAL, last_score REAL, last_ts REAL,
                 close_ts REAL, close_price REAL, close_reason TEXT, pnl_pct REAL
             )
@@ -893,6 +894,7 @@ def init_db():
                 reason TEXT,
                 stock_score REAL, stock_n INTEGER, sector_score REAL, market_score REAL,
                 headline TEXT,                    -- the headline behind the verdict, when there is one
+                evidence TEXT,                    -- JSON: every headline the verdict was read from (the chain)
                 ref_price REAL,                   -- price when the verdict was logged
                 real_entry INTEGER NOT NULL DEFAULT 0,  -- 1 = the bot placed a real entry on this trigger
                 mode TEXT NOT NULL DEFAULT 'shadow',    -- 'shadow' = logged only; 'live' = the verdict changed an order
@@ -22684,6 +22686,15 @@ _NEWS_AGAINST = ("avoid", "caution", "tighten", "exit")  # verdicts that say "th
 _news_monitor_thread = None
 NEWS_SWEEP_PER_PASS = 20             # 24x7 watchlist sweep: 20 stocks per ~5 min pass (whole swing watchlist in about an hour)
 NEWS_ACTIONABLE_TTL_S = 6 * 3600     # a confirmed+confident finding acts for at most 6 h unless a later sweep renews it
+def _news_evidence(stock: dict) -> str:
+    """JSON of the headlines a verdict was read from (hard events first), for the View 5 chain."""
+    try:
+        return json.dumps([{k: t.get(k) for k in ("title", "source", "link", "score", "age_h", "hard")}
+                           for t in (stock.get("top") or [])[:6]])
+    except Exception:
+        return "[]"
+
+
 _NEWS_ACTIONABLE: dict = {}          # (symbol, direction) -> {"ts", "reason", "headline", "publishers"}; re-fetchable cache
 _news_sweep_cursor = [0]
 
@@ -22696,7 +22707,7 @@ def _news_note_actionable(symbol: str, stock: dict, now_ts: float) -> dict:
         out[direction] = c
         if c["actionable"]:
             _NEWS_ACTIONABLE[(symbol, direction)] = {
-                "ts": now_ts, "headline": c["headline"], "publishers": c["publishers"],
+                "ts": now_ts, "headline": c["headline"], "publishers": c["publishers"], "evidence": _news_evidence(stock),
                 "reason": f"confirmed news against a {direction}: {c['event']!r} reported by {', '.join(c['publishers'])}; "
                           f"stock news score {stock.get('score')} - {str(c['headline'])[:110]}"}
         else:
@@ -22732,10 +22743,10 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                 stop = ltp * (1 - sign * NEWS_TRADE_STOP_PCT / 100.0)
                 conn.execute(
                     "INSERT INTO news_trades (symbol, direction, tag, opened_ts, entry_price, stop_price, open_reason, "
-                    "headline, publishers_n, peak_score, last_score, last_ts) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "headline, publishers_n, peak_score, last_score, last_ts, evidence) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (symbol, direction, NEWS_TRADE_TAGS[direction], now_ts, ltp, round(stop, 2),
                      f"{favour['event']} confirmed by {', '.join(favour['publishers'])}", (favour["headline"] or "")[:200],
-                     len(favour["publishers"]), score, score, now_ts))
+                     len(favour["publishers"]), score, score, now_ts, _news_evidence(stock)))
                 acts.append((symbol, direction, "open"))
             continue
         move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
@@ -22800,11 +22811,13 @@ def _news_exit_real_holdings(conn, now_ts: float) -> list:
                     globals()[fn_name](conn, sym, reason=f"news_exit: {reason}"[:300])
                 conn.execute(
                     "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, headline, "
-                    "ref_price, mode, actionable, tick_live) VALUES (?,?,?,?,'exit',?,'exit',?,?,?,'live',1,1) "
+                    "ref_price, evidence, mode, actionable, tick_live) VALUES (?,?,?,?,'exit',?,'exit',?,?,?,?,'live',1,1) "
                     "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET action = 'exit', mode = 'live', "
-                    "actionable = 1, tick_live = 1, reason = excluded.reason, headline = excluded.headline, ts = excluded.ts",
+                    "actionable = 1, tick_live = 1, reason = excluded.reason, headline = excluded.headline, ts = excluded.ts, "
+                    "evidence = excluded.evidence",
                     (now_ts, day, sym, direction, cat, reason[:300],
-                     (_NEWS_ACTIONABLE.get((sym, direction)) or {}).get("headline"), _swing_live_ltp(sym) or None))
+                     (_NEWS_ACTIONABLE.get((sym, direction)) or {}).get("headline"), _swing_live_ltp(sym) or None,
+                     (_NEWS_ACTIONABLE.get((sym, direction)) or {}).get("evidence")))
                 conn.commit()
                 done.append((sym, direction, cat))
             except Exception as e:
@@ -22870,12 +22883,13 @@ def _news_gate_entry(conn, symbol: str, side: str, direction: str, strategy) -> 
         now_ts = time.time()
         conn.execute(
             "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, headline, "
-            "ref_price, mode, actionable, tick_live) VALUES (?,?,?,?,'entry',?,'avoid',?,?,?,'live',1,1) "
+            "ref_price, evidence, mode, actionable, tick_live) VALUES (?,?,?,?,'entry',?,'avoid',?,?,?,?,'live',1,1) "
             "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET action = 'avoid', mode = 'live', actionable = 1, "
-            "tick_live = 1, reason = excluded.reason, headline = excluded.headline, "
+            "tick_live = 1, reason = excluded.reason, headline = excluded.headline, evidence = excluded.evidence, "
             "ref_price = COALESCE(news_signal_events.ref_price, excluded.ref_price)",
             (now_ts, ist_now().strftime("%Y-%m-%d"), symbol, direction, str(strategy or ""), reason[:300],
-             (_NEWS_ACTIONABLE.get((symbol, direction)) or {}).get("headline"), _swing_live_ltp(symbol) or None))
+             (_NEWS_ACTIONABLE.get((symbol, direction)) or {}).get("headline"), _swing_live_ltp(symbol) or None,
+             (_NEWS_ACTIONABLE.get((symbol, direction)) or {}).get("evidence")))
         conn.commit()
     except Exception as e:
         print(f"[NEWS GATE] log failed (entry still blocked): {e}")
@@ -22929,15 +22943,15 @@ def _news_monitor_log(conn, cands: list, day: str, now_ts: float, ms: dict = Non
         sec = (ms.get("sectors") or {}).get(sector) or {}
         conn.execute(
             "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, stock_score, "
-            "stock_n, sector_score, market_score, headline, ref_price, real_entry, actionable, tick_live) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "stock_n, sector_score, market_score, headline, ref_price, real_entry, actionable, tick_live, evidence) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
             "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET ts = excluded.ts, action = excluded.action, "
             "reason = excluded.reason, stock_score = excluded.stock_score, stock_n = excluded.stock_n, "
             "headline = excluded.headline, ref_price = COALESCE(news_signal_events.ref_price, excluded.ref_price), "
-            "actionable = excluded.actionable, tick_live = excluded.tick_live",
+            "actionable = excluded.actionable, tick_live = excluded.tick_live, evidence = excluded.evidence",
             (now_ts, day, symbol, direction, kind, cat, v.get("action") or "allow", (v.get("reason") or "")[:300],
              st.get("score"), st.get("n"), sec.get("score"), (ms.get("market") or {}).get("score"),
-             (head or "")[:200] or None, (ltp or fallback_price or None), took, int(bool(conf["actionable"])), int(ltp > 0)))
+             (head or "")[:200] or None, (ltp or fallback_price or None), took, int(bool(conf["actionable"])), int(ltp > 0), _news_evidence(st)))
         n += 1
     conn.commit()
     return n
@@ -23025,7 +23039,15 @@ def news_monitor_view(days: int = 30):
                 "SELECT * FROM news_signal_events WHERE day >= ? ORDER BY ts DESC", (cutoff,)).fetchall()]
             trades = [dict(r) for r in conn.execute("SELECT * FROM news_trades ORDER BY opened_ts DESC LIMIT 300").fetchall()]
         _ist = lambda t: (dt.datetime.utcfromtimestamp(float(t)) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M") if t else None
+        def _ev(x):
+            try:
+                return json.loads(x) if x else []
+            except Exception:
+                return []
+        for r in rows:
+            r["evidence"] = _ev(r.get("evidence"))
         for t in trades:
+            t["evidence"] = _ev(t.get("evidence"))
             t["opened_ist"], t["closed_ist"] = _ist(t["opened_ts"]), _ist(t["close_ts"])
             if t["status"] == "open":
                 px = _swing_live_ltp(t["symbol"])
@@ -23044,6 +23066,9 @@ def news_monitor_view(days: int = 30):
         try:
             ms = news_signals.market_and_sector_scores()
             out["market"], out["sectors"], out["headlines"] = ms["market"], ms["sectors"], ms["headlines"]
+            out["feed"] = news_signals.feed(80)
+            for f in out["feed"]:
+                f["ts_ist"] = _ist(f["ts"])
         except Exception as e:
             out["market_error"] = str(e)
         return out

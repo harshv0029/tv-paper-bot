@@ -35,6 +35,7 @@
   .bar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 8px;align-items:center;}
   .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;}
   .err{color:var(--down);font-size:12px;}
+  details{margin-top:4px;} summary{cursor:pointer;color:var(--accent);} .ev{margin:4px 0 0 8px;line-height:1.45;} a{color:var(--text);}
 </style>
 </head>
 <body>
@@ -62,6 +63,10 @@
 </div>
 <div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th>Confirmed + confident?</th><th>Live tick?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody id="log"></tbody></table></div>
 
+<h2>6 · News items read (the source of every decision)</h2>
+<div class="sub">The latest market and sector headlines the module read, newest first. "Counted towards" shows which score each one fed. Stock-specific items appear under "news items read" inside each decision row above.</div>
+<div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Headline</th><th>Publisher</th><th class="num">Score</th><th>Hard event</th><th>Counted towards</th></tr></thead><tbody id="feed"></tbody></table></div>
+
 <h2>5 · News trades (paper): buy or add on good news, short on bad news, held until the sentiment weakens</h2>
 <div class="sub" id="ntstats"></div>
 <div class="wrap"><table><thead><tr><th>Opened (IST)</th><th>Symbol</th><th>Side</th><th>Status</th><th class="num">Units</th><th class="num">Entry</th><th class="num">Stop</th><th class="num">Score now / peak</th><th class="num">P&amp;L after costs</th><th>Closed (IST)</th><th>Why opened</th><th>Why closed</th></tr></thead><tbody id="nt"></tbody></table></div>
@@ -73,6 +78,9 @@ const num = (v, d = 2) => v == null ? '<span class="dim">–</span>' : Number(v)
 const signed = (v, unit = "%") => v == null ? '<span class="dim">pending</span>' : `<span class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}${unit}</span>`;
 const PILL = {allow: "g", hold: "g", caution: "a", avoid: "r", tighten: "r", exit: "r"};
 let data = null;
+const link = (t, u) => /^https:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>` : esc(t);
+const chain = ev => (ev && ev.length) ? `<details><summary>${ev.length} news item${ev.length > 1 ? "s" : ""} read</summary>` + ev.map(e =>
+  `<div class="ev">${(e.hard || []).length ? `<span class="pill r">${esc(e.hard.join(", "))}</span> ` : ""}${link(e.title, e.link)} <span class="dim">· ${esc(e.source)} · ${e.age_h ?? "?"}h old · score ${num(e.score)}</span></div>`).join("") + "</details>" : "";
 
 function stats(s) {
   const defs = [["entry_avoid", "Entry: avoid", "stock news against the trade"], ["entry_caution", "Entry: caution", "sector or market news against it"],
@@ -99,7 +107,7 @@ function row(r) {
   return `<tr><td class="mono">${esc(r.ts_ist)}</td><td class="mono">${esc(r.symbol)}</td><td>${esc(r.direction)}</td><td>${r.kind === "entry" ? "entry trigger" : "open position"}</td><td class="why">${esc(r.category)}</td>
     <td><span class="pill ${PILL[r.action] || "m"}">${esc(r.action)}</span></td><td>${r.kind === "entry" ? (r.real_entry ? "yes" : "no") : '<span class="dim">held</span>'}</td>
     <td>${r.mode === "live" ? '<span class="pill g">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.actionable ? '<span class="pill r">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.tick_live ? "yes" : '<span class="dim">no</span>'}</td><td class="num mono">${num(r.stock_score)}</td><td class="num mono">${num(r.ref_price)}</td>
-    <td class="num mono">${signed(r.move_pct)}</td><td>${right}</td><td class="why">${esc(r.reason)}${r.headline ? "<br>" + esc(r.headline) : ""}</td></tr>`;
+    <td class="num mono">${signed(r.move_pct)}</td><td>${right}</td><td class="why"><b>Decision:</b> ${esc(r.action)} — ${esc(r.reason)}${chain(r.evidence)}</td></tr>`;
 }
 
 function paint() {
@@ -124,9 +132,10 @@ async function load() {
       : '<div class="empty">None yet. No entry has met the confirmed + confident + live tick rule.</div>';
     stats(d.stats); mood(d); paint();
     const f = (k, g) => `${k}: ${g.open} open, ${g.closed} closed` + (g.closed ? `, ${g.win_pct}% wins, PFnet ${g.pfnet ?? "n/a"}, total ${g.total_pnl_pct}%` : "");
+    $("feed").innerHTML = (d.feed || []).map(f => `<tr><td class="mono">${esc(f.ts_ist)}</td><td>${link(f.title, f.link)}</td><td class="why">${esc(f.source)}</td><td class="num mono ${f.score > 0 ? "up" : f.score < 0 ? "down" : "dim"}">${num(f.score)}</td><td>${(f.hard || []).length ? `<span class="pill r">${esc(f.hard.join(", "))}</span>` : ""}</td><td class="why">${esc((f.scopes || []).join(", ") || "not counted")}</td></tr>`).join("") || '<tr><td colspan="6" class="empty">No headlines read yet.</td></tr>';
     const ns_ = d.news_trade_stats || {};
     $("ntstats").textContent = "Paper only: no real order. Real money opens for these only once the measured PFnet is above 1.00. " + (ns_.long ? f("Long", ns_.long) + " · " + f("Short", ns_.short) : "");
-    $("nt").innerHTML = (d.news_trades || []).map(t => `<tr><td class="mono">${esc(t.opened_ist)}</td><td class="mono">${esc(t.symbol)}</td><td>${esc(t.direction)}</td><td>${esc(t.status)}</td><td class="num mono">${t.units}</td><td class="num mono">${num(t.entry_price)}</td><td class="num mono">${num(t.stop_price)}</td><td class="num mono">${num(t.last_score)} / ${num(t.peak_score)}</td><td class="num mono">${t.status === "closed" ? signed(t.pnl_pct) : (t.open_move_pct == null ? '<span class="dim">open</span>' : signed(t.open_move_pct) + ' <span class="dim">open</span>')}</td><td class="mono">${esc(t.closed_ist || "")}</td><td class="why">${esc(t.open_reason)}<br>${esc(t.headline)}</td><td class="why">${esc(t.close_reason || "")}</td></tr>`).join("") || '<tr><td colspan="12" class="empty">No news trade yet. One opens when two or more trusted publishers confirm a hard event on a watchlist stock and a live tick exists.</td></tr>';
+    $("nt").innerHTML = (d.news_trades || []).map(t => `<tr><td class="mono">${esc(t.opened_ist)}</td><td class="mono">${esc(t.symbol)}</td><td>${esc(t.direction)}</td><td>${esc(t.status)}</td><td class="num mono">${t.units}</td><td class="num mono">${num(t.entry_price)}</td><td class="num mono">${num(t.stop_price)}</td><td class="num mono">${num(t.last_score)} / ${num(t.peak_score)}</td><td class="num mono">${t.status === "closed" ? signed(t.pnl_pct) : (t.open_move_pct == null ? '<span class="dim">open</span>' : signed(t.open_move_pct) + ' <span class="dim">open</span>')}</td><td class="mono">${esc(t.closed_ist || "")}</td><td class="why">${esc(t.open_reason)}${chain(t.evidence)}</td><td class="why">${esc(t.close_reason || "")}</td></tr>`).join("") || '<tr><td colspan="12" class="empty">No news trade yet. One opens when two or more trusted publishers confirm a hard event on a watchlist stock and a live tick exists.</td></tr>';
   } catch (e) { $("err").textContent = "Could not load /news-monitor: " + e.message; }
 }
 ["fkind", "fact"].forEach(id => $(id).onchange = paint); $("fsym").oninput = paint;

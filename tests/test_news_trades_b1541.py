@@ -98,3 +98,24 @@ def test_news_trades_are_paper_and_durable():
     for banned in ("_maybe_place_real", "kotak", "_log_real_attempt", "real_positions"):
         assert banned not in step, banned  # paper only: the lifecycle never touches a real order or position
     assert 'data.news_trades' in open("static/trade-view5.html").read() or 'd.news_trades' in open("static/trade-view5.html").read()
+
+
+def test_view5_publishes_the_news_chain(monkeypatch):
+    """B-1542: every decision carries the headlines it was read from, and the feed lists what was read."""
+    import json
+    c, t = _conn(), time.time()
+    main._news_trades_step(c, "XYZ.NS", _agg(GOOD2), t, 100.0)
+    ev = json.loads(_open(c)["evidence"])
+    assert len(ev) == 2 and ev[0]["title"].startswith("XYZ") and ev[0]["hard"] and ev[0]["link"].startswith("https://")
+    main._NEWS_ACTIONABLE.clear()
+    main._news_note_actionable("XYZ.NS", _agg(BAD2), t)
+    assert "SEBI" in main._NEWS_ACTIONABLE[("XYZ.NS", "long")]["evidence"]
+    main._NEWS_ACTIONABLE.clear()
+    ns._cache.clear()
+    monkeypatch.setattr(ns.time, "time", lambda: NOW)
+    monkeypatch.setattr(ns, "_fetch", lambda url: _rss([("Bank Nifty slumps as PSU banks tumble", 1, "moneycontrol.com"), ("Old story", 90, "moneycontrol.com")]))
+    f = ns.feed(10, NOW)
+    assert len(f) == 1 and f[0]["scopes"] == ["market", "Financial Services"] and f[0]["score"] == -1.0
+    ns._cache.clear()
+    page = open("static/trade-view5.html").read()
+    assert 'id="feed"' in page and "chain(r.evidence)" in page and 'rel="noopener noreferrer"' in page and "/^https:" in page
