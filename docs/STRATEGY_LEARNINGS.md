@@ -1931,3 +1931,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - brk20 short: universe=nonfno (full minus F&O names) now exists, so the question of where the short edge lives (cash small caps vs F&O names) is answered by three runs with the same cells and different universes, each with its own tag.
 - O'Neil rs80 cells need the RS rank over the live population (RS_UNIVERSE=n200). A per-shard rank uses a different population than the live scan, so a shard-ranked PFnet does not support wiring.
 - Profit-booking / exit takeaway: trail-vs-fixed decisions for chan_kalman 1d/1h, Minervini lab cells, brk20 1h and the O'Neil daily cells are still unmeasured; until those runs land, these cells exit on their fixed stops. The B-1484 lesson (peak-LTP 0.5R is the only trail that wins broadly) is the prior to test first.
+
+## B-1533 - first skip only in the real-attempt log (user decision, 2026-11-10)
+- A rejected trigger is re-evaluated every scan, so one blocked symbol wrote ~109 identical skip rows a day (11,799 rows on 09-Nov) and grew docs/real_trade_log.json ~8 MB/day toward GitHub's 100 MB file limit.
+- Now real_trades keeps the first identical skip per day/symbol/side/status/strategy; entry_funnel_events still counts every repeat, so the "why no entry" evidence is intact and the git journal stays small.
+- Profit-booking / exit takeaway: exit and placed/failed rows are never compacted, so every reason an order was or was not executed on the exit side stays fully logged.

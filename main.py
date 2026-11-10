@@ -1581,6 +1581,8 @@ def init_db():
             )
             """
         )
+        # B-1533: lookup index for the first-skip-only dedupe in _log_real_attempt
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_real_trades_day_symbol ON real_trades (day, symbol)")
         # Order STATE-TRANSITION log (2026-09-08) - explicit user
         # instruction: "I want to see the log of what order you have
         # placed and from what prev state to what current new order
@@ -16750,6 +16752,12 @@ def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty
             conn, "reject" if _st.startswith("skipped") else ("placed" if _is_placed_entry_status(_st) else "failed"),
             strategy=strategy, side=side, symbol=symbol, status=_st,
             flag=_entry_reject_flag(_st) if _st.startswith("skipped") else None, slot=_slot)
+    _day = ist_now().strftime("%Y-%m-%d")
+    if leg != "exit" and str(status or "").startswith("skipped") and _real_skip_already_logged(
+            conn, _day, symbol, side, status, strategy):
+        # B-1533 (user 2026-11-10: "build B-1533 with first skip only"): an identical skip (same day, symbol,
+        # side, status, strategy) is written once; the funnel event above still counts every repeat.
+        return
     if leg == "exit":
         # B-1408: exit/cover rows carry their position's strategy tag, so /entry-funnel cannot tell them from entries
         # by tag or side (NHPC's cover read as a 'placed' gap_and_go entry, 2026-10-28). Mark them explicitly.
@@ -16758,11 +16766,22 @@ def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
         "notional_inr, status, order_id, detail, raw_response, strategy) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (time.time(), ist_now().strftime("%Y-%m-%d"), symbol, kotak_trading_symbol, side, qty,
+        (time.time(), _day, symbol, kotak_trading_symbol, side, qty,
          price_est, notional_inr, status, order_id, detail,
          json.dumps(raw_response, default=str) if raw_response is not None else None, strategy),
     )
     conn.commit()
+
+
+def _real_skip_already_logged(conn, day, symbol, side, status, strategy):
+    """B-1533: True when real_trades already holds this exact skip today (first skip only).
+    Fails open (returns False, so the row is written) on any DB error."""
+    try:
+        return conn.execute(
+            "SELECT 1 FROM real_trades WHERE day = ? AND symbol = ? AND side = ? AND status = ? "
+            "AND strategy IS ? LIMIT 1", (day, symbol, side, status, strategy)).fetchone() is not None
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
@@ -33140,6 +33159,8 @@ def _sl_kind(category: str, tag: str | None, symbol: str | None = None) -> str:
     else Trail when _SWING_SL_RULES says the stop trails; every other tag exits off its frozen initial stop
     (_swing_strategy_stop_level's default for an unrecognised tag), so Fixed."""
     tag = tag or ""
+    if category in ("options", "option", "fo_option", "mcx_option") or tag.startswith(("single_leg_", "strike_setup_")):
+        return "Trail"  # B-1441 every-category check: every single-strike option (NSE or MCX) trails (2026-10-08 rule)
     if category in ("buy", "short_sell"):
         return "Fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "Trail"
     if category == "swing" and symbol and tag in SWING_EXIT_VARIANTS:
