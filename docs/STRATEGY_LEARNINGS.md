@@ -1936,3 +1936,10 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - A rejected trigger is re-evaluated every scan, so one blocked symbol wrote ~109 identical skip rows a day (11,799 rows on 09-Nov) and grew docs/real_trade_log.json ~8 MB/day toward GitHub's 100 MB file limit.
 - Now real_trades keeps the first identical skip per day/symbol/side/status/strategy; entry_funnel_events still counts every repeat, so the "why no entry" evidence is intact and the git journal stays small.
 - Profit-booking / exit takeaway: exit and placed/failed rows are never compacted, so every reason an order was or was not executed on the exit side stays fully logged.
+
+## B-1537 - news add-on for entry and exit (market, sector, stock headlines), shadow only (2026-11-10)
+- Mechanism: headline lexicon score plus HARD event flags, aggregated per stock / sector / market with a 12h half-life. Stock-level news can say "avoid" an entry or "tighten" an open position's stop; sector and market news only ever say "caution".
+- Fit for this system: swing cells hold days, so a fresh fraud / SEBI / downgrade / results-miss headline is a real gap risk the price-only triggers cannot see; it mirrors cleanly for shorts (order win, upgrade, buyback against a short). It is fail-open, so a dead feed never stops trading.
+- What broke / surprised: Moneycontrol's public RSS is frozen (newest item Apr 2024) though it returns HTTP 200 - a feed must be judged by item age, never by status code. Session network blocks news hosts, so live checks go through Actions.
+- Limits, stated honestly: no historical headline archive exists here, so no backtest PFnet yet; a keyword lexicon misreads negation and sarcasm; headline timing lags price. Evidence must come from a shadow log of verdicts at real triggers before it decides real money.
+- Profit-booking / exit takeaway: on a hard adverse stock headline, tighten the stop (never loosen, never a blind market exit); the saved loss on gap-down names is where this add-on can earn its keep.
