@@ -43067,7 +43067,67 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002934 rejected: ADAPTER is down"
+  },
+  {
+   "id": 3590,
+   "ts": 1794288002.905838,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002931 rejected: ADAPTER is down"
+  },
+  {
+   "id": 3591,
+   "ts": 1794288003.0036352,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002937",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 3592,
+   "ts": 1794288003.8427453,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002936 rejected: ADAPTER is down"
+  },
+  {
+   "id": 3593,
+   "ts": 1794288004.2369268,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002937 rejected: ADAPTER is down"
+  },
+  {
+   "id": 3594,
+   "ts": 1794288008.6562893,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000002938",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T05:20:04Z"
+ "synced_at_utc": "2026-11-10T05:20:10Z"
 }
