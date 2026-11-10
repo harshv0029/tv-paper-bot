@@ -114,7 +114,7 @@ def test_view_endpoint_and_page(tmp_path, monkeypatch):
     assert out["events"][0]["symbol"] == "A.NS" and out["caused"] == [] and len(out["live_rules"]) == 2
     assert out["stats"]["entry_avoid"]["total"] == 1 and "ts_ist" in out["events"][0]
     page = open("static/trade-view5.html").read()
-    assert "/news-monitor" in page and "esc(r.headline)" in page  # headlines are untrusted text: always escaped
+    assert "/news-monitor" in page and "chain(r.evidence)" in page and "esc(e.title" not in page.replace("link(e.title", "")  # headlines are untrusted text: always escaped
     assert 'data-src="/trade-view5"' in open("static/trade-view-tabs.html").read()
     assert main.trade_view5().path == "static/trade-view5.html"
 

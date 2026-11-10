@@ -209,15 +209,17 @@ def aggregate(items: list, now: float = None) -> dict:
         num += w * sc["score"]
         den += w
         if sc["hits"]:
-            top.append((abs(w * sc["score"]), {"title": it["title"], "score": sc["score"], "age_h": round(age_h, 1),
-                                              "source": (it.get("source") or "")[:40]}))
+            top.append((abs(w * sc["score"]) + (10 if (sc["hard_neg"] or sc["hard_pos"]) and _source_weight(it.get("source")) >= 1.0 else 0),
+                        {"title": it["title"], "score": sc["score"], "age_h": round(age_h, 1),
+                         "source": (it.get("source") or "")[:40], "link": (it.get("link") or "")[:300],
+                         "hard": (sc["hard_neg"] + sc["hard_pos"])[:2]}))
         if _source_weight(it.get("source")) >= 1.0:  # a hard event counts only from a trusted publisher
             pub = publisher_of(it.get("source"))
             hard_neg += [(p, it["title"], pub) for p in sc["hard_neg"]]
             hard_pos += [(p, it["title"], pub) for p in sc["hard_pos"]]
     top.sort(key=lambda x: -x[0])
     return {"score": round(num / (den + 1.0), 3) if n else 0.0, "n": n,
-            "hard_neg": hard_neg[:12], "hard_pos": hard_pos[:12], "top": [t for _, t in top[:5]]}
+            "hard_neg": hard_neg[:12], "hard_pos": hard_pos[:12], "top": [t for _, t in top[:6]]}
 
 
 _cache: dict = {}
@@ -299,6 +301,25 @@ def stock_items(symbol: str, name: str = None) -> list:
     def load():
         return [it for it in parse_rss(_fetch(_gn(stock_query(symbol, name))), "google-news") if is_relevant(it["title"], symbol, name)]
     return _cached(("stock", symbol), load)
+
+
+def feed(limit: int = 80, now: float = None) -> list:
+    """The market headlines currently in the cache, newest first, each with its own score, hard events and the
+    scopes it counted towards (market / sector names). For display: shows exactly what the module read."""
+    now = time.time() if now is None else now
+    out = []
+    for it in market_items():
+        if it.get("ts") is None or now - it["ts"] > MAX_AGE_HOURS * 3600:
+            continue
+        t = " " + it["title"].lower() + " "
+        sc = score_headline(it["title"])
+        scopes = (["market"] if _MARKET_RE.search(t) else []) + (
+            [] if _FOREIGN_RE.search(t) else [s_ for s_, rx in _SECTOR_RE.items() if rx.search(t)])
+        out.append({"title": it["title"], "ts": it["ts"], "age_h": round((now - it["ts"]) / 3600, 1),
+                    "source": (it.get("source") or "")[:40], "link": (it.get("link") or "")[:300], "score": sc["score"],
+                    "hard": (sc["hard_neg"] + sc["hard_pos"])[:2], "scopes": scopes})
+    out.sort(key=lambda x: -x["ts"])
+    return out[:limit]
 
 
 def market_and_sector_scores(items: list = None, now: float = None) -> dict:
