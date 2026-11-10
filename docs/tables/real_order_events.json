@@ -733,7 +733,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:50:28 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 1,
+   "id": 62,
    "ts": 1792583348.4164343,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -745,7 +745,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:19:40 S SL qty 1 trg 159.67 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range"
   },
   {
-   "id": 2,
+   "id": 63,
    "ts": 1792583348.4173412,
    "symbol": "CANBK.NS",
    "kotak_trading_symbol": "CANBK-EQ",
@@ -757,7 +757,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:43:37 S SL qty 2 trg 102.41 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :102.41,  Low Price Range"
   },
   {
-   "id": 3,
+   "id": 64,
    "ts": 1792583348.4173567,
    "symbol": "HINDZINC.NS",
    "kotak_trading_symbol": "HINDZINC-EQ",
@@ -769,7 +769,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:48:33 B L qty 2 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 4,
+   "id": 65,
    "ts": 1792583348.417366,
    "symbol": "MAHABANK.NS",
    "kotak_trading_symbol": "MAHABANK-EQ",
@@ -781,7 +781,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:06 S L qty 3 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 5,
+   "id": 66,
    "ts": 1792583348.417373,
    "symbol": "HINDZINC.NS",
    "kotak_trading_symbol": "HINDZINC-EQ",
@@ -793,7 +793,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:19:20 S L qty 2 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 6,
+   "id": 67,
    "ts": 1792583348.4173796,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -805,7 +805,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:15:12 S SL qty 20 trg 15.24 status cancelled rejRsn --"
   },
   {
-   "id": 7,
+   "id": 68,
    "ts": 1792583348.4173863,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -817,7 +817,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 12:04:47 S L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 8,
+   "id": 69,
    "ts": 1792583348.4173949,
    "symbol": "CANBK.NS",
    "kotak_trading_symbol": "CANBK-EQ",
@@ -829,7 +829,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:45:26 S L qty 2 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 9,
+   "id": 70,
    "ts": 1792583348.4174018,
    "symbol": "JIOFIN.NS",
    "kotak_trading_symbol": "JIOFIN-EQ",
@@ -841,7 +841,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 12:00:34 S SL qty 1 trg 193.18 status cancelled rejRsn --"
   },
   {
-   "id": 10,
+   "id": 71,
    "ts": 1792583348.4174075,
    "symbol": "GMRAIRPORT.NS",
    "kotak_trading_symbol": "GMRAIRPORT-EQ",
@@ -853,7 +853,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S SL qty 3 trg 81.33 status cancelled rejRsn --"
   },
   {
-   "id": 11,
+   "id": 72,
    "ts": 1792583348.4174135,
    "symbol": "JIOFIN26OCT217.5CE.NS",
    "kotak_trading_symbol": "JIOFIN26OCT217.5CE",
@@ -865,7 +865,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:52:48 S L qty 2350 trg 2.55 status complete rejRsn --"
   },
   {
-   "id": 12,
+   "id": 73,
    "ts": 1792583348.417419,
    "symbol": "JIOFIN.NS",
    "kotak_trading_symbol": "JIOFIN-EQ",
@@ -877,7 +877,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:53:45 S SL qty 1 trg 185.06 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :185.06,  Low Price Range"
   },
   {
-   "id": 13,
+   "id": 74,
    "ts": 1792583348.4174244,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -889,7 +889,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:13:15 S SL qty 1 trg 157.41 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :157.41,  Low Price Range"
   },
   {
-   "id": 14,
+   "id": 75,
    "ts": 1792583348.417445,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -901,7 +901,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:12:30 S SL qty 1 trg 261.40 status cancelled rejRsn --"
   },
   {
-   "id": 15,
+   "id": 76,
    "ts": 1792583348.417451,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -913,7 +913,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:45:44 S SL qty 1 trg 235.40 status cancelled rejRsn --"
   },
   {
-   "id": 16,
+   "id": 77,
    "ts": 1792583348.4174564,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -925,7 +925,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:15:11 S SL qty 1 trg 164.42 status cancelled rejRsn --"
   },
   {
-   "id": 17,
+   "id": 78,
    "ts": 1792583348.417462,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -937,7 +937,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:58:16 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :16.86,  Low Price Range:"
   },
   {
-   "id": 18,
+   "id": 79,
    "ts": 1792583348.417467,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -949,7 +949,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:22:17 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 19,
+   "id": 80,
    "ts": 1792583348.417473,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -961,7 +961,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:23:07 S SL qty 1 trg 203.35 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :203.35,  Low Price Range"
   },
   {
-   "id": 20,
+   "id": 81,
    "ts": 1792583348.4174788,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -973,7 +973,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:15:11 S SL qty 2 trg 389.85 status cancelled rejRsn --"
   },
   {
-   "id": 21,
+   "id": 82,
    "ts": 1792583348.4174836,
    "symbol": "CANBK.NS",
    "kotak_trading_symbol": "CANBK-EQ",
@@ -985,7 +985,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:42:45 B L qty 2 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 22,
+   "id": 83,
    "ts": 1792583348.4174888,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -997,7 +997,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:25:59 S SL qty 1 trg 250.95 status cancelled rejRsn --"
   },
   {
-   "id": 23,
+   "id": 84,
    "ts": 1792583348.4174936,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -1009,7 +1009,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:59:15 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 24,
+   "id": 85,
    "ts": 1792583348.4174988,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -1021,7 +1021,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:26:44 S L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 25,
+   "id": 86,
    "ts": 1792583348.4175043,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -1033,7 +1033,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:57:31 S SL qty 20 trg 16.22 status rejected rejRsn 16418 : Order with Invalid attributes rejected by the system"
   },
   {
-   "id": 26,
+   "id": 87,
    "ts": 1792583348.4175098,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -1045,7 +1045,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:15:10 S SL qty 1 trg 163.12 status cancelled rejRsn --"
   },
   {
-   "id": 27,
+   "id": 88,
    "ts": 1792583348.4175174,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1057,7 +1057,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:50:28 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 28,
+   "id": 89,
    "ts": 1792583348.4175224,
    "symbol": "GMRAIRPORT.NS",
    "kotak_trading_symbol": "GMRAIRPORT-EQ",
@@ -1069,7 +1069,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:12:17 S L qty 3 trg 89.44 status complete rejRsn --"
   },
   {
-   "id": 29,
+   "id": 90,
    "ts": 1792583348.417528,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -1081,7 +1081,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:55 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 30,
+   "id": 91,
    "ts": 1792583348.4175332,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -1093,7 +1093,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:21:14 S SL qty 1 trg 159.67 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range"
   },
   {
-   "id": 31,
+   "id": 92,
    "ts": 1792583348.4175384,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1105,7 +1105,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:52:09 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 32,
+   "id": 93,
    "ts": 1792583348.417544,
    "symbol": "JIOFIN.NS",
    "kotak_trading_symbol": "JIOFIN-EQ",
@@ -1117,7 +1117,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:01 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 33,
+   "id": 94,
    "ts": 1792583348.4175496,
    "symbol": "MAHABANK.NS",
    "kotak_trading_symbol": "MAHABANK-EQ",
@@ -1129,7 +1129,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:55:47 S SL qty 3 trg 67.39 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :67.39,  Low Price Range:"
   },
   {
-   "id": 34,
+   "id": 95,
    "ts": 1792583348.417555,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -1141,7 +1141,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:57:04 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 35,
+   "id": 96,
    "ts": 1792583348.417561,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1153,7 +1153,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:24 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 36,
+   "id": 97,
    "ts": 1792583348.417567,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -1165,7 +1165,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:54:50 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 37,
+   "id": 98,
    "ts": 1792583348.4175923,
    "symbol": "JIOFIN.NS",
    "kotak_trading_symbol": "JIOFIN-EQ",
@@ -1177,7 +1177,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 12:01:23 S L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 38,
+   "id": 99,
    "ts": 1792583348.4176004,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -1189,7 +1189,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:59:05 S SL qty 1 trg 186.86 status rejected rejRsn 16418 : Order with Invalid attributes rejected by the system"
   },
   {
-   "id": 39,
+   "id": 100,
    "ts": 1792583348.4176059,
    "symbol": "GMRAIRPORT.NS",
    "kotak_trading_symbol": "GMRAIRPORT-EQ",
@@ -1201,7 +1201,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:47:23 S SL qty 3 trg 77.21 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :77.21,  Low Price Range:"
   },
   {
-   "id": 40,
+   "id": 101,
    "ts": 1792583348.4176116,
    "symbol": "HINDZINC.NS",
    "kotak_trading_symbol": "HINDZINC-EQ",
@@ -1213,7 +1213,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:18:35 S SL qty 2 trg 527.95 status cancelled rejRsn --"
   },
   {
-   "id": 41,
+   "id": 102,
    "ts": 1792583348.4176164,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1225,7 +1225,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:51:22 S SL qty 1 trg 222.55 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :222.55,  Low Price Range"
   },
   {
-   "id": 42,
+   "id": 103,
    "ts": 1792583348.4176216,
    "symbol": "JIOFIN26OCT217.5CE.NS",
    "kotak_trading_symbol": "JIOFIN26OCT217.5CE",
@@ -1237,7 +1237,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:52:36 B L qty 2350 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 43,
+   "id": 104,
    "ts": 1792583348.417627,
    "symbol": "MAHABANK.NS",
    "kotak_trading_symbol": "MAHABANK-EQ",
@@ -1249,7 +1249,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:21:50 S SL qty 3 trg 73.08 status cancelled rejRsn --"
   },
   {
-   "id": 44,
+   "id": 105,
    "ts": 1792583348.417632,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -1261,7 +1261,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:57:55 S SL qty 1 trg 237.35 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :237.35,  Low Price Range"
   },
   {
-   "id": 45,
+   "id": 106,
    "ts": 1792583348.4176366,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -1273,7 +1273,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 16:32:02 S SL qty 2 trg 63.93 status cancelled rejRsn --"
   },
   {
-   "id": 46,
+   "id": 107,
    "ts": 1792583348.4176419,
    "symbol": "HINDZINC.NS",
    "kotak_trading_symbol": "HINDZINC-EQ",
@@ -1285,7 +1285,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S L qty 2 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 47,
+   "id": 108,
    "ts": 1792583348.4176476,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1297,7 +1297,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:07:16 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 48,
+   "id": 109,
    "ts": 1792583348.4176528,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -1309,7 +1309,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 12:04:02 S SL qty 1 trg 261.40 status cancelled rejRsn --"
   },
   {
-   "id": 49,
+   "id": 110,
    "ts": 1792583348.4176588,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -1321,7 +1321,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 16:00:25 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :194.42,  Low Price Range"
   },
   {
-   "id": 50,
+   "id": 111,
    "ts": 1792583348.4176648,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -1333,7 +1333,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:58 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 51,
+   "id": 112,
    "ts": 1792583348.4176695,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -1345,7 +1345,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:24:42 S L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 52,
+   "id": 113,
    "ts": 1792583348.4176743,
    "symbol": "GMRAIRPORT.NS",
    "kotak_trading_symbol": "GMRAIRPORT-EQ",
@@ -1357,7 +1357,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:46:32 B L qty 3 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 53,
+   "id": 114,
    "ts": 1792583348.417679,
    "symbol": "MAHABANK.NS",
    "kotak_trading_symbol": "MAHABANK-EQ",
@@ -1369,7 +1369,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:54:56 B L qty 3 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 54,
+   "id": 115,
    "ts": 1792583348.4176843,
    "symbol": "MAHABANK.NS",
    "kotak_trading_symbol": "MAHABANK-EQ",
@@ -1381,7 +1381,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:22:35 S L qty 3 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 55,
+   "id": 116,
    "ts": 1792583348.4176888,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -1393,7 +1393,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:39:17 B L qty 20 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 56,
+   "id": 117,
    "ts": 1792583348.4176939,
    "symbol": "YESBANK.NS",
    "kotak_trading_symbol": "YESBANK-EQ",
@@ -1405,7 +1405,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:40:10 S SL qty 20 trg 14.40 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :14.40,  Low Price Range:"
   },
   {
-   "id": 57,
+   "id": 118,
    "ts": 1792583348.4176989,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -1417,7 +1417,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 15:15:09 S SL qty 8 trg 126.73 status cancelled rejRsn --"
   },
   {
-   "id": 58,
+   "id": 119,
    "ts": 1792583348.4177039,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -1429,7 +1429,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:16:14 S SL qty 1 trg 159.67 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range"
   },
   {
-   "id": 59,
+   "id": 120,
    "ts": 1792583348.4177098,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -1441,7 +1441,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:45:38 S SL qty 1 trg 159.67 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range"
   },
   {
-   "id": 60,
+   "id": 121,
    "ts": 1792583348.4177153,
    "symbol": "JIOFIN.NS",
    "kotak_trading_symbol": "JIOFIN-EQ",
@@ -1453,7 +1453,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 09:52:54 B L qty 1 trg 0.00 status complete rejRsn --"
   },
   {
-   "id": 61,
+   "id": 122,
    "ts": 1792583348.4177208,
    "symbol": "ITC.NS",
    "kotak_trading_symbol": "ITC-EQ",
@@ -3025,7 +3025,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 244,
+   "id": 253,
    "ts": 1792749406.8700707,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3037,7 +3037,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:19:52 S SL qty 1 trg 159.67 status rejected rejRsn OMS: Trading session is in Transition to CAS session"
   },
   {
-   "id": 245,
+   "id": 254,
    "ts": 1792749406.8702536,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3049,7 +3049,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:22:11 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 246,
+   "id": 255,
    "ts": 1792749406.8702736,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3061,7 +3061,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:25:47 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 247,
+   "id": 256,
    "ts": 1792749406.870287,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3073,7 +3073,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:26:05 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 248,
+   "id": 257,
    "ts": 1792749406.870302,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3085,7 +3085,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:19:43 S SL qty 8 trg 126.73 status rejected rejRsn OMS: Trading session is in Transition to CAS session"
   },
   {
-   "id": 249,
+   "id": 258,
    "ts": 1792749406.8703394,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3097,7 +3097,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:20:41 S SL qty 8 trg 126.73 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 250,
+   "id": 259,
    "ts": 1792749406.870347,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3109,7 +3109,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:24:26 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 251,
+   "id": 260,
    "ts": 1792749406.8703527,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3121,7 +3121,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:21:52 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 252,
+   "id": 261,
    "ts": 1792749406.8703575,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3133,7 +3133,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:25:39 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 253,
+   "id": 262,
    "ts": 1792749406.8703625,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3145,7 +3145,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:22:01 S SL qty 1 trg 186.86 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 254,
+   "id": 263,
    "ts": 1792749406.8703675,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3157,7 +3157,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:22:23 S SL qty 2 trg 389.85 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 255,
+   "id": 264,
    "ts": 1792749406.870372,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3169,7 +3169,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:23:25 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 256,
+   "id": 265,
    "ts": 1792749406.8703763,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3181,7 +3181,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:22:44 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 257,
+   "id": 266,
    "ts": 1792749406.8703816,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3193,7 +3193,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:21:16 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 258,
+   "id": 267,
    "ts": 1792749406.8703876,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3205,7 +3205,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:20:09 S SL qty 2 trg 389.85 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 259,
+   "id": 268,
    "ts": 1792749406.870392,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3217,7 +3217,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:21:41 S SL qty 1 trg 165.06 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 260,
+   "id": 269,
    "ts": 1792749406.8703964,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3229,7 +3229,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:23:34 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 261,
+   "id": 270,
    "ts": 1792749406.870403,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3241,7 +3241,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:20:01 S SL qty 1 trg 186.86 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 262,
+   "id": 271,
    "ts": 1792749406.8704076,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3253,7 +3253,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:24:17 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 263,
+   "id": 272,
    "ts": 1792749406.8704126,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3265,7 +3265,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:25:56 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 264,
+   "id": 273,
    "ts": 1792749417.661856,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3277,7 +3277,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657061 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 265,
+   "id": 274,
    "ts": 1792749418.298983,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3289,7 +3289,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000657070 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 253,
+   "id": 275,
    "ts": 1792749424.026138,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3301,7 +3301,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657135 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 266,
+   "id": 276,
    "ts": 1792749426.610088,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3313,7 +3313,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657196 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 267,
+   "id": 277,
    "ts": 1792749427.0958173,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3325,7 +3325,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000657199 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 254,
+   "id": 278,
    "ts": 1792749433.0568843,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3337,7 +3337,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657286 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 268,
+   "id": 279,
    "ts": 1792749435.3138037,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3349,7 +3349,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657319 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 269,
+   "id": 280,
    "ts": 1792749435.612177,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3361,7 +3361,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000657324 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 255,
+   "id": 281,
    "ts": 1792749443.620237,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3373,7 +3373,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657425 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 270,
+   "id": 282,
    "ts": 1792749444.0666194,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3385,7 +3385,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000657449 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 271,
+   "id": 283,
    "ts": 1792749444.0685885,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3397,7 +3397,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657446 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 272,
+   "id": 284,
    "ts": 1792749446.3155413,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": null,
@@ -3409,7 +3409,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 273,
+   "id": 285,
    "ts": 1792749446.3211057,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": null,
@@ -3421,7 +3421,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 274,
+   "id": 286,
    "ts": 1792749446.3264673,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": null,
@@ -3433,7 +3433,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 275,
+   "id": 287,
    "ts": 1792749446.3359344,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": null,
@@ -3445,7 +3445,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 276,
+   "id": 288,
    "ts": 1792749446.341333,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -3457,7 +3457,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 277,
+   "id": 289,
    "ts": 1792749502.5974822,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3469,7 +3469,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261023000657999 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 278,
+   "id": 290,
    "ts": 1792749513.7867472,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3481,7 +3481,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000658460 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 279,
+   "id": 291,
    "ts": 1792749522.3133729,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3493,7 +3493,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000658643 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 280,
+   "id": 292,
    "ts": 1792749525.14613,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3505,7 +3505,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261023000658680 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 281,
+   "id": 293,
    "ts": 1792749532.8026314,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3517,7 +3517,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000658835 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 282,
+   "id": 294,
    "ts": 1792749560.5005238,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3529,7 +3529,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000659320 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 283,
+   "id": 295,
    "ts": 1792749585.1620297,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3541,7 +3541,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261023000659722 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 284,
+   "id": 296,
    "ts": 1792749630.4832668,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3553,7 +3553,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261023000660759 rejected: OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 285,
+   "id": 297,
    "ts": 1792749939.6941547,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3565,7 +3565,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:26:54 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 286,
+   "id": 298,
    "ts": 1792749939.6943266,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3577,7 +3577,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:21 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 287,
+   "id": 299,
    "ts": 1792749939.69434,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3589,7 +3589,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:49 S SL qty 1 trg 175.88 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 288,
+   "id": 300,
    "ts": 1792749939.6943479,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3601,7 +3601,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:12 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 289,
+   "id": 301,
    "ts": 1792749939.6943765,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3613,7 +3613,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:39 S SL qty 1 trg 164.00 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 290,
+   "id": 302,
    "ts": 1792749939.6943839,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3625,7 +3625,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:51 S SL qty 1 trg 186.86 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 291,
+   "id": 303,
    "ts": 1792749939.6943898,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3637,7 +3637,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:29 S SL qty 1 trg 165.06 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 292,
+   "id": 304,
    "ts": 1792749939.6943953,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3649,7 +3649,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:29:11 S SL qty 2 trg 372.90 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 293,
+   "id": 305,
    "ts": 1792749939.6944005,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3661,7 +3661,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:01 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 294,
+   "id": 306,
    "ts": 1792749939.694406,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3673,7 +3673,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:26:55 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 295,
+   "id": 307,
    "ts": 1792749939.6944115,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3685,7 +3685,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:03 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 296,
+   "id": 308,
    "ts": 1792749939.6944165,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3697,7 +3697,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:50 S SL qty 8 trg 126.73 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 297,
+   "id": 309,
    "ts": 1792749939.6944213,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3709,7 +3709,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:29:29 S SL qty 1 trg 175.88 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 298,
+   "id": 310,
    "ts": 1792749939.6944263,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3721,7 +3721,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:10 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 299,
+   "id": 311,
    "ts": 1792749939.6944315,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3733,7 +3733,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:19 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 300,
+   "id": 312,
    "ts": 1792749939.6944363,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3745,7 +3745,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:21 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 301,
+   "id": 313,
    "ts": 1792749939.694443,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -3757,7 +3757,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:12 S SL qty 1 trg 175.88 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 302,
+   "id": 314,
    "ts": 1792749939.6944478,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3769,7 +3769,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:29 S SL qty 8 trg 120.91 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 303,
+   "id": 315,
    "ts": 1792749939.6944528,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3781,7 +3781,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:28:40 S SL qty 1 trg 164.80 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 304,
+   "id": 316,
    "ts": 1792749939.6944575,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3793,7 +3793,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:30:25 S SL qty 2 trg 373.20 status rejected rejRsn OMS: Order Rejected due to CAS session end"
   },
   {
-   "id": 305,
+   "id": 317,
    "ts": 1792749939.6944625,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -3805,7 +3805,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:04 S SL qty 1 trg 164.00 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 306,
+   "id": 318,
    "ts": 1792749939.6944673,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -3817,7 +3817,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:27:40 S SL qty 2 trg 372.90 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 307,
+   "id": 319,
    "ts": 1792749939.6944726,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -3829,7 +3829,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 15:26:59 S SL qty 8 trg 120.91 status rejected rejRsn OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   },
   {
-   "id": 308,
+   "id": 320,
    "ts": 1792749939.6944773,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -4537,7 +4537,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000710727 rejected: 16387 : Security is not allowed to trade in this market  "
   },
   {
-   "id": 374,
+   "id": 379,
    "ts": 1792761815.2345815,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -4549,7 +4549,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 18:52:01 S SL qty 8 trg 120.91 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   },
   {
-   "id": 375,
+   "id": 380,
    "ts": 1792761815.234772,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -4561,7 +4561,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 18:52:21 S SL qty 1 trg 175.88 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   },
   {
-   "id": 376,
+   "id": 381,
    "ts": 1792761815.2347865,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -4573,7 +4573,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 18:52:32 S SL qty 2 trg 373.20 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   },
   {
-   "id": 377,
+   "id": 382,
    "ts": 1792761815.2348037,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -4585,7 +4585,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 18:52:11 S SL qty 1 trg 164.80 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   },
   {
-   "id": 378,
+   "id": 383,
    "ts": 1792761815.2348099,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -5137,7 +5137,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 424,
+   "id": 429,
    "ts": 1792989150.5749326,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -5149,7 +5149,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   },
   {
-   "id": 425,
+   "id": 430,
    "ts": 1792989155.9973986,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -5161,7 +5161,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   },
   {
-   "id": 426,
+   "id": 431,
    "ts": 1792989161.1907537,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -5173,7 +5173,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   },
   {
-   "id": 427,
+   "id": 432,
    "ts": 1792989166.329868,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -5185,7 +5185,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   },
   {
-   "id": 428,
+   "id": 433,
    "ts": 1792989171.0828278,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -5917,7 +5917,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 489,
+   "id": 494,
    "ts": 1793002688.1683636,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": null,
@@ -5929,7 +5929,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 490,
+   "id": 495,
    "ts": 1793002688.171076,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": null,
@@ -5941,7 +5941,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 491,
+   "id": 496,
    "ts": 1793002688.174207,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": null,
@@ -5953,7 +5953,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 492,
+   "id": 497,
    "ts": 1793002688.1775043,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": null,
@@ -5965,7 +5965,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 493,
+   "id": 498,
    "ts": 1793002688.1808622,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -7429,7 +7429,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000707267 rejected: Adapter is Logged Off"
   },
   {
-   "id": 615,
+   "id": 620,
    "ts": 1793027662.4222968,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -7441,7 +7441,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:41:40 S SL qty 1 trg 164.80 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 616,
+   "id": 621,
    "ts": 1793027662.4225674,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -7453,7 +7453,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:42:03 S SL qty 2 trg 398.35 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 617,
+   "id": 622,
    "ts": 1793027662.4225914,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": "WIPRO-EQ",
@@ -7465,7 +7465,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:41:52 S SL qty 1 trg 175.12 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 618,
+   "id": 623,
    "ts": 1793027662.422604,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -7477,7 +7477,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:42:15 S SL qty 2 trg 64.70 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 619,
+   "id": 624,
    "ts": 1793027662.4226153,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -7513,7 +7513,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000718294 rejected: Adapter is Logged Off"
   },
   {
-   "id": 626,
+   "id": 627,
    "ts": 1793032508.1054044,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -7525,7 +7525,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 22:03:00 S SL qty 1 trg 164.80 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 627,
+   "id": 628,
    "ts": 1793032508.1055923,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -7537,7 +7537,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 22:02:48 S SL qty 8 trg 126.73 status rejected rejRsn Adapter is Logged Off"
   },
   {
-   "id": 628,
+   "id": 629,
    "ts": 1793032815.592305,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -8581,7 +8581,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 715,
+   "id": 716,
    "ts": 1793086004.9437642,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -8593,7 +8593,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 716,
+   "id": 717,
    "ts": 1793086667.4739835,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -8605,7 +8605,7 @@
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   },
   {
-   "id": 717,
+   "id": 718,
    "ts": 1793086667.481897,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -8617,7 +8617,7 @@
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   },
   {
-   "id": 718,
+   "id": 719,
    "ts": 1793086675.4902449,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -8677,7 +8677,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 723,
+   "id": 724,
    "ts": 1793090064.6456175,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -8701,7 +8701,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 725,
+   "id": 726,
    "ts": 1793090420.6504717,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -8725,7 +8725,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 727,
+   "id": 728,
    "ts": 1793091097.1523442,
    "symbol": "WIPRO.NS",
    "kotak_trading_symbol": null,
@@ -8737,7 +8737,7 @@
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   },
   {
-   "id": 728,
+   "id": 729,
    "ts": 1793091743.2530057,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -8749,7 +8749,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000709191 rejected: RMS:Rule: Assigned basket  for entity account-XUAEZ across exchange across segment across product "
   },
   {
-   "id": 729,
+   "id": 730,
    "ts": 1793091751.1797862,
    "symbol": "COALINDIA.NS",
    "kotak_trading_symbol": "COALINDIA-EQ",
@@ -8761,7 +8761,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during short governance backfill"
   },
   {
-   "id": 730,
+   "id": 731,
    "ts": 1793091966.615788,
    "symbol": "SUZLON.NS",
    "kotak_trading_symbol": "SUZLON-EQ",
@@ -8773,7 +8773,7 @@
    "detail": "reason: swing entry signal from strategy order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1 passed the PFnet gate"
   },
   {
-   "id": 731,
+   "id": 732,
    "ts": 1793091987.0879812,
    "symbol": "SUZLON.NS",
    "kotak_trading_symbol": "SUZLON-EQ",
@@ -8785,7 +8785,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 732,
+   "id": 733,
    "ts": 1793092058.9818785,
    "symbol": "SUZLON.NS",
    "kotak_trading_symbol": "SUZLON-EQ",
@@ -8797,7 +8797,7 @@
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 14:36:13 S SL qty 2 trg 28.91 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :28.91,  Low Price Range:"
   },
   {
-   "id": 733,
+   "id": 734,
    "ts": 1793092058.982056,
    "symbol": "GSEC5IETF.NS",
    "kotak_trading_symbol": "GSEC5IETF-EQ",
@@ -18901,7 +18901,7 @@
    "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
   },
   {
-   "id": 1580,
+   "id": 1576,
    "ts": 1793850413.0302796,
    "symbol": "IRCTC.NS",
    "kotak_trading_symbol": "IRCTC-EQ",
@@ -18937,7 +18937,7 @@
    "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
   },
   {
-   "id": 1576,
+   "id": 1579,
    "ts": 1793850413.097037,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -18949,7 +18949,7 @@
    "detail": "reason: 5-min re-check could not read Kotak's order book, so it placed nothing (an SL may already be live); retried next pass | Kotak order book unreadable after retries (order_report returned no data list); nothing placed, next pass retries"
   },
   {
-   "id": 1579,
+   "id": 1580,
    "ts": 1793850413.1497986,
    "symbol": "RECLTD.NS",
    "kotak_trading_symbol": "RECLTD-EQ",
@@ -19633,7 +19633,7 @@
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs158.47 already covers the position (target stop Rs158.47), adopted, nothing placed"
   },
   {
-   "id": 1638,
+   "id": 1637,
    "ts": 1793955710.1385987,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -19645,7 +19645,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 1637,
+   "id": 1638,
    "ts": 1793955721.3734274,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -27539,7 +27539,43 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 2296,
+   "ts": 1794282890.3567593,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000001446 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2297,
+   "ts": 1794282897.7251282,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001452",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2298,
+   "ts": 1794282897.8141594,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001452 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T03:54:53Z"
+ "synced_at_utc": "2026-11-10T03:54:59Z"
 }
