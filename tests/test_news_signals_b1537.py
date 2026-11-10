@@ -132,7 +132,7 @@ def test_no_order_path_calls_the_news_addon():
     """Shadow only until the user approves a rule: main.py may reference news_signals only inside the view."""
     import re as _re
     src = open("main.py").read()
-    body = src[src.index("def news_signals_view"):src.index('@app.get("/real-protection-status")')]
+    body = src[src.index("NEWS_MONITOR_EVERY_N_TICKS = 10"):src.index('@app.get("/real-protection-status")')]
     assert len(_re.findall(r"news_signals\.", src)) == len(_re.findall(r"news_signals\.", body))
 
 

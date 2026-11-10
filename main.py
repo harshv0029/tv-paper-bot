@@ -864,6 +864,28 @@ def init_db():
         # (generic Upstash mirror) and the IST midnight reset. Pruned beyond 48 h. No qty/price (balance-free).
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS news_signal_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                day TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,          -- 'long' | 'short'
+                kind TEXT NOT NULL,               -- 'entry' (a fired trigger) | 'exit' (an open real position)
+                category TEXT NOT NULL DEFAULT '',-- strategy tag (entry) or owning engine (exit)
+                action TEXT NOT NULL,             -- entry: allow | caution | avoid; exit: hold | tighten
+                reason TEXT,
+                stock_score REAL, stock_n INTEGER, sector_score REAL, market_score REAL,
+                headline TEXT,                    -- the headline behind the verdict, when there is one
+                ref_price REAL,                   -- price when the verdict was logged
+                real_entry INTEGER NOT NULL DEFAULT 0,  -- 1 = the bot placed a real entry on this trigger
+                mode TEXT NOT NULL DEFAULT 'shadow',    -- 'shadow' = logged only; 'live' = the verdict changed an order
+                eval_ts REAL, eval_price REAL, move_pct REAL, correct INTEGER,
+                UNIQUE (day, symbol, direction, kind)
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS entry_funnel_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 bucket_ts REAL NOT NULL,          -- epoch floored to 15 min
@@ -22631,6 +22653,165 @@ def _exchange_purge_window(now_ist=None) -> bool:
     return mins >= 15 * 60 + 15 or mins < 9 * 60 + 15
 
 
+NEWS_MONITOR_EVERY_N_TICKS = 10      # ~5 min
+NEWS_MONITOR_MAX_PER_PASS = 8        # new verdicts fetched per pass (each is one Google News request, cached 10 min)
+NEWS_EVAL_AFTER_HOURS = 20.0         # a verdict is scored against the price about one session later
+NEWS_EXIT_RECHECK_SECONDS = 3600     # an open position reading "hold" is re-checked hourly, so a new event can flip it
+_NEWS_AGAINST = ("avoid", "caution", "tighten")  # verdicts that say "the news is against this trade"
+_news_monitor_thread = None
+
+
+def _news_monitor_candidates(conn, day: str, now_ts: float) -> list:
+    """(symbol, direction, kind, category, real_entry, fallback_price) not yet logged today: every fired entry trigger
+    (entry_funnel_events, all categories) and every open real position (each engine's own table). Read-only."""
+    have = {(r["symbol"], r["direction"], r["kind"]): r for r in conn.execute(
+        "SELECT symbol, direction, kind, action, ts FROM news_signal_events WHERE day = ?", (day,)).fetchall()}
+    day_start = now_ts - (now_ts + 19800) % 86400  # 00:00 IST as epoch
+    out = []
+    for r in conn.execute(
+            "SELECT symbol, side, MAX(strategy) AS strategy, MAX(CASE WHEN kind = 'placed' THEN 1 ELSE 0 END) AS took "
+            "FROM entry_funnel_events WHERE last_ts >= ? AND symbol != '' GROUP BY symbol, side", (day_start,)).fetchall():
+        direction = "short" if str(r["side"] or "").lower().startswith("s") else "long"
+        if (r["symbol"], direction, "entry") not in have:
+            out.append((r["symbol"], direction, "entry", r["strategy"] or "", int(r["took"] or 0), None))
+    for table, direction, cat in (("real_positions", "long", "buy"), ("real_positions_short", "short", "short"),
+                                  ("real_positions_swing", "long", "swing"),
+                                  ("real_positions_swing_short", "short", "swing_short")):
+        try:
+            rows = conn.execute(f"SELECT symbol, entry_price FROM {table}").fetchall()
+        except Exception:
+            continue
+        for r in rows:
+            old = have.get((r["symbol"], direction, "exit"))
+            if old is None or (old["action"] == "hold" and now_ts - float(old["ts"] or 0) >= NEWS_EXIT_RECHECK_SECONDS):
+                out.append((r["symbol"], direction, "exit", cat, 0, float(r["entry_price"] or 0) or None))
+    return out
+
+
+def _news_monitor_log(conn, cands: list, day: str, now_ts: float, ms: dict = None) -> int:
+    """Asks news_signals for each candidate's verdict and stores it. SHADOW: writes a log row only, touches no order."""
+    if not cands:
+        return 0
+    ms = news_signals.market_and_sector_scores() if ms is None else ms
+    smap, n = _sector_of_symbol(), 0
+    for symbol, direction, kind, cat, took, fallback_price in cands[:NEWS_MONITOR_MAX_PER_PASS]:
+        sector = smap.get(symbol)
+        if kind == "entry":
+            v = news_signals.entry_verdict(symbol, direction, sector=sector, ms=ms)
+        else:
+            v = news_signals.exit_verdict(symbol, direction)
+        st = v.get("stock") or {}
+        flags = (st.get("hard_pos") if direction == "short" else st.get("hard_neg")) or []
+        head = flags[0][1] if flags else ((st.get("top") or [{}])[0].get("title") if st.get("top") else None)
+        sec = (ms.get("sectors") or {}).get(sector) or {}
+        conn.execute(
+            "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, stock_score, "
+            "stock_n, sector_score, market_score, headline, ref_price, real_entry) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+            "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET ts = excluded.ts, action = excluded.action, "
+            "reason = excluded.reason, stock_score = excluded.stock_score, stock_n = excluded.stock_n, "
+            "headline = excluded.headline, ref_price = COALESCE(news_signal_events.ref_price, excluded.ref_price)",
+            (now_ts, day, symbol, direction, kind, cat, v.get("action") or "allow", (v.get("reason") or "")[:300],
+             st.get("score"), st.get("n"), sec.get("score"), (ms.get("market") or {}).get("score"),
+             (head or "")[:200] or None, (_swing_live_ltp(symbol) or fallback_price or None), took))
+        n += 1
+    conn.commit()
+    return n
+
+
+def _news_monitor_evaluate(conn, now_ts: float, price_fn=None) -> int:
+    """Scores verdicts older than NEWS_EVAL_AFTER_HOURS against the current price. move_pct is the move in the trade's
+    own direction (+ = the trade would have gained). A verdict against the trade is correct when move_pct < 0;
+    allow/hold is correct when move_pct >= 0. No price yet -> left pending, never guessed."""
+    price_fn = price_fn or _swing_live_ltp
+    n = 0
+    for r in conn.execute(
+            "SELECT id, symbol, direction, action, ref_price FROM news_signal_events WHERE eval_ts IS NULL "
+            "AND ref_price > 0 AND ts <= ?", (now_ts - NEWS_EVAL_AFTER_HOURS * 3600,)).fetchall():
+        px = float(price_fn(r["symbol"]) or 0)
+        if px <= 0:
+            continue
+        move = (px / float(r["ref_price"]) - 1.0) * 100.0 * (-1.0 if r["direction"] == "short" else 1.0)
+        correct = int(move < 0) if r["action"] in _NEWS_AGAINST else int(move >= 0)
+        conn.execute("UPDATE news_signal_events SET eval_ts = ?, eval_price = ?, move_pct = ?, correct = ? WHERE id = ?",
+                     (now_ts, px, round(move, 3), correct, r["id"]))
+        n += 1
+    conn.commit()
+    return n
+
+
+def _news_monitor_pass() -> dict:
+    """B-1539: one shadow pass on its own thread and DB connection. Never raises, never places or changes an order."""
+    try:
+        now = ist_now()
+        now_ts, day = time.time(), now.strftime("%Y-%m-%d")
+        with closing(get_db()) as conn:
+            cands = _news_monitor_candidates(conn, day, now_ts)
+            logged = _news_monitor_log(conn, cands, day, now_ts)
+            scored = _news_monitor_evaluate(conn, now_ts)
+        return {"candidates": len(cands), "logged": logged, "scored": scored}
+    except Exception as e:
+        print(f"[NEWS MONITOR] pass failed (non-fatal): {e}")
+        return {"error": str(e)}
+
+
+def _news_monitor_kick() -> bool:
+    """Starts one background pass unless one is still running (the feeds can take seconds; the tick never waits)."""
+    global _news_monitor_thread
+    if os.environ.get("PYTEST_CURRENT_TEST") or (_news_monitor_thread is not None and _news_monitor_thread.is_alive()):
+        return False
+    _news_monitor_thread = threading.Thread(target=_news_monitor_pass, daemon=True, name="news-monitor")
+    _news_monitor_thread.start()
+    return True
+
+
+def _news_monitor_stats(rows: list) -> dict:
+    """Accuracy and value of the verdicts, from scored rows only. saved_pct = sum of the adverse moves that an
+    avoid/tighten verdict pointed at (+ = money the verdict would have saved, - = profit it would have cost)."""
+    def grp(sel):
+        ev = [r for r in rows if sel(r) and r["correct"] is not None]
+        return {"total": sum(1 for r in rows if sel(r)), "scored": len(ev),
+                "correct": sum(int(r["correct"]) for r in ev),
+                "accuracy_pct": round(100.0 * sum(int(r["correct"]) for r in ev) / len(ev), 1) if ev else None,
+                "saved_pct": round(-sum(float(r["move_pct"] or 0) for r in ev), 2) if ev else None,
+                "avg_move_pct": round(sum(float(r["move_pct"] or 0) for r in ev) / len(ev), 3) if ev else None}
+    return {"entry_avoid": grp(lambda r: r["kind"] == "entry" and r["action"] == "avoid"),
+            "entry_caution": grp(lambda r: r["kind"] == "entry" and r["action"] == "caution"),
+            "entry_allow": grp(lambda r: r["kind"] == "entry" and r["action"] == "allow"),
+            "exit_tighten": grp(lambda r: r["kind"] == "exit" and r["action"] == "tighten"),
+            "exit_hold": grp(lambda r: r["kind"] == "exit" and r["action"] == "hold")}
+
+
+@app.get("/news-monitor")
+def news_monitor_view(days: int = 30):
+    """B-1539 View 5 feed (no token, read-only, no Kotak call): every news verdict logged at a fired entry trigger or
+    on an open real position, whether the bot really entered, whether the verdict changed an order (mode), and how
+    each verdict scored against the later price. Market/sector scores come from the 10-min cache."""
+    try:
+        with closing(get_db()) as conn:
+            cutoff = (ist_now() - dt.timedelta(days=max(1, min(int(days), 365)))).strftime("%Y-%m-%d")
+            rows = [dict(r) for r in conn.execute(
+                "SELECT * FROM news_signal_events WHERE day >= ? ORDER BY ts DESC", (cutoff,)).fetchall()]
+        for r in rows:
+            r["ts_ist"] = (dt.datetime.utcfromtimestamp(float(r["ts"])) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M")
+        out = {"as_of_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "days": days, "stats": _news_monitor_stats(rows),
+               "live_rules": [], "mode_note": "shadow: verdicts are logged and scored; none has changed a real order yet",
+               "caused": [r for r in rows if r["mode"] == "live"], "events": rows[:400]}
+        try:
+            ms = news_signals.market_and_sector_scores()
+            out["market"], out["sectors"], out["headlines"] = ms["market"], ms["sectors"], ms["headlines"]
+        except Exception as e:
+            out["market_error"] = str(e)
+        return out
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/trade-view5")
+def trade_view5():
+    """View 5 (user 2026-11-10): news monitor - which entries/exits the news module touched, its accuracy and value."""
+    return FileResponse("static/trade-view5.html", headers={"Cache-Control": "no-store, max-age=0"})
+
+
 @app.get("/news-signals")
 def news_signals_view(symbol: str = "", direction: str = "long"):
     """B-1537 news add-on, SHADOW view (no token, read-only, no Kotak call, places nothing): market and sector
@@ -23394,6 +23575,7 @@ _GENERIC_MIRROR_TABLES = (
     "signal_state_swing_short", "real_positions_swing_short",
     "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
     "entry_funnel_events",
+    "news_signal_events",  # B-1539
     "pending_open_triggers",  # B-1512
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
@@ -31351,6 +31533,8 @@ async def _scheduler_tick():
     # to be firing far less often than its own `*/5` schedule promises.
     # Best-effort and isolated like every other block in this tick - a
     # Kotak/network hiccup here must never block the rest of the scan.
+    if _scheduler_tick_count % NEWS_MONITOR_EVERY_N_TICKS == 0:
+        _news_monitor_kick()  # B-1539: shadow news log on its own daemon thread; never blocks or fails the tick
     if _scheduler_tick_count % SWING_LTP_TRAIL_EVERY_N_TICKS == 0:
         try:
             # B-1424: off the event loop. The pass reads Kotak holdings and places SLs (the watchdog caught 18-21 s
