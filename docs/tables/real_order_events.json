@@ -22967,7 +22967,55 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000001027 rejected: ADAPTER is down"
+  },
+  {
+   "id": 1915,
+   "ts": 1794282420.5384288,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001030",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1916,
+   "ts": 1794282420.5413885,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001032",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #9 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1917,
+   "ts": 1794282420.5566635,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001031",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #9 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1918,
+   "ts": 1794282421.5510767,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001036",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T03:47:03Z"
+ "synced_at_utc": "2026-11-10T03:47:11Z"
 }
