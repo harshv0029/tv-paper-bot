@@ -15,6 +15,8 @@ calls them. A rule that decides real-money entries or exits ships only after the
 State: the cache is a pure re-fetchable cache (in memory only, nothing to mirror to Upstash).
 """
 import email.utils
+import json
+import os
 import re
 import threading
 import time
@@ -23,15 +25,26 @@ import xml.etree.ElementTree as ET
 
 import requests
 
+GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
+
+
+def _gn(query: str) -> str:
+    return GOOGLE_NEWS_RSS.format(q=urllib.parse.quote_plus(query))
+
+
+# Live probe 2026-11-10 09:45 IST (docs/news_probe.json): Moneycontrol's own RSS files return HTTP 200 but are frozen
+# at Apr 2024, so Moneycontrol headlines are read through Google News site:moneycontrol.com (100 fresh items each).
 MARKET_FEEDS = (
-    ("moneycontrol", "https://www.moneycontrol.com/rss/marketreports.xml"),
-    ("moneycontrol", "https://www.moneycontrol.com/rss/buzzingstocks.xml"),
-    ("moneycontrol", "https://www.moneycontrol.com/rss/business.xml"),
+    ("moneycontrol", _gn("site:moneycontrol.com (nifty OR sensex OR stocks OR shares) when:1d")),
+    ("moneycontrol", _gn("site:moneycontrol.com (banks OR pharma OR IT OR auto OR metal OR realty OR FMCG) stocks when:1d")),
     ("economictimes", "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"),
     ("economictimes", "https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms"),
     ("livemint", "https://www.livemint.com/rss/markets"),
+    ("livemint", "https://www.livemint.com/rss/companies"),
+    ("business-standard", "https://www.business-standard.com/rss/markets-106.rss"),
+    ("cnbctv18", "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml"),
+    ("ndtv profit", "https://feeds.feedburner.com/ndtvprofit-latest"),
 )
-GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
 TRUSTED_PUBLISHERS = ("moneycontrol", "economictimes", "economic times", "livemint", "mint",
                       "business-standard", "business standard", "reuters", "cnbctv18", "cnbc tv18", "ndtv profit")
 UNTRUSTED_WEIGHT = 0.6
@@ -103,6 +116,7 @@ def _compile(d):
 _POS, _NEG = _compile(POSITIVE), _compile(NEGATIVE)
 _SECTOR_RE = {s: re.compile("|".join(_WORD.format(re.escape(k)) for k in sorted(ks, key=len, reverse=True)))
               for s, ks in SECTOR_KEYWORDS.items()}
+_FOREIGN_RE = re.compile(r"(?<![a-z])(wall street|nasdaq|dow jones|s&p 500|asian (?:stocks|markets|shares)|european|us stocks|kospi|nikkei|hang seng)(?![a-z])")
 _MARKET_RE = re.compile("|".join(_WORD.format(re.escape(k)) for k in sorted(MARKET_KEYWORDS, key=len, reverse=True)))
 
 
@@ -171,8 +185,9 @@ def aggregate(items: list, now: float = None) -> dict:
         if sc["hits"]:
             top.append((abs(w * sc["score"]), {"title": it["title"], "score": sc["score"], "age_h": round(age_h, 1),
                                               "source": (it.get("source") or "")[:40]}))
-        hard_neg += [(p, it["title"]) for p in sc["hard_neg"]]
-        hard_pos += [(p, it["title"]) for p in sc["hard_pos"]]
+        if _source_weight(it.get("source")) >= 1.0:  # a hard event counts only from a trusted publisher
+            hard_neg += [(p, it["title"]) for p in sc["hard_neg"]]
+            hard_pos += [(p, it["title"]) for p in sc["hard_pos"]]
     top.sort(key=lambda x: -x[0])
     return {"score": round(num / (den + 1.0), 3) if n else 0.0, "n": n,
             "hard_neg": hard_neg[:5], "hard_pos": hard_pos[:5], "top": [t for _, t in top[:5]]}
@@ -217,15 +232,46 @@ def market_items() -> list:
     return _cached("market", load)
 
 
-def stock_query(symbol: str, company_name: str = None) -> str:
+_names_cache = None
+_NAME_NOISE = re.compile(r"\b(limited|ltd\.?|the|company|co\.?|corporation|corp\.?|\(india\)|india|industries|enterprises|holdings)\b", re.I)
+
+
+def company_name(symbol: str):
+    """Short company name from docs/company_names.json (NSE EQUITY_L.csv, built by scripts/build_company_names.py);
+    None when the file or the symbol is missing (the ticker alone is then used)."""
+    global _names_cache
+    if _names_cache is None:
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "company_names.json")) as fh:
+                _names_cache = json.load(fh).get("names", {})
+        except Exception:
+            _names_cache = {}
+    raw = _names_cache.get(symbol)
+    if not raw:
+        return None
+    short = re.sub(r"\s+", " ", _NAME_NOISE.sub(" ", raw)).strip(" .,&-")
+    return short or raw
+
+
+def stock_query(symbol: str, name: str = None) -> str:
     base = symbol.split(".")[0]
-    name = f'"{company_name}"' if company_name else f'"{base}"'
-    return f"{name} (share OR stock OR shares) when:2d"
+    who = f'("{name}" OR "{base}")' if name and name.lower() != base.lower() else f'"{base}"'
+    return f"{who} (share OR stock OR shares) when:2d"
 
 
-def stock_items(symbol: str, company_name: str = None) -> list:
-    url = GOOGLE_NEWS_RSS.format(q=urllib.parse.quote_plus(stock_query(symbol, company_name)))
-    return _cached(("stock", symbol), lambda: parse_rss(_fetch(url), "google-news"))
+def is_relevant(title: str, symbol: str, name: str = None) -> bool:
+    """A stock headline counts only if it names the stock: the ticker as a whole word, or the short company name."""
+    t = " " + (title or "").lower() + " "
+    keys = [symbol.split(".")[0].lower()] + ([name.lower()] if name else [])
+    return any(re.search(_WORD.format(re.escape(k)), t) for k in keys if len(k) >= 3)
+
+
+def stock_items(symbol: str, name: str = None) -> list:
+    name = name or company_name(symbol)
+
+    def load():
+        return [it for it in parse_rss(_fetch(_gn(stock_query(symbol, name))), "google-news") if is_relevant(it["title"], symbol, name)]
+    return _cached(("stock", symbol), load)
 
 
 def market_and_sector_scores(items: list = None, now: float = None) -> dict:
@@ -233,7 +279,8 @@ def market_and_sector_scores(items: list = None, now: float = None) -> dict:
     mk = [it for it in items if _MARKET_RE.search(" " + it["title"].lower() + " ")]
     sectors = {}
     for sec, rx in _SECTOR_RE.items():
-        sub = [it for it in items if rx.search(" " + it["title"].lower() + " ")]
+        sub = [it for it in items if rx.search(" " + it["title"].lower() + " ")
+               and not _FOREIGN_RE.search(it["title"].lower())]  # overseas headlines never score an Indian sector
         if sub:
             sectors[sec] = aggregate(sub, now)
     return {"market": aggregate(mk, now), "sectors": sectors, "headlines": len(items)}
