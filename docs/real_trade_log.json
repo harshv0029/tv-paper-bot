@@ -200183,5 +200183,37 @@
     "detail": "strategy 'order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor",
     "raw_response": null,
     "strategy": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
+  },
+  {
+    "id": 1,
+    "ts": 1794243360.8493853,
+    "day": "2026-11-09",
+    "symbol": "__reconciled__",
+    "kotak_trading_symbol": null,
+    "side": "B",
+    "qty": null,
+    "price_est": null,
+    "notional_inr": 1339.37,
+    "status": "confirmed",
+    "order_id": null,
+    "detail": "restored today's already-spent Rs1339.37 from journal after a restart",
+    "raw_response": null,
+    "strategy": null
+  },
+  {
+    "id": 2,
+    "ts": 1794305728.2423108,
+    "day": "2026-11-10",
+    "symbol": "LENSKART.NS",
+    "kotak_trading_symbol": null,
+    "side": "B",
+    "qty": null,
+    "price_est": null,
+    "notional_inr": null,
+    "status": "skipped_already_open",
+    "order_id": null,
+    "detail": "news buy: another swing strategy already owns this symbol",
+    "raw_response": null,
+    "strategy": "news_event__confirmed__long__1d__v1"
   }
 ]

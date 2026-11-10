@@ -589772,5 +589772,1232 @@
         "time_local": "2026-11-09 16:28:58.618486"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-11-10T10:51:32Z",
+    "attempts": {
+      "^NSEBANK": {
+        "checked_at_utc": 1794307874.0234246,
+        "symbol": "^NSEBANK",
+        "status": "closed",
+        "time_local": "2026-11-10 16:21:14.023280"
+      },
+      "GC=F": {
+        "checked_at_utc": 1794307875.3409736,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-11-10 10:51:14.035971",
+        "currency": "USD",
+        "fx_to_inr": 93.918,
+        "last_close": 4086.300048828125,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 4091.6452118475822,
+        "sma_slow": 4092.53393417247,
+        "trend": "down",
+        "capital": 9941.26,
+        "daily_loss_cap": 198.8252,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 198.83,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "^BSESN": {
+        "checked_at_utc": 1794307875.4095685,
+        "symbol": "^BSESN",
+        "status": "closed",
+        "time_local": "2026-11-10 16:21:15.409481"
+      },
+      "SI=F": {
+        "checked_at_utc": 1794307878.3984091,
+        "symbol": "SI=F",
+        "status": "checked",
+        "time_local": "2026-11-10 10:51:15.416930",
+        "currency": "USD",
+        "fx_to_inr": 93.918,
+        "last_close": 52.42499923706055,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 52.45143970120119,
+        "sma_slow": 52.49890082153189,
+        "trend": "down",
+        "capital": 9941.26,
+        "daily_loss_cap": 198.8252,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 198.83,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "CL=F": {
+        "checked_at_utc": 1794307843.9686582,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-11-10 10:50:43.949999",
+        "currency": "USD",
+        "fx_to_inr": 93.918,
+        "last_close": 84.91999816894531,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 84.77078383628908,
+        "sma_slow": 84.6904694406476,
+        "trend": "up",
+        "capital": 9941.26,
+        "daily_loss_cap": 198.8252,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 198.83,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "^NSEI": {
+        "checked_at_utc": 1794307843.9967537,
+        "symbol": "^NSEI",
+        "status": "closed",
+        "time_local": "2026-11-10 16:20:43.996719"
+      },
+      "NIFTY26NOV24550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24650CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24750CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24850CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25350CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25450CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24650PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24750PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24850PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25350PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25450PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV58900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1282000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1282000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26850CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27350CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27450CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27650CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27750CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26850PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV26950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27350PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27450PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27650PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27750PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13825CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13850CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13875CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13925CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13975CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14025CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14075CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14125CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14175CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14225CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14275CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13825PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13850PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13875PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13925PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13975PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14025PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14075PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14125PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14175PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14225PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14275PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794304000.114369,
+        "action_taken": "no_setup"
+      }
+    }
   }
 ]
