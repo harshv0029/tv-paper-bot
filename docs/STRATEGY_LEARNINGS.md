@@ -1936,3 +1936,28 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - A rejected trigger is re-evaluated every scan, so one blocked symbol wrote ~109 identical skip rows a day (11,799 rows on 09-Nov) and grew docs/real_trade_log.json ~8 MB/day toward GitHub's 100 MB file limit.
 - Now real_trades keeps the first identical skip per day/symbol/side/status/strategy; entry_funnel_events still counts every repeat, so the "why no entry" evidence is intact and the git journal stays small.
 - Profit-booking / exit takeaway: exit and placed/failed rows are never compacted, so every reason an order was or was not executed on the exit side stays fully logged.
+
+## B-1537 - news add-on for entry and exit (market, sector, stock headlines), shadow only (2026-11-10)
+- Mechanism: headline lexicon score plus HARD event flags, aggregated per stock / sector / market with a 12h half-life. Stock-level news can say "avoid" an entry or "tighten" an open position's stop; sector and market news only ever say "caution".
+- Fit for this system: swing cells hold days, so a fresh fraud / SEBI / downgrade / results-miss headline is a real gap risk the price-only triggers cannot see; it mirrors cleanly for shorts (order win, upgrade, buyback against a short). It is fail-open, so a dead feed never stops trading.
+- What broke / surprised: Moneycontrol's public RSS is frozen (newest item Apr 2024) though it returns HTTP 200 - a feed must be judged by item age, never by status code. Session network blocks news hosts, so live checks go through Actions.
+- Limits, stated honestly: no historical headline archive exists here, so no backtest PFnet yet; a keyword lexicon misreads negation and sarcasm; headline timing lags price. Evidence must come from a shadow log of verdicts at real triggers before it decides real money.
+- Profit-booking / exit takeaway: on a hard adverse stock headline, tighten the stop (never loosen, never a blind market exit); the saved loss on gap-down names is where this add-on can earn its keep.
+
+## B-1539 - measuring the news add-on before it trades (View 5), 2026-11-10
+- A news rule cannot be backtested here (no headline archive), so the evidence is built forward: every verdict at a real trigger or open position is logged with the price, then scored one session later. Accuracy and "saved %" per verdict type decide whether a rule goes live.
+- Company-name + ticker query with a relevance filter is needed: ticker-only found 0 headlines for YESBANK, name-only pulled other companies' news.
+- Profit-booking / exit takeaway: judge "tighten" by the move after the headline on held stocks; only if tighten verdicts are right clearly more often than not, and the saved % beats the cost of being stopped early, should a hard headline raise a real stop.
+
+## B-1540 / B-1541 - news module live rules and the news trade lifecycle (2026-11-10)
+- Live rule = confirmed (2+ different trusted publishers report the hard event) + confident (score agrees, no opposing hard event) + a live tick. It blocks a new entry and exits a real holding through that holding's own engine. One publisher, a blog, or no tick never acts.
+- News-driven buys / shorts / adds are a NEW strategy with no backtest possible (no headline archive), so they run as paper trades (`news_event__confirmed__long/short__1d__v1`) with a 3% stop, and real money waits for measured PFnet > 1.00.
+- Risk to watch: headlines lag price, so a news exit can sell after the gap already happened; View 5 "move after" shows whether the exit saved or cost money.
+- Profit-booking / exit takeaway: hold a news trade only while sentiment stays at least half its peak; when it fades or reverses, close - the edge is the news, so no news means no reason to hold.
+
+## B-1542 / B-1543 - news chain in View 5 and the real 1-share news buy (2026-11-10)
+- B-1542: every news decision stores the headlines it was read from, so a wrong call can be traced to the exact headline and the lexicon fixed, not guessed at.
+- B-1543: by the user's explicit override the news tag skips the PFnet / viability gate and buys 1 real share on confirmed + confident good news with a live tick. There is no backtest (no headline archive), so the 1-share cap is the whole risk control until real results exist; qty rises to risk sizing only when the user affirms.
+- It rides the swing engine (CNC, resting SL with the entry, 5-minute Kotak backcheck, Upstash mirror) instead of a new engine or table, so every existing safety rule covers it from day one. Real shorts stay paper: no overnight cash short at Kotak.
+- With Kotak Net near Rs 5,900 the 1-share risk floor (stop loss at most 1% of Net, about Rs 59) rejects a 3% stop on any share above about Rs 1,970; those show as money rejects, not silent misses.
+- Profit-booking / exit takeaway: the real share is sold the moment the news trade closes - sentiment under half its peak, news reversed, 3% stop, or one week - never held on hope after the news fades.

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trade View 5 - news monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080b0f;--panel:#12181f;--panel-2:#161e27;--border:#232d3a;--text:#e7ecf2;--muted:#7c8a9c;--up:#22c55e;--down:#ef4444;--accent:#3b82f6;--warn:#f59e0b;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1{font-size:16px;font-weight:700;margin:0 0 3px;}
+  h2{font-size:13px;font-weight:700;margin:22px 0 4px;}
+  .sub{color:var(--muted);font-size:11px;margin-bottom:10px;line-height:1.5;}
+  .mode{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(245,158,11,.14);color:var(--warn);}
+  .mode.live{background:rgba(34,197,94,.14);color:var(--up);}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+  .card .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
+  .card .v{font-size:20px;font-weight:700;margin:4px 0 2px;}
+  .card .d{color:var(--muted);font-size:10.5px;line-height:1.5;}
+  .wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:60vh;}
+  table{border-collapse:collapse;width:100%;font-size:11.5px;}
+  th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-transform:uppercase;font-size:9.5px;letter-spacing:.05em;padding:8px 10px;text-align:left;white-space:nowrap;}
+  th.num,td.num{text-align:right;}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+  td.why{max-width:460px;color:var(--muted);font-size:10.5px;word-break:break-word;}
+  .pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:9.5px;font-weight:700;}
+  .pill.g{background:rgba(34,197,94,.14);color:var(--up);} .pill.a{background:rgba(245,158,11,.14);color:var(--warn);}
+  .pill.r{background:rgba(239,68,68,.14);color:var(--down);} .pill.m{background:rgba(124,138,156,.14);color:var(--muted);}
+  .up{color:var(--up);} .down{color:var(--down);} .dim{color:var(--muted);}
+  .empty{padding:14px;color:var(--muted);font-size:12px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 8px;align-items:center;}
+  .bar select,.bar input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;}
+  .err{color:var(--down);font-size:12px;}
+  details{margin-top:4px;} summary{cursor:pointer;color:var(--accent);} .ev{margin:4px 0 0 8px;line-height:1.45;} a{color:var(--text);}
+</style>
+</head>
+<body>
+<h1>View 5 · News monitor <span id="mode" class="mode">loading</span></h1>
+<div class="sub" id="asof"></div>
+<div id="err" class="err"></div>
+
+<h2>1 · Entries and exits caused by the news module</h2>
+<div class="sub">Orders the news module actually changed (an entry it stopped, or a stop it tightened). Entries: live. A new real entry is skipped only when the news against it is confirmed by two or more trusted publishers, the stock score agrees, and a live tick exists.</div>
+<div class="wrap"><div id="caused"></div></div>
+
+<h2>2 · How accurate and how profitable</h2>
+<div class="sub">Each verdict is checked against the price about one session later. "Saved" adds up the moves the verdict pointed away from: a plus is loss it would have avoided, a minus is profit it would have cost. Percent per trade, before position size.</div>
+<div class="cards" id="stats"></div>
+
+<h2>3 · Market and sector mood now</h2>
+<div class="sub">Headline score from −1 (bad news) to +1 (good news), newest headlines weigh most. Sector and market news only ever raise a caution; they never stop an entry.</div>
+<div class="wrap"><table><thead><tr><th>Scope</th><th class="num">Score</th><th class="num">Headlines</th><th>Top headline</th></tr></thead><tbody id="mood"></tbody></table></div>
+
+<h2>4 · Verdict log</h2>
+<div class="bar">
+  <select id="fkind"><option value="">Entry and exit</option><option value="entry">Entry triggers</option><option value="exit">Open positions</option></select>
+  <select id="fact"><option value="">Every verdict</option><option value="against">News against the trade</option><option value="allow">allow</option><option value="caution">caution</option><option value="avoid">avoid</option><option value="hold">hold</option><option value="tighten">tighten</option></select>
+  <input id="fsym" placeholder="Symbol" size="12" />
+</div>
+<div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th>Confirmed + confident?</th><th>Live tick?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody id="log"></tbody></table></div>
+
+<h2>6 · News items read (the source of every decision)</h2>
+<div class="sub">The latest market and sector headlines the module read, newest first. "Counted towards" shows which score each one fed. Stock-specific items appear under "news items read" inside each decision row above.</div>
+<div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Headline</th><th>Publisher</th><th class="num">Score</th><th>Hard event</th><th>Counted towards</th></tr></thead><tbody id="feed"></tbody></table></div>
+
+<h2>5 · News trades (real: 1 share on good news; shorts and adds paper): buy or add on good news, short on bad news, held until the sentiment weakens</h2>
+<div class="sub" id="ntstats"></div>
+<div class="wrap"><table><thead><tr><th>Opened (IST)</th><th>Symbol</th><th>Side</th><th>Status</th><th class="num">Units</th><th class="num">Entry</th><th class="num">Stop</th><th class="num">Score now / peak</th><th class="num">P&amp;L after costs</th><th>Closed (IST)</th><th>Why opened</th><th>Why closed</th></tr></thead><tbody id="nt"></tbody></table></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v, d = 2) => v == null ? '<span class="dim">–</span>' : Number(v).toFixed(d);
+const signed = (v, unit = "%") => v == null ? '<span class="dim">pending</span>' : `<span class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}${unit}</span>`;
+const PILL = {allow: "g", hold: "g", caution: "a", avoid: "r", tighten: "r", exit: "r"};
+let data = null;
+const link = (t, u) => /^https:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>` : esc(t);
+const chain = ev => (ev && ev.length) ? `<details><summary>${ev.length} news item${ev.length > 1 ? "s" : ""} read</summary>` + ev.map(e =>
+  `<div class="ev">${(e.hard || []).length ? `<span class="pill r">${esc(e.hard.join(", "))}</span> ` : ""}${link(e.title, e.link)} <span class="dim">· ${esc(e.source)} · ${e.age_h ?? "?"}h old · score ${num(e.score)}</span></div>`).join("") + "</details>" : "";
+
+function stats(s) {
+  const defs = [["entry_avoid", "Entry: avoid", "stock news against the trade"], ["entry_caution", "Entry: caution", "sector or market news against it"],
+                ["entry_allow", "Entry: allow", "no adverse news"], ["exit_tighten", "Open position: tighten", "hard adverse event on a held stock"],
+                ["exit_hold", "Open position: hold", "no hard adverse event"]];
+  $("stats").innerHTML = defs.map(([k, name, what]) => {
+    const g = (s || {})[k] || {};
+    const acc = g.accuracy_pct == null ? '<span class="dim">no scored verdicts yet</span>' : `${g.accuracy_pct}% right`;
+    const against = k === "entry_avoid" || k === "entry_caution" || k === "exit_tighten";
+    const value = g.scored ? (against ? `Saved ${signed(g.saved_pct)} in total` : `Average move after ${signed(g.avg_move_pct)}`) : "";
+    return `<div class="card"><div class="k">${name}</div><div class="v mono">${acc}</div><div class="d">${g.total || 0} verdicts, ${g.scored || 0} scored (${g.correct || 0} right)<br>${value}<br>${what}</div></div>`;
+  }).join("");
+}
+
+function mood(d) {
+  const rows = [["Market", d.market]].concat(Object.entries(d.sectors || {}).sort((a, b) => a[1].score - b[1].score));
+  $("mood").innerHTML = rows.filter(r => r[1]).map(([name, v]) =>
+    `<tr><td>${esc(name)}</td><td class="num mono ${v.score > 0.05 ? "up" : v.score < -0.05 ? "down" : "dim"}">${num(v.score)}</td><td class="num mono">${v.n}</td><td class="why">${esc(((v.top || [])[0] || {}).title || "")}</td></tr>`
+  ).join("") || `<tr><td colspan="4" class="empty">${esc(d.market_error || "No headlines read yet.")}</td></tr>`;
+}
+
+function row(r) {
+  const right = r.correct == null ? '<span class="dim">pending</span>' : (r.correct ? '<span class="pill g">right</span>' : '<span class="pill r">wrong</span>');
+  return `<tr><td class="mono">${esc(r.ts_ist)}</td><td class="mono">${esc(r.symbol)}</td><td>${esc(r.direction)}</td><td>${r.kind === "entry" ? "entry trigger" : "open position"}</td><td class="why">${esc(r.category)}</td>
+    <td><span class="pill ${PILL[r.action] || "m"}">${esc(r.action)}</span></td><td>${r.kind === "entry" ? (r.real_entry ? "yes" : "no") : '<span class="dim">held</span>'}</td>
+    <td>${r.mode === "live" ? '<span class="pill g">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.actionable ? '<span class="pill r">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.tick_live ? "yes" : '<span class="dim">no</span>'}</td><td class="num mono">${num(r.stock_score)}</td><td class="num mono">${num(r.ref_price)}</td>
+    <td class="num mono">${signed(r.move_pct)}</td><td>${right}</td><td class="why"><b>Decision:</b> ${esc(r.action)} — ${esc(r.reason)}${chain(r.evidence)}</td></tr>`;
+}
+
+function paint() {
+  if (!data) return;
+  const k = $("fkind").value, a = $("fact").value, s = $("fsym").value.trim().toUpperCase();
+  const ev = (data.events || []).filter(r => (!k || r.kind === k) && (!s || r.symbol.includes(s)) &&
+    (!a || (a === "against" ? ["avoid", "caution", "tighten"].includes(r.action) : r.action === a)));
+  $("log").innerHTML = ev.map(row).join("") || '<tr><td colspan="15" class="empty">No verdicts logged yet. They appear when an entry trigger fires or a real position is open (checked about every 5 minutes).</td></tr>';
+}
+
+async function load() {
+  try {
+    const d = await (await fetch("/news-monitor?days=30", {cache: "no-store"})).json();
+    if (d.error) throw new Error(d.error);
+    data = d; $("err").textContent = "";
+    const live = (d.live_rules || []).length > 0;
+    $("mode").textContent = live ? "LIVE on entries · confirmed + confident + live tick only" : "SHADOW · logs only, changes no order";
+    $("mode").className = "mode" + (live ? " live" : "");
+    $("asof").textContent = `As of ${d.as_of_ist} · last ${d.days} days · ${d.headlines ?? 0} headlines in the current read · ${d.mode_note || ""}`;
+    $("caused").innerHTML = (d.caused || []).length
+      ? `<table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th>Confirmed + confident?</th><th>Live tick?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody>${d.caused.map(row).join("")}</tbody></table>`
+      : '<div class="empty">None yet. No entry has met the confirmed + confident + live tick rule.</div>';
+    stats(d.stats); mood(d); paint();
+    const f = (k, g) => `${k}: ${g.open} open, ${g.closed} closed` + (g.closed ? `, ${g.win_pct}% wins, PFnet ${g.pfnet ?? "n/a"}, total ${g.total_pnl_pct}%` : "");
+    $("feed").innerHTML = (d.feed || []).map(f => `<tr><td class="mono">${esc(f.ts_ist)}</td><td>${link(f.title, f.link)}</td><td class="why">${esc(f.source)}</td><td class="num mono ${f.score > 0 ? "up" : f.score < 0 ? "down" : "dim"}">${num(f.score)}</td><td>${(f.hard || []).length ? `<span class="pill r">${esc(f.hard.join(", "))}</span>` : ""}</td><td class="why">${esc((f.scopes || []).join(", ") || "not counted")}</td></tr>`).join("") || '<tr><td colspan="6" class="empty">No headlines read yet.</td></tr>';
+    const ns_ = d.news_trade_stats || {};
+    $("ntstats").textContent = "Paper only: no real order. Real money opens for these only once the measured PFnet is above 1.00. " + (ns_.long ? f("Long", ns_.long) + " · " + f("Short", ns_.short) : "");
+    $("nt").innerHTML = (d.news_trades || []).map(t => `<tr><td class="mono">${esc(t.opened_ist)}</td><td class="mono">${esc(t.symbol)}</td><td>${esc(t.direction)}${t.mode === "real" ? ' <span class="pill g">real</span>' : ' <span class="dim">paper</span>'}</td><td>${esc(t.status)}</td><td class="num mono">${t.units}</td><td class="num mono">${num(t.entry_price)}</td><td class="num mono">${num(t.stop_price)}</td><td class="num mono">${num(t.last_score)} / ${num(t.peak_score)}</td><td class="num mono">${t.status === "closed" ? signed(t.pnl_pct) : (t.open_move_pct == null ? '<span class="dim">open</span>' : signed(t.open_move_pct) + ' <span class="dim">open</span>')}</td><td class="mono">${esc(t.closed_ist || "")}</td><td class="why">${esc(t.open_reason)}${chain(t.evidence)}</td><td class="why">${esc(t.close_reason || "")}</td></tr>`).join("") || '<tr><td colspan="12" class="empty">No news trade yet. One opens when two or more trusted publishers confirm a hard event on a watchlist stock and a live tick exists.</td></tr>';
+  } catch (e) { $("err").textContent = "Could not load /news-monitor: " + e.message; }
+}
+["fkind", "fact"].forEach(id => $(id).onchange = paint); $("fsym").oninput = paint;
+load(); setInterval(load, 30000);
+</script>
+</body>
+</html>
