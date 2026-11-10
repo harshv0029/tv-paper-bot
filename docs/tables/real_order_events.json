@@ -46739,7 +46739,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000003212 rejected: ADAPTER is down"
+  },
+  {
+   "id": 3896,
+   "ts": 1794289236.0494835,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003213",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 3897,
+   "ts": 1794289236.0663784,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000003213 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T05:40:26Z"
+ "synced_at_utc": "2026-11-10T05:40:37Z"
 }
