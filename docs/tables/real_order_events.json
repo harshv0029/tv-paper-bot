@@ -30601,7 +30601,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 2551,
+   "id": 2555,
    "ts": 1794283502.6054685,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -30613,7 +30613,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001870 rejected: ADAPTER is down"
   },
   {
-   "id": 2552,
+   "id": 2551,
    "ts": 1794283502.6201005,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -30625,7 +30625,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001869 rejected: ADAPTER is down"
   },
   {
-   "id": 2553,
+   "id": 2552,
    "ts": 1794283502.6328356,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -30637,7 +30637,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001858 rejected: ADAPTER is down"
   },
   {
-   "id": 2554,
+   "id": 2553,
    "ts": 1794283502.6458187,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -30649,7 +30649,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001850 rejected: ADAPTER is down"
   },
   {
-   "id": 2555,
+   "id": 2554,
    "ts": 1794283502.6537945,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -32389,7 +32389,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002042 rejected: ADAPTER is down"
   },
   {
-   "id": 2700,
+   "id": 2701,
    "ts": 1794284268.3188374,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -32401,7 +32401,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000002044 rejected: ADAPTER is down"
   },
   {
-   "id": 2701,
+   "id": 2700,
    "ts": 1794284268.3204236,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -32965,7 +32965,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 2748,
+   "id": 2749,
    "ts": 1794284608.3271022,
    "symbol": "TATASTEEL.NS",
    "kotak_trading_symbol": "TATASTEEL-EQ",
@@ -32977,7 +32977,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 2749,
+   "id": 2748,
    "ts": 1794284608.4124932,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -62101,7 +62101,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 5176,
+   "id": 5177,
    "ts": 1794294270.5533566,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -62113,7 +62113,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000004298 rejected: ADAPTER is down"
   },
   {
-   "id": 5177,
+   "id": 5176,
    "ts": 1794294270.5561907,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -67321,7 +67321,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 5611,
+   "id": 5612,
    "ts": 1794296080.5507588,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -67333,7 +67333,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 5612,
+   "id": 5611,
    "ts": 1794296080.6141357,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -70609,7 +70609,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000005132 rejected: ADAPTER is down"
   },
   {
-   "id": 5885,
+   "id": 5887,
    "ts": 1794297195.359959,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -70621,7 +70621,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 5886,
+   "id": 5888,
    "ts": 1794297195.3806834,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -70633,7 +70633,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 5887,
+   "id": 5885,
    "ts": 1794297196.1145504,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -70645,7 +70645,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 5888,
+   "id": 5889,
    "ts": 1794297196.780725,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -70657,7 +70657,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 5889,
+   "id": 5886,
    "ts": 1794297197.3260005,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -70717,7 +70717,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000005138 rejected: ADAPTER is down"
   },
   {
-   "id": 5894,
+   "id": 5895,
    "ts": 1794297199.6034725,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -70729,7 +70729,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000005136 rejected: ADAPTER is down"
   },
   {
-   "id": 5895,
+   "id": 5894,
    "ts": 1794297199.606002,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -73993,7 +73993,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 6167,
+   "id": 6168,
    "ts": 1794298332.2683175,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -74005,7 +74005,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 6168,
+   "id": 6167,
    "ts": 1794298332.6437545,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -75817,7 +75817,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000005467 rejected: ADAPTER is down"
   },
   {
-   "id": 6319,
+   "id": 6325,
    "ts": 1794299095.1124427,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -75829,7 +75829,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :329.60,  Low Price Range:331.65 High Price Range:405.35  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 6320,
+   "id": 6321,
    "ts": 1794299095.7435226,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -75841,7 +75841,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 6321,
+   "id": 6320,
    "ts": 1794299095.7988646,
    "symbol": "TATASTEEL.NS",
    "kotak_trading_symbol": "TATASTEEL-EQ",
@@ -75853,7 +75853,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6322,
+   "id": 6326,
    "ts": 1794299096.2220168,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -75865,7 +75865,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6323,
+   "id": 6324,
    "ts": 1794299096.3928983,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -75877,7 +75877,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6324,
+   "id": 6323,
    "ts": 1794299096.6109858,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -75889,7 +75889,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 6325,
+   "id": 6322,
    "ts": 1794299096.9499667,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -75901,7 +75901,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6326,
+   "id": 6319,
    "ts": 1794299096.9646099,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -77893,7 +77893,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6492,
+   "id": 6493,
    "ts": 1794299861.151521,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -77905,7 +77905,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000005604 rejected: ADAPTER is down"
   },
   {
-   "id": 6493,
+   "id": 6492,
    "ts": 1794299861.170121,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -78553,7 +78553,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000005680 rejected: ADAPTER is down"
   },
   {
-   "id": 6547,
+   "id": 6553,
    "ts": 1794300200.6916308,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -78565,7 +78565,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6548,
+   "id": 6552,
    "ts": 1794300200.76724,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -78577,7 +78577,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6549,
+   "id": 6555,
    "ts": 1794300201.2144883,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -78589,7 +78589,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6550,
+   "id": 6554,
    "ts": 1794300201.9736176,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -78613,7 +78613,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6552,
+   "id": 6556,
    "ts": 1794300203.895859,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -78625,7 +78625,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 6553,
+   "id": 6550,
    "ts": 1794300204.2922385,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -78637,7 +78637,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:130.50 High Price Range:159.50  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 6554,
+   "id": 6549,
    "ts": 1794300204.5195892,
    "symbol": "TATASTEEL.NS",
    "kotak_trading_symbol": "TATASTEEL-EQ",
@@ -78649,7 +78649,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6555,
+   "id": 6557,
    "ts": 1794300210.082077,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -78661,7 +78661,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6556,
+   "id": 6548,
    "ts": 1794300211.0077991,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -78673,7 +78673,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 6557,
+   "id": 6558,
    "ts": 1794300213.6756907,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -78685,7 +78685,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   },
   {
-   "id": 6558,
+   "id": 6547,
    "ts": 1794300213.7828162,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -80617,7 +80617,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000005861 rejected: ADAPTER is down"
   },
   {
-   "id": 6719,
+   "id": 6722,
    "ts": 1794300947.7606974,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -80629,7 +80629,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6720,
+   "id": 6721,
    "ts": 1794300948.2516356,
    "symbol": "TATASTEEL.NS",
    "kotak_trading_symbol": "TATASTEEL-EQ",
@@ -80641,7 +80641,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 6721,
+   "id": 6720,
    "ts": 1794300948.8051324,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -80653,7 +80653,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6722,
+   "id": 6719,
    "ts": 1794300948.8137536,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -82153,7 +82153,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 6847,
+   "id": 6849,
    "ts": 1794301367.0686195,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -82177,7 +82177,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   },
   {
-   "id": 6849,
+   "id": 6847,
    "ts": 1794301367.9063811,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -83065,7 +83065,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 6923,
+   "id": 6924,
    "ts": 1794301730.5484948,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -83077,7 +83077,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 6924,
+   "id": 6923,
    "ts": 1794301730.8512535,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -84181,7 +84181,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000006125 rejected: ADAPTER is down"
   },
   {
-   "id": 7016,
+   "id": 7021,
    "ts": 1794302114.0748665,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -84193,7 +84193,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 7017,
+   "id": 7016,
    "ts": 1794302114.3036902,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -84217,7 +84217,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 7019,
+   "id": 7023,
    "ts": 1794302114.6828315,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -84229,7 +84229,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 7020,
+   "id": 7022,
    "ts": 1794302115.3531275,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -84241,7 +84241,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 7021,
+   "id": 7020,
    "ts": 1794302115.4397047,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -84253,7 +84253,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   },
   {
-   "id": 7022,
+   "id": 7019,
    "ts": 1794302115.713443,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -84265,7 +84265,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   },
   {
-   "id": 7023,
+   "id": 7017,
    "ts": 1794302115.8935812,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -84289,7 +84289,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006130 rejected: ADAPTER is down"
   },
   {
-   "id": 7025,
+   "id": 7026,
    "ts": 1794302118.8495955,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -84301,7 +84301,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006132 rejected: ADAPTER is down"
   },
   {
-   "id": 7026,
+   "id": 7029,
    "ts": 1794302118.8843563,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -84313,7 +84313,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006133 rejected: ADAPTER is down"
   },
   {
-   "id": 7027,
+   "id": 7028,
    "ts": 1794302118.9536645,
    "symbol": "COCHINSHIP.NS",
    "kotak_trading_symbol": "COCHINSHIP-EQ",
@@ -84325,7 +84325,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006128 rejected: ADAPTER is down"
   },
   {
-   "id": 7028,
+   "id": 7027,
    "ts": 1794302119.0516677,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -84337,7 +84337,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006131 rejected: ADAPTER is down"
   },
   {
-   "id": 7029,
+   "id": 7025,
    "ts": 1794302119.0552242,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -85691,7 +85691,91 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000006286 rejected: ADAPTER is down"
+  },
+  {
+   "id": 7142,
+   "ts": 1794302641.3097112,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006289",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 7143,
+   "ts": 1794302648.9800754,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006290",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 7144,
+   "ts": 1794302649.0031395,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000006290 rejected: ADAPTER is down"
+  },
+  {
+   "id": 7145,
+   "ts": 1794302661.3717682,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006292",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 7146,
+   "ts": 1794302661.4035065,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000006292 rejected: ADAPTER is down"
+  },
+  {
+   "id": 7147,
+   "ts": 1794302674.0787642,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006293",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 7148,
+   "ts": 1794302674.0957358,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000006293 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T09:24:30Z"
+ "synced_at_utc": "2026-11-10T09:24:36Z"
 }
