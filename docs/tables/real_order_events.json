@@ -56339,7 +56339,31 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 4696,
+   "ts": 1794292419.5151415,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_login_failed",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "not sent",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: (0)\nReason: <ConnectionTerminated error_code:0, last_stream_id:1, additional_data:None>\n"
+  },
+  {
+   "id": 4697,
+   "ts": 1794292420.8319814,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | login failed: (0)\nReason: <ConnectionTerminated error_code:0, last_stream_id:1, additional_data:None>\n"
   }
  ],
- "synced_at_utc": "2026-11-10T06:33:38Z"
+ "synced_at_utc": "2026-11-10T06:33:44Z"
 }
