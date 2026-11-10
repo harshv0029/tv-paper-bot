@@ -23015,7 +23015,31 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #8 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 1919,
+   "ts": 1794282435.1226466,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1920,
+   "ts": 1794282435.1598504,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
   }
  ],
- "synced_at_utc": "2026-11-10T03:47:11Z"
+ "synced_at_utc": "2026-11-10T03:47:18Z"
 }
