@@ -111,7 +111,7 @@ def test_view_endpoint_and_page(tmp_path, monkeypatch):
         c.commit()
     monkeypatch.setattr(ns, "market_and_sector_scores", lambda: {"market": CALM, "sectors": {}, "headlines": 0})
     out = main.news_monitor_view(days=30)
-    assert out["events"][0]["symbol"] == "A.NS" and out["caused"] == [] and len(out["live_rules"]) == 2
+    assert out["events"][0]["symbol"] == "A.NS" and out["caused"] == [] and len(out["live_rules"]) == 3
     assert out["stats"]["entry_avoid"]["total"] == 1 and "ts_ist" in out["events"][0]
     page = open("static/trade-view5.html").read()
     assert "/news-monitor" in page and "chain(r.evidence)" in page and "esc(e.title" not in page.replace("link(e.title", "")  # headlines are untrusted text: always escaped
@@ -126,6 +126,6 @@ def test_durable_no_direct_orders_and_never_runs_in_tests():
     block = src[src.index("NEWS_MONITOR_EVERY_N_TICKS = 10"):src.index('@app.get("/real-protection-status")')]
     for banned in ("cancel_", "kotak_real_orders", "_log_real_order_event", "modify_order"):
         assert banned not in block, banned  # the news code never builds an order itself
-    assert block.count("_maybe_place_real") == 4  # only the four engine exit names in _NEWS_EXIT_ENGINES (B-1541)
+    assert block.count("_maybe_place_real") == 6  # the four engine exit names (B-1541) + the swing entry and swing exit calls of the 1-share news buy (B-1543)
     outside = src.replace(block, "")
     assert outside.count("news_signals.") == 0 and outside.count("_news_monitor_kick()") == 1  # only the tick hook
