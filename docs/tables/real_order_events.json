@@ -23039,7 +23039,115 @@
    "prev_state": "sent to Kotak",
    "new_state": "failed",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1921,
+   "ts": 1794282436.4199255,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1922,
+   "ts": 1794282436.450075,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1923,
+   "ts": 1794282436.8504033,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1924,
+   "ts": 1794282437.080928,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1925,
+   "ts": 1794282437.0843585,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1926,
+   "ts": 1794282437.084835,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 1927,
+   "ts": 1794282439.1974032,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001043",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #9 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 1928,
+   "ts": 1794282439.5223422,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001041",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #10 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 1929,
+   "ts": 1794282443.0619211,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001045",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #9 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T03:47:18Z"
+ "synced_at_utc": "2026-11-10T03:47:26Z"
 }
