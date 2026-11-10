@@ -55871,7 +55871,19 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 4657,
+   "ts": 1794292276.1281857,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003876",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #5 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T06:31:10Z"
+ "synced_at_utc": "2026-11-10T06:31:17Z"
 }
