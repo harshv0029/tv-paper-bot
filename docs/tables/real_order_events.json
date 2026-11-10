@@ -24647,7 +24647,67 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #16 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 2055,
+   "ts": 1794282557.9983525,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001131",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #14 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2056,
+   "ts": 1794282558.0198808,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001130",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #15 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2057,
+   "ts": 1794282558.170002,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001129",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #14 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2058,
+   "ts": 1794282561.6052942,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001132",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #10 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 2059,
+   "ts": 1794282564.1996,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001134",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #13 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T03:49:21Z"
+ "synced_at_utc": "2026-11-10T03:49:29Z"
 }
