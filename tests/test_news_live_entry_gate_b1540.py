@@ -78,7 +78,7 @@ def test_gate_is_wired_into_every_equity_entry_engine_and_no_exit_path():
         assert call in b and b.index(call) < b.index("_is_strategy_viable_for_real_money"), fn
     assert src.count("_news_gate_entry(") == 5  # the definition + the four entry engines; no exit / SL / heal path
     for fn in ("_maybe_place_real_exit", "_maybe_place_real_short_exit", "_maybe_place_real_swing_exit"):
-        assert "_news" not in body(fn), fn
+        assert "_news" not in body(fn), fn  # exits never consult the news; the news pass calls them from outside
 
 
 def test_sweep_walks_the_watchlist_round_robin_24x7(monkeypatch):
@@ -86,6 +86,8 @@ def test_sweep_walks_the_watchlist_round_robin_24x7(monkeypatch):
     seen = []
     monkeypatch.setattr(ns, "stock_items", lambda s, name=None: seen.append(s) or [])
     monkeypatch.setattr(main, "NEWS_SWEEP_PER_PASS", 3)
+    monkeypatch.setattr(main, "get_db", lambda: MagicMock())
+    monkeypatch.setattr(main, "_news_trades_step", lambda *a, **k: [])
     main._news_sweep_cursor[0] = 0
     syms = ["A.NS", "B.NS", "C.NS", "D.NS"]
     assert main._news_sweep_watchlist(time.time(), syms) == 3 and main._news_sweep_watchlist(time.time(), syms) == 3

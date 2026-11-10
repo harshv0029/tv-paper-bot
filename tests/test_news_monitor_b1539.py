@@ -16,6 +16,7 @@ def _db(tmp_path, monkeypatch):
             c.execute(f"CREATE TABLE {t} (symbol TEXT PRIMARY KEY, qty INTEGER, entry_price REAL)")
         c.execute("CREATE TABLE entry_funnel_events (bucket_ts REAL, last_ts REAL, kind TEXT, strategy TEXT, side TEXT, symbol TEXT, status TEXT, flag TEXT, slot TEXT, n INTEGER)")
         c.execute(_ddl())
+        c.execute(_ddl("news_trades"))
         c.commit()
     return p
 
@@ -26,9 +27,9 @@ def _conn(p):
     return c
 
 
-def _ddl():
+def _ddl(table="news_signal_events"):
     src = open("main.py").read()
-    i = src.index("CREATE TABLE IF NOT EXISTS news_signal_events")
+    i = src.index(f"CREATE TABLE IF NOT EXISTS {table} (")
     return src[i:src.index('"""', i)]
 
 
@@ -110,7 +111,7 @@ def test_view_endpoint_and_page(tmp_path, monkeypatch):
         c.commit()
     monkeypatch.setattr(ns, "market_and_sector_scores", lambda: {"market": CALM, "sectors": {}, "headlines": 0})
     out = main.news_monitor_view(days=30)
-    assert out["events"][0]["symbol"] == "A.NS" and out["caused"] == [] and len(out["live_rules"]) == 1
+    assert out["events"][0]["symbol"] == "A.NS" and out["caused"] == [] and len(out["live_rules"]) == 2
     assert out["stats"]["entry_avoid"]["total"] == 1 and "ts_ist" in out["events"][0]
     page = open("static/trade-view5.html").read()
     assert "/news-monitor" in page and "esc(r.headline)" in page  # headlines are untrusted text: always escaped
@@ -118,12 +119,13 @@ def test_view_endpoint_and_page(tmp_path, monkeypatch):
     assert main.trade_view5().path == "static/trade-view5.html"
 
 
-def test_shadow_only_durable_and_never_runs_in_tests():
+def test_durable_no_direct_orders_and_never_runs_in_tests():
     src = open("main.py").read()
     assert "news_signal_events" in main._GENERIC_MIRROR_TABLES  # survives a Render restart
     assert main._news_monitor_kick() is False  # no background thread under pytest
     block = src[src.index("NEWS_MONITOR_EVERY_N_TICKS = 10"):src.index('@app.get("/real-protection-status")')]
-    for banned in ("place_real", "_maybe_place_real", "cancel_", "kotak_real_orders", "_log_real_order_event", "modify_order"):
-        assert banned not in block, banned  # the monitor reads and logs; it has no path to an order
+    for banned in ("cancel_", "kotak_real_orders", "_log_real_order_event", "modify_order"):
+        assert banned not in block, banned  # the news code never builds an order itself
+    assert block.count("_maybe_place_real") == 4  # only the four engine exit names in _NEWS_EXIT_ENGINES (B-1541)
     outside = src.replace(block, "")
     assert outside.count("news_signals.") == 0 and outside.count("_news_monitor_kick()") == 1  # only the tick hook
