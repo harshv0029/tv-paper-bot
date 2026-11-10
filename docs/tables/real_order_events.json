@@ -31127,7 +31127,79 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001896 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2595,
+   "ts": 1794283838.9274,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001851",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:34:28 S SL qty 1 trg 178.18 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 2596,
+   "ts": 1794283838.9280567,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001867",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:34:55 S SL qty 1 trg 1658.00 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 2597,
+   "ts": 1794283838.9281285,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001871",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:35:08 S SL qty 1 trg 179.83 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 2598,
+   "ts": 1794283838.9281707,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001860",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:34:42 S SL qty 1 trg 143.43 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 2599,
+   "ts": 1794283838.9282162,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261110000001845",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 10-Nov-2026 09:34:19 S SL qty 1 trg 168.80 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :168.80,  Low Price Range"
+  },
+  {
+   "id": 2600,
+   "ts": 1794283853.824452,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001945",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T04:07:01Z"
+ "synced_at_utc": "2026-11-10T04:10:55Z"
 }
