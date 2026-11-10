@@ -134,3 +134,31 @@ def test_no_order_path_calls_the_news_addon():
     src = open("main.py").read()
     body = src[src.index("def news_signals_view"):src.index('@app.get("/real-protection-status")')]
     assert len(_re.findall(r"news_signals\.", src)) == len(_re.findall(r"news_signals\.", body))
+
+
+def test_stock_relevance_filter_and_name_query(monkeypatch):
+    assert ns.is_relevant("Yes Bank shares fall 3%", "YESBANK.NS", "Yes Bank")
+    assert ns.is_relevant("YESBANK hits upper circuit", "YESBANK.NS", "Yes Bank")
+    assert not ns.is_relevant("Whirlpool of India Q2 profit drops 39%", "RELIANCE.NS", "Reliance")
+    assert not ns.is_relevant("Sailing stocks rally", "SAIL.NS", None)  # whole word only
+    assert ns.stock_query("YESBANK.NS", "Yes Bank").startswith('("Yes Bank" OR "YESBANK")')
+    assert ns.stock_query("SAIL.NS", None).startswith('"SAIL" ')
+    monkeypatch.setattr(ns, "_names_cache", {"RELIANCE.NS": "Reliance Industries Limited", "TCS.NS": "Tata Consultancy Services Limited"})
+    assert ns.company_name("RELIANCE.NS") == "Reliance" and ns.company_name("TCS.NS") == "Tata Consultancy Services"
+    assert ns.company_name("NOPE.NS") is None
+    ns._cache.clear()
+    monkeypatch.setattr(ns, "_fetch", lambda url: _rss([("Reliance bags order", 0, "moneycontrol.com"), ("Whirlpool profit drops", 0, "moneycontrol.com")]))
+    assert [i["title"] for i in ns.stock_items("RELIANCE.NS")] == ["Reliance bags order"]
+    ns._cache.clear()
+
+
+def test_hard_event_counts_only_from_a_trusted_publisher():
+    blog = ns.aggregate(ns.parse_rss(_rss([("How analyst upgrades will impact XYZ stock", 1, "simplywall.st")])), NOW)
+    assert blog["hard_pos"] == [] and blog["score"] > 0
+    mc = ns.aggregate(ns.parse_rss(_rss([("Broker upgrades XYZ", 1, "moneycontrol.com")])), NOW)
+    assert mc["hard_pos"][0][0] == "upgrades"
+
+
+def test_overseas_headlines_do_not_score_an_indian_sector():
+    items = ns.parse_rss(_rss([("European power prices shoot up as wind slumps", 1, "livemint.com"), ("Power stocks rally on demand", 1, "livemint.com")]))
+    assert ns.market_and_sector_scores(items, NOW)["sectors"]["Utilities"]["n"] == 1
