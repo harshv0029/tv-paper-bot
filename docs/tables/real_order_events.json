@@ -88859,7 +88859,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 7406,
+   "ts": 1794310222.1363213,
+   "symbol": "MARKET:MCX",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: MCX market opened (live ticks: 3 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"3 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\", \"SI=F\"], \"count\": 3, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 15.1}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
   }
  ],
- "synced_at_utc": "2026-11-10T09:56:40Z"
+ "synced_at_utc": "2026-11-10T11:30:24Z"
 }
