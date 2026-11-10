@@ -109,6 +109,7 @@ from constants import (
 from data_fetch import fetch_ohlc, get_fx_to_inr, _DATA_CACHE, _CACHE_TTL_SECONDS
 import data_fetch  # B-1419: _PINNED_FRAMES / cache_entry_time for the bar sweep
 import sentiment_signals
+import news_signals
 from options_pricing import (
     _norm_cdf, bs_price, parse_legs, run_options_backtest, _bs_delta,
     select_option_contract, _requote_contract,
@@ -22628,6 +22629,26 @@ def _exchange_purge_window(now_ist=None) -> bool:
     if n.weekday() >= 5:
         return True
     return mins >= 15 * 60 + 15 or mins < 9 * 60 + 15
+
+
+@app.get("/news-signals")
+def news_signals_view(symbol: str = "", direction: str = "long"):
+    """B-1537 news add-on, SHADOW view (no token, read-only, no Kotak call, places nothing): market and sector
+    headline scores, plus for ?symbol=XYZ.NS&direction=long|short what the add-on WOULD say for an entry and for
+    an open position. No order path reads this yet (a rule deciding real entries/exits needs the user's go-ahead)."""
+    direction = "short" if str(direction).lower() == "short" else "long"
+    try:
+        ms = news_signals.market_and_sector_scores()
+        out = {"shadow_only": True, "as_of_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "market": ms["market"],
+               "sectors": ms["sectors"], "headlines": ms["headlines"]}
+        if symbol:
+            sym = symbol.upper()
+            out["symbol"], out["direction"] = sym, direction
+            out["entry"] = news_signals.entry_verdict(sym, direction, sector=_sector_of_symbol().get(sym), ms=ms)
+            out["exit"] = news_signals.exit_verdict(sym, direction, stock=out["entry"].get("stock"))
+        return out
+    except Exception as e:
+        return {"shadow_only": True, "error": str(e)}
 
 
 @app.get("/real-protection-status")
