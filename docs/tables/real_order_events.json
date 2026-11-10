@@ -87743,7 +87743,43 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006415 rejected: ADAPTER is down"
+  },
+  {
+   "id": 7313,
+   "ts": 1794303537.7957165,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006416",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 7314,
+   "ts": 1794303539.7887292,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261110000006416 rejected: ADAPTER is down"
+  },
+  {
+   "id": 7315,
+   "ts": 1794303540.865117,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000006417",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   }
  ],
- "synced_at_utc": "2026-11-10T09:38:58Z"
+ "synced_at_utc": "2026-11-10T09:39:05Z"
 }
