@@ -60515,7 +60515,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000004211 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5044,
+   "ts": 1794293849.089372,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_login_failed",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "not sent",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: Kotak Neo totp_login failed: too many request received"
+  },
+  {
+   "id": 5045,
+   "ts": 1794293849.1002793,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | login failed: Kotak Neo totp_login failed: too many request received"
   }
  ],
- "synced_at_utc": "2026-11-10T06:57:24Z"
+ "synced_at_utc": "2026-11-10T06:57:35Z"
 }
