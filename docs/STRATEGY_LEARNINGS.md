@@ -1948,3 +1948,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - A news rule cannot be backtested here (no headline archive), so the evidence is built forward: every verdict at a real trigger or open position is logged with the price, then scored one session later. Accuracy and "saved %" per verdict type decide whether a rule goes live.
 - Company-name + ticker query with a relevance filter is needed: ticker-only found 0 headlines for YESBANK, name-only pulled other companies' news.
 - Profit-booking / exit takeaway: judge "tighten" by the move after the headline on held stocks; only if tighten verdicts are right clearly more often than not, and the saved % beats the cost of being stopped early, should a hard headline raise a real stop.
+
+## B-1540 / B-1541 - news module live rules and the news trade lifecycle (2026-11-10)
+- Live rule = confirmed (2+ different trusted publishers report the hard event) + confident (score agrees, no opposing hard event) + a live tick. It blocks a new entry and exits a real holding through that holding's own engine. One publisher, a blog, or no tick never acts.
+- News-driven buys / shorts / adds are a NEW strategy with no backtest possible (no headline archive), so they run as paper trades (`news_event__confirmed__long/short__1d__v1`) with a 3% stop, and real money waits for measured PFnet > 1.00.
+- Risk to watch: headlines lag price, so a news exit can sell after the gap already happened; View 5 "move after" shows whether the exit saved or cost money.
+- Profit-booking / exit takeaway: hold a news trade only while sentiment stays at least half its peak; when it fades or reverses, close - the edge is the news, so no news means no reason to hold.

@@ -864,6 +864,23 @@ def init_db():
         # (generic Upstash mirror) and the IST midnight reset. Pruned beyond 48 h. No qty/price (balance-free).
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS news_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,          -- 'long' (good news) | 'short' (bad news)
+                tag TEXT NOT NULL,
+                mode TEXT NOT NULL DEFAULT 'paper',
+                status TEXT NOT NULL DEFAULT 'open',
+                opened_ts REAL NOT NULL, entry_price REAL NOT NULL, units INTEGER NOT NULL DEFAULT 1,
+                stop_price REAL NOT NULL,         -- every news trade carries a stop
+                open_reason TEXT, headline TEXT, publishers_n INTEGER,
+                peak_score REAL, last_score REAL, last_ts REAL,
+                close_ts REAL, close_price REAL, close_reason TEXT, pnl_pct REAL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS news_signal_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ts REAL NOT NULL,
@@ -22663,7 +22680,7 @@ NEWS_MONITOR_EVERY_N_TICKS = 10      # ~5 min
 NEWS_MONITOR_MAX_PER_PASS = 8        # new verdicts fetched per pass (each is one Google News request, cached 10 min)
 NEWS_EVAL_AFTER_HOURS = 20.0         # a verdict is scored against the price about one session later
 NEWS_EXIT_RECHECK_SECONDS = 3600     # an open position reading "hold" is re-checked hourly, so a new event can flip it
-_NEWS_AGAINST = ("avoid", "caution", "tighten")  # verdicts that say "the news is against this trade"
+_NEWS_AGAINST = ("avoid", "caution", "tighten", "exit")  # verdicts that say "the news is against this trade"
 _news_monitor_thread = None
 NEWS_SWEEP_PER_PASS = 20             # 24x7 watchlist sweep: 20 stocks per ~5 min pass (whole swing watchlist in about an hour)
 NEWS_ACTIONABLE_TTL_S = 6 * 3600     # a confirmed+confident finding acts for at most 6 h unless a later sweep renews it
@@ -22687,6 +22704,124 @@ def _news_note_actionable(symbol: str, stock: dict, now_ts: float) -> dict:
     return out
 
 
+NEWS_TRADE_TAGS = {"long": "news_event__confirmed__long__1d__v1", "short": "news_event__confirmed__short__1d__v1"}
+NEWS_TRADE_STOP_PCT = 3.0        # paper stop: 3% against the entry
+NEWS_TRADE_MAX_HOLD_DAYS = 7     # calendar days (about 5 sessions)
+NEWS_TRADE_WEAK_FRACTION = 0.5   # sentiment is "weak" once the score falls to half its peak ...
+NEWS_TRADE_WEAK_FLOOR = 0.1      # ... or under this absolute level
+NEWS_TRADE_MAX_UNITS = 3         # first unit + at most 2 adds on fresh confirming news
+NEWS_TRADE_COST_PCT = 0.8        # round-trip cost model
+
+
+def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float) -> list:
+    """B-1541 news trade lifecycle, PAPER (user 2026-11-10: good news -> buy / add, bad news -> short, track until the
+    sentiment gets weak). Opens on confirmed + confident news with a live tick, adds a unit when more publishers
+    confirm, closes on: stop, sentiment weak, news reversed, or max hold. No tick -> nothing happens. Returns actions."""
+    acts = []
+    if not (ltp and ltp > 0):
+        return acts
+    for direction in ("long", "short"):
+        sign = 1.0 if direction == "long" else -1.0
+        favour = news_signals.confirmation(stock, "short" if direction == "long" else "long")  # news FOR this direction
+        against = news_signals.confirmation(stock, direction)
+        score = sign * float(stock.get("score") or 0)
+        row = conn.execute("SELECT * FROM news_trades WHERE symbol = ? AND direction = ? AND status = 'open'",
+                           (symbol, direction)).fetchone()
+        if row is None:
+            if favour["actionable"]:
+                stop = ltp * (1 - sign * NEWS_TRADE_STOP_PCT / 100.0)
+                conn.execute(
+                    "INSERT INTO news_trades (symbol, direction, tag, opened_ts, entry_price, stop_price, open_reason, "
+                    "headline, publishers_n, peak_score, last_score, last_ts) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (symbol, direction, NEWS_TRADE_TAGS[direction], now_ts, ltp, round(stop, 2),
+                     f"{favour['event']} confirmed by {', '.join(favour['publishers'])}", (favour["headline"] or "")[:200],
+                     len(favour["publishers"]), score, score, now_ts))
+                acts.append((symbol, direction, "open"))
+            continue
+        move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
+        peak = max(float(row["peak_score"] or 0), score)
+        why = None
+        if move <= -NEWS_TRADE_STOP_PCT:
+            why = f"stop hit ({move:.2f}%)"
+        elif against["actionable"]:
+            why = f"news reversed: {against['event']}"
+        elif score < max(NEWS_TRADE_WEAK_FLOOR, peak * NEWS_TRADE_WEAK_FRACTION):
+            why = f"sentiment weak (score {score:.2f}, peak {peak:.2f})"
+        elif now_ts - float(row["opened_ts"]) >= NEWS_TRADE_MAX_HOLD_DAYS * 86400:
+            why = "max hold reached"
+        if why:
+            conn.execute("UPDATE news_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
+                         "pnl_pct = ?, last_score = ?, peak_score = ?, last_ts = ? WHERE id = ?",
+                         (now_ts, ltp, why, round(move - NEWS_TRADE_COST_PCT, 3), score, peak, now_ts, row["id"]))
+            acts.append((symbol, direction, "close"))
+        elif (favour["actionable"] and len(favour["publishers"]) > int(row["publishers_n"] or 0)
+              and int(row["units"]) < NEWS_TRADE_MAX_UNITS):
+            units = int(row["units"])
+            avg = (float(row["entry_price"]) * units + ltp) / (units + 1)
+            conn.execute("UPDATE news_trades SET units = ?, entry_price = ?, publishers_n = ?, peak_score = ?, "
+                         "last_score = ?, last_ts = ? WHERE id = ?",
+                         (units + 1, round(avg, 4), len(favour["publishers"]), peak, score, now_ts, row["id"]))
+            acts.append((symbol, direction, "add"))
+        else:
+            conn.execute("UPDATE news_trades SET peak_score = ?, last_score = ?, last_ts = ? WHERE id = ?",
+                         (peak, score, now_ts, row["id"]))
+    conn.commit()
+    return acts
+
+
+_NEWS_EXIT_ENGINES = (("real_positions", "long", "buy", "_maybe_place_real_exit"),
+                      ("real_positions_short", "short", "short", "_maybe_place_real_short_exit"),
+                      ("real_positions_swing", "long", "swing", "_maybe_place_real_swing_exit"),
+                      ("real_positions_swing_short", "short", "swing_short", "_maybe_place_real_swing_short_exit"))
+
+
+def _news_exit_real_holdings(conn, now_ts: float) -> list:
+    """B-1541 LIVE (user 2026-11-10: "On bad news it should ... exit the current holdings"): a real position is closed
+    when news against it is confirmed + confident AND a live tick exists (_news_blocks_entry, the same test the entry
+    rule uses). Each position is closed ONLY by its own engine's exit function (engine-ownership rule), which reads
+    Kotak first, cancels the resting stop and logs the reason. Once per symbol/direction/day. Never opens anything."""
+    done = []
+    day = ist_now().strftime("%Y-%m-%d")
+    for table, direction, cat, fn_name in _NEWS_EXIT_ENGINES:
+        try:
+            rows = conn.execute(f"SELECT symbol FROM {table}").fetchall()
+        except Exception:
+            continue
+        for r in rows:
+            sym = r["symbol"]
+            reason = _news_blocks_entry(sym, direction)
+            if not reason:
+                continue
+            if conn.execute("SELECT 1 FROM news_signal_events WHERE day = ? AND symbol = ? AND direction = ? AND "
+                            "kind = 'exit' AND mode = 'live'", (day, sym, direction)).fetchone():
+                continue
+            try:
+                with _SCAN_DECISION_LOCK:
+                    globals()[fn_name](conn, sym, reason=f"news_exit: {reason}"[:300])
+                conn.execute(
+                    "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, headline, "
+                    "ref_price, mode, actionable, tick_live) VALUES (?,?,?,?,'exit',?,'exit',?,?,?,'live',1,1) "
+                    "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET action = 'exit', mode = 'live', "
+                    "actionable = 1, tick_live = 1, reason = excluded.reason, headline = excluded.headline, ts = excluded.ts",
+                    (now_ts, day, sym, direction, cat, reason[:300],
+                     (_NEWS_ACTIONABLE.get((sym, direction)) or {}).get("headline"), _swing_live_ltp(sym) or None))
+                conn.commit()
+                done.append((sym, direction, cat))
+            except Exception as e:
+                print(f"[NEWS EXIT] {sym} {cat} failed (position stays under its own stop): {e}")
+    return done
+
+
+def _news_trade_stats(rows: list) -> dict:
+    closed = [r for r in rows if r["status"] == "closed" and r["pnl_pct"] is not None]
+    wins = sum(float(r["pnl_pct"]) for r in closed if r["pnl_pct"] > 0)
+    losses = -sum(float(r["pnl_pct"]) for r in closed if r["pnl_pct"] <= 0)
+    return {"open": sum(1 for r in rows if r["status"] == "open"), "closed": len(closed),
+            "win_pct": round(100.0 * sum(1 for r in closed if r["pnl_pct"] > 0) / len(closed), 1) if closed else None,
+            "pfnet": round(wins / losses, 3) if losses > 0 else None,
+            "total_pnl_pct": round(sum(float(r["pnl_pct"]) for r in closed), 2) if closed else None}
+
+
 def _news_sweep_watchlist(now_ts: float, symbols=None) -> int:
     """24x7 sweep (user 2026-11-10 "it should be working 24x7"): reads stock news for the next NEWS_SWEEP_PER_PASS
     watchlist symbols so a confirmed event is already known BEFORE a trigger fires. Reads only; never raises."""
@@ -22698,7 +22833,10 @@ def _news_sweep_watchlist(now_ts: float, symbols=None) -> int:
         sym = syms[_news_sweep_cursor[0] % len(syms)]
         _news_sweep_cursor[0] += 1
         try:
-            _news_note_actionable(sym, news_signals.aggregate(news_signals.stock_items(sym)), now_ts)
+            stock = news_signals.aggregate(news_signals.stock_items(sym))
+            _news_note_actionable(sym, stock, now_ts)
+            with closing(get_db()) as conn:
+                _news_trades_step(conn, sym, stock, now_ts, _swing_live_ltp(sym))
             n += 1
         except Exception as e:
             print(f"[NEWS MONITOR] sweep {sym} failed (non-fatal): {e}")
@@ -22836,7 +22974,13 @@ def _news_monitor_pass() -> dict:
             logged = _news_monitor_log(conn, cands, day, now_ts)
             scored = _news_monitor_evaluate(conn, now_ts)
         swept = _news_sweep_watchlist(now_ts)
-        return {"candidates": len(cands), "logged": logged, "scored": scored, "swept": swept}
+        with closing(get_db()) as conn:
+            for r in conn.execute("SELECT DISTINCT symbol FROM news_trades WHERE status = 'open'").fetchall():
+                stock = news_signals.aggregate(news_signals.stock_items(r["symbol"]))  # open news trades: every pass
+                _news_note_actionable(r["symbol"], stock, now_ts)
+                _news_trades_step(conn, r["symbol"], stock, now_ts, _swing_live_ltp(r["symbol"]))
+            exited = _news_exit_real_holdings(conn, now_ts)
+        return {"candidates": len(cands), "logged": logged, "scored": scored, "swept": swept, "exited": exited}
     except Exception as e:
         print(f"[NEWS MONITOR] pass failed (non-fatal): {e}")
         return {"error": str(e)}
@@ -22879,13 +23023,23 @@ def news_monitor_view(days: int = 30):
             cutoff = (ist_now() - dt.timedelta(days=max(1, min(int(days), 365)))).strftime("%Y-%m-%d")
             rows = [dict(r) for r in conn.execute(
                 "SELECT * FROM news_signal_events WHERE day >= ? ORDER BY ts DESC", (cutoff,)).fetchall()]
+            trades = [dict(r) for r in conn.execute("SELECT * FROM news_trades ORDER BY opened_ts DESC LIMIT 300").fetchall()]
+        _ist = lambda t: (dt.datetime.utcfromtimestamp(float(t)) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M") if t else None
+        for t in trades:
+            t["opened_ist"], t["closed_ist"] = _ist(t["opened_ts"]), _ist(t["close_ts"])
+            if t["status"] == "open":
+                px = _swing_live_ltp(t["symbol"])
+                t["open_move_pct"] = round((px / t["entry_price"] - 1) * 100 * (1 if t["direction"] == "long" else -1), 2) if px > 0 else None
         for r in rows:
             r["ts_ist"] = (dt.datetime.utcfromtimestamp(float(r["ts"])) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M")
         out = {"as_of_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "days": days, "stats": _news_monitor_stats(rows),
-               "live_rules": ["entry: a NEW real entry is skipped (skipped_news_avoid) when stock news against it is confirmed "
+               "news_trades": trades, "news_trade_stats": {d: _news_trade_stats([t for t in trades if t["direction"] == d]) for d in ("long", "short")},
+               "live_rules": ["exit: a real holding is closed by its own engine when news against it is confirmed by 2+ trusted "
+                              "publishers, the stock score agrees, and a live tick exists",
+                              "entry: a NEW real entry is skipped (skipped_news_avoid) when stock news against it is confirmed "
                               "by 2+ trusted publishers, the stock score agrees, and a live tick exists"],
                "actionable_now": [{"symbol": k[0], "direction": k[1], **v} for k, v in list(_NEWS_ACTIONABLE.items())],
-               "mode_note": "entries: live (confirmed + confident + live tick only). Open positions: logged only until the exit action is chosen",
+               "mode_note": "live: blocks entries and exits holdings on confirmed + confident news with a live tick. News-driven buys/shorts/adds: paper trades until their PFnet is measured",
                "caused": [r for r in rows if r["mode"] == "live"], "events": rows[:400]}
         try:
             ms = news_signals.market_and_sector_scores()
@@ -23667,6 +23821,7 @@ _GENERIC_MIRROR_TABLES = (
     "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger", "swing_trail_peak", "swing_exit_variant",
     "entry_funnel_events",
     "news_signal_events",  # B-1539
+    "news_trades",  # B-1541
     "pending_open_triggers",  # B-1512
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
