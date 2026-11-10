@@ -34919,7 +34919,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000002216 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2911,
+   "ts": 1794285351.6514385,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_login_failed",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "not sent",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: Kotak Neo totp_login failed: too many request received"
   }
  ],
- "synced_at_utc": "2026-11-10T04:35:01Z"
+ "synced_at_utc": "2026-11-10T04:35:53Z"
 }
