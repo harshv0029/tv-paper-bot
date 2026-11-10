@@ -43,7 +43,7 @@
 <div id="err" class="err"></div>
 
 <h2>1 · Entries and exits caused by the news module</h2>
-<div class="sub">Orders the news module actually changed (an entry it stopped, or a stop it tightened). Empty while the module runs in shadow.</div>
+<div class="sub">Orders the news module actually changed (an entry it stopped, or a stop it tightened). Entries: live. A new real entry is skipped only when the news against it is confirmed by two or more trusted publishers, the stock score agrees, and a live tick exists.</div>
 <div class="wrap"><div id="caused"></div></div>
 
 <h2>2 · How accurate and how profitable</h2>
@@ -60,7 +60,7 @@
   <select id="fact"><option value="">Every verdict</option><option value="against">News against the trade</option><option value="allow">allow</option><option value="caution">caution</option><option value="avoid">avoid</option><option value="hold">hold</option><option value="tighten">tighten</option></select>
   <input id="fsym" placeholder="Symbol" size="12" />
 </div>
-<div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody id="log"></tbody></table></div>
+<div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th>Confirmed + confident?</th><th>Live tick?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody id="log"></tbody></table></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -94,7 +94,7 @@ function row(r) {
   const right = r.correct == null ? '<span class="dim">pending</span>' : (r.correct ? '<span class="pill g">right</span>' : '<span class="pill r">wrong</span>');
   return `<tr><td class="mono">${esc(r.ts_ist)}</td><td class="mono">${esc(r.symbol)}</td><td>${esc(r.direction)}</td><td>${r.kind === "entry" ? "entry trigger" : "open position"}</td><td class="why">${esc(r.category)}</td>
     <td><span class="pill ${PILL[r.action] || "m"}">${esc(r.action)}</span></td><td>${r.kind === "entry" ? (r.real_entry ? "yes" : "no") : '<span class="dim">held</span>'}</td>
-    <td>${r.mode === "live" ? '<span class="pill g">yes</span>' : '<span class="dim">no (shadow)</span>'}</td><td class="num mono">${num(r.stock_score)}</td><td class="num mono">${num(r.ref_price)}</td>
+    <td>${r.mode === "live" ? '<span class="pill g">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.actionable ? '<span class="pill r">yes</span>' : '<span class="dim">no</span>'}</td><td>${r.tick_live ? "yes" : '<span class="dim">no</span>'}</td><td class="num mono">${num(r.stock_score)}</td><td class="num mono">${num(r.ref_price)}</td>
     <td class="num mono">${signed(r.move_pct)}</td><td>${right}</td><td class="why">${esc(r.reason)}${r.headline ? "<br>" + esc(r.headline) : ""}</td></tr>`;
 }
 
@@ -103,7 +103,7 @@ function paint() {
   const k = $("fkind").value, a = $("fact").value, s = $("fsym").value.trim().toUpperCase();
   const ev = (data.events || []).filter(r => (!k || r.kind === k) && (!s || r.symbol.includes(s)) &&
     (!a || (a === "against" ? ["avoid", "caution", "tighten"].includes(r.action) : r.action === a)));
-  $("log").innerHTML = ev.map(row).join("") || '<tr><td colspan="13" class="empty">No verdicts logged yet. They appear when an entry trigger fires or a real position is open (checked about every 5 minutes).</td></tr>';
+  $("log").innerHTML = ev.map(row).join("") || '<tr><td colspan="15" class="empty">No verdicts logged yet. They appear when an entry trigger fires or a real position is open (checked about every 5 minutes).</td></tr>';
 }
 
 async function load() {
@@ -112,12 +112,12 @@ async function load() {
     if (d.error) throw new Error(d.error);
     data = d; $("err").textContent = "";
     const live = (d.live_rules || []).length > 0;
-    $("mode").textContent = live ? "LIVE" : "SHADOW · logs only, changes no order";
+    $("mode").textContent = live ? "LIVE on entries · confirmed + confident + live tick only" : "SHADOW · logs only, changes no order";
     $("mode").className = "mode" + (live ? " live" : "");
     $("asof").textContent = `As of ${d.as_of_ist} · last ${d.days} days · ${d.headlines ?? 0} headlines in the current read · ${d.mode_note || ""}`;
     $("caused").innerHTML = (d.caused || []).length
-      ? `<table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody>${d.caused.map(row).join("")}</tbody></table>`
-      : '<div class="empty">None. The news module has not changed any real entry or exit: it is running in shadow, so every row in the log below is "what it would have said".</div>';
+      ? `<table><thead><tr><th>Time (IST)</th><th>Symbol</th><th>Side</th><th>On</th><th>Strategy / engine</th><th>News verdict</th><th>Bot entered?</th><th>Changed an order?</th><th>Confirmed + confident?</th><th>Live tick?</th><th class="num">Stock score</th><th class="num">Price then</th><th class="num">Move after</th><th>Verdict right?</th><th>Why</th></tr></thead><tbody>${d.caused.map(row).join("")}</tbody></table>`
+      : '<div class="empty">None yet. No entry has met the confirmed + confident + live tick rule.</div>';
     stats(d.stats); mood(d); paint();
   } catch (e) { $("err").textContent = "Could not load /news-monitor: " + e.message; }
 }
