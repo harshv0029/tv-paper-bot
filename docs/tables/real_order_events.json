@@ -42923,7 +42923,31 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: RMS:Rule: Check circuit limit including square off order exc"
+  },
+  {
+   "id": 3578,
+   "ts": 1794287991.5346541,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "kotak_login_failed",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "not sent",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; NOT sent to Kotak (Kotak login failed) | login failed: Kotak Neo totp_login failed: too many request received"
+  },
+  {
+   "id": 3579,
+   "ts": 1794287991.5468588,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | login failed: Kotak Neo totp_login failed: too many request received"
   }
  ],
- "synced_at_utc": "2026-11-10T05:19:51Z"
+ "synced_at_utc": "2026-11-10T05:19:58Z"
 }
