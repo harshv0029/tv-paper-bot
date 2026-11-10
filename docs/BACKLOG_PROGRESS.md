@@ -487,10 +487,10 @@ Total rows: 1294 | closed: 650 | not closed: 644
 | B-1517 | P1 | DEPLOYED | _sector_cap_blocks sums PAPER qty x price for open positions (BOSCHLTD showed Rs52,603) instead of the real... | owed, awaiting, waiting |
 | B-1518 | P1 | DEPLOYED | Session-aware NSE open/close for every engine (user 2026-11-09: swing signal bar = previous trading session... | awaiting, waiting |
 | B-1533 | P1 | BUILT | real_trades grows ~12k rows/day from repeated skip rows (09-Nov: 11,799 rows, ~109 per symbol: skipped_stra... | awaiting, waiting |
-| B-1537 | P1 | BUILT-SHADOW | 2026-11-10 IST | open:, blocked, needs |
-| B-1539 | P1 | BUILT | 2026-11-10 IST | pending, needs, awaiting, waiting |
-| B-1540 | P1 | BUILT | 2026-11-10 IST | blocked, awaiting, waiting |
-| B-1541 | P1 | BUILT | 2026-11-10 IST | open:, awaiting, waiting |
+| B-1537 | P1 | BUILT-SHADOW | 2026-11-10 IST | owed, open:, blocked, needs |
+| B-1539 | P1 | BUILT | 2026-11-10 IST | owed, pending, needs, awaiting, waiting |
+| B-1540 | P1 | BUILT | 2026-11-10 IST | owed, blocked, awaiting, waiting |
+| B-1541 | P1 | BUILT | 2026-11-10 IST | owed, open:, awaiting, waiting |
 | B-1543 | P1 | BUILT | 2026-11-10 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
@@ -558,7 +558,7 @@ Total rows: 1294 | closed: 650 | not closed: 644
 | B-1522 | P2 | OPEN | 2026-11-09 | needs, owner, follow-up |
 | B-1530 | P2 | OPEN | 2026-11-09 | needs, follow-up |
 | B-1534 | P2 | OPEN | 2026-11-09 |  |
-| B-1542 | P2 | BUILT | 2026-11-10 IST | blocked, awaiting, waiting |
+| B-1542 | P2 | BUILT | 2026-11-10 IST | owed, blocked, awaiting, waiting |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1457 | P3 | FROM | 2026-11-03 00:35 IST | owed |
 | B-1503 | P3 | OPEN | 2026-11-06 | owed, follow-up |
