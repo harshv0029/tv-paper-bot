@@ -1943,3 +1943,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - What broke / surprised: Moneycontrol's public RSS is frozen (newest item Apr 2024) though it returns HTTP 200 - a feed must be judged by item age, never by status code. Session network blocks news hosts, so live checks go through Actions.
 - Limits, stated honestly: no historical headline archive exists here, so no backtest PFnet yet; a keyword lexicon misreads negation and sarcasm; headline timing lags price. Evidence must come from a shadow log of verdicts at real triggers before it decides real money.
 - Profit-booking / exit takeaway: on a hard adverse stock headline, tighten the stop (never loosen, never a blind market exit); the saved loss on gap-down names is where this add-on can earn its keep.
+
+## B-1539 - measuring the news add-on before it trades (View 5), 2026-11-10
+- A news rule cannot be backtested here (no headline archive), so the evidence is built forward: every verdict at a real trigger or open position is logged with the price, then scored one session later. Accuracy and "saved %" per verdict type decide whether a rule goes live.
+- Company-name + ticker query with a relevance filter is needed: ticker-only found 0 headlines for YESBANK, name-only pulled other companies' news.
+- Profit-booking / exit takeaway: judge "tighten" by the move after the headline on held stocks; only if tighten verdicts are right clearly more often than not, and the saved % beats the cost of being stopped early, should a hard headline raise a real stop.
