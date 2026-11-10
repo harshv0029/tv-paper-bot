@@ -48563,7 +48563,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | login failed: Kotak Neo totp_login failed: too many request received"
+  },
+  {
+   "id": 4048,
+   "ts": 1794289843.6501102,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000003351",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: RMS:Rule: Check circuit limit including square off order exc"
   }
  ],
- "synced_at_utc": "2026-11-10T05:50:38Z"
+ "synced_at_utc": "2026-11-10T05:50:45Z"
 }
