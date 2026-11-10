@@ -61835,7 +61835,127 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000004288 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5154,
+   "ts": 1794294248.627219,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000004289",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 5155,
+   "ts": 1794294248.6520019,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004286 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5156,
+   "ts": 1794294248.6606061,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004285 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5157,
+   "ts": 1794294248.6661587,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004278 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5158,
+   "ts": 1794294248.671736,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004284 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5159,
+   "ts": 1794294248.6772265,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004281 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5160,
+   "ts": 1794294248.6846871,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004279 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5161,
+   "ts": 1794294248.6938002,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004287 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5162,
+   "ts": 1794294248.6995764,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004280 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5163,
+   "ts": 1794294248.7048147,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000004289 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T07:04:10Z"
+ "synced_at_utc": "2026-11-10T07:04:17Z"
 }
