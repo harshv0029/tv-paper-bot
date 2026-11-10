@@ -27275,7 +27275,31 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261110000001414 rejected: ADAPTER is down"
+  },
+  {
+   "id": 2274,
+   "ts": 1794282872.95185,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000001421",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #7 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 2275,
+   "ts": 1794282872.9622393,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000001421 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T03:54:29Z"
+ "synced_at_utc": "2026-11-10T03:54:37Z"
 }
