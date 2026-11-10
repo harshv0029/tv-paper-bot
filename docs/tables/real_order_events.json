@@ -61379,7 +61379,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000004255 rejected: ADAPTER is down"
+  },
+  {
+   "id": 5116,
+   "ts": 1794294070.1704242,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000004257",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T07:00:59Z"
+ "synced_at_utc": "2026-11-10T07:01:11Z"
 }
