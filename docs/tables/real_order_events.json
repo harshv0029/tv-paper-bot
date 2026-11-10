@@ -58271,7 +58271,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261110000004030 rejected: ADAPTER is down"
+  },
+  {
+   "id": 4857,
+   "ts": 1794293103.4859476,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261110000004032",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-10T06:44:53Z"
+ "synced_at_utc": "2026-11-10T06:45:05Z"
 }
