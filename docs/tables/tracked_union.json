@@ -97,6 +97,22 @@
    "symbol": "IOC.NS"
   },
   {
+   "day": "2026-11-11",
+   "entry_order_id": "261111000057202",
+   "entry_price": 404.75,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "LICI-EQ",
+   "opened_at": 1794369208.9549623,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 365.0,
+   "source": "position",
+   "stop_loss": 364.97143118722096,
+   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
+   "symbol": "LICI.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000822429",
    "entry_price": 131.87,
