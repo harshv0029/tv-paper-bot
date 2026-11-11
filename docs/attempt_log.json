@@ -590999,5 +590999,2357 @@
         "action_taken": "no_setup"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-11-11T10:29:06Z",
+    "attempts": {
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1794392932.694555,
+        "symbol": "ICICIBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.694532"
+      },
+      "GC=F": {
+        "checked_at_utc": 1794392932.6226568,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-11-11 10:28:52.608416",
+        "currency": "USD",
+        "fx_to_inr": 93.68,
+        "last_close": 4057.60009765625,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 4060.6525373488116,
+        "sma_slow": 4060.702818656194,
+        "trend": "down",
+        "capital": 10905.12,
+        "daily_loss_cap": 218.10240000000002,
+        "realized_today": 4.7,
+        "realized_today_pct": 0.043,
+        "budget_remaining": 218.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "TITAN.NS": {
+        "checked_at_utc": 1794392932.7033672,
+        "symbol": "TITAN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.703304"
+      },
+      "BAJAJFINSV.NS": {
+        "checked_at_utc": 1794392932.7155492,
+        "symbol": "BAJAJFINSV.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.715522"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1794392932.7181146,
+        "symbol": "^NSEBANK",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.718090"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1794392932.6444314,
+        "symbol": "RELIANCE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.644399"
+      },
+      "CL=F": {
+        "checked_at_utc": 1794392905.8102036,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-11-11 10:28:25.786065",
+        "currency": "USD",
+        "fx_to_inr": 93.68,
+        "last_close": 86.95999908447266,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 86.90922746322266,
+        "sma_slow": 86.65524981639284,
+        "trend": "up",
+        "capital": 10905.12,
+        "daily_loss_cap": 218.10240000000002,
+        "realized_today": 4.7,
+        "realized_today_pct": 0.043,
+        "budget_remaining": 218.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1794392932.6536863,
+        "symbol": "TCS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.653665"
+      },
+      "ADANIENT.NS": {
+        "checked_at_utc": 1794392932.655452,
+        "symbol": "ADANIENT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.655432"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1794392932.6571834,
+        "symbol": "^BSESN",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.657163"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1794392932.6589365,
+        "symbol": "INFY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.658916"
+      },
+      "DIVISLAB.NS": {
+        "checked_at_utc": 1794392932.7273195,
+        "symbol": "DIVISLAB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.727299"
+      },
+      "APOLLOHOSP.NS": {
+        "checked_at_utc": 1794392932.6647246,
+        "symbol": "APOLLOHOSP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.664704"
+      },
+      "SI=F": {
+        "checked_at_utc": 1794392905.9371161,
+        "symbol": "SI=F",
+        "status": "checked",
+        "time_local": "2026-11-11 10:28:25.904823",
+        "currency": "USD",
+        "fx_to_inr": 93.68,
+        "last_close": 52.92499923706055,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 52.990332648779315,
+        "sma_slow": 52.992608198754255,
+        "trend": "down",
+        "capital": 10905.12,
+        "daily_loss_cap": 218.10240000000002,
+        "realized_today": 4.7,
+        "realized_today_pct": 0.043,
+        "budget_remaining": 218.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "COCHINSHIP.NS": {
+        "checked_at_utc": 1794392932.6724143,
+        "symbol": "COCHINSHIP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.672393"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1794392932.7420416,
+        "symbol": "^NSEI",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.742022"
+      },
+      "MARUTI.NS": {
+        "checked_at_utc": 1794392932.7445872,
+        "symbol": "MARUTI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.744567"
+      },
+      "ADANIPORTS.NS": {
+        "checked_at_utc": 1794392932.68488,
+        "symbol": "ADANIPORTS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.684853"
+      },
+      "GRASIM.NS": {
+        "checked_at_utc": 1794392932.7462583,
+        "symbol": "GRASIM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.746239"
+      },
+      "360ONE.NS": {
+        "checked_at_utc": 1794392905.6260183,
+        "symbol": "360ONE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.625996"
+      },
+      "ABB.NS": {
+        "checked_at_utc": 1794392905.8896215,
+        "symbol": "ABB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.889506"
+      },
+      "ABCAPITAL.NS": {
+        "checked_at_utc": 1794392905.6359546,
+        "symbol": "ABCAPITAL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.635926"
+      },
+      "ADANIENSOL.NS": {
+        "checked_at_utc": 1794392905.4351428,
+        "symbol": "ADANIENSOL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.435106"
+      },
+      "ADANIGREEN.NS": {
+        "checked_at_utc": 1794392905.7065983,
+        "symbol": "ADANIGREEN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.706530"
+      },
+      "ADANIPOWER.NS": {
+        "checked_at_utc": 1794392906.0822635,
+        "symbol": "ADANIPOWER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.082224"
+      },
+      "AMBUJACEM.NS": {
+        "checked_at_utc": 1794392906.0015671,
+        "symbol": "AMBUJACEM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.001536"
+      },
+      "APARINDS.NS": {
+        "checked_at_utc": 1794392905.631245,
+        "symbol": "APARINDS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.631214"
+      },
+      "APLAPOLLO.NS": {
+        "checked_at_utc": 1794392905.5247161,
+        "symbol": "APLAPOLLO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.524683"
+      },
+      "ASHOKLEY.NS": {
+        "checked_at_utc": 1794392905.3869045,
+        "symbol": "ASHOKLEY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.386862"
+      },
+      "ASIANPAINT.NS": {
+        "checked_at_utc": 1794392906.016901,
+        "symbol": "ASIANPAINT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.016855"
+      },
+      "ASTRAL.NS": {
+        "checked_at_utc": 1794392905.713789,
+        "symbol": "ASTRAL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.713757"
+      },
+      "ATGL.NS": {
+        "checked_at_utc": 1794392905.7805572,
+        "symbol": "ATGL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.780523"
+      },
+      "AUBANK.NS": {
+        "checked_at_utc": 1794392905.6428185,
+        "symbol": "AUBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.642785"
+      },
+      "AUROPHARMA.NS": {
+        "checked_at_utc": 1794392905.695531,
+        "symbol": "AUROPHARMA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.695498"
+      },
+      "AXISBANK.NS": {
+        "checked_at_utc": 1794392905.4195614,
+        "symbol": "AXISBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.419530"
+      },
+      "BAJAJ-AUTO.NS": {
+        "checked_at_utc": 1794392932.674416,
+        "symbol": "BAJAJ-AUTO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.674389"
+      },
+      "BAJAJHLDNG.NS": {
+        "checked_at_utc": 1794392932.7231295,
+        "symbol": "BAJAJHLDNG.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.723106"
+      },
+      "NIFTY26N1724900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1724950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725350CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BAJFINANCE.NS": {
+        "checked_at_utc": 1794392932.668582,
+        "symbol": "BAJFINANCE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.668562"
+      },
+      "NIFTY26N1725450CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKBARODA.NS": {
+        "checked_at_utc": 1794392932.7107031,
+        "symbol": "BANKBARODA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.710683"
+      },
+      "NIFTY26NOV24650CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKINDIA.NS": {
+        "checked_at_utc": 1794392932.6421716,
+        "symbol": "BANKINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.642151"
+      },
+      "NIFTY26NOV24700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24750CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24850CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BDL.NS": {
+        "checked_at_utc": 1794392932.7308428,
+        "symbol": "BDL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.730823"
+      },
+      "NIFTY26NOV24900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BEL.NS": {
+        "checked_at_utc": 1794392932.689267,
+        "symbol": "BEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.689239"
+      },
+      "NIFTY26NOV24950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BHARATFORG.NS": {
+        "checked_at_utc": 1794392932.6786773,
+        "symbol": "BHARATFORG.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.678657"
+      },
+      "NIFTY26NOV25000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1794392932.7291508,
+        "symbol": "BHARTIARTL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.729131"
+      },
+      "NIFTY26NOV25050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BHEL.NS": {
+        "checked_at_utc": 1794392932.6826484,
+        "symbol": "BHEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.682626"
+      },
+      "NIFTY26NOV25100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BIOCON.NS": {
+        "checked_at_utc": 1794392932.6993802,
+        "symbol": "BIOCON.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.699349"
+      },
+      "NIFTY26NOV25150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BLUESTARCO.NS": {
+        "checked_at_utc": 1794392932.6624427,
+        "symbol": "BLUESTARCO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.662423"
+      },
+      "NIFTY26NOV25200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BOSCHLTD.NS": {
+        "checked_at_utc": 1794392932.6667912,
+        "symbol": "BOSCHLTD.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.666770"
+      },
+      "NIFTY26NOV25250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BPCL.NS": {
+        "checked_at_utc": 1794392932.680678,
+        "symbol": "BPCL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.680659"
+      },
+      "NIFTY26NOV25350CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BRITANNIA.NS": {
+        "checked_at_utc": 1794392932.7328808,
+        "symbol": "BRITANNIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.732860"
+      },
+      "BSE.NS": {
+        "checked_at_utc": 1794392932.7060544,
+        "symbol": "BSE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.706029"
+      },
+      "NIFTY26NOV25400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "CANBK.NS": {
+        "checked_at_utc": 1794392932.6704688,
+        "symbol": "CANBK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.670448"
+      },
+      "NIFTY26NOV25450CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "CGPOWER.NS": {
+        "checked_at_utc": 1794392932.7253127,
+        "symbol": "CGPOWER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.725284"
+      },
+      "NIFTY26NOV25500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "CHOLAFIN.NS": {
+        "checked_at_utc": 1794392932.7129433,
+        "symbol": "CHOLAFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.712922"
+      },
+      "NIFTY26NOV25550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "CIPLA.NS": {
+        "checked_at_utc": 1794392932.7381735,
+        "symbol": "CIPLA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.738149"
+      },
+      "NIFTY26N1725350PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725450PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "COALINDIA.NS": {
+        "checked_at_utc": 1794392932.6870902,
+        "symbol": "COALINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.687066"
+      },
+      "NIFTY26N1725550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24650PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "COFORGE.NS": {
+        "checked_at_utc": 1794392932.7346392,
+        "symbol": "COFORGE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.734619"
+      },
+      "NIFTY26NOV24750PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "COLPAL.NS": {
+        "checked_at_utc": 1794392932.6920452,
+        "symbol": "COLPAL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.692013"
+      },
+      "CONCOR.NS": {
+        "checked_at_utc": 1794392932.7086358,
+        "symbol": "CONCOR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.708616"
+      },
+      "NIFTY26NOV24800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "CUMMINSIND.NS": {
+        "checked_at_utc": 1794392932.646249,
+        "symbol": "CUMMINSIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.646229"
+      },
+      "DABUR.NS": {
+        "checked_at_utc": 1794392932.7362914,
+        "symbol": "DABUR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.736273"
+      },
+      "NIFTY26NOV24850PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV24950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "DIXON.NS": {
+        "checked_at_utc": 1794392932.7210588,
+        "symbol": "DIXON.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.721037"
+      },
+      "DLF.NS": {
+        "checked_at_utc": 1794392932.6499267,
+        "symbol": "DLF.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.649907"
+      },
+      "NIFTY26NOV25150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "DMART.NS": {
+        "checked_at_utc": 1794392932.6482534,
+        "symbol": "DMART.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.648233"
+      },
+      "NIFTY26NOV25200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "DRREDDY.NS": {
+        "checked_at_utc": 1794392932.6766183,
+        "symbol": "DRREDDY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.676597"
+      },
+      "NIFTY26NOV25250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26NOV25350PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "EICHERMOT.NS": {
+        "checked_at_utc": 1794392932.7399302,
+        "symbol": "EICHERMOT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.739910"
+      },
+      "NIFTY26NOV25400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "ENRIN.NS": {
+        "checked_at_utc": 1794392932.6403985,
+        "symbol": "ENRIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.640372"
+      },
+      "NIFTY26NOV25450PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "ETERNAL.NS": {
+        "checked_at_utc": 1794392932.660684,
+        "symbol": "ETERNAL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.660665"
+      },
+      "NIFTY26NOV25500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "EXIDEIND.NS": {
+        "checked_at_utc": 1794392932.651651,
+        "symbol": "EXIDEIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:52.651632"
+      },
+      "NIFTY26NOV25550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FEDERALBNK.NS": {
+        "checked_at_utc": 1794392729.711895,
+        "symbol": "FEDERALBNK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.711872"
+      },
+      "BANKNIFTY26NOV59600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FORTIS.NS": {
+        "checked_at_utc": 1794392729.7966125,
+        "symbol": "FORTIS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.796584"
+      },
+      "BANKNIFTY26NOV59700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GAIL.NS": {
+        "checked_at_utc": 1794392729.5184762,
+        "symbol": "GAIL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.518451"
+      },
+      "GLENMARK.NS": {
+        "checked_at_utc": 1794392729.6143928,
+        "symbol": "GLENMARK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.614305"
+      },
+      "BANKNIFTY26NOV59800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GMRAIRPORT.NS": {
+        "checked_at_utc": 1794392729.825263,
+        "symbol": "GMRAIRPORT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.825242"
+      },
+      "BANKNIFTY26NOV59900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GODFRYPHLP.NS": {
+        "checked_at_utc": 1794392729.5279663,
+        "symbol": "GODFRYPHLP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.527943"
+      },
+      "BANKNIFTY26NOV60000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GODREJCP.NS": {
+        "checked_at_utc": 1794392729.7206013,
+        "symbol": "GODREJCP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.720566"
+      },
+      "BANKNIFTY26NOV60300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GODREJPROP.NS": {
+        "checked_at_utc": 1794392729.7886813,
+        "symbol": "GODREJPROP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.788660"
+      },
+      "BANKNIFTY26NOV60500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV59700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GROWW.NS": {
+        "checked_at_utc": 1794392729.7012866,
+        "symbol": "GROWW.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.701255"
+      },
+      "BANKNIFTY26NOV59800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "GVT&D.NS": {
+        "checked_at_utc": 1794392729.7926714,
+        "symbol": "GVT&D.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.792642"
+      },
+      "BANKNIFTY26NOV59900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HAL.NS": {
+        "checked_at_utc": 1794392729.728192,
+        "symbol": "HAL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.728171"
+      },
+      "BANKNIFTY26NOV60000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HAVELLS.NS": {
+        "checked_at_utc": 1794392729.7238164,
+        "symbol": "HAVELLS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.723781"
+      },
+      "HCLTECH.NS": {
+        "checked_at_utc": 1794392729.49379,
+        "symbol": "HCLTECH.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.493733"
+      },
+      "BANKNIFTY26NOV60100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HDFCAMC.NS": {
+        "checked_at_utc": 1794392729.8810859,
+        "symbol": "HDFCAMC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.881061"
+      },
+      "BANKNIFTY26NOV60300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "BANKNIFTY26NOV60600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1794392729.590389,
+        "symbol": "HDFCBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:55:29.590363"
+      },
+      "BANKNIFTY26NOV60700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HDFCLIFE.NS": {
+        "checked_at_utc": 1794392771.693595,
+        "symbol": "HDFCLIFE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.693545"
+      },
+      "SENSEX26N1280800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HEROMOTOCO.NS": {
+        "checked_at_utc": 1794392772.8228874,
+        "symbol": "HEROMOTOCO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.822841"
+      },
+      "SENSEX26N1281000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HINDALCO.NS": {
+        "checked_at_utc": 1794392771.8989644,
+        "symbol": "HINDALCO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.898926"
+      },
+      "SENSEX26N1281200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HINDCOPPER.NS": {
+        "checked_at_utc": 1794392771.791869,
+        "symbol": "HINDCOPPER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.791841"
+      },
+      "HINDPETRO.NS": {
+        "checked_at_utc": 1794392771.211705,
+        "symbol": "HINDPETRO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.211653"
+      },
+      "SENSEX26N1281400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1794392772.1187787,
+        "symbol": "HINDUNILVR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.118735"
+      },
+      "SENSEX26N1281500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HINDZINC.NS": {
+        "checked_at_utc": 1794392772.904028,
+        "symbol": "HINDZINC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.903980"
+      },
+      "SENSEX26N1281600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "HYUNDAI.NS": {
+        "checked_at_utc": 1794392771.7076635,
+        "symbol": "HYUNDAI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.707625"
+      },
+      "SENSEX26N1281700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "ICICIAMC.NS": {
+        "checked_at_utc": 1794392772.6041706,
+        "symbol": "ICICIAMC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.604124"
+      },
+      "SENSEX26N1281800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1282000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1282100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "ICICIGI.NS": {
+        "checked_at_utc": 1794392772.1775384,
+        "symbol": "ICICIGI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.177486"
+      },
+      "SENSEX26NOV81000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "IDEA.NS": {
+        "checked_at_utc": 1794392771.1000252,
+        "symbol": "IDEA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.099985"
+      },
+      "SENSEX26NOV81100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "IDFCFIRSTB.NS": {
+        "checked_at_utc": 1794392772.3856914,
+        "symbol": "IDFCFIRSTB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.385649"
+      },
+      "SENSEX26NOV81200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "INDHOTEL.NS": {
+        "checked_at_utc": 1794392772.4221766,
+        "symbol": "INDHOTEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.422126"
+      },
+      "SENSEX26NOV81300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "INDIANB.NS": {
+        "checked_at_utc": 1794392772.6818871,
+        "symbol": "INDIANB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.681857"
+      },
+      "INDIGO.NS": {
+        "checked_at_utc": 1794392771.4876308,
+        "symbol": "INDIGO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.487589"
+      },
+      "SENSEX26NOV81500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "INDUSINDBK.NS": {
+        "checked_at_utc": 1794392772.2916844,
+        "symbol": "INDUSINDBK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.291635"
+      },
+      "INDUSTOWER.NS": {
+        "checked_at_utc": 1794392771.6040914,
+        "symbol": "INDUSTOWER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.604051"
+      },
+      "SENSEX26N1280800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1280900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "IOC.NS": {
+        "checked_at_utc": 1794392771.8048441,
+        "symbol": "IOC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.804791"
+      },
+      "IRCTC.NS": {
+        "checked_at_utc": 1794392771.3950512,
+        "symbol": "IRCTC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.394927"
+      },
+      "SENSEX26N1281400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "IREDA.NS": {
+        "checked_at_utc": 1794392772.0251842,
+        "symbol": "IREDA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.025139"
+      },
+      "SENSEX26N1281700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1281800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "IRFC.NS": {
+        "checked_at_utc": 1794392771.7805703,
+        "symbol": "IRFC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.780531"
+      },
+      "SENSEX26N1281900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26N1282000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1794392769.7578013,
+        "symbol": "ITC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:09.757759"
+      },
+      "SENSEX26N1282100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV80900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "JINDALSTEL.NS": {
+        "checked_at_utc": 1794392771.5882173,
+        "symbol": "JINDALSTEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:11.588171"
+      },
+      "SENSEX26NOV81000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "JIOFIN.NS": {
+        "checked_at_utc": 1794392772.9287207,
+        "symbol": "JIOFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.928684"
+      },
+      "SENSEX26NOV81100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "JSWENERGY.NS": {
+        "checked_at_utc": 1794392772.9407544,
+        "symbol": "JSWENERGY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.940716"
+      },
+      "SENSEX26NOV81200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "JSWSTEEL.NS": {
+        "checked_at_utc": 1794392772.6994395,
+        "symbol": "JSWSTEEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.699383"
+      },
+      "SENSEX26NOV81300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "JUBLFOOD.NS": {
+        "checked_at_utc": 1794392772.989607,
+        "symbol": "JUBLFOOD.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.989577"
+      },
+      "KALYANKJIL.NS": {
+        "checked_at_utc": 1794392772.5911257,
+        "symbol": "KALYANKJIL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.591084"
+      },
+      "SENSEX26NOV81400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "KEI.NS": {
+        "checked_at_utc": 1794392769.2422526,
+        "symbol": "KEI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:09.242213"
+      },
+      "SENSEX26NOV81700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "KOTAKBANK.NS": {
+        "checked_at_utc": 1794392772.5780883,
+        "symbol": "KOTAKBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.578045"
+      },
+      "SENSEX26NOV81800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LAURUSLABS.NS": {
+        "checked_at_utc": 1794392772.196166,
+        "symbol": "LAURUSLABS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.196129"
+      },
+      "LENSKART.NS": {
+        "checked_at_utc": 1794392772.9188447,
+        "symbol": "LENSKART.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.918807"
+      },
+      "SENSEX26NOV82000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LGEINDIA.NS": {
+        "checked_at_utc": 1794392772.7858033,
+        "symbol": "LGEINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.785763"
+      },
+      "LICHSGFIN.NS": {
+        "checked_at_utc": 1794392769.4019666,
+        "symbol": "LICHSGFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:09.401934"
+      },
+      "FINNIFTY26NOV27050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LICI.NS": {
+        "checked_at_utc": 1794392772.985499,
+        "symbol": "LICI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:56:12.985461"
+      },
+      "FINNIFTY26NOV27100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LODHA.NS": {
+        "checked_at_utc": 1794392834.2089221,
+        "symbol": "LODHA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:14.208842"
+      },
+      "FINNIFTY26NOV27200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LT.NS": {
+        "checked_at_utc": 1794392834.943227,
+        "symbol": "LT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:14.943195"
+      },
+      "LTF.NS": {
+        "checked_at_utc": 1794392836.3993587,
+        "symbol": "LTF.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:16.399293"
+      },
+      "FINNIFTY26NOV27250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LTM.NS": {
+        "checked_at_utc": 1794392837.443373,
+        "symbol": "LTM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.443313"
+      },
+      "FINNIFTY26NOV27300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27350CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "LUPIN.NS": {
+        "checked_at_utc": 1794392835.9578893,
+        "symbol": "LUPIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:15.957836"
+      },
+      "FINNIFTY26NOV27450CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "M&M.NS": {
+        "checked_at_utc": 1794392839.8628325,
+        "symbol": "M&M.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:19.862797"
+      },
+      "FINNIFTY26NOV27500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "M&MFIN.NS": {
+        "checked_at_utc": 1794392838.0094435,
+        "symbol": "M&MFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:18.009412"
+      },
+      "FINNIFTY26NOV27550CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MAHABANK.NS": {
+        "checked_at_utc": 1794392840.0949209,
+        "symbol": "MAHABANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.094863"
+      },
+      "FINNIFTY26NOV27650CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MANKIND.NS": {
+        "checked_at_utc": 1794392838.2035,
+        "symbol": "MANKIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:18.203448"
+      },
+      "MARICO.NS": {
+        "checked_at_utc": 1794392836.9149086,
+        "symbol": "MARICO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:16.914874"
+      },
+      "FINNIFTY26NOV27700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27750CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MAXHEALTH.NS": {
+        "checked_at_utc": 1794392836.137994,
+        "symbol": "MAXHEALTH.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:16.137951"
+      },
+      "FINNIFTY26NOV27100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MAZDOCK.NS": {
+        "checked_at_utc": 1794392837.3555067,
+        "symbol": "MAZDOCK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.355475"
+      },
+      "FINNIFTY26NOV27150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MCX.NS": {
+        "checked_at_utc": 1794392837.1194756,
+        "symbol": "MCX.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.119443"
+      },
+      "FINNIFTY26NOV27200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27350PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MEESHO.NS": {
+        "checked_at_utc": 1794392837.5343769,
+        "symbol": "MEESHO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.534312"
+      },
+      "FINNIFTY26NOV27400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MFSL.NS": {
+        "checked_at_utc": 1794392834.3684092,
+        "symbol": "MFSL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:14.368371"
+      },
+      "FINNIFTY26NOV27450PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MOTHERSON.NS": {
+        "checked_at_utc": 1794392837.635826,
+        "symbol": "MOTHERSON.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.635785"
+      },
+      "FINNIFTY26NOV27550PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MOTILALOFS.NS": {
+        "checked_at_utc": 1794392838.5828009,
+        "symbol": "MOTILALOFS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:18.582766"
+      },
+      "FINNIFTY26NOV27600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MPHASIS.NS": {
+        "checked_at_utc": 1794392840.8865342,
+        "symbol": "MPHASIS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.886495"
+      },
+      "FINNIFTY26NOV27650PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MRF.NS": {
+        "checked_at_utc": 1794392836.3038042,
+        "symbol": "MRF.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:16.303768"
+      },
+      "FINNIFTY26NOV27700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "FINNIFTY26NOV27750PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MUTHOOTFIN.NS": {
+        "checked_at_utc": 1794392840.785005,
+        "symbol": "MUTHOOTFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.784966"
+      },
+      "FINNIFTY26NOV27800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NATIONALUM.NS": {
+        "checked_at_utc": 1794392835.0428789,
+        "symbol": "NATIONALUM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:15.042847"
+      },
+      "NAUKRI.NS": {
+        "checked_at_utc": 1794392836.7949731,
+        "symbol": "NAUKRI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:16.794944"
+      },
+      "NESTLEIND.NS": {
+        "checked_at_utc": 1794392832.764503,
+        "symbol": "NESTLEIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:12.764472"
+      },
+      "MIDCPNIFTY26NOV13925CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NHPC.NS": {
+        "checked_at_utc": 1794392837.2036004,
+        "symbol": "NHPC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:17.203541"
+      },
+      "MIDCPNIFTY26NOV13950CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13975CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14025CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NLCINDIA.NS": {
+        "checked_at_utc": 1794392840.7201927,
+        "symbol": "NLCINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.720156"
+      },
+      "MIDCPNIFTY26NOV14050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14075CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NMDC.NS": {
+        "checked_at_utc": 1794392839.988052,
+        "symbol": "NMDC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:19.987999"
+      },
+      "MIDCPNIFTY26NOV14125CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14150CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NTPC.NS": {
+        "checked_at_utc": 1794392835.3195455,
+        "symbol": "NTPC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:15.319507"
+      },
+      "MIDCPNIFTY26NOV14175CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14225CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14250CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14275CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NYKAA.NS": {
+        "checked_at_utc": 1794392838.326564,
+        "symbol": "NYKAA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:18.326535"
+      },
+      "MIDCPNIFTY26NOV13925PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV13975PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14025PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "OBEROIRLTY.NS": {
+        "checked_at_utc": 1794392840.6649754,
+        "symbol": "OBEROIRLTY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.664898"
+      },
+      "MIDCPNIFTY26NOV14075PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14125PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14175PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "OFSS.NS": {
+        "checked_at_utc": 1794392834.8201575,
+        "symbol": "OFSS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:14.820117"
+      },
+      "MIDCPNIFTY26NOV14225PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14275PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "MIDCPNIFTY26NOV14300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725050CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "OIL.NS": {
+        "checked_at_utc": 1794392840.7930756,
+        "symbol": "OIL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.793052"
+      },
+      "ONGC.NS": {
+        "checked_at_utc": 1794392840.7338035,
+        "symbol": "ONGC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.733769"
+      },
+      "PAGEIND.NS": {
+        "checked_at_utc": 1794392839.5997083,
+        "symbol": "PAGEIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:19.599671"
+      },
+      "PATANJALI.NS": {
+        "checked_at_utc": 1794392840.2924542,
+        "symbol": "PATANJALI.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.292418"
+      },
+      "PAYTM.NS": {
+        "checked_at_utc": 1794392840.7288976,
+        "symbol": "PAYTM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:20.728858"
+      },
+      "PERSISTENT.NS": {
+        "checked_at_utc": 1794392872.794078,
+        "symbol": "PERSISTENT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.794056"
+      },
+      "PFC.NS": {
+        "checked_at_utc": 1794392872.8314104,
+        "symbol": "PFC.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.831387"
+      },
+      "PHOENIXLTD.NS": {
+        "checked_at_utc": 1794392872.8036864,
+        "symbol": "PHOENIXLTD.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.803661"
+      },
+      "PIDILITIND.NS": {
+        "checked_at_utc": 1794392872.8265195,
+        "symbol": "PIDILITIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.826489"
+      },
+      "PIIND.NS": {
+        "checked_at_utc": 1794392872.9301796,
+        "symbol": "PIIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.930149"
+      },
+      "PNB.NS": {
+        "checked_at_utc": 1794392872.9119985,
+        "symbol": "PNB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.911950"
+      },
+      "POLICYBZR.NS": {
+        "checked_at_utc": 1794392873.015602,
+        "symbol": "POLICYBZR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.015565"
+      },
+      "POLYCAB.NS": {
+        "checked_at_utc": 1794392872.9850502,
+        "symbol": "POLYCAB.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.984981"
+      },
+      "POWERGRID.NS": {
+        "checked_at_utc": 1794392872.9905317,
+        "symbol": "POWERGRID.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.990509"
+      },
+      "POWERINDIA.NS": {
+        "checked_at_utc": 1794392873.1868608,
+        "symbol": "POWERINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.186814"
+      },
+      "PREMIERENE.NS": {
+        "checked_at_utc": 1794392873.1268888,
+        "symbol": "PREMIERENE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.126838"
+      },
+      "PRESTIGE.NS": {
+        "checked_at_utc": 1794392873.2104661,
+        "symbol": "PRESTIGE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.210445"
+      },
+      "RADICO.NS": {
+        "checked_at_utc": 1794392872.882019,
+        "symbol": "RADICO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.881961"
+      },
+      "RECLTD.NS": {
+        "checked_at_utc": 1794392873.0905943,
+        "symbol": "RECLTD.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.090562"
+      },
+      "RVNL.NS": {
+        "checked_at_utc": 1794392872.905416,
+        "symbol": "RVNL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.905389"
+      },
+      "SAIL.NS": {
+        "checked_at_utc": 1794392873.131471,
+        "symbol": "SAIL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.131451"
+      },
+      "SBICARD.NS": {
+        "checked_at_utc": 1794392872.9164286,
+        "symbol": "SBICARD.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.916362"
+      },
+      "SBILIFE.NS": {
+        "checked_at_utc": 1794392873.1357133,
+        "symbol": "SBILIFE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.135690"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1794392873.122409,
+        "symbol": "SBIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.122389"
+      },
+      "SHRIRAMFIN.NS": {
+        "checked_at_utc": 1794392872.9959247,
+        "symbol": "SHRIRAMFIN.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.995896"
+      },
+      "SIEMENS.NS": {
+        "checked_at_utc": 1794392873.1817832,
+        "symbol": "SIEMENS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.181755"
+      },
+      "SOLARINDS.NS": {
+        "checked_at_utc": 1794392872.8896177,
+        "symbol": "SOLARINDS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.889593"
+      },
+      "SRF.NS": {
+        "checked_at_utc": 1794392873.0304832,
+        "symbol": "SRF.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.030457"
+      },
+      "SUNPHARMA.NS": {
+        "checked_at_utc": 1794392872.9002907,
+        "symbol": "SUNPHARMA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.900240"
+      },
+      "SUPREMEIND.NS": {
+        "checked_at_utc": 1794392873.112285,
+        "symbol": "SUPREMEIND.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.112249"
+      },
+      "SUZLON.NS": {
+        "checked_at_utc": 1794392873.1175723,
+        "symbol": "SUZLON.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.117493"
+      },
+      "SWIGGY.NS": {
+        "checked_at_utc": 1794392872.8365972,
+        "symbol": "SWIGGY.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.836576"
+      },
+      "TATACAP.NS": {
+        "checked_at_utc": 1794392873.0205784,
+        "symbol": "TATACAP.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.020551"
+      },
+      "TATACOMM.NS": {
+        "checked_at_utc": 1794392872.7072692,
+        "symbol": "TATACOMM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.707243"
+      },
+      "TATACONSUM.NS": {
+        "checked_at_utc": 1794392873.0967903,
+        "symbol": "TATACONSUM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.096755"
+      },
+      "TATAPOWER.NS": {
+        "checked_at_utc": 1794392873.1078303,
+        "symbol": "TATAPOWER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.107803"
+      },
+      "TATASTEEL.NS": {
+        "checked_at_utc": 1794392872.7892597,
+        "symbol": "TATASTEEL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.789228"
+      },
+      "TECHM.NS": {
+        "checked_at_utc": 1794392873.1019568,
+        "symbol": "TECHM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:53.101936"
+      },
+      "TIINDIA.NS": {
+        "checked_at_utc": 1794392872.925455,
+        "symbol": "TIINDIA.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.925419"
+      },
+      "TMCV.NS": {
+        "checked_at_utc": 1794392872.921082,
+        "symbol": "TMCV.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:57:52.921062"
+      },
+      "TMPV.NS": {
+        "checked_at_utc": 1794392905.502625,
+        "symbol": "TMPV.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.502593"
+      },
+      "TORNTPHARM.NS": {
+        "checked_at_utc": 1794392905.5364642,
+        "symbol": "TORNTPHARM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.536436"
+      },
+      "TRENT.NS": {
+        "checked_at_utc": 1794392905.993104,
+        "symbol": "TRENT.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.992990"
+      },
+      "TVSMOTOR.NS": {
+        "checked_at_utc": 1794392905.8978693,
+        "symbol": "TVSMOTOR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.897844"
+      },
+      "ULTRACEMCO.NS": {
+        "checked_at_utc": 1794392905.5171494,
+        "symbol": "ULTRACEMCO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.517124"
+      },
+      "UNIONBANK.NS": {
+        "checked_at_utc": 1794392905.5321107,
+        "symbol": "UNIONBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.532079"
+      },
+      "UNITDSPR.NS": {
+        "checked_at_utc": 1794392906.04429,
+        "symbol": "UNITDSPR.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.043684"
+      },
+      "UPL.NS": {
+        "checked_at_utc": 1794392905.7208278,
+        "symbol": "UPL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.720795"
+      },
+      "VAML.NS": {
+        "checked_at_utc": 1794392905.4124677,
+        "symbol": "VAML.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.412392"
+      },
+      "VBL.NS": {
+        "checked_at_utc": 1794392906.0337963,
+        "symbol": "VBL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.033741"
+      },
+      "VEDL.NS": {
+        "checked_at_utc": 1794392905.394457,
+        "symbol": "VEDL.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.394418"
+      },
+      "VMM.NS": {
+        "checked_at_utc": 1794392905.509778,
+        "symbol": "VMM.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.509745"
+      },
+      "VOLTAS.NS": {
+        "checked_at_utc": 1794392906.0220158,
+        "symbol": "VOLTAS.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.021983"
+      },
+      "WAAREEENER.NS": {
+        "checked_at_utc": 1794392906.0108602,
+        "symbol": "WAAREEENER.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:26.010770"
+      },
+      "WIPRO.NS": {
+        "checked_at_utc": 1794392905.6818657,
+        "symbol": "WIPRO.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.681840"
+      },
+      "YESBANK.NS": {
+        "checked_at_utc": 1794392905.615043,
+        "symbol": "YESBANK.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.615003"
+      },
+      "ZYDUSLIFE.NS": {
+        "checked_at_utc": 1794392905.620832,
+        "symbol": "ZYDUSLIFE.NS",
+        "status": "closed",
+        "time_local": "2026-11-11 15:58:25.620797"
+      },
+      "NIFTY26N1724900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1724950PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725250PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1724850CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725050PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      },
+      "NIFTY26N1725150PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1794390878.4361782,
+        "action_taken": "no_setup"
+      }
+    }
   }
 ]
