@@ -24278,6 +24278,37 @@ def _generic_mirror_table_columns(conn, table: str) -> list:
     return [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
 
 
+# B-1549 (2026-11-11: real_trades restarted at id 1 after the 10:48 IST restart, losing the 09:15 buys and the 10:10
+# LENSKART skip reason): an append-only log written BEFORE its restore succeeded used to be marked hydrated without
+# restoring, and its next push overwrote the remote history. These tables are MERGED instead (same fix B-1516 gave
+# real_order_events): remote rows keep their ids, local rows written meanwhile are re-added with fresh ids unless the
+# same row (by content key) is already in the remote copy.
+_GENERIC_MIRROR_MERGE_LOG_TABLES = {"real_trades": ("ts", "symbol", "side", "status")}
+
+
+def _generic_merge_log_table(conn, table: str, rows: list, cols) -> bool:
+    key_cols = _GENERIC_MIRROR_MERGE_LOG_TABLES[table]
+    local = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()]
+    _key = lambda r: tuple(str(r.get(k)) for k in key_cols)
+    remote_keys = {_key(r) for r in rows}
+    conn.execute(f"DELETE FROM {table}")
+    for row in rows:
+        keep = {k: v for k, v in row.items() if k in cols}
+        if keep:
+            conn.execute(f"INSERT OR REPLACE INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})",
+                         tuple(keep.values()))
+    added = 0
+    for row in local:
+        if _key(row) in remote_keys:
+            continue
+        keep = {k: v for k, v in row.items() if k in cols and k != "id"}
+        conn.execute(f"INSERT INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})", tuple(keep.values()))
+        added += 1
+    conn.commit()
+    print(f"[table_mirror] merged {len(rows)} remote + {added} local row(s) into {table} (B-1549)")
+    return True
+
+
 def _generic_hydrate_table(conn, table: str) -> bool:
     """Restores one table from Upstash. Returns True iff Upstash was reached
     (an empty remote is still authoritative-and-reached)."""
@@ -24286,7 +24317,8 @@ def _generic_hydrate_table(conn, table: str) -> bool:
         return True
     meta = json.loads(meta_raw)
     local_n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-    if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE:
+    merge = local_n > 0 and table in _GENERIC_MIRROR_MERGE_LOG_TABLES
+    if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE and not merge:
         return True
     parts = []
     for i in range(int(meta.get("chunks", 0))):
@@ -24296,6 +24328,8 @@ def _generic_hydrate_table(conn, table: str) -> bool:
         parts.append(part)
     rows = json.loads("".join(parts)) if parts else []
     cols = _generic_mirror_table_columns(conn, table)
+    if merge:
+        return _generic_merge_log_table(conn, table, rows, cols)
     restored = 0
     for row in rows:
         keep = {k: v for k, v in row.items() if k in cols}

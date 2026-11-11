@@ -447,7 +447,7 @@ Total rows: 1301 | closed: 655 | not closed: 646
 | B-1363 | P0 | P0 | FIX COMMITTED 2026-11-02 (branch work-b1363, not deployed); owed: deploy + a week of opens all before 09:16... | owed, pending, verify, follow-up |
 | B-1520 | P0 | IOC | 2026-11-09 | owed, pending |
 | B-1545 | P0 | BUILT | 2026-11-11 IST | owed |
-| B-1549 | P0 | OPEN | 2026-11-11 IST | open: |
+| B-1549 | P0 | OPEN | 2026-11-11 IST | owed, follow-up, awaiting, waiting |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
