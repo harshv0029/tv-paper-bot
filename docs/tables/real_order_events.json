@@ -89111,7 +89111,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs126.04",
    "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs126.04 (target stop Rs126.04)"
+  },
+  {
+   "id": 7427,
+   "ts": 1794368732.553783,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2: skipped_strategy_not_viable: strategy 'oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2' no longer viable on the fresh stack re-check just before the order viability_reason=below_floor"
+  },
+  {
+   "id": 7428,
+   "ts": 1794368732.7472801,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"10 nse symbols printed new trades today within 120s\", \"symbols\": [\"KALYANKJIL.NS\", \"RECLTD.NS\", \"SBICARD.NS\", \"SBIN.NS\", \"SUNPHARMA.NS\", \"TCS.NS\", \"TRENT.NS\", \"UNIONBANK.NS\", \"VBL.NS\", \"YESBANK.NS\"], \"count\": 10, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 22.7}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
   }
  ],
- "synced_at_utc": "2026-11-11T03:45:29Z"
+ "synced_at_utc": "2026-11-11T03:45:43Z"
 }
