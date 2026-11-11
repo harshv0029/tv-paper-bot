@@ -89219,7 +89219,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs768.80",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7436,
+   "ts": 1794369071.3041806,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000048028",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs768.80",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs768.80 already covers the position (target stop Rs768.78), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-11T03:51:13Z"
+ "synced_at_utc": "2026-11-11T03:51:32Z"
 }
