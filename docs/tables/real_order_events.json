@@ -89917,7 +89917,7 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
-   "id": 7495,
+   "id": 7494,
    "ts": 1794374018.442219,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -89929,7 +89929,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7494,
+   "id": 7495,
    "ts": 1794374030.8073978,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -89965,7 +89965,7 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
-   "id": 7499,
+   "id": 7498,
    "ts": 1794374308.599029,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -89977,7 +89977,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7498,
+   "id": 7499,
    "ts": 1794374322.9481952,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -90001,7 +90001,7 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
-   "id": 7502,
+   "id": 7501,
    "ts": 1794374412.721345,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -90013,7 +90013,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7501,
+   "id": 7502,
    "ts": 1794374426.036387,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -90037,7 +90037,7 @@
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   },
   {
-   "id": 7505,
+   "id": 7504,
    "ts": 1794374498.1740606,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90049,7 +90049,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7504,
+   "id": 7505,
    "ts": 1794374512.3385174,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90073,7 +90073,7 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
-   "id": 7508,
+   "id": 7507,
    "ts": 1794374598.093496,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -90085,7 +90085,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7507,
+   "id": 7508,
    "ts": 1794374611.2381508,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
@@ -90145,7 +90145,7 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=2"
   },
   {
-   "id": 7514,
+   "id": 7513,
    "ts": 1794375687.3768158,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -90157,7 +90157,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7513,
+   "id": 7514,
    "ts": 1794375701.9541268,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -90169,5 +90169,5 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs488.80 to Rs520.70 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T05:43:19Z"
+ "synced_at_utc": "2026-11-11T05:50:08Z"
 }
