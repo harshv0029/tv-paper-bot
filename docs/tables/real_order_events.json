@@ -90001,6 +90001,18 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
+   "id": 7502,
+   "ts": 1794374412.721345,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000242591",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7501,
    "ts": 1794374426.036387,
    "symbol": "BANKBARODA.NS",
@@ -90011,7 +90023,19 @@
    "prev_state": "Rs269.85",
    "new_state": "Rs270.57",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 7503,
+   "ts": 1794374484.5355651,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "270.57",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-11T05:20:36Z"
+ "synced_at_utc": "2026-11-11T05:21:28Z"
 }
