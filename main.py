@@ -22749,6 +22749,16 @@ def _news_live_ltp(symbol: str, now_ts: float = None) -> float:
         return 0.0
 
 
+def _news_opened_outside_session(opened_ts) -> bool:
+    """B-1546: True when a news trade's open time was not inside an NSE session on a trading day (calendar only,
+    holidays excluded), i.e. it opened on a stale tick before B-1545 and no real order could have followed."""
+    try:
+        loc = dt.datetime.utcfromtimestamp(float(opened_ts)) + dt.timedelta(minutes=IST_OFFSET_MIN)
+        return not (_nse_calendar_trading_day(loc) and _nse_equity_calendar_open(loc))
+    except Exception:
+        return False
+
+
 def _news_trail_stop(direction: str, entry_price: float, stop: float, peak: float) -> float:
     """B-1544 (user 2026-11-10 IST: "SL is 3%, but keep trailing SL with 0.5% of entry price"; chose "tight 0.5% behind
     peak"): the stop stays where it is (3% from entry at the open) until the price has moved past the entry in the
@@ -22791,6 +22801,27 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                 acts.append((symbol, direction, "open"))
                 if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):  # B-1543
                     acts.append((symbol, direction, "real_open"))
+            continue
+        if (direction == "long" and row["mode"] == "paper" and favour["actionable"]
+                and _news_opened_outside_session(row["opened_ts"])):
+            # B-1546 (user 2026-11-11 IST: "Get the Lenskart on real money trade if the confidence is still high"): a
+            # paper long opened outside the session (stale tick, pre-B-1545) never had a real order. With the news still
+            # confirmed + confident AND a fresh in-session tick now, re-base it: close the stale paper row at today's
+            # price and open a fresh one here, which mirrors as the real 1-share buy (3% stop, 0.5% trail, one attempt).
+            stop = ltp * (1 - NEWS_TRADE_STOP_PCT / 100.0)
+            conn.execute("UPDATE news_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
+                         "pnl_pct = ? WHERE id = ?",
+                         (now_ts, ltp, "re-based: opened outside the NSE session (stale tick); news still confirmed, "
+                          "reopened at the live price for the real buy", 0.0, row["id"]))
+            conn.execute(
+                "INSERT INTO news_trades (symbol, direction, tag, opened_ts, entry_price, stop_price, open_reason, "
+                "headline, publishers_n, peak_score, last_score, last_ts, evidence) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (symbol, direction, NEWS_TRADE_TAGS[direction], now_ts, ltp, round(stop, 2),
+                 f"{favour['event']} confirmed by {', '.join(favour['publishers'])} (re-based in session)",
+                 (favour["headline"] or "")[:200], len(favour["publishers"]), score, score, now_ts, _news_evidence(stock)))
+            acts.append((symbol, direction, "rebase"))
+            if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):
+                acts.append((symbol, direction, "real_open"))
             continue
         move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
         peak = max(float(row["peak_score"] or 0), score)
