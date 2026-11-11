@@ -17165,9 +17165,15 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     # new real short entries today - existing open real short positions
     # are untouched.
     strategy_tag = paper_row["strategy"] if paper_row else None
+    _news_short = strategy_tag == NEWS_TRADE_TAGS["short"]  # B-1552: user override, viability skipped like the long side
+    if _news_short and not is_trading_enabled(conn):
+        _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", strategy=strategy_tag,
+                          detail="ALL TRADING switch is off (switch_off) - no new real entry, news tag included")
+        _log_signal_shadow(conn, strategy_tag, symbol, "short", False, "real entry: ALL TRADING switch off", hard_gate=True)
+        return
     if _news_gate_entry(conn, symbol, "S", "short", strategy_tag):  # B-1540
         return
-    if not _is_strategy_viable_for_real_money(strategy_tag):
+    if not _news_short and not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_attempt(
             conn, symbol, "S", "skipped_strategy_not_viable", strategy=strategy_tag,
             detail=f"strategy {strategy_tag!r} not viable per the current explorer definition (or ALL TRADING switch off, or no validated metrics) "
@@ -17192,6 +17198,8 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
     qty = int(min(basis_qty, max_by_cap, max_by_capital))
+    if _news_short:
+        qty = min(qty, NEWS_REAL_QTY_CAP)  # B-1552: news shorts are capped like news longs
     if qty <= 0:
         _log_real_attempt(
             conn, symbol, "S", _real_qty_skip_status(max_by_capital), kotak_trading_symbol=kotak_symbol,
@@ -17218,7 +17226,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
 
     # B-962: re-read the newest viable stack immediately before the order.
     _load_viable_overrides()
-    if not _is_strategy_viable_for_real_money(strategy_tag):
+    if not _news_short and not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
                           strategy=strategy_tag,
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
@@ -17309,10 +17317,10 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             )
             conn.commit()
             _sync_real_positions_short_external(conn)
-            if real_strategy in CHAN_INTRADAY_SHORT_TAGS:
+            if real_strategy in CHAN_INTRADAY_SHORT_TAGS or real_strategy == NEWS_TRADE_TAGS["short"]:  # B-1552
                 # No trade without SL: a chan short whose stop cannot be placed is unwound at market now.
                 _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
-    elif real_strategy in CHAN_INTRADAY_SHORT_TAGS:
+    elif real_strategy in CHAN_INTRADAY_SHORT_TAGS or real_strategy == NEWS_TRADE_TAGS["short"]:  # B-1552
         _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
@@ -22751,6 +22759,88 @@ def _news_live_ltp(symbol: str, now_ts: float = None) -> float:
         return 0.0
 
 
+NEWS_LATE_MAX_NEWS_AGE_H = 24.0   # B-1551: the confirming headline must be at most this old
+NEWS_LATE_MIN_DAY_MOVE_PCT = 0.5  # stock move vs previous close, in the trade's direction
+NEWS_LATE_MIN_REL_PCT = 0.5       # ... and at least this much better than NIFTY (the move is the news, not the market)
+NEWS_LATE_MIN_VOL_PACE = 1.0      # today's volume so far vs the 20-day average, pro-rated to the session elapsed
+
+
+def _news_market_reacting(symbol: str, direction: str, ltp: float, stock: dict, now_ts: float = None):
+    """B-1551 (user 2026-11-11 IST: "Confidence means at this moment the news is still relevant and the stock market
+    is reacting to this news currently. Then only enter, because you are late in taking entry"): the extra test for a
+    LATE news entry (B-1546 re-base, B-1550 retry). Returns (ok, reason). ALL must hold, else no entry (fail closed):
+    (1) the newest confirming headline is <= NEWS_LATE_MAX_NEWS_AGE_H old; (2) the live price is >= 0.5% past the
+    previous close in the trade's direction; (3) that move beats NIFTY's by >= 0.5%; (4) a long still trades at or
+    above today's open (a short at or below), i.e. the reaction is not fading; (5) today's volume is running at
+    >= 1.0x the 20-day average pro-rated to the session elapsed. Daily bars from data_fetch (cached), volume from the
+    live tick. Never raises."""
+    try:
+        sign = 1.0 if direction == "long" else -1.0
+        want = "hard_pos" if direction == "long" else "hard_neg"
+        ages = [float(t.get("age_h")) for t in (stock.get("top") or [])
+                if t.get("hard") and t.get("age_h") is not None and float(t.get("score") or 0) * sign > 0]
+        if not stock.get(want) or not ages:
+            return False, "no dated confirming headline"
+        if min(ages) > NEWS_LATE_MAX_NEWS_AGE_H:
+            return False, f"news is stale (newest confirming headline {min(ages):.1f} h old > {NEWS_LATE_MAX_NEWS_AGE_H:.0f} h)"
+        today = ist_now().date()
+
+        def _bars(sym):
+            df = fetch_ohlc(sym, "2mo", "1d")
+            if df is None or df.empty:
+                return None, None
+            idx = [(d.date() if hasattr(d, "date") else d) for d in df.index]
+            done = df[[d < today for d in idx]]
+            cur = df[[d == today for d in idx]]
+            return done, cur
+        done, cur = _bars(symbol)
+        if done is None or len(done) < 5:
+            return False, "no daily bars"
+        prev = float(done["Close"].iloc[-1])
+        move = (ltp / prev - 1.0) * 100.0 * sign
+        if move < NEWS_LATE_MIN_DAY_MOVE_PCT:
+            return False, f"stock not reacting: {move:+.2f}% vs previous close Rs{prev:.2f} (need +{NEWS_LATE_MIN_DAY_MOVE_PCT}%)"
+        import kotak_live_feed
+        ticks = kotak_live_feed.get_live_ticks()
+        n_done, _ = _bars("^NSEI")
+        n_ltp = float((ticks.get("^NSEI") or {}).get("ltp") or 0)
+        if n_done is None or not len(n_done) or n_ltp <= 0:
+            return False, "no NIFTY reference"
+        n_move = (n_ltp / float(n_done["Close"].iloc[-1]) - 1.0) * 100.0 * sign
+        if move - n_move < NEWS_LATE_MIN_REL_PCT:
+            return False, f"move is the market, not the news: stock {move:+.2f}% vs NIFTY {n_move:+.2f}%"
+        if cur is not None and len(cur):
+            opn = float(cur["Open"].iloc[-1])
+            if (ltp - opn) * sign < 0:
+                return False, f"reaction fading: Rs{ltp:.2f} vs today's open Rs{opn:.2f}"
+        vol = (ticks.get(symbol) or {}).get("volume_traded_today")
+        avg = float(done["Volume"].tail(20).mean() or 0)
+        loc = ist_now()
+        frac = min(1.0, max(0.05, ((loc.hour * 60 + loc.minute) - (9 * 60 + 15)) / 375.0))
+        if not vol or avg <= 0:
+            return False, "no volume reference"
+        pace = float(vol) / (avg * frac)
+        if pace < NEWS_LATE_MIN_VOL_PACE:
+            return False, f"volume not reacting: {pace:.2f}x the 20-day pace (need {NEWS_LATE_MIN_VOL_PACE}x)"
+        return True, (f"reacting: {move:+.2f}% vs prev close, {move - n_move:+.2f}% vs NIFTY, volume {pace:.2f}x, "
+                      f"newest headline {min(ages):.1f} h old")
+    except Exception as e:
+        return False, f"reaction check failed: {type(e).__name__}"
+
+
+def _news_late_entry_ok(conn, symbol: str, direction: str, ltp: float, stock: dict) -> bool:
+    """B-1551: gate + durable reason log (skips dedupe per day in _log_real_attempt) for a late news entry."""
+    ok, why = _news_market_reacting(symbol, direction, ltp, stock)
+    if not ok:
+        try:
+            _log_real_attempt(conn, symbol, "B" if direction == "long" else "S", "skipped_news_not_reacting",
+                              strategy=NEWS_TRADE_TAGS[direction],
+                              price_est=ltp, detail=f"late news entry held back: {why}")
+        except Exception:
+            pass
+    return ok
+
+
 def _news_opened_outside_session(opened_ts) -> bool:
     """B-1546: True when a news trade's open time was not inside an NSE session on a trading day (calendar only,
     holidays excluded), i.e. it opened on a stale tick before B-1545 and no real order could have followed."""
@@ -22804,13 +22894,14 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                 if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):  # B-1543
                     acts.append((symbol, direction, "real_open"))
             continue
-        if (direction == "long" and row["mode"] == "paper" and favour["actionable"]
-                and _news_opened_outside_session(row["opened_ts"])):
+        if (row["mode"] == "paper" and favour["actionable"]  # B-1552: shorts re-base too
+                and _news_opened_outside_session(row["opened_ts"])
+                and _news_late_entry_ok(conn, symbol, direction, ltp, stock)):  # B-1551
             # B-1546 (user 2026-11-11 IST: "Get the Lenskart on real money trade if the confidence is still high"): a
             # paper long opened outside the session (stale tick, pre-B-1545) never had a real order. With the news still
             # confirmed + confident AND a fresh in-session tick now, re-base it: close the stale paper row at today's
             # price and open a fresh one here, which mirrors as the real 1-share buy (3% stop, 0.5% trail, one attempt).
-            stop = ltp * (1 - NEWS_TRADE_STOP_PCT / 100.0)
+            stop = ltp * (1 - sign * NEWS_TRADE_STOP_PCT / 100.0)
             conn.execute("UPDATE news_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
                          "pnl_pct = ? WHERE id = ?",
                          (now_ts, ltp, "re-based: opened outside the NSE session (stale tick); news still confirmed, "
@@ -22826,7 +22917,8 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                 acts.append((symbol, direction, "real_open"))
             continue
         if (direction == "long" and row["mode"] == "paper" and symbol in NEWS_REAL_RETRY_ONCE and favour["actionable"]
-                and NEWS_REAL_RETRY_MARK not in (row["open_reason"] or "")):
+                and NEWS_REAL_RETRY_MARK not in (row["open_reason"] or "")
+                and _news_late_entry_ok(conn, symbol, direction, ltp, stock)):  # B-1551: only while reacting NOW
             # B-1550 (user 2026-11-11 IST: "Yes retry. Only if the confidence of trade entry is good enough"): a ONE-TIME
             # exception to the one-attempt rule for the listed symbol only. It runs only while the news is still
             # confirmed + confident and a fresh in-session tick exists (both checked above). The mark is written FIRST
@@ -22853,6 +22945,9 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
             new_stop = _news_trail_stop(direction, row["entry_price"], stop_now, ltp)
             if new_stop != stop_now:
                 conn.execute("UPDATE news_trades SET stop_price = ? WHERE id = ?", (new_stop, row["id"]))
+                if direction == "short" and row["mode"] == "real":  # B-1552: the short engine syncs it to Kotak per tick
+                    conn.execute("UPDATE signal_state_short SET stop_loss = MIN(COALESCE(stop_loss, ?), ?) "
+                                 "WHERE symbol = ? AND strategy = ?", (new_stop, new_stop, symbol, NEWS_TRADE_TAGS["short"]))
         if why is not None:
             pass  # stopped out: nothing else is evaluated
         elif against["actionable"]:
@@ -22940,6 +23035,8 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
     loss cap, placeable SL) still applies and logs its own skipped_* status. Shorts stay paper: an overnight cash
     short is unconfirmed at Kotak (B-871) and an intraday short is squared off at 15:14, which cannot "track until the
     sentiment weakens". One attempt only: a rejected entry leaves no pending row to chase. Never raises."""
+    if direction == "short":
+        return _news_real_open_short(conn, symbol, ltp, stop, now_ts)  # B-1552
     if direction != "long":
         return False
     tag = NEWS_TRADE_TAGS["long"]
@@ -22969,10 +23066,71 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
         return False
 
 
+NEWS_SHORT_ENTRY_CUTOFF_MIN = 14 * 60 + 30  # B-1552: an intraday news short needs time to work before the 15:10 cover
+
+
+def _news_real_open_short(conn, symbol: str, ltp: float, stop: float, now_ts: float) -> bool:
+    """B-1552 (user 2026-11-11 IST: "On negative news the stock should be shorting too"): confirmed + confident BAD
+    news opens a REAL intraday (MIS) short of at most NEWS_REAL_QTY_CAP share through the SHORT engine: a
+    signal_state_short row carries the news tag, then _maybe_place_real_short_entry (Kotak first, every gate except
+    PFnet/viability, which the news tag skips like the long side; ALL TRADING switch still applies) sells to open and
+    places the resting buy-to-cover SL at the 3% stop; an SL that cannot be placed unwinds at market (no trade without
+    SL). The short engine then owns it: per-tick SL sync, its own exits, the 15:10-15:14 flatten. Intraday only,
+    because an overnight cash short is unconfirmed at Kotak (B-871). No new entry from 14:30 IST. One attempt."""
+    tag = NEWS_TRADE_TAGS["short"]
+    try:
+        n = ist_now()
+        if n.hour * 60 + n.minute >= NEWS_SHORT_ENTRY_CUTOFF_MIN:
+            _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff", strategy=tag,
+                              detail="news short: no new real intraday short from 14:30 IST (cover by 15:14)")
+            return False
+        if not any(c.get("symbol") == symbol for c in WATCHLIST):
+            # the short engine's per-tick SL sync and 15:10 cover run only for intraday WATCHLIST symbols
+            _log_real_attempt(conn, symbol, "S", "skipped_not_eligible_asset_class", strategy=tag,
+                              detail="news short: symbol is not in the intraday WATCHLIST the short engine manages")
+            return False
+        if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ?", (symbol,)).fetchone():
+            _log_real_attempt(conn, symbol, "S", "skipped_already_open", strategy=tag,
+                              detail="news short: another short strategy already owns this symbol")
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_short (symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, "
+            "entry_ts, fx_to_inr, interval, peak_ltp, strategy) VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, 1.0, '5m', ?, ?)",
+            (symbol, n.strftime("%Y-%m-%d"), ltp, stop, stop, round(ltp * 0.9, 2), NEWS_REAL_QTY_CAP, now_ts, ltp, tag))
+        conn.commit()
+        with _SCAN_DECISION_LOCK:
+            _maybe_place_real_short_entry(conn, symbol)
+        held = conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ? AND strategy = ?", (symbol, tag)).fetchone()
+        if held:
+            conn.execute("UPDATE news_trades SET mode = 'real' WHERE symbol = ? AND direction = 'short' AND status = 'open'",
+                         (symbol,))
+        else:
+            conn.execute("DELETE FROM signal_state_short WHERE symbol = ? AND strategy = ?", (symbol, tag))
+        conn.commit()
+        return bool(held)
+    except Exception as e:
+        print(f"[NEWS REAL] short open {symbol} failed (paper trade unaffected): {e}")
+        return False
+
+
 def _news_real_close(conn, symbol: str, direction: str, why: str) -> bool:
     """B-1543: when a news trade closes (sentiment weak, news reversed, stop, max hold of one week) its REAL share is
     sold by the swing engine's own exit (Kotak read first, resting SL cancelled, reason logged). Only a position this
-    news tag opened is touched; another strategy's holding on the same symbol is left to its own engine."""
+    news tag opened is touched; another strategy's holding on the same symbol is left to its own engine.
+    B-1552: a real news SHORT is covered by the short engine's own exit (buy-to-cover)."""
+    if direction == "short":
+        tag = NEWS_TRADE_TAGS["short"]
+        try:
+            held = conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ? AND strategy = ?", (symbol, tag)).fetchone()
+            if held:
+                with _SCAN_DECISION_LOCK:
+                    _maybe_place_real_short_exit(conn, symbol, reason=f"news_exit: {why}"[:300])
+            conn.execute("DELETE FROM signal_state_short WHERE symbol = ? AND strategy = ?", (symbol, tag))
+            conn.commit()
+            return bool(held)
+        except Exception as e:
+            print(f"[NEWS REAL] short close {symbol} failed (position stays under its resting stop): {e}")
+            return False
     if direction != "long":
         return False
     tag = NEWS_TRADE_TAGS["long"]
@@ -23295,7 +23453,7 @@ def news_monitor_view(days: int = 30):
                               "the sentiment weakens, the news reverses, the stop hits, or after one week"],
                "pass_state": _news_pass_status(),  # B-1547
                "actionable_now": [{"symbol": k[0], "direction": k[1], **v} for k, v in list(_NEWS_ACTIONABLE.items())],
-               "mode_note": "live: blocks entries, exits holdings, and buys 1 real share on confirmed + confident good news with a live tick (viability gate skipped, user override). News shorts and adds: paper",
+               "mode_note": "live: blocks entries, exits holdings, and buys 1 real share on confirmed + confident good news and shorts 1 real share intraday (MIS, covered by 15:14 IST) on confirmed + confident bad news, each with a live tick (viability gate skipped, user override). Adds: paper",
                "caused": [r for r in rows if r["mode"] == "live"], "events": rows[:400]}
         try:
             ms = news_signals.market_and_sector_scores()
@@ -24278,6 +24436,37 @@ def _generic_mirror_table_columns(conn, table: str) -> list:
     return [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
 
 
+# B-1549 (2026-11-11: real_trades restarted at id 1 after the 10:48 IST restart, losing the 09:15 buys and the 10:10
+# LENSKART skip reason): an append-only log written BEFORE its restore succeeded used to be marked hydrated without
+# restoring, and its next push overwrote the remote history. These tables are MERGED instead (same fix B-1516 gave
+# real_order_events): remote rows keep their ids, local rows written meanwhile are re-added with fresh ids unless the
+# same row (by content key) is already in the remote copy.
+_GENERIC_MIRROR_MERGE_LOG_TABLES = {"real_trades": ("ts", "symbol", "side", "status")}
+
+
+def _generic_merge_log_table(conn, table: str, rows: list, cols) -> bool:
+    key_cols = _GENERIC_MIRROR_MERGE_LOG_TABLES[table]
+    local = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()]
+    _key = lambda r: tuple(str(r.get(k)) for k in key_cols)
+    remote_keys = {_key(r) for r in rows}
+    conn.execute(f"DELETE FROM {table}")
+    for row in rows:
+        keep = {k: v for k, v in row.items() if k in cols}
+        if keep:
+            conn.execute(f"INSERT OR REPLACE INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})",
+                         tuple(keep.values()))
+    added = 0
+    for row in local:
+        if _key(row) in remote_keys:
+            continue
+        keep = {k: v for k, v in row.items() if k in cols and k != "id"}
+        conn.execute(f"INSERT INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})", tuple(keep.values()))
+        added += 1
+    conn.commit()
+    print(f"[table_mirror] merged {len(rows)} remote + {added} local row(s) into {table} (B-1549)")
+    return True
+
+
 def _generic_hydrate_table(conn, table: str) -> bool:
     """Restores one table from Upstash. Returns True iff Upstash was reached
     (an empty remote is still authoritative-and-reached)."""
@@ -24286,7 +24475,8 @@ def _generic_hydrate_table(conn, table: str) -> bool:
         return True
     meta = json.loads(meta_raw)
     local_n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-    if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE:
+    merge = local_n > 0 and table in _GENERIC_MIRROR_MERGE_LOG_TABLES
+    if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE and not merge:
         return True
     parts = []
     for i in range(int(meta.get("chunks", 0))):
@@ -24296,6 +24486,8 @@ def _generic_hydrate_table(conn, table: str) -> bool:
         parts.append(part)
     rows = json.loads("".join(parts)) if parts else []
     cols = _generic_mirror_table_columns(conn, table)
+    if merge:
+        return _generic_merge_log_table(conn, table, rows, cols)
     restored = 0
     for row in rows:
         keep = {k: v for k, v in row.items() if k in cols}
@@ -31336,9 +31528,10 @@ def _chan_short_flatten_due(symbol: str) -> bool:
     if not (CHAN_SHORT_FLATTEN_START_MIN <= m < CHAN_SHORT_FLATTEN_END_MIN):
         return False
     with closing(get_db()) as c:
-        _qs = ",".join("?" * len(CHAN_INTRADAY_SHORT_TAGS))
+        _tags = (*CHAN_INTRADAY_SHORT_TAGS, NEWS_TRADE_TAGS["short"])  # B-1552: news shorts are intraday too
+        _qs = ",".join("?" * len(_tags))
         return bool(c.execute(f"SELECT 1 FROM real_positions_short WHERE symbol = ? AND strategy IN ({_qs})",
-                              (symbol, *CHAN_INTRADAY_SHORT_TAGS)).fetchone())
+                              (symbol, *_tags)).fetchone())
 
 
 def _chan_long_flatten_due(symbol: str) -> bool:

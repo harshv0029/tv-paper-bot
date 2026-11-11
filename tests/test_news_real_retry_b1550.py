@@ -4,9 +4,15 @@ import time
 from unittest.mock import patch
 
 import main
+import pytest
 from tests.test_news_trades_b1541 import CALM, GOOD2, _agg, _conn
 
 TAG = main.NEWS_TRADE_TAGS["long"]
+
+
+@pytest.fixture(autouse=True)
+def _reacting(monkeypatch):  # B-1551 reaction gate is tested on its own below
+    monkeypatch.setattr(main, "_news_late_entry_ok", lambda *a, **k: True)
 
 
 def _seed(c, sym="LENSKART.NS"):
@@ -60,3 +66,13 @@ def test_other_symbols_keep_the_one_attempt_rule():
     with patch.object(main, "_news_real_open", return_value=True) as ro:
         main._news_trades_step(c, "XYZ.NS", _agg(GOOD2), t, 720.0)
     ro.assert_not_called()
+
+
+def test_no_retry_when_the_market_is_not_reacting(monkeypatch):
+    monkeypatch.setattr(main, "_news_late_entry_ok", lambda *a, **k: False)
+    c, t = _conn(), time.time()
+    _seed(c)
+    with patch.object(main, "_news_real_open", return_value=True) as ro:
+        main._news_trades_step(c, "LENSKART.NS", _agg(GOOD2), t, 720.0)
+    ro.assert_not_called()
+    assert main.NEWS_REAL_RETRY_MARK not in c.execute("SELECT open_reason FROM news_trades").fetchone()[0]
