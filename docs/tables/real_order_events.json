@@ -89183,7 +89183,31 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261111000038315 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 7433,
+   "ts": 1794368993.1897724,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261111000013683",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs1203.70",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 7434,
+   "ts": 1794369039.4310858,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000045498",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs815.35",
+   "detail": "reason: swing entry signal from strategy reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 passed the PFnet gate; B-1500 exit variant live_lt0d5 (reversal__island_turn1cr__long__1d__atr1d5_rsbandfloor_trailltp0d5r_within8__nonovl__v2, 0.19574 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-11T03:49:30Z"
+ "synced_at_utc": "2026-11-11T03:50:42Z"
 }
