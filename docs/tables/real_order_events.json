@@ -89401,7 +89401,7 @@
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   },
   {
-   "id": 7452,
+   "id": 7451,
    "ts": 1794369532.6338282,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -89413,7 +89413,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7451,
+   "id": 7452,
    "ts": 1794369545.2316227,
    "symbol": "IOC.NS",
    "kotak_trading_symbol": "IOC-EQ",
@@ -89425,7 +89425,7 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs143.43 to Rs144.40 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 7454,
+   "id": 7453,
    "ts": 1794369554.134238,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -89437,7 +89437,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7453,
+   "id": 7454,
    "ts": 1794369566.81234,
    "symbol": "COLPAL.NS",
    "kotak_trading_symbol": "COLPAL-EQ",
@@ -89449,7 +89449,7 @@
    "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1658.00 to Rs1677.20 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 7456,
+   "id": 7455,
    "ts": 1794369575.6834033,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -89461,7 +89461,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7455,
+   "id": 7456,
    "ts": 1794369588.7619925,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -89473,5 +89473,5 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs126.04 to Rs128.47 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T04:01:11Z"
+ "synced_at_utc": "2026-11-11T04:16:38Z"
 }
