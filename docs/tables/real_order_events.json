@@ -88883,7 +88883,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"SI=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 7.3}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 7408,
+   "ts": 1794368714.5358095,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000013222",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs130.89",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs130.89 (target stop Rs126.73); strategy stop Rs126.73 is outside the day's price band, so the stop rests at the band floor Rs130.89"
   }
  ],
- "synced_at_utc": "2026-11-11T03:30:17Z"
+ "synced_at_utc": "2026-11-11T03:45:16Z"
 }
