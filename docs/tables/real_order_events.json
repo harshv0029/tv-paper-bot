@@ -90167,7 +90167,19 @@
    "prev_state": "resting SELL trigger Rs488.80",
    "new_state": "resting SELL trigger Rs520.70",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs488.80 to Rs520.70 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7515,
+   "ts": 1794376612.4183776,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000294810",
+   "prev_state": "no position",
+   "new_state": "long 6 @ Rs72.35",
+   "detail": "reason: swing entry signal from strategy brk20_min_rr__main_replay__long__1d__atr3_rr3__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-11T05:50:08Z"
+ "synced_at_utc": "2026-11-11T05:56:55Z"
 }
