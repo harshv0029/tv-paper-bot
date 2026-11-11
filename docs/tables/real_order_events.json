@@ -90095,7 +90095,19 @@
    "prev_state": "Rs270.57",
    "new_state": "Rs271.26",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 7509,
+   "ts": 1794374686.3344655,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "found_dead_on_reconcile",
+   "order_id": "261111000248997",
+   "prev_state": "assumed resting",
+   "new_state": "dead at Kotak (rejected/cancelled, no fill)",
+   "detail": "reason: resting stop-loss was no longer live at Kotak; re-protecting the position | --"
   }
  ],
- "synced_at_utc": "2026-11-11T05:24:14Z"
+ "synced_at_utc": "2026-11-11T05:24:50Z"
 }
