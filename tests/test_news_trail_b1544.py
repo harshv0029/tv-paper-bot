@@ -123,3 +123,27 @@ def test_after_hours_good_news_opens_nothing():
         assert main._news_trades_step(c, "LENSKART.NS", _agg(GOOD2), time.time(),
                                       main._news_live_ltp("LENSKART.NS")) == []
     assert c.execute("SELECT COUNT(*) FROM news_trades").fetchone()[0] == 0
+
+
+# ---- B-1546: a paper long opened outside the session is re-based and bought for real while news is still confirmed ----
+def test_stale_paper_long_is_rebased_into_a_real_buy_only_while_news_is_confirmed():
+    import datetime as dt
+    holiday_1545 = (dt.datetime(2026, 11, 10, 15, 45) - dt.timedelta(minutes=330)).replace(tzinfo=dt.timezone.utc).timestamp()
+    assert main._news_opened_outside_session(holiday_1545)
+    assert not main._news_opened_outside_session(
+        (dt.datetime(2026, 11, 11, 10, 0) - dt.timedelta(minutes=330)).replace(tzinfo=dt.timezone.utc).timestamp())
+    from tests.test_news_trades_b1541 import CALM
+    c, t = _conn(), time.time()
+    c.execute("INSERT INTO news_trades (symbol, direction, tag, opened_ts, entry_price, stop_price) VALUES "
+              "('LENSKART.NS', 'long', ?, ?, 718.8, 697.24)", (TAG, holiday_1545))
+    with patch.object(main, "_news_real_open", return_value=False) as ro:
+        main._news_trades_step(c, "LENSKART.NS", _agg(CALM), t, 730.0)   # news no longer confirmed: no rebase
+        ro.assert_not_called()
+    c.execute("UPDATE news_trades SET status = 'open', close_ts = NULL WHERE id = 1")
+    with patch.object(main, "_news_real_open", return_value=True) as ro:
+        acts = main._news_trades_step(c, "LENSKART.NS", _agg(GOOD2), t, 730.0)
+    assert acts == [("LENSKART.NS", "long", "rebase"), ("LENSKART.NS", "long", "real_open")]
+    assert ro.call_args[0][3] == 730.0 and ro.call_args[0][4] == 708.1
+    old, new = c.execute("SELECT * FROM news_trades ORDER BY id").fetchall()[:2]
+    assert old["status"] == "closed" and old["close_reason"].startswith("re-based")
+    assert new["status"] == "open" and new["entry_price"] == 730.0
