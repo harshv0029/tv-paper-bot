@@ -103,9 +103,9 @@ def _ticks(**kw):
 
 def test_news_tick_must_be_in_session_and_fresh():
     now = time.time()
-    with patch.object(main, "_nse_equity_market_open_now", return_value=False), _ticks(ltp=718.8, last_trade_epoch=now):
+    with patch.object(main, "_swing_real_entry_session_open", return_value=False), _ticks(ltp=718.8, last_trade_epoch=now):
         assert main._news_live_ltp("LENSKART.NS", now) == 0.0          # after the close: never live
-    with patch.object(main, "_nse_equity_market_open_now", return_value=True):
+    with patch.object(main, "_swing_real_entry_session_open", return_value=True):
         with _ticks(ltp=718.8, last_trade_epoch=now - 3600):
             assert main._news_live_ltp("LENSKART.NS", now) == 0.0      # last trade an hour ago: stale
         with _ticks(ltp=718.8, last_trade_epoch=now - 30):
@@ -118,7 +118,7 @@ def test_news_tick_must_be_in_session_and_fresh():
 
 def test_after_hours_good_news_opens_nothing():
     c = _conn()
-    with patch.object(main, "_nse_equity_market_open_now", return_value=False), \
+    with patch.object(main, "_swing_real_entry_session_open", return_value=False), \
          _ticks(ltp=718.8, last_trade_epoch=time.time()):
         assert main._news_trades_step(c, "LENSKART.NS", _agg(GOOD2), time.time(),
                                       main._news_live_ltp("LENSKART.NS")) == []
