@@ -89699,7 +89699,19 @@
    "prev_state": "resting SELL trigger Rs365.00",
    "new_state": "resting SELL trigger Rs385.30",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs365.00 to Rs385.30 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7476,
+   "ts": 1794372721.1037984,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261111000144629",
+   "prev_state": "Rs265.34",
+   "new_state": "cancel resting SL, then place SL at Rs268.29",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-11T04:31:42Z"
+ "synced_at_utc": "2026-11-11T04:52:13Z"
 }
