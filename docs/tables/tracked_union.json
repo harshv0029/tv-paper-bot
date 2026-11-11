@@ -3,17 +3,17 @@
   {
    "day": null,
    "entry_order_id": null,
-   "entry_price": 268.02,
+   "entry_price": 268.6,
    "first_seen_day": "2026-11-11",
    "is_short": 0,
    "kotak_trading_symbol": "BANKBARODA-EQ",
    "opened_at": null,
-   "owner": "intraday",
+   "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 265.34,
    "source": "position",
-   "stop_loss": null,
-   "strategy": null,
+   "stop_loss": 241.98284912109375,
+   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": null
   },
   {
