@@ -89867,7 +89867,19 @@
    "prev_state": null,
    "new_state": "268.74",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 7490,
+   "ts": 1794373756.420445,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261111000227575",
+   "prev_state": "Rs268.74",
+   "new_state": "cancel resting SL, then place SL at Rs269.14",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-11T05:07:59Z"
+ "synced_at_utc": "2026-11-11T05:09:30Z"
 }
