@@ -66,6 +66,22 @@
   },
   {
    "day": "2026-11-11",
+   "entry_order_id": "261111000298121",
+   "entry_price": 357.1,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "opened_at": 1794376756.6977577,
+   "owner": "swing",
+   "qty": 2,
+   "sl_trigger_price": 310.6,
+   "source": "position",
+   "stop_loss": 307.01429530552457,
+   "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+   "symbol": "FEDERALBNK.NS"
+  },
+  {
+   "day": "2026-11-11",
    "entry_order_id": "261111000053915",
    "entry_price": 388.7,
    "first_seen_day": "2026-11-11",
@@ -143,6 +159,22 @@
    "stop_loss": 191.91143144880022,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "MEESHO.NS"
+  },
+  {
+   "day": "2026-11-11",
+   "entry_order_id": "261111000294810",
+   "entry_price": 72.35,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "NMDC-EQ",
+   "opened_at": 1794376612.4065564,
+   "owner": "swing",
+   "qty": 6,
+   "sl_trigger_price": 67.27,
+   "source": "position",
+   "stop_loss": 67.27147716752411,
+   "strategy": "brk20_min_rr__main_replay__long__1d__atr3_rr3__v1",
+   "symbol": "NMDC.NS"
   },
   {
    "day": "2026-11-09",
