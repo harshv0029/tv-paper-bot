@@ -22735,7 +22735,7 @@ def _news_live_ltp(symbol: str, now_ts: float = None) -> float:
     (else its receipt time) is within NEWS_TICK_MAX_AGE_SECONDS; otherwise 0.0 = "no live tick", so nothing opens,
     adds or closes on a stale price. Never raises."""
     try:
-        if not _nse_equity_market_open_now():
+        if not _swing_real_entry_session_open():  # NSE trading day (holidays excluded) AND session hours
             return 0.0
         import kotak_live_feed
         t = kotak_live_feed.get_live_ticks().get(symbol) or {}
