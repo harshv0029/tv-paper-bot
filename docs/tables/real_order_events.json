@@ -89474,28 +89474,52 @@
   },
   {
    "id": 7457,
-   "ts": 1794370821.1144776,
+   "ts": 1794370844.7572803,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
-   "leg": "entry",
-   "event": "confirmed",
-   "order_id": "261111000138163",
-   "prev_state": "no position",
-   "new_state": "long 1 @ Rs268.02",
-   "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
+   "leg": "target",
+   "event": "kotak_rejected",
+   "order_id": "261111000139298",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting LIMIT SELL profit target; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product"
   },
   {
    "id": 7458,
-   "ts": 1794370840.9691112,
+   "ts": 1794370844.773865,
    "symbol": "BANKBARODA.NS",
    "kotak_trading_symbol": "BANKBARODA-EQ",
-   "leg": "sl",
-   "event": "placed",
-   "order_id": "261111000138966",
+   "leg": "target",
+   "event": "failed",
+   "order_id": null,
    "prev_state": "none",
-   "new_state": "resting SELL trigger Rs241.14",
-   "detail": "reason: resting stop-loss placed so the open position is protected"
+   "new_state": "none (placement failed)",
+   "detail": "reason: profit target placement failed | order 261111000139298 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 7459,
+   "ts": 1794370845.007532,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261111000138163",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Nov-2026 09:50:16 B L qty 1 trg 0.00 status complete rejRsn --"
+  },
+  {
+   "id": 7460,
+   "ts": 1794370845.0078318,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261111000138966",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Nov-2026 09:50:33 S SL qty 1 trg 241.14 status trigger pending rejRsn --"
   }
  ],
- "synced_at_utc": "2026-11-11T04:20:44Z"
+ "synced_at_utc": "2026-11-11T04:21:35Z"
 }
