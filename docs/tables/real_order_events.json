@@ -89425,6 +89425,18 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs143.43 to Rs144.40 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 7454,
+   "ts": 1794369554.134238,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000013039",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7453,
    "ts": 1794369566.81234,
    "symbol": "COLPAL.NS",
@@ -89435,7 +89447,19 @@
    "prev_state": "resting SELL trigger Rs1658.00",
    "new_state": "resting SELL trigger Rs1677.20",
    "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1658.00 to Rs1677.20 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7455,
+   "ts": 1794369588.7619925,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261111000080583",
+   "prev_state": "resting SELL trigger Rs126.04",
+   "new_state": "resting SELL trigger Rs128.47",
+   "detail": "reason: primary_base trail rule raised the stop from Rs126.04 to Rs128.47 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T03:59:29Z"
+ "synced_at_utc": "2026-11-11T03:59:52Z"
 }
