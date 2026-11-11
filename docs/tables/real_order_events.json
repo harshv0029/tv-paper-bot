@@ -89471,7 +89471,19 @@
    "prev_state": "resting SELL trigger Rs126.04",
    "new_state": "resting SELL trigger Rs128.47",
    "detail": "reason: primary_base trail rule raised the stop from Rs126.04 to Rs128.47 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7457,
+   "ts": 1794370821.1144776,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000138163",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs268.02",
+   "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-11T04:16:38Z"
+ "synced_at_utc": "2026-11-11T04:20:27Z"
 }
