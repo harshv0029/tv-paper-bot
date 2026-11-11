@@ -33,6 +33,22 @@
    "symbol": "BIOCON.NS"
   },
   {
+   "day": "2026-11-11",
+   "entry_order_id": "261111000045498",
+   "entry_price": 815.35,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "opened_at": 1794369039.393759,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 768.8,
+   "source": "position",
+   "stop_loss": 768.7756548447488,
+   "strategy": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+   "symbol": "CGPOWER.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000025550",
    "entry_price": 1673.4,
