@@ -90253,6 +90253,18 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs131.19 to Rs131.55 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 7523,
+   "ts": 1794378361.371694,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000299914",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7522,
    "ts": 1794378376.7368937,
    "symbol": "PNB.NS",
@@ -90265,5 +90277,5 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs131.55 to Rs132.43 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T06:26:22Z"
+ "synced_at_utc": "2026-11-11T06:27:49Z"
 }
