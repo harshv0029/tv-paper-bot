@@ -90179,7 +90179,19 @@
    "prev_state": "no position",
    "new_state": "long 6 @ Rs72.35",
    "detail": "reason: swing entry signal from strategy brk20_min_rr__main_replay__long__1d__atr3_rr3__v1 passed the PFnet gate"
+  },
+  {
+   "id": 7516,
+   "ts": 1794376637.280132,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000295098",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs67.27",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-11T05:56:55Z"
+ "synced_at_utc": "2026-11-11T05:57:25Z"
 }
