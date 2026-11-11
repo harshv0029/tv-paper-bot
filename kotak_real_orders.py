@@ -1052,11 +1052,64 @@ def _band_reference(kotak_trading_symbol: str):
     return prev, last
 
 
+# B-1554 (live 2026-11-10 IST, UNIONBANK/BANKINDIA/BIOCON: ~800 identical SL sends each, all rejected "Circuit breach,
+# Order Price :168.80, Low Price Range:177.30 High Price Range:216.70"): the B-1304/B-1411 band floor needs yfinance's
+# prev close, and when that lookup failed on Render the same doomed price was resent every tick all day. Kotak's own
+# rejection names the band, so (Kotak-first rule) parse it, cache it for the IST day, and rest the stop just inside it.
+# Same "only ever tighten toward the market, stay 0.5% clear of LTP" rule as B-1304; unknown LTP -> unchanged.
+import re as _re
+_KOTAK_BAND_RE = _re.compile(r"Low Price Range\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*,?\s*High Price Range\s*:\s*([0-9]+(?:\.[0-9]+)?)", _re.I)
+_KOTAK_BAND_CACHE: dict = {}  # trdSym -> (ist_date, low, high)
+
+
+def _ist_date_str() -> str:
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d")
+
+
+def _kotak_band(kotak_trading_symbol: str, detail=None):
+    """(low, high) of today's price band from Kotak's own rejection text (cached for the IST day), or None."""
+    m = _KOTAK_BAND_RE.search(str(detail or ""))
+    if m:
+        lo, hi = float(m.group(1)), float(m.group(2))
+        if 0 < lo < hi:
+            _KOTAK_BAND_CACHE[kotak_trading_symbol] = (_ist_date_str(), lo, hi)
+            return lo, hi
+    hit = _KOTAK_BAND_CACHE.get(kotak_trading_symbol)
+    if hit and hit[0] == _ist_date_str():
+        return hit[1], hit[2]
+    return None
+
+
+def _kotak_band_stop(kotak_trading_symbol: str, trigger_price: float, side: str, detail=None):
+    """A stop inside Kotak's band that is still clear of the market, or None. Long: ceil-tick(low x 1.003), only if
+    above the requested trigger and below 0.995 x LTP. Short: floor-tick(high x 0.997), only if below the requested
+    trigger and above 1.005 x LTP."""
+    import math
+    band = _kotak_band(kotak_trading_symbol, detail)
+    if not band:
+        return None
+    ltp = _fresh_ltp(kotak_trading_symbol)
+    if ltp is None:
+        return None
+    lo, hi = band
+    tick = _tick_size_for(kotak_trading_symbol) or 0.05
+    req = float(trigger_price)
+    if side == "long":
+        cand = round(math.ceil(lo * 1.003 / tick - 1e-6) * tick, 2)
+        return cand if req < cand < ltp * 0.995 else None
+    cand = round(math.floor(hi * 0.997 / tick + 1e-6) * tick, 2)
+    return cand if ltp * 1.005 < cand < req else None
+
+
 def _preclamp_long_stop(kotak_trading_symbol: str, trigger_price: float):
     """B-1411 (live 2026-10-29 09:15 IST: BANKINDIA 115.72 and SUZLON 28.91 were sent, rejected as 'Circuit
     breach', and only then retried at the band floor): a SELL stop below the widest (10%) band floor is raised to
     that floor BEFORE the first send, so no doomed order reaches Kotak. Same floor and same 'stay under the market'
     rule as the B-1304 retry, which still handles the narrower 5%/2% bands. Returns (trigger, clamped_from|None)."""
+    kb = _kotak_band_stop(kotak_trading_symbol, trigger_price, "long")  # B-1554: Kotak's band from an earlier rejection today
+    if kb is not None:
+        return kb, float(trigger_price)
     prev, last = _band_reference(kotak_trading_symbol)
     if not prev or not last:
         return trigger_price, None
@@ -1068,6 +1121,9 @@ def _preclamp_long_stop(kotak_trading_symbol: str, trigger_price: float):
 
 def _preclamp_short_stop(kotak_trading_symbol: str, trigger_price: float):
     """B-1411 short mirror: a BUY stop above the 10% upper band ceiling is lowered to it before the first send."""
+    kb = _kotak_band_stop(kotak_trading_symbol, trigger_price, "short")  # B-1554
+    if kb is not None:
+        return kb, float(trigger_price)
     prev, last = _band_reference(kotak_trading_symbol)
     if not prev or not last:
         return trigger_price, None
@@ -1299,6 +1355,17 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
     if res.get("ok") or not _is_price_range_rejection(res.get("detail")):
         return res
     _note_rejected(res, f"stop Rs{float(trigger_price):.2f} was outside the day's price band; retried at the next band floor (B-1304)")
+    kb = _kotak_band_stop(kotak_trading_symbol, trigger_price, "long", res.get("detail"))  # B-1554
+    if kb is not None:
+        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, kb)
+        if r2.get("ok"):
+            r2["band_clamped_from"] = clamped_from if clamped_from is not None else trigger_price
+            r2["band_source"] = "kotak_rejection"
+            return r2
+        _note_rejected(r2, f"stop Rs{kb:.2f} inside Kotak's stated band was still rejected (B-1554)")
+        res = r2
+        if not _is_price_range_rejection(r2.get("detail")):
+            return res
     prev, last = _reference_prices(kotak_trading_symbol)
     if not prev or not last:
         return res
@@ -1534,6 +1601,17 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
     if res.get("ok") or not _is_price_range_rejection(res.get("detail")):
         return res
     _note_rejected(res, f"buy-stop Rs{float(trigger_price):.2f} was outside the day's price band; retried at the next band ceiling (B-1305)")
+    kb = _kotak_band_stop(kotak_trading_symbol, trigger_price, "short", res.get("detail"))  # B-1554
+    if kb is not None:
+        r2 = _place_real_short_stop_loss_once(kotak_trading_symbol, qty, kb, product)
+        if r2.get("ok"):
+            r2["band_clamped_from"] = clamped_from if clamped_from is not None else trigger_price
+            r2["band_source"] = "kotak_rejection"
+            return r2
+        _note_rejected(r2, f"buy-stop Rs{kb:.2f} inside Kotak's stated band was still rejected (B-1554)")
+        res = r2
+        if not _is_price_range_rejection(r2.get("detail")):
+            return res
     prev, last = _reference_prices(kotak_trading_symbol)
     if not prev or not last:
         return res
