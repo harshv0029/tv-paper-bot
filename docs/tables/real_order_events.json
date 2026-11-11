@@ -89713,6 +89713,18 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
+   "id": 7478,
+   "ts": 1794372725.5330496,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000144629",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7477,
    "ts": 1794372740.015131,
    "symbol": "BANKBARODA.NS",
@@ -89725,5 +89737,5 @@
    "detail": "reason: stop-loss moved to follow the trailing stop"
   }
  ],
- "synced_at_utc": "2026-11-11T04:52:33Z"
+ "synced_at_utc": "2026-11-11T04:54:19Z"
 }
