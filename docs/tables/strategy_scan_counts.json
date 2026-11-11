@@ -19128,12 +19128,12 @@
   {
    "day": "2026-11-11",
    "tag": "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "base__cup_cheat_3c__long__1h__atr6_h30__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
@@ -19198,7 +19198,7 @@
   {
    "day": "2026-11-11",
    "tag": "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
@@ -19423,7 +19423,7 @@
   {
    "day": "2026-11-11",
    "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
@@ -19927,6 +19927,11 @@
   },
   {
    "day": "2026-11-11",
+   "tag": "donchian_breakout__gc__long__1d__atrnone__v1",
+   "n": 1
+  },
+  {
+   "day": "2026-11-11",
    "tag": "dragonfly__base__long__1d__atr4_h20__v1",
    "n": 2
   },
@@ -20008,22 +20013,22 @@
   {
    "day": "2026-11-11",
    "tag": "envelope__0d05_fade__long__1h__atr2d5_h30__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "envelope__0d05_fade__long__1h__atr4_h30__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "envelope__0d05_fade__long__1h__atr6_h18__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
@@ -20228,22 +20233,22 @@
   {
    "day": "2026-11-11",
    "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
    "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "n": 215
+   "n": 235
   },
   {
    "day": "2026-11-11",
@@ -21056,5 +21061,5 @@
    "n": 2
   }
  ],
- "synced_at_utc": "2026-11-11T04:05:53Z"
+ "synced_at_utc": "2026-11-11T04:07:03Z"
 }
