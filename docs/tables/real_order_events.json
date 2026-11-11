@@ -90131,7 +90131,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs488.80",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7512,
+   "ts": 1794374798.8391004,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261111000248997",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs271.26",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=2"
   }
  ],
- "synced_at_utc": "2026-11-11T05:25:56Z"
+ "synced_at_utc": "2026-11-11T05:27:20Z"
 }
