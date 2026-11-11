@@ -126,6 +126,6 @@ def test_durable_no_direct_orders_and_never_runs_in_tests():
     block = src[src.index("NEWS_MONITOR_EVERY_N_TICKS = 10"):src.index('@app.get("/real-protection-status")')]
     for banned in ("cancel_", "kotak_real_orders", "_log_real_order_event", "modify_order"):
         assert banned not in block, banned  # the news code never builds an order itself
-    assert block.count("_maybe_place_real") == 6  # the four engine exit names (B-1541) + the swing entry and swing exit calls of the 1-share news buy (B-1543)
+    assert block.count("_maybe_place_real") == 9  # + B-1552 news short entry, cover and its docstring; the four engine exit names (B-1541) + the swing entry and swing exit calls of the 1-share news buy (B-1543)
     outside = src.replace(block, "")
     assert outside.count("news_signals.") == 0 and outside.count("_news_monitor_kick()") == 1  # only the tick hook

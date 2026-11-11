@@ -140,7 +140,8 @@ def test_stale_paper_long_is_rebased_into_a_real_buy_only_while_news_is_confirme
         main._news_trades_step(c, "LENSKART.NS", _agg(CALM), t, 730.0)   # news no longer confirmed: no rebase
         ro.assert_not_called()
     c.execute("UPDATE news_trades SET status = 'open', close_ts = NULL WHERE id = 1")
-    with patch.object(main, "_news_real_open", return_value=True) as ro:
+    with patch.object(main, "_news_real_open", return_value=True) as ro, \
+            patch.object(main, "_news_late_entry_ok", return_value=True):  # B-1551 gate tested separately
         acts = main._news_trades_step(c, "LENSKART.NS", _agg(GOOD2), t, 730.0)
     assert acts == [("LENSKART.NS", "long", "rebase"), ("LENSKART.NS", "long", "real_open")]
     assert ro.call_args[0][3] == 730.0 and ro.call_args[0][4] == 708.1
