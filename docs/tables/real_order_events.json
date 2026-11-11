@@ -90107,7 +90107,19 @@
    "prev_state": "assumed resting",
    "new_state": "dead at Kotak (rejected/cancelled, no fill)",
    "detail": "reason: resting stop-loss was no longer live at Kotak; re-protecting the position | --"
+  },
+  {
+   "id": 7510,
+   "ts": 1794374727.978236,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000251285",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs555.75",
+   "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-11T05:24:50Z"
+ "synced_at_utc": "2026-11-11T05:25:30Z"
 }
