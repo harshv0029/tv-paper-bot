@@ -114,6 +114,22 @@
   },
   {
    "day": "2026-11-11",
+   "entry_order_id": "261111000158129",
+   "entry_price": 479.05,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "opened_at": 1794371288.8004503,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 415.2,
+   "source": "position",
+   "stop_loss": 404.39286150251115,
+   "strategy": "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1",
+   "symbol": "IRCTC.NS"
+  },
+  {
+   "day": "2026-11-11",
    "entry_order_id": "261111000057202",
    "entry_price": 404.75,
    "first_seen_day": "2026-11-11",
@@ -127,6 +143,22 @@
    "stop_loss": 364.97143118722096,
    "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": "LICI.NS"
+  },
+  {
+   "day": "2026-11-11",
+   "entry_order_id": "261111000159207",
+   "entry_price": 244.24,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "opened_at": 1794371323.318866,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 214.03,
+   "source": "position",
+   "stop_loss": 191.91143144880022,
+   "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+   "symbol": "MEESHO.NS"
   },
   {
    "day": "2026-11-09",
