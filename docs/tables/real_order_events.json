@@ -89303,7 +89303,103 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs365.00",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs365.00 already covers the position (target stop Rs364.97), adopted, nothing placed"
+  },
+  {
+   "id": 7443,
+   "ts": 1794369245.359205,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000012945",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs143.43",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7444,
+   "ts": 1794369246.42461,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013894",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs126.04",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7445,
+   "ts": 1794369246.7303421,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013345",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs1159.80",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7446,
+   "ts": 1794369246.9149604,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013031",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs332.65",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7447,
+   "ts": 1794369247.3096604,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013222",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs130.89",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7448,
+   "ts": 1794369249.8327243,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013214",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs177.83",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7449,
+   "ts": 1794369249.8443666,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013039",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs1658.00",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7450,
+   "ts": 1794369249.8495183,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000013049",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs179.83",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-11T03:54:00Z"
+ "synced_at_utc": "2026-11-11T03:54:17Z"
 }
