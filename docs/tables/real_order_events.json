@@ -89207,7 +89207,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs815.35",
    "detail": "reason: swing entry signal from strategy reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 passed the PFnet gate; B-1500 exit variant live_lt0d5 (reversal__island_turn1cr__long__1d__atr1d5_rsbandfloor_trailltp0d5r_within8__nonovl__v2, 0.19574 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 7435,
+   "ts": 1794369069.86352,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000048028",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs768.80",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-11T03:50:42Z"
+ "synced_at_utc": "2026-11-11T03:51:13Z"
 }
