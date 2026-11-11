@@ -22751,6 +22751,87 @@ def _news_live_ltp(symbol: str, now_ts: float = None) -> float:
         return 0.0
 
 
+NEWS_LATE_MAX_NEWS_AGE_H = 24.0   # B-1551: the confirming headline must be at most this old
+NEWS_LATE_MIN_DAY_MOVE_PCT = 0.5  # stock move vs previous close, in the trade's direction
+NEWS_LATE_MIN_REL_PCT = 0.5       # ... and at least this much better than NIFTY (the move is the news, not the market)
+NEWS_LATE_MIN_VOL_PACE = 1.0      # today's volume so far vs the 20-day average, pro-rated to the session elapsed
+
+
+def _news_market_reacting(symbol: str, direction: str, ltp: float, stock: dict, now_ts: float = None):
+    """B-1551 (user 2026-11-11 IST: "Confidence means at this moment the news is still relevant and the stock market
+    is reacting to this news currently. Then only enter, because you are late in taking entry"): the extra test for a
+    LATE news entry (B-1546 re-base, B-1550 retry). Returns (ok, reason). ALL must hold, else no entry (fail closed):
+    (1) the newest confirming headline is <= NEWS_LATE_MAX_NEWS_AGE_H old; (2) the live price is >= 0.5% past the
+    previous close in the trade's direction; (3) that move beats NIFTY's by >= 0.5%; (4) a long still trades at or
+    above today's open (a short at or below), i.e. the reaction is not fading; (5) today's volume is running at
+    >= 1.0x the 20-day average pro-rated to the session elapsed. Daily bars from data_fetch (cached), volume from the
+    live tick. Never raises."""
+    try:
+        sign = 1.0 if direction == "long" else -1.0
+        want = "hard_pos" if direction == "long" else "hard_neg"
+        ages = [float(t.get("age_h")) for t in (stock.get("top") or [])
+                if t.get("hard") and t.get("age_h") is not None and float(t.get("score") or 0) * sign > 0]
+        if not stock.get(want) or not ages:
+            return False, "no dated confirming headline"
+        if min(ages) > NEWS_LATE_MAX_NEWS_AGE_H:
+            return False, f"news is stale (newest confirming headline {min(ages):.1f} h old > {NEWS_LATE_MAX_NEWS_AGE_H:.0f} h)"
+        today = ist_now().date()
+
+        def _bars(sym):
+            df = fetch_ohlc(sym, "2mo", "1d")
+            if df is None or df.empty:
+                return None, None
+            idx = [(d.date() if hasattr(d, "date") else d) for d in df.index]
+            done = df[[d < today for d in idx]]
+            cur = df[[d == today for d in idx]]
+            return done, cur
+        done, cur = _bars(symbol)
+        if done is None or len(done) < 5:
+            return False, "no daily bars"
+        prev = float(done["Close"].iloc[-1])
+        move = (ltp / prev - 1.0) * 100.0 * sign
+        if move < NEWS_LATE_MIN_DAY_MOVE_PCT:
+            return False, f"stock not reacting: {move:+.2f}% vs previous close Rs{prev:.2f} (need +{NEWS_LATE_MIN_DAY_MOVE_PCT}%)"
+        import kotak_live_feed
+        ticks = kotak_live_feed.get_live_ticks()
+        n_done, _ = _bars("^NSEI")
+        n_ltp = float((ticks.get("^NSEI") or {}).get("ltp") or 0)
+        if n_done is None or not len(n_done) or n_ltp <= 0:
+            return False, "no NIFTY reference"
+        n_move = (n_ltp / float(n_done["Close"].iloc[-1]) - 1.0) * 100.0 * sign
+        if move - n_move < NEWS_LATE_MIN_REL_PCT:
+            return False, f"move is the market, not the news: stock {move:+.2f}% vs NIFTY {n_move:+.2f}%"
+        if cur is not None and len(cur):
+            opn = float(cur["Open"].iloc[-1])
+            if (ltp - opn) * sign < 0:
+                return False, f"reaction fading: Rs{ltp:.2f} vs today's open Rs{opn:.2f}"
+        vol = (ticks.get(symbol) or {}).get("volume_traded_today")
+        avg = float(done["Volume"].tail(20).mean() or 0)
+        loc = ist_now()
+        frac = min(1.0, max(0.05, ((loc.hour * 60 + loc.minute) - (9 * 60 + 15)) / 375.0))
+        if not vol or avg <= 0:
+            return False, "no volume reference"
+        pace = float(vol) / (avg * frac)
+        if pace < NEWS_LATE_MIN_VOL_PACE:
+            return False, f"volume not reacting: {pace:.2f}x the 20-day pace (need {NEWS_LATE_MIN_VOL_PACE}x)"
+        return True, (f"reacting: {move:+.2f}% vs prev close, {move - n_move:+.2f}% vs NIFTY, volume {pace:.2f}x, "
+                      f"newest headline {min(ages):.1f} h old")
+    except Exception as e:
+        return False, f"reaction check failed: {type(e).__name__}"
+
+
+def _news_late_entry_ok(conn, symbol: str, direction: str, ltp: float, stock: dict) -> bool:
+    """B-1551: gate + durable reason log (skips dedupe per day in _log_real_attempt) for a late news entry."""
+    ok, why = _news_market_reacting(symbol, direction, ltp, stock)
+    if not ok:
+        try:
+            _log_real_attempt(conn, symbol, "B", "skipped_news_not_reacting", strategy=NEWS_TRADE_TAGS[direction],
+                              price_est=ltp, detail=f"late news entry held back: {why}")
+        except Exception:
+            pass
+    return ok
+
+
 def _news_opened_outside_session(opened_ts) -> bool:
     """B-1546: True when a news trade's open time was not inside an NSE session on a trading day (calendar only,
     holidays excluded), i.e. it opened on a stale tick before B-1545 and no real order could have followed."""
@@ -22805,7 +22886,8 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                     acts.append((symbol, direction, "real_open"))
             continue
         if (direction == "long" and row["mode"] == "paper" and favour["actionable"]
-                and _news_opened_outside_session(row["opened_ts"])):
+                and _news_opened_outside_session(row["opened_ts"])
+                and _news_late_entry_ok(conn, symbol, direction, ltp, stock)):  # B-1551
             # B-1546 (user 2026-11-11 IST: "Get the Lenskart on real money trade if the confidence is still high"): a
             # paper long opened outside the session (stale tick, pre-B-1545) never had a real order. With the news still
             # confirmed + confident AND a fresh in-session tick now, re-base it: close the stale paper row at today's
@@ -22826,7 +22908,8 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
                 acts.append((symbol, direction, "real_open"))
             continue
         if (direction == "long" and row["mode"] == "paper" and symbol in NEWS_REAL_RETRY_ONCE and favour["actionable"]
-                and NEWS_REAL_RETRY_MARK not in (row["open_reason"] or "")):
+                and NEWS_REAL_RETRY_MARK not in (row["open_reason"] or "")
+                and _news_late_entry_ok(conn, symbol, direction, ltp, stock)):  # B-1551: only while reacting NOW
             # B-1550 (user 2026-11-11 IST: "Yes retry. Only if the confidence of trade entry is good enough"): a ONE-TIME
             # exception to the one-attempt rule for the listed symbol only. It runs only while the news is still
             # confirmed + confident and a fresh in-session tick exists (both checked above). The mark is written FIRST
