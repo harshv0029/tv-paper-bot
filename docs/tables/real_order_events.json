@@ -89747,7 +89747,19 @@
    "prev_state": "Rs268.29",
    "new_state": "cancel resting SL, then place SL at Rs268.44",
    "detail": "reason: trailing stop-loss tightened"
+  },
+  {
+   "id": 7480,
+   "ts": 1794372918.8027854,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "moved",
+   "order_id": "261111000208558",
+   "prev_state": "Rs268.29",
+   "new_state": "Rs268.44",
+   "detail": "reason: stop-loss moved to follow the trailing stop"
   }
  ],
- "synced_at_utc": "2026-11-11T04:55:02Z"
+ "synced_at_utc": "2026-11-11T04:55:24Z"
 }
