@@ -30,20 +30,20 @@ def test_confirmation_needs_two_trusted_publishers_and_an_agreeing_score():
 
 def test_gate_blocks_only_with_fresh_actionable_news_and_a_live_tick(monkeypatch):
     main._NEWS_ACTIONABLE.clear()
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 100.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 100.0)
     assert main._news_blocks_entry("XYZ.NS", "long") is None  # nothing known -> entry proceeds
     conf = main._news_note_actionable("XYZ.NS", _agg(TWO_PUBS), time.time())
     assert conf["long"]["actionable"] and ("XYZ.NS", "long") in main._NEWS_ACTIONABLE and ("XYZ.NS", "short") not in main._NEWS_ACTIONABLE
     assert "sebi bars" in main._news_blocks_entry("XYZ.NS", "long") and main._news_blocks_entry("XYZ.NS", "short") is None
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 0.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 0.0)
     assert main._news_blocks_entry("XYZ.NS", "long") is None  # no live tick -> the module does not act
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 100.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 100.0)
     main._NEWS_ACTIONABLE[("XYZ.NS", "long")]["ts"] -= main.NEWS_ACTIONABLE_TTL_S + 1
     assert main._news_blocks_entry("XYZ.NS", "long") is None  # stale finding expires
     main._news_note_actionable("XYZ.NS", _agg(TWO_PUBS), time.time())
     main._news_note_actionable("XYZ.NS", _agg([("XYZ board meets", 1, "moneycontrol.com")]), time.time())
     assert ("XYZ.NS", "long") not in main._NEWS_ACTIONABLE  # a later calm read clears it
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: (_ for _ in ()).throw(RuntimeError("x")))
     main._NEWS_ACTIONABLE[("XYZ.NS", "long")] = {"ts": time.time(), "reason": "r"}
     assert main._news_blocks_entry("XYZ.NS", "long") is None  # never raises, fail-open
     main._NEWS_ACTIONABLE.clear()
@@ -51,7 +51,7 @@ def test_gate_blocks_only_with_fresh_actionable_news_and_a_live_tick(monkeypatch
 
 def test_gate_logs_the_skip_and_a_live_row(monkeypatch):
     main._NEWS_ACTIONABLE.clear()
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 100.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 100.0)
     lra = MagicMock()
     monkeypatch.setattr(main, "_log_real_attempt", lra)
     conn = MagicMock()

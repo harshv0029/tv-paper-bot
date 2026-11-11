@@ -1961,3 +1961,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - It rides the swing engine (CNC, resting SL with the entry, 5-minute Kotak backcheck, Upstash mirror) instead of a new engine or table, so every existing safety rule covers it from day one. Real shorts stay paper: no overnight cash short at Kotak.
 - With Kotak Net near Rs 5,900 the 1-share risk floor (stop loss at most 1% of Net, about Rs 59) rejects a 3% stop on any share above about Rs 1,970; those show as money rejects, not silent misses.
 - Profit-booking / exit takeaway: the real share is sold the moment the news trade closes - sentiment under half its peak, news reversed, 3% stop, or one week - never held on hope after the news fades.
+
+### B-1544 / B-1545 news trailing stop and stale tick (2026-11-11 IST)
+- B-1544: news stop starts 3% from entry, then trails 0.5% of the ENTRY price behind the best price once the price is past entry; never loosens. On a 3% initial stop, 0.5% is very tight: expect quick exits and small wins, not runners.
+- B-1545: LENSKART opened on paper at 15:45 IST, after the close, because the feed's last stored tick counted as "live". A cached price is not a live tick: every news action now needs an in-session tick with a trade in the last 5 minutes. With one real attempt per signal, an after-hours open silently loses the real entry.
+- Profit-booking / exit takeaway: a trail tighter than the check cadence (5 min) can be crossed between passes, so the real path sells at once when the price is already through the trailed level instead of waiting at the old stop.

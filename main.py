@@ -22717,11 +22717,52 @@ def _news_note_actionable(symbol: str, stock: dict, now_ts: float) -> dict:
 
 NEWS_TRADE_TAGS = {"long": "news_event__confirmed__long__1d__v1", "short": "news_event__confirmed__short__1d__v1"}
 NEWS_TRADE_STOP_PCT = 3.0        # paper stop: 3% against the entry
+NEWS_TRADE_TRAIL_PCT = 0.5       # B-1544 (user 2026-11-10): once price is past entry, stop trails 0.5% of ENTRY behind the peak
 NEWS_TRADE_MAX_HOLD_DAYS = 7     # calendar days (about 5 sessions)
 NEWS_TRADE_WEAK_FRACTION = 0.5   # sentiment is "weak" once the score falls to half its peak ...
 NEWS_TRADE_WEAK_FLOOR = 0.1      # ... or under this absolute level
 NEWS_TRADE_MAX_UNITS = 3         # first unit + at most 2 adds on fresh confirming news
 NEWS_TRADE_COST_PCT = 0.8        # round-trip cost model
+
+
+NEWS_TICK_MAX_AGE_SECONDS = 300  # B-1545: a tick whose last trade is older than this is not "live"
+
+
+def _news_live_ltp(symbol: str, now_ts: float = None) -> float:
+    """B-1545 (LENSKART 2026-11-10: a news buy opened on paper at 15:45 IST, after the close, off the feed's LAST tick,
+    so no real order could follow and the one-attempt rule then never retried it): the price a news trade may act on.
+    Returns the live LTP only during the NSE session (09:15-15:30 IST, trading day) AND when the tick's last trade
+    (else its receipt time) is within NEWS_TICK_MAX_AGE_SECONDS; otherwise 0.0 = "no live tick", so nothing opens,
+    adds or closes on a stale price. Never raises."""
+    try:
+        if not _swing_real_entry_session_open():  # NSE trading day (holidays excluded) AND session hours
+            return 0.0
+        import kotak_live_feed
+        t = kotak_live_feed.get_live_ticks().get(symbol) or {}
+        ltp = float(t.get("ltp") or 0)
+        seen = t.get("last_trade_epoch") or t.get("updated_at_utc")
+        now = time.time() if now_ts is None else float(now_ts)
+        if not (ltp > 0 and seen and now - float(seen) <= NEWS_TICK_MAX_AGE_SECONDS):
+            return 0.0
+        return ltp
+    except Exception:
+        return 0.0
+
+
+def _news_trail_stop(direction: str, entry_price: float, stop: float, peak: float) -> float:
+    """B-1544 (user 2026-11-10 IST: "SL is 3%, but keep trailing SL with 0.5% of entry price"; chose "tight 0.5% behind
+    peak"): the stop stays where it is (3% from entry at the open) until the price has moved past the entry in the
+    trade's favour, then sits 0.5% of the ENTRY price behind the best price reached. Only ever tightens. Pure."""
+    try:
+        ep, st, pk = float(entry_price), float(stop), float(peak)
+    except (TypeError, ValueError):
+        return stop
+    if not (ep > 0 and pk > 0):
+        return st
+    dist = ep * NEWS_TRADE_TRAIL_PCT / 100.0
+    if direction == "long":
+        return round(max(st, pk - dist), 2) if pk > ep else st
+    return round(min(st, pk + dist), 2) if pk < ep else st
 
 
 def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float) -> list:
@@ -22754,8 +22795,15 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
         move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
         peak = max(float(row["peak_score"] or 0), score)
         why = None
-        if move <= -NEWS_TRADE_STOP_PCT:
-            why = f"stop hit ({move:.2f}%)"
+        stop_now = float(row["stop_price"])
+        if (ltp - stop_now) * sign <= 0 or move <= -NEWS_TRADE_STOP_PCT:
+            why = f"stop hit ({move:.2f}%, stop Rs{stop_now:.2f})"
+        else:  # B-1544: ratchet the stop 0.5% of entry behind the best price once past entry (this tick's price = peak)
+            new_stop = _news_trail_stop(direction, row["entry_price"], stop_now, ltp)
+            if new_stop != stop_now:
+                conn.execute("UPDATE news_trades SET stop_price = ? WHERE id = ?", (new_stop, row["id"]))
+        if why is not None:
+            pass  # stopped out: nothing else is evaluated
         elif against["actionable"]:
             why = f"news reversed: {against['event']}"
         elif score < max(NEWS_TRADE_WEAK_FLOOR, peak * NEWS_TRADE_WEAK_FRACTION):
@@ -22849,6 +22897,7 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
             _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=tag,
                               detail="news buy: another swing strategy already owns this symbol")
             return False
+        conn.execute("DELETE FROM swing_ltp_peak WHERE symbol = ?", (symbol,))  # B-1544: no peak from an older position
         conn.execute(
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, qty, "
             "entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 1.0)",
@@ -22914,7 +22963,7 @@ def _news_sweep_watchlist(now_ts: float, symbols=None) -> int:
             stock = news_signals.aggregate(news_signals.stock_items(sym))
             _news_note_actionable(sym, stock, now_ts)
             with closing(get_db()) as conn:
-                _news_trades_step(conn, sym, stock, now_ts, _swing_live_ltp(sym))
+                _news_trades_step(conn, sym, stock, now_ts, _news_live_ltp(sym, now_ts))  # B-1545: fresh in-session tick
             n += 1
         except Exception as e:
             print(f"[NEWS MONITOR] sweep {sym} failed (non-fatal): {e}")
@@ -22930,8 +22979,8 @@ def _news_blocks_entry(symbol: str, direction: str):
         hit = _NEWS_ACTIONABLE.get((symbol, direction))
         if not hit or time.time() - float(hit["ts"]) > NEWS_ACTIONABLE_TTL_S:
             return None
-        if not (_swing_live_ltp(symbol) > 0):
-            return None  # no live tick: the news module does not act
+        if not (_news_live_ltp(symbol) > 0):
+            return None  # no fresh in-session tick (B-1545): the news module does not act
         return hit["reason"]
     except Exception:
         return None
@@ -23002,7 +23051,7 @@ def _news_monitor_log(conn, cands: list, day: str, now_ts: float, ms: dict = Non
             v = news_signals.exit_verdict(symbol, direction)
         st = v.get("stock") or {}
         conf = _news_note_actionable(symbol, st, now_ts)[direction] if st else {"actionable": False}
-        ltp = _swing_live_ltp(symbol)
+        ltp = _news_live_ltp(symbol, now_ts)  # B-1545: tick_live means fresh and in session
         flags = (st.get("hard_pos") if direction == "short" else st.get("hard_neg")) or []
         head = flags[0][1] if flags else ((st.get("top") or [{}])[0].get("title") if st.get("top") else None)
         sec = (ms.get("sectors") or {}).get(sector) or {}
@@ -23057,7 +23106,7 @@ def _news_monitor_pass() -> dict:
             for r in conn.execute("SELECT DISTINCT symbol FROM news_trades WHERE status = 'open'").fetchall():
                 stock = news_signals.aggregate(news_signals.stock_items(r["symbol"]))  # open news trades: every pass
                 _news_note_actionable(r["symbol"], stock, now_ts)
-                _news_trades_step(conn, r["symbol"], stock, now_ts, _swing_live_ltp(r["symbol"]))
+                _news_trades_step(conn, r["symbol"], stock, now_ts, _news_live_ltp(r["symbol"], now_ts))  # B-1545
             exited = _news_exit_real_holdings(conn, now_ts)
         return {"candidates": len(cands), "logged": logged, "scored": scored, "swept": swept, "exited": exited}
     except Exception as e:
@@ -30767,8 +30816,8 @@ def _sync_swing_ltp_trail(conn) -> list:
     # 2026-10-07: DRREDDY's row was relabelled volume_profile_poc after its reroute, so
     # select by the user's named symbols as well as by the orphan tag.
     _trail_rows = conn.execute(
-        "SELECT * FROM real_positions_swing WHERE strategy = ? OR symbol IN (%s)" % ",".join("?" * len(SWING_LTP_TRAIL_SYMBOLS)),
-        (ORPHAN_SWING_STRATEGY_TAG, *SWING_LTP_TRAIL_SYMBOLS)).fetchall()
+        "SELECT * FROM real_positions_swing WHERE strategy IN (?, ?) OR symbol IN (%s)" % ",".join("?" * len(SWING_LTP_TRAIL_SYMBOLS)),
+        (ORPHAN_SWING_STRATEGY_TAG, NEWS_TRADE_TAGS["long"], *SWING_LTP_TRAIL_SYMBOLS)).fetchall()
     for r in _trail_rows:
         if r["kotak_trading_symbol"] not in held and _kotak_symbol_still_open(r["kotak_trading_symbol"]) is not True:
             continue
@@ -30782,13 +30831,34 @@ def _sync_swing_ltp_trail(conn) -> list:
         if ltp is None:
             continue
         prev = conn.execute("SELECT peak_ltp FROM swing_ltp_peak WHERE symbol = ?", (r["symbol"],)).fetchone()
+        _is_news = r["strategy"] == NEWS_TRADE_TAGS["long"]  # B-1544: news buy trails 0.5% of entry behind the peak
+        if _is_news and str(st["entry_day"] or "")[:10] == ist_now().strftime("%Y-%m-%d"):
+            day_peak = ltp  # entry day: today's 1m high may predate the entry, so only prices seen since count
         peak = max(float(prev["peak_ltp"]) if prev else float(st["entry_price"]), day_peak, ltp)
         conn.execute("INSERT INTO swing_ltp_peak (symbol, peak_ltp, updated_at) VALUES (?, ?, ?) "
                      "ON CONFLICT(symbol) DO UPDATE SET peak_ltp = excluded.peak_ltp, updated_at = excluded.updated_at",
                      (r["symbol"], peak, time.time()))
         conn.commit()
-        target = _ltp_trail_stop(peak, r_unit, st["initial_stop_loss"])
+        if _is_news:
+            target = _news_trail_stop("long", st["entry_price"], st["initial_stop_loss"], peak)
+            _why = f"news trail: peak live price Rs{peak:.2f} - {NEWS_TRADE_TRAIL_PCT}% of entry Rs{float(st['entry_price']):.2f}"
+        else:
+            target = _ltp_trail_stop(peak, r_unit, st["initial_stop_loss"])
+            _why = f"peak live price Rs{peak:.2f} - 1R (Rs{r_unit:.2f})"
         current = float(r["sl_trigger_price"] or r["stop_loss"])
+        if _is_news and target > current + 0.05 and target >= ltp:
+            # B-1544: the price already fell through the trailed level between two passes (a 0.5% trail is tighter than
+            # the pass cadence), so the trail IS hit: sell now through the swing exit instead of waiting at the old stop.
+            why = f"trail stop hit (live Rs{ltp:.2f} <= trailed stop Rs{target:.2f}; {_why})"
+            sold = _news_real_close(conn, r["symbol"], "long", why)
+            if sold:
+                conn.execute("UPDATE news_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
+                             "pnl_pct = ROUND((? / entry_price - 1.0) * 100.0 - ?, 3) "
+                             "WHERE symbol = ? AND direction = 'long' AND status = 'open'",
+                             (time.time(), ltp, why, ltp, NEWS_TRADE_COST_PCT, r["symbol"]))
+                conn.commit()
+            actions.append({"symbol": r["symbol"], "ok": bool(sold), "news_trail_exit": True, "target": target})
+            continue
         if target <= current + 0.05 or target >= ltp:
             continue  # ratchet up only; a stop at/above the live price would just fire
         res = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], target)
@@ -30797,7 +30867,7 @@ def _sync_swing_ltp_trail(conn) -> list:
                 conn, r["symbol"], "sl", "trail_failed", kotak_trading_symbol=r["kotak_trading_symbol"],
                 prev_state=f"resting SELL trigger Rs{current:.2f}", new_state="unchanged/unknown",
                 detail=str(res.get("detail"))[:200],
-                reason=f"LTP trail wanted Rs{target:.2f} (peak Rs{peak:.2f} - 1R) but the replace failed")
+                reason=f"LTP trail wanted Rs{target:.2f} ({_why}) but the replace failed")
             if res.get("restored_order_id"):
                 conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                              (res["restored_order_id"], res["restored_trigger"], r["symbol"]))
@@ -30814,7 +30884,7 @@ def _sync_swing_ltp_trail(conn) -> list:
             order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
             new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
             detail=f"LTP trail ({res.get('action')}; Kotak holdings and order book read first)",
-            reason=f"peak live price Rs{peak:.2f} - 1R (Rs{r_unit:.2f}) raised the stop from Rs{current:.2f}")
+            reason=f"{_why} raised the stop from Rs{current:.2f}")
         actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
     return actions
 
@@ -35669,6 +35739,10 @@ def _swing_trail_floor(conn, symbol: str):
                 if r_unit > 0 and pk and pk[0]:
                     ltp_lvl = _ltp_trail_stop(float(pk[0]), r_unit, st[1])
                     lvl = ltp_lvl if lvl is None else max(lvl, ltp_lvl)
+            elif rp and rp[0] == NEWS_TRADE_TAGS["long"] and st[4] is not None:  # B-1544 news trail re-place level
+                pk = conn.execute("SELECT peak_ltp FROM swing_ltp_peak WHERE symbol = ?", (symbol,)).fetchone()
+                if pk and pk[0]:
+                    lvl = _news_trail_stop("long", st[4], st[1], float(pk[0]))
         except Exception:
             pass
         if lvl is None or not lvl > float(st[1]):
