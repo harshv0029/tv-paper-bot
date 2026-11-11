@@ -23075,29 +23075,32 @@ def _news_monitor_log(conn, cands: list, day: str, now_ts: float, ms: dict = Non
     ms = news_signals.market_and_sector_scores() if ms is None else ms
     smap, n = _sector_of_symbol(), 0
     for symbol, direction, kind, cat, took, fallback_price in cands[:NEWS_MONITOR_MAX_PER_PASS]:
-        sector = smap.get(symbol)
-        if kind == "entry":
-            v = news_signals.entry_verdict(symbol, direction, sector=sector, ms=ms)
-        else:
-            v = news_signals.exit_verdict(symbol, direction)
-        st = v.get("stock") or {}
-        conf = _news_note_actionable(symbol, st, now_ts)[direction] if st else {"actionable": False}
-        ltp = _news_live_ltp(symbol, now_ts)  # B-1545: tick_live means fresh and in session
-        flags = (st.get("hard_pos") if direction == "short" else st.get("hard_neg")) or []
-        head = flags[0][1] if flags else ((st.get("top") or [{}])[0].get("title") if st.get("top") else None)
-        sec = (ms.get("sectors") or {}).get(sector) or {}
-        conn.execute(
-            "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, stock_score, "
-            "stock_n, sector_score, market_score, headline, ref_price, real_entry, actionable, tick_live, evidence) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
-            "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET ts = excluded.ts, action = excluded.action, "
-            "reason = excluded.reason, stock_score = excluded.stock_score, stock_n = excluded.stock_n, "
-            "headline = excluded.headline, ref_price = COALESCE(news_signal_events.ref_price, excluded.ref_price), "
-            "actionable = excluded.actionable, tick_live = excluded.tick_live, evidence = excluded.evidence",
-            (now_ts, day, symbol, direction, kind, cat, v.get("action") or "allow", (v.get("reason") or "")[:300],
-             st.get("score"), st.get("n"), sec.get("score"), (ms.get("market") or {}).get("score"),
-             (head or "")[:200] or None, (ltp or fallback_price or None), took, int(bool(conf["actionable"])), int(ltp > 0), _news_evidence(st)))
-        n += 1
+        try:  # B-1547: one bad candidate never stops the rest
+            sector = smap.get(symbol)
+            if kind == "entry":
+                v = news_signals.entry_verdict(symbol, direction, sector=sector, ms=ms)
+            else:
+                v = news_signals.exit_verdict(symbol, direction)
+            st = v.get("stock") or {}
+            conf = _news_note_actionable(symbol, st, now_ts)[direction] if st else {"actionable": False}
+            ltp = _news_live_ltp(symbol, now_ts)  # B-1545: tick_live means fresh and in session
+            flags = (st.get("hard_pos") if direction == "short" else st.get("hard_neg")) or []
+            head = flags[0][1] if flags else ((st.get("top") or [{}])[0].get("title") if st.get("top") else None)
+            sec = (ms.get("sectors") or {}).get(sector) or {}
+            conn.execute(
+                "INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action, reason, stock_score, "
+                "stock_n, sector_score, market_score, headline, ref_price, real_entry, actionable, tick_live, evidence) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT (day, symbol, direction, kind) DO UPDATE SET ts = excluded.ts, action = excluded.action, "
+                "reason = excluded.reason, stock_score = excluded.stock_score, stock_n = excluded.stock_n, "
+                "headline = excluded.headline, ref_price = COALESCE(news_signal_events.ref_price, excluded.ref_price), "
+                "actionable = excluded.actionable, tick_live = excluded.tick_live, evidence = excluded.evidence",
+                (now_ts, day, symbol, direction, kind, cat, v.get("action") or "allow", (v.get("reason") or "")[:300],
+                 st.get("score"), st.get("n"), sec.get("score"), (ms.get("market") or {}).get("score"),
+                 (head or "")[:200] or None, (ltp or fallback_price or None), took, int(bool(conf["actionable"])), int(ltp > 0), _news_evidence(st)))
+            n += 1
+        except Exception as e:
+            print(f"[NEWS MONITOR] log {symbol} {direction} {kind} failed (non-fatal): {e}")
     conn.commit()
     return n
 
@@ -23123,26 +23126,88 @@ def _news_monitor_evaluate(conn, now_ts: float, price_fn=None) -> int:
     return n
 
 
-def _news_monitor_pass() -> dict:
-    """B-1539: one shadow pass on its own thread and DB connection. Never raises, never places or changes an order."""
+_NEWS_PASS_STATE = {"started_ts": None, "finished_ts": None, "stage": None, "result": None, "errors": [], "passes": 0}
+
+
+def _news_pass_stage(name, fn, errors):
+    """B-1547: runs one stage of the news pass; a failure is recorded and the NEXT stage still runs."""
+    _NEWS_PASS_STATE["stage"] = name
     try:
-        now = ist_now()
-        now_ts, day = time.time(), now.strftime("%Y-%m-%d")
-        with closing(get_db()) as conn:
-            cands = _news_monitor_candidates(conn, day, now_ts)
-            logged = _news_monitor_log(conn, cands, day, now_ts)
-            scored = _news_monitor_evaluate(conn, now_ts)
-        swept = _news_sweep_watchlist(now_ts)
-        with closing(get_db()) as conn:
-            for r in conn.execute("SELECT DISTINCT symbol FROM news_trades WHERE status = 'open'").fetchall():
-                stock = news_signals.aggregate(news_signals.stock_items(r["symbol"]))  # open news trades: every pass
+        return fn()
+    except Exception as e:
+        errors.append(f"{name}: {type(e).__name__}: {str(e)[:200]}")
+        print(f"[NEWS MONITOR] {name} failed (non-fatal): {e}")
+        return None
+
+
+def _news_open_trades_pass(now_ts: float) -> int:
+    """Open news trades (and the B-1546 re-base) every pass, one symbol at a time, each isolated."""
+    n = 0
+    with closing(get_db()) as conn:
+        for r in conn.execute("SELECT DISTINCT symbol FROM news_trades WHERE status = 'open'").fetchall():
+            try:
+                stock = news_signals.aggregate(news_signals.stock_items(r["symbol"]))
                 _news_note_actionable(r["symbol"], stock, now_ts)
                 _news_trades_step(conn, r["symbol"], stock, now_ts, _news_live_ltp(r["symbol"], now_ts))  # B-1545
-            exited = _news_exit_real_holdings(conn, now_ts)
-        return {"candidates": len(cands), "logged": logged, "scored": scored, "swept": swept, "exited": exited}
-    except Exception as e:
-        print(f"[NEWS MONITOR] pass failed (non-fatal): {e}")
-        return {"error": str(e)}
+                n += 1
+            except Exception as e:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                print(f"[NEWS MONITOR] open trade {r['symbol']} failed (non-fatal): {e}")
+    return n
+
+
+def _news_monitor_pass() -> dict:
+    """B-1539: one shadow pass on its own thread and DB connection. Never raises; orders change only via the news
+    trade steps (B-1541/B-1546) and the holdings exit. B-1547 (LENSKART 2026-11-11: the pass stopped reaching the
+    open-trades loop after 09:13 IST, so the re-base never ran): open trades go FIRST, every stage is isolated, and
+    the pass state (stage, errors, timings) is shown on /news-monitor."""
+    errors = []
+    _NEWS_PASS_STATE.update(started_ts=time.time(), finished_ts=None, errors=errors)
+    now = ist_now()
+    now_ts, day = time.time(), now.strftime("%Y-%m-%d")
+    out = {"open_trades": _news_pass_stage("open_trades", lambda: _news_open_trades_pass(now_ts), errors)}
+
+    def _log_stage():
+        with closing(get_db()) as conn:
+            cands = _news_monitor_candidates(conn, day, now_ts)
+            return len(cands), _news_monitor_log(conn, cands, day, now_ts)
+    lg = _news_pass_stage("log", _log_stage, errors) or (None, None)
+    out["candidates"], out["logged"] = lg
+
+    def _eval_stage():
+        with closing(get_db()) as conn:
+            return _news_monitor_evaluate(conn, now_ts)
+    out["scored"] = _news_pass_stage("evaluate", _eval_stage, errors)
+    out["swept"] = _news_pass_stage("sweep", lambda: _news_sweep_watchlist(now_ts), errors)
+
+    def _exit_stage():
+        with closing(get_db()) as conn:
+            return _news_exit_real_holdings(conn, now_ts)
+    out["exited"] = _news_pass_stage("exit_holdings", _exit_stage, errors)
+    if errors:
+        out["errors"] = list(errors)
+    _NEWS_PASS_STATE.update(finished_ts=time.time(), stage="done", result=out,
+                            passes=int(_NEWS_PASS_STATE.get("passes") or 0) + 1)
+    return out
+
+
+def _news_pass_status(now: float = None) -> dict:
+    """B-1547: the news pass's own health for /news-monitor (IST times; a pass running > 10 min is flagged stuck)."""
+    now = time.time() if now is None else now
+    st = dict(_NEWS_PASS_STATE)
+    _ist = lambda t: (dt.datetime.utcfromtimestamp(float(t)) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M:%S") if t else None
+    running = _news_monitor_thread is not None and _news_monitor_thread.is_alive()
+    st.update(started_ist=_ist(st.get("started_ts")), finished_ist=_ist(st.get("finished_ts")), running=running)
+    if running and st.get("started_ts") and now - float(st["started_ts"]) > 600:
+        st["stuck"] = True
+        try:
+            st["stack"] = [x for x in _busy_thread_stacks() if x.startswith("news-monitor")][:1]
+        except Exception:
+            pass
+    return st
 
 
 def _news_monitor_kick() -> bool:
@@ -23208,6 +23273,7 @@ def news_monitor_view(days: int = 30):
                               "buy: good news confirmed by 2+ trusted publishers with an agreeing score and a live tick buys "
                               f"{NEWS_REAL_QTY_CAP} real share (swing engine, 3% resting stop, viability gate skipped); sold when "
                               "the sentiment weakens, the news reverses, the stop hits, or after one week"],
+               "pass_state": _news_pass_status(),  # B-1547
                "actionable_now": [{"symbol": k[0], "direction": k[1], **v} for k, v in list(_NEWS_ACTIONABLE.items())],
                "mode_note": "live: blocks entries, exits holdings, and buys 1 real share on confirmed + confident good news with a live tick (viability gate skipped, user override). News shorts and adds: paper",
                "caused": [r for r in rows if r["mode"] == "live"], "events": rows[:400]}
