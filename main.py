@@ -22723,6 +22723,8 @@ NEWS_TRADE_WEAK_FRACTION = 0.5   # sentiment is "weak" once the score falls to h
 NEWS_TRADE_WEAK_FLOOR = 0.1      # ... or under this absolute level
 NEWS_TRADE_MAX_UNITS = 3         # first unit + at most 2 adds on fresh confirming news
 NEWS_TRADE_COST_PCT = 0.8        # round-trip cost model
+NEWS_REAL_RETRY_ONCE = frozenset({"LENSKART.NS"})  # B-1550: user-approved one-time real retry (2026-11-11)
+NEWS_REAL_RETRY_MARK = "[B-1550 real retry used]"
 
 
 NEWS_TICK_MAX_AGE_SECONDS = 300  # B-1545: a tick whose last trade is older than this is not "live"
@@ -22823,6 +22825,24 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
             if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):
                 acts.append((symbol, direction, "real_open"))
             continue
+        if (direction == "long" and row["mode"] == "paper" and symbol in NEWS_REAL_RETRY_ONCE and favour["actionable"]
+                and NEWS_REAL_RETRY_MARK not in (row["open_reason"] or "")):
+            # B-1550 (user 2026-11-11 IST: "Yes retry. Only if the confidence of trade entry is good enough"): a ONE-TIME
+            # exception to the one-attempt rule for the listed symbol only. It runs only while the news is still
+            # confirmed + confident and a fresh in-session tick exists (both checked above). The mark is written FIRST
+            # (news_trades is Upstash-mirrored), so a restart or another skip never retries again. Same 3% stop from
+            # today's price and the 0.5% trail; every swing-engine gate still applies and logs its own reason.
+            stop = ltp * (1 - NEWS_TRADE_STOP_PCT / 100.0)
+            conn.execute("UPDATE news_trades SET open_reason = COALESCE(open_reason, '') || ? WHERE id = ?",
+                         (" " + NEWS_REAL_RETRY_MARK, row["id"]))
+            conn.commit()
+            acts.append((symbol, direction, "real_retry"))
+            if _news_real_open(conn, symbol, direction, ltp, round(stop, 2), now_ts):
+                conn.execute("UPDATE news_trades SET entry_price = ?, stop_price = ? WHERE id = ?",
+                             (ltp, round(stop, 2), row["id"]))
+                conn.commit()
+                acts.append((symbol, direction, "real_open"))
+                continue
         move = (ltp / float(row["entry_price"]) - 1.0) * 100.0 * sign
         peak = max(float(row["peak_score"] or 0), score)
         why = None
