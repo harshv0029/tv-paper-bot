@@ -89135,7 +89135,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"10 nse symbols printed new trades today within 120s\", \"symbols\": [\"KALYANKJIL.NS\", \"RECLTD.NS\", \"SBICARD.NS\", \"SBIN.NS\", \"SUNPHARMA.NS\", \"TCS.NS\", \"TRENT.NS\", \"UNIONBANK.NS\", \"VBL.NS\", \"YESBANK.NS\"], \"count\": 10, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 22.7}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
+  },
+  {
+   "id": 7429,
+   "ts": 1794368750.5157335,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "1203.7",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-11T03:45:43Z"
+ "synced_at_utc": "2026-11-11T03:45:54Z"
 }
