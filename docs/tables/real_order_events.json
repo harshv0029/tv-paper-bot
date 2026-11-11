@@ -89615,7 +89615,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs244.24",
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1 passed the PFnet gate"
+  },
+  {
+   "id": 7469,
+   "ts": 1794371342.9343345,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000159888",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs214.03",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-11T04:28:48Z"
+ "synced_at_utc": "2026-11-11T04:29:09Z"
 }
