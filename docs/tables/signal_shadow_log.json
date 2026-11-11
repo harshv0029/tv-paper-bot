@@ -178606,7 +178606,139 @@
       "taken": 0,
       "reason": "real entry: strategy below PFnet floor",
       "hard_gate": 1
+    },
+    {
+      "id": 16238,
+      "ts": 1794391138.7382355,
+      "day": "2026-11-11",
+      "strategy_tag": "oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2",
+      "symbol": "RECLTD.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16239,
+      "ts": 1794391139.2942262,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "GODREJCP.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16240,
+      "ts": 1794391139.4172454,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "GODREJCP.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16241,
+      "ts": 1794391139.7929761,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "JINDALSTEL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16242,
+      "ts": 1794391139.9443686,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "JINDALSTEL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16243,
+      "ts": 1794391140.507914,
+      "day": "2026-11-11",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "POLICYBZR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16244,
+      "ts": 1794391140.602858,
+      "day": "2026-11-11",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "POLICYBZR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16245,
+      "ts": 1794391140.899301,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "TATACOMM.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16246,
+      "ts": 1794391141.2201993,
+      "day": "2026-11-11",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "COCHINSHIP.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16247,
+      "ts": 1794391141.492993,
+      "day": "2026-11-11",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "COCHINSHIP.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16248,
+      "ts": 1794391142.895046,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "BHARATFORG.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 16249,
+      "ts": 1794391143.0770085,
+      "day": "2026-11-11",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "BHARATFORG.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
     }
   ],
-  "synced_at_utc": "2026-11-11T09:58:03Z"
+  "synced_at_utc": "2026-11-11T17:40:10Z"
 }
