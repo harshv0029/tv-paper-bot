@@ -89401,6 +89401,18 @@
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   },
   {
+   "id": 7452,
+   "ts": 1794369532.6338282,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000012945",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7451,
    "ts": 1794369545.2316227,
    "symbol": "IOC.NS",
@@ -89411,7 +89423,19 @@
    "prev_state": "resting SELL trigger Rs143.43",
    "new_state": "resting SELL trigger Rs144.40",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs143.43 to Rs144.40 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7453,
+   "ts": 1794369566.81234,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": "COLPAL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261111000079543",
+   "prev_state": "resting SELL trigger Rs1658.00",
+   "new_state": "resting SELL trigger Rs1677.20",
+   "detail": "reason: reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 trail rule raised the stop from Rs1658.00 to Rs1677.20 | daily reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T03:59:08Z"
+ "synced_at_utc": "2026-11-11T03:59:29Z"
 }
