@@ -41,10 +41,10 @@
       "source": "position",
       "entry_price": 815.35,
       "stop_loss": 768.7756548447488,
-      "sl_trigger_price": 768.8,
+      "sl_trigger_price": null,
       "strategy": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
       "entry_order_id": "261111000045498",
-      "opened_at": 1794369039.393759,
+      "opened_at": 1794410844.309135,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -73,10 +73,10 @@
       "source": "position",
       "entry_price": 357.1,
       "stop_loss": 307.01429530552457,
-      "sl_trigger_price": 310.6,
+      "sl_trigger_price": null,
       "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
       "entry_order_id": "261111000298121",
-      "opened_at": 1794376756.6977577,
+      "opened_at": 1794410843.1031265,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -89,10 +89,10 @@
       "source": "position",
       "entry_price": 388.7,
       "stop_loss": 349.1071472167969,
-      "sl_trigger_price": 369.0,
+      "sl_trigger_price": null,
       "strategy": "gap__runaway__long__1d__atr4_h20__v1",
       "entry_order_id": "261111000053915",
-      "opened_at": 1794369153.7187383,
+      "opened_at": 1794410845.589804,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -121,10 +121,10 @@
       "source": "position",
       "entry_price": 479.05,
       "stop_loss": 404.39286150251115,
-      "sl_trigger_price": 415.2,
+      "sl_trigger_price": null,
       "strategy": "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1",
       "entry_order_id": "261111000158129",
-      "opened_at": 1794371288.8004503,
+      "opened_at": 1794410852.1073081,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -137,10 +137,10 @@
       "source": "position",
       "entry_price": 404.75,
       "stop_loss": 364.97143118722096,
-      "sl_trigger_price": 385.3,
+      "sl_trigger_price": null,
       "strategy": "gap__runaway__long__1d__atr4_h20__v1",
       "entry_order_id": "261111000057202",
-      "opened_at": 1794369208.9549623,
+      "opened_at": 1794410850.824944,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -153,10 +153,10 @@
       "source": "position",
       "entry_price": 244.24,
       "stop_loss": 191.91143144880022,
-      "sl_trigger_price": 214.03,
+      "sl_trigger_price": null,
       "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
       "entry_order_id": "261111000159207",
-      "opened_at": 1794371323.318866,
+      "opened_at": 1794410846.9747767,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -169,10 +169,10 @@
       "source": "position",
       "entry_price": 72.35,
       "stop_loss": 67.27147716752411,
-      "sl_trigger_price": 67.27,
+      "sl_trigger_price": null,
       "strategy": "brk20_min_rr__main_replay__long__1d__atr3_rr3__v1",
       "entry_order_id": "261111000294810",
-      "opened_at": 1794376612.4065564,
+      "opened_at": 1794410849.486661,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -233,10 +233,10 @@
       "source": "position",
       "entry_price": 555.75,
       "stop_loss": 480.84279087611606,
-      "sl_trigger_price": 520.7,
+      "sl_trigger_price": null,
       "strategy": "gap__runaway__long__1d__atr4_h20__v1",
       "entry_order_id": "261111000251285",
-      "opened_at": 1794374727.9368706,
+      "opened_at": 1794410848.1822288,
       "day": "2026-11-11",
       "first_seen_day": "2026-11-11"
     },
@@ -257,5 +257,5 @@
       "first_seen_day": "2026-11-09"
     }
   ],
-  "synced_at_utc": "2026-11-11T09:59:38Z"
+  "synced_at_utc": "2026-11-11T17:44:36Z"
 }
