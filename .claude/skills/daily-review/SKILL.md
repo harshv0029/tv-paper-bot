@@ -7,6 +7,9 @@ description: Daily post-market auto-heal and process-improvement review of the l
 
 Read CLAUDE.md first; every rule there applies. This is a real-money bot.
 
+**Primary objective (user 2026-11-11): find what could be done better to make MORE PROFIT.** Every run must answer
+"how could this window have made more money, net of the 0.8% cost?" with real numbers, not only list what broke.
+
 ## 0. Setup
 - `git fetch origin claude/confident-fermi-mlqbka && git checkout claude/confident-fermi-mlqbka && git pull`.
 - Window: `docs/daily_review_state.json` -> `last_check_utc`. Missing: now - 50 h. Older than 7 days: cap at 7 days and say so.
@@ -26,8 +29,21 @@ one running + one queued.
 
 ## 2. Analyse
 For each finding: what happened (IST, symbol, category), Kotak vs app, root cause from code, INR impact.
-Sections: Went right / Went wrong / Incidents / Improvements (ranked by estimated net-profit impact).
+Sections: Went right / Went wrong / Incidents / More profit next time / Improvements (ranked by estimated net-profit impact).
 Check every category (buy, short, swing, swing-short, news, futures, options, MCX) per the per-category rule.
+
+## 2b. Profit review (required every run)
+From Kotak's trade book for the window, per trade and per category/strategy tag:
+- Realised and open P&L net of costs; win %, avg win vs avg loss, hold time, return per day.
+- Missed profit: fired triggers rejected (by flag), stale/late entries, entries blocked by money or gates that would
+  have won (check the later price); exits that left money on the table (peak vs exit, MFE/MAE), stops hit then
+  recovered, trails too loose or too tight, positions held to a loss after being in profit.
+- Cost drag: brokerage/charges vs gross P&L; trades too small for their costs.
+- Idle capital: free Kotak cash unused while viable signals fired.
+Output a ranked list "More profit next time" with an estimated INR gain each. Each item is either built (if it
+is a bug or within existing rules), or queued as research/backlog with a validation plan (full-universe replay,
+real main.py functions, no tuning off one day's result). Rule changes that decide real-money entries, sizing or
+exits go to the user as "Input required", never shipped alone. Add a learnings entry with the profit takeaway.
 
 ## 3. Heal (inside the rules only)
 - Allowed: bug fixes with tests on `claude/confident-fermi-mlqbka`, full suite green + `ast.parse`, commit, push;
