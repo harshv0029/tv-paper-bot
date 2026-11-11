@@ -89533,6 +89533,18 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
+   "id": 7463,
+   "ts": 1794370974.919989,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000138966",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7462,
    "ts": 1794370989.3596306,
    "symbol": "BANKBARODA.NS",
@@ -89543,7 +89555,19 @@
    "prev_state": "Rs241.14",
    "new_state": "Rs265.34",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 7464,
+   "ts": 1794371046.300535,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000147069",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs268.60",
+   "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-11T04:23:18Z"
+ "synced_at_utc": "2026-11-11T04:24:11Z"
 }
