@@ -89483,7 +89483,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs268.02",
    "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 7458,
+   "ts": 1794370840.9691112,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000138966",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs241.14",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-11T04:20:27Z"
+ "synced_at_utc": "2026-11-11T04:20:44Z"
 }
