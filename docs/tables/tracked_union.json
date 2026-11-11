@@ -65,6 +65,22 @@
    "symbol": "COLPAL.NS"
   },
   {
+   "day": "2026-11-11",
+   "entry_order_id": "261111000053915",
+   "entry_price": 388.7,
+   "first_seen_day": "2026-11-11",
+   "is_short": 0,
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "opened_at": 1794369153.7187383,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 349.15,
+   "source": "position",
+   "stop_loss": 349.1071472167969,
+   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
+   "symbol": "INDUSTOWER.NS"
+  },
+  {
    "day": "2026-11-02",
    "entry_order_id": "261102000030918",
    "entry_price": 135.67,
