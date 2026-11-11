@@ -90205,7 +90205,7 @@
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1 passed the PFnet gate"
   },
   {
-   "id": 7519,
+   "id": 7518,
    "ts": 1794376759.9183881,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -90217,7 +90217,7 @@
    "detail": "reason: real market BUY entry; Kotak accepted it"
   },
   {
-   "id": 7518,
+   "id": 7519,
    "ts": 1794376776.832615,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -90229,7 +90229,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 7521,
+   "id": 7520,
    "ts": 1794376826.3210313,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90241,7 +90241,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7520,
+   "id": 7521,
    "ts": 1794376841.220789,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90253,7 +90253,7 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs131.19 to Rs131.55 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 7523,
+   "id": 7522,
    "ts": 1794378361.371694,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90265,7 +90265,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 7522,
+   "id": 7523,
    "ts": 1794378376.7368937,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -90277,5 +90277,5 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs131.55 to Rs132.43 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T06:27:49Z"
+ "synced_at_utc": "2026-11-11T06:36:35Z"
 }
