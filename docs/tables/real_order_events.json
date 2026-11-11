@@ -90191,7 +90191,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs67.27",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7517,
+   "ts": 1794376756.7072623,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000298121",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs357.10",
+   "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-11T05:57:25Z"
+ "synced_at_utc": "2026-11-11T05:59:19Z"
 }
