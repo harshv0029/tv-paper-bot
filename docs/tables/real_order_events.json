@@ -90037,6 +90037,18 @@
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   },
   {
+   "id": 7505,
+   "ts": 1794374498.1740606,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261111000160186",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7504,
    "ts": 1794374512.3385174,
    "symbol": "PNB.NS",
@@ -90047,7 +90059,19 @@
    "prev_state": "resting SELL trigger Rs128.92",
    "new_state": "resting SELL trigger Rs131.19",
    "detail": "reason: primary_base trail rule raised the stop from Rs128.92 to Rs131.19 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7506,
+   "ts": 1794374594.0440104,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261111000245070",
+   "prev_state": "Rs270.57",
+   "new_state": "cancel resting SL, then place SL at Rs271.26",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-11T05:21:56Z"
+ "synced_at_utc": "2026-11-11T05:23:24Z"
 }
