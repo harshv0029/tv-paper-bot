@@ -89579,7 +89579,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs265.34",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7466,
+   "ts": 1794371288.8617961,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261111000158129",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs479.05",
+   "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-11T04:24:31Z"
+ "synced_at_utc": "2026-11-11T04:28:11Z"
 }
