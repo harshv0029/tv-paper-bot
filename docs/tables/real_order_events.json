@@ -90143,7 +90143,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs271.26",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=2"
+  },
+  {
+   "id": 7513,
+   "ts": 1794375701.9541268,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261111000272552",
+   "prev_state": "resting SELL trigger Rs488.80",
+   "new_state": "resting SELL trigger Rs520.70",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs488.80 to Rs520.70 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-11T05:27:20Z"
+ "synced_at_utc": "2026-11-11T05:41:48Z"
 }
