@@ -76,10 +76,10 @@ def test_real_holding_is_exited_only_on_confirmed_news_with_a_live_tick_by_its_o
                                     "_maybe_place_real_swing_exit", "_maybe_place_real_swing_short_exit")}
     for n, m in fns.items():
         monkeypatch.setattr(main, n, m)
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 0.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 0.0)
     main._news_note_actionable("XYZ.NS", _agg(BAD2), t)
     assert main._news_exit_real_holdings(c, t) == []  # no live tick -> no exit
-    monkeypatch.setattr(main, "_swing_live_ltp", lambda s: 95.0)
+    monkeypatch.setattr(main, "_news_live_ltp", lambda s, t=None: 95.0)
     assert main._news_exit_real_holdings(c, t) == [("XYZ.NS", "long", "swing")]
     fns["_maybe_place_real_swing_exit"].assert_called_once()
     assert fns["_maybe_place_real_swing_exit"].call_args[0][1] == "XYZ.NS"
