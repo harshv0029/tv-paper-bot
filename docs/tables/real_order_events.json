@@ -89279,7 +89279,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs404.75",
    "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt0d5 (gap__runaway__long__1d__atr4_h20_rsbandfloor_trailltp0d5r__v1, 0.105111 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 7441,
+   "ts": 1794369229.4709861,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261111000058540",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs365.00",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7442,
+   "ts": 1794369232.3997126,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261111000058540",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs365.00",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs365.00 already covers the position (target stop Rs364.97), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-11T03:53:42Z"
+ "synced_at_utc": "2026-11-11T03:54:00Z"
 }
