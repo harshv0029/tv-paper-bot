@@ -90205,6 +90205,18 @@
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1 passed the PFnet gate"
   },
   {
+   "id": 7519,
+   "ts": 1794376759.9183881,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "entry",
+   "event": "kotak_placed",
+   "order_id": "261111000298178",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
    "id": 7518,
    "ts": 1794376776.832615,
    "symbol": "FEDERALBNK.NS",
@@ -90217,5 +90229,5 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-11T05:59:44Z"
+ "synced_at_utc": "2026-11-11T06:00:10Z"
 }
