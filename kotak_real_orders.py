@@ -215,6 +215,20 @@ import kotak_neo
 _TERMINAL_ORDER_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
 
 
+def is_triggered_stop_row(row, side) -> bool:
+    """B-1556: a stop that has TRIGGERED at Kotak stays in the order book as a working order but no longer carries prcTp
+    SL/SL-M (COCHINSHIP 2026-11-11). It keeps its trigger price, which a plain target limit does not. Such an order is an
+    exit already in progress: it protects the position and must never draw a second exit order on top of it."""
+    if str(row.get("trnsTp", "")).upper() != side or str(row.get("prcTp", "")).upper() in ("SL", "SL-M"):
+        return False
+    if str(row.get("ordSt", row.get("stat", ""))).strip().lower() in _TERMINAL_ORDER_STATUSES or not row.get("nOrdNo"):
+        return False
+    try:
+        return float(row.get("trgPrc") or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 # B-1448 (2026-11-02): 155 Kotak orders had no app log row, mostly rejected SL retries: the callers log a failed
 # SL with order_id=None (a rejected result carries `rejected_order_id`, not `order_id`), so the reconcile's
 # order-id match never found them. Every send this module makes (place, cancel) now reports its outcome, with the
@@ -631,8 +645,8 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
             continue
         if row.get("trnsTp") != "S":
             continue
-        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
-            continue
+        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M") and not is_triggered_stop_row(row, "S"):
+            continue  # B-1556: a triggered stop (working, no longer prcTp SL) is cancelled too
         if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
             continue
         order_id = row.get("nOrdNo")
@@ -700,8 +714,8 @@ def cancel_existing_resting_sl_short(kotak_trading_symbol: str) -> dict:
             continue
         if row.get("trnsTp") != "B":
             continue
-        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
-            continue
+        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M") and not is_triggered_stop_row(row, "B"):
+            continue  # B-1556: a triggered stop (working, no longer prcTp SL) is cancelled too
         if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
             continue
         order_id = row.get("nOrdNo")
@@ -1503,6 +1517,11 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
         res["scan_error"] = str(e)
         return res
 
+    # B-1556: a stop that already triggered is an exit in progress - never place or modify a stop on top of it.
+    for row in rows:
+        if row.get("trdSym") == kotak_trading_symbol and is_triggered_stop_row(row, "S"):
+            return {"ok": True, "order_id": str(row.get("nOrdNo")), "trigger_price": float(row.get("trgPrc") or 0),
+                    "action": "stop_triggered_exit_working", "raw_response": None}
     live = []
     for row in rows:
         if row.get("trdSym") != kotak_trading_symbol or row.get("trnsTp") != "S":
