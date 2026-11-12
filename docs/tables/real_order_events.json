@@ -91679,7 +91679,19 @@
    "prev_state": "Rs1034.45",
    "new_state": "Rs1053.55",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 7641,
+   "ts": 1794476864.6581252,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_sl_terminal_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's intraday SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-12T09:43:01Z"
+ "synced_at_utc": "2026-11-12T09:47:46Z"
 }
