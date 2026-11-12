@@ -11,7 +11,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1390.2,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1390.1092967321729,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "ADANIENSOL.NS"
@@ -43,7 +43,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1053.55,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1034.45,
    "strategy": "swing_rerouted_orphan",
    "symbol": "BDL.NS"
