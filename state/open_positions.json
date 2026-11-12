@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-11-12T10:45:09Z",
+  "synced_at_utc": "2026-11-12T18:37:33Z",
   "open_positions": [
     {
       "symbol": "BDL.NS",
@@ -18,7 +18,7 @@
       "sma_fast": 9,
       "sma_slow": 21,
       "entry_regime": null,
-      "real_entry_reason": null
+      "real_entry_reason": "no real-entry attempt logged for this symbol today"
     }
   ]
 }
