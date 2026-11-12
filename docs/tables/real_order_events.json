@@ -91427,7 +91427,19 @@
    "prev_state": "resting SELL trigger Rs133.94",
    "new_state": "resting SELL trigger Rs134.42",
    "detail": "reason: primary_base trail rule raised the stop from Rs133.94 to Rs134.42 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7620,
+   "ts": 1794460337.7286944,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261112000261825",
+   "prev_state": "resting SELL trigger Rs179.83",
+   "new_state": "resting SELL trigger Rs180.28",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs179.83 to Rs180.28 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T04:52:03Z"
+ "synced_at_utc": "2026-11-12T05:12:20Z"
 }
