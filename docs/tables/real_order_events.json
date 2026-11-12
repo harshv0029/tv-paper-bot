@@ -91331,7 +91331,19 @@
    "prev_state": "resting SELL trigger Rs387.20",
    "new_state": "resting SELL trigger Rs388.70",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs387.20 to Rs388.70 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7612,
+   "ts": 1794458089.9360287,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261112000180114",
+   "prev_state": "resting SELL trigger Rs132.93",
+   "new_state": "resting SELL trigger Rs133.94",
+   "detail": "reason: primary_base trail rule raised the stop from Rs132.93 to Rs133.94 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T04:20:00Z"
+ "synced_at_utc": "2026-11-12T04:34:52Z"
 }
