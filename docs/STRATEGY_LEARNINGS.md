@@ -1989,3 +1989,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: a swing pass waits until the feed has prices, and a no-tick refusal retries in 60 s.
 - Reuse: any scan that runs at startup must wait for its data feed; any refusal caused by a transient gap must retry quickly, not at the normal interval.
 - Profit-booking / exit takeaway: deploying mid-session costs real entries; prefer deploys before 09:05 or after 15:30 IST.
+
+## B-1563 View 4 'Close now (at live SL)' column (2026-11-12 IST)
+- Mechanism: per open real position, (live Kotak SL trigger - entry) x qty (shorts mirrored) = the P&L locked in if the resting stop fills now; shown gross, as % of entry value, and net of the ~0.8% round-trip cost.
+- Why it matters: a stop above entry but inside the 0.8% cost band still loses money net; the net figure shows which trailed stops have actually locked in profit.
+- Profit-booking / exit takeaway: judge a trailed stop by its net locked-in value, not by SL > entry; a stop under entry + 0.8% has not yet protected any profit.
