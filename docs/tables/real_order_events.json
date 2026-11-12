@@ -91211,7 +91211,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"18 nse symbols printed new trades today within 120s\", \"symbols\": [\"DABUR.NS\", \"DIXON.NS\", \"EICHERMOT.NS\", \"FEDERALBNK.NS\", \"GAIL.NS\", \"GODFRYPHLP.NS\", \"HDFCBANK.NS\", \"HDFCLIFE.NS\", \"HEROMOTOCO.NS\", \"HINDUNILVR.NS\"], \"count\": 18, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 34.5}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
+  },
+  {
+   "id": 7602,
+   "ts": 1794455969.73933,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "387.2",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-12T03:47:05Z"
+ "synced_at_utc": "2026-11-12T03:59:32Z"
 }
