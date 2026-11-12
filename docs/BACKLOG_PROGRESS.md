@@ -9,7 +9,7 @@ Total rows: 1318 | closed: 655 | not closed: 663
 | Status | Count |
 |---|---|
 | DONE | 364 |
-| PARTIAL | 139 |
+| PARTIAL | 140 |
 | CLOSED | 138 |
 | CLOSED-AS-EXPLAINED | 128 |
 | P2 | 79 |
@@ -22,10 +22,10 @@ Total rows: 1318 | closed: 655 | not closed: 663
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT | 11 |
-| USER | 10 |
+| USER | 12 |
 | P3 | 9 |
 | P0 | 8 |
+| BUILT | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
@@ -505,8 +505,8 @@ Total rows: 1318 | closed: 655 | not closed: 663
 | B-1556 | P1 | FOLLOW-UP | 2026-11-11 IST | follow-up |
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1559 | P1 | USER | 2026-11-12 IST | owed |
-| B-1561 | P1 | BUILT | 2026-11-12 IST | awaiting, waiting |
-| B-1564 | P1 | BUILT | 2026-11-12 IST | needs, awaiting, waiting |
+| B-1561 | P1 | USER | 2026-11-12 IST |  |
+| B-1564 | P1 | PARTIAL | 2026-11-12 IST | open:, needs |
 | B-1565 | P1 | OPEN | 2026-11-12 IST |  |
 | B-1566 | P1 | OPEN | 2026-11-12 IST | needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
@@ -579,7 +579,7 @@ Total rows: 1318 | closed: 655 | not closed: 663
 | B-1558 | P2 | RESEARCH | 2026-11-11 IST |  |
 | B-1560 | P2 | RESEARCH | 2026-11-12 IST | owed |
 | B-1562 | P2 | USER | 2026-11-12 IST |  |
-| B-1563 | P2 | BUILT | 2026-11-12 IST | awaiting, waiting |
+| B-1563 | P2 | USER | 2026-11-12 IST |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1457 | P3 | FROM | 2026-11-03 00:35 IST | owed |
 | B-1503 | P3 | OPEN | 2026-11-06 | owed, follow-up |
