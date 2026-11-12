@@ -50,6 +50,9 @@ def test_no_short_after_cutoff_or_outside_the_short_engine_or_when_owned():
         with _at(11, 0):
             assert main._news_real_open(c, "NOTWATCHED.NS", "short", 100.0, 103.0, time.time()) is False
             c.execute("INSERT INTO signal_state_short (symbol, day, status, strategy) VALUES (?, '2026-11-11', 'short', 'range_short')", (SYM,))
+            c.execute("INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, entry_order_id, "
+                      "opened_at, day, strategy) VALUES (?, 'X-EQ', 1, 100.0, 'o0', 1.0, '2026-11-11', 'range_short')", (SYM,))
+            c.commit()  # B-1553: only a REAL short of another strategy blocks; a paper-only owner is taken over
             assert main._news_real_open(c, SYM, "short", 100.0, 103.0, time.time()) is False
         ent.assert_not_called()
 

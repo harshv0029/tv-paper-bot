@@ -13,6 +13,9 @@ TAG = main.NEWS_TRADE_TAGS["long"]
 @pytest.fixture(autouse=True)
 def _reacting(monkeypatch):  # B-1551 reaction gate is tested on its own below
     monkeypatch.setattr(main, "_news_late_entry_ok", lambda *a, **k: True)
+    # the seed is opened 1 h before "now"; run before 10:15 IST that falls outside the session and the B-1546 re-base
+    # path fires instead of the retry under test (clock-dependent, found 2026-11-12 06:50 IST)
+    monkeypatch.setattr(main, "_news_opened_outside_session", lambda ts: False)
 
 
 def _seed(c, sym="LENSKART.NS"):
