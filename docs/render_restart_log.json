@@ -2404,5 +2404,26 @@
     "prev_last_alarm": null,
     "prev_first_alarm_threads": [],
     "prev_last_alarm_threads": []
+  },
+  {
+    "boot_ts": 1794485382.4703827,
+    "boot_ist": "2026-11-12 17:39:42 IST",
+    "logged_ist": "2026-11-12 17:40:28 IST",
+    "commit": "67316b2a8d65",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "1f70c801b9be",
+    "prev_boot_ist": "2026-11-12 08:52:14 IST",
+    "prev_last_alive_ist": "2026-11-12 17:39:58 IST",
+    "prev_uptime_min": 527.7,
+    "downtime_s_max": -16.4,
+    "prev_rss_now_mb": 1060.5,
+    "prev_peak_rss_mb": 1483.0,
+    "prev_loop_lag_s": 0.5,
+    "prev_watchdog_alarms": 0,
+    "prev_threadpool": "2/80",
+    "prev_last_alarm": null,
+    "prev_first_alarm_threads": [],
+    "prev_last_alarm_threads": []
   }
 ]
