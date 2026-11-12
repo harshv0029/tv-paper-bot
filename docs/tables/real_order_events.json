@@ -91511,7 +91511,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs136.70",
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 7627,
+   "ts": 1794469671.4941986,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261112000571543",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1434.60",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-12T07:43:50Z"
+ "synced_at_utc": "2026-11-12T07:47:54Z"
 }
