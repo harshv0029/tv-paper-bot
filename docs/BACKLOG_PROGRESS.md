@@ -15,17 +15,17 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | P2 | 79 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 65 |
-| OPEN | 63 |
+| OPEN | 62 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
 | DEPLOYED | 12 |
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT | 11 |
 | P3 | 9 |
+| BUILT | 9 |
+| USER | 9 |
 | P0 | 8 |
-| USER | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
@@ -50,6 +50,7 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | JIOFIN26OCT217 | 2 |
 | KOTAK | 2 |
 | WATCHDOG | 2 |
+| DAILY | 2 |
 | RESEARCH | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -497,11 +498,11 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | B-1550 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1551 | P1 | OPEN | 2026-11-11 IST | awaiting, waiting |
 | B-1552 | P1 | OPEN | 2026-11-11 IST |  |
-| B-1554 | P1 | BUILT | 2026-11-11 IST | awaiting, waiting |
-| B-1555 | P1 | BUILT | 2026-11-11 IST | owed, awaiting, waiting |
-| B-1556 | P1 | OPEN | 2026-11-11 IST | follow-up |
+| B-1554 | P1 | DAILY | 2026-11-11 IST |  |
+| B-1555 | P1 | DAILY | 2026-11-11 IST | owed |
+| B-1556 | P1 | BUILT | 2026-11-11 IST | follow-up, awaiting, waiting |
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
-| B-1559 | P1 | BUILT | 2026-11-12 IST | owed, awaiting, waiting |
+| B-1559 | P1 | USER | 2026-11-12 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
@@ -568,7 +569,7 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | B-1522 | P2 | OPEN | 2026-11-09 | needs, owner, follow-up |
 | B-1530 | P2 | OPEN | 2026-11-09 | needs, follow-up |
 | B-1534 | P2 | OPEN | 2026-11-09 |  |
-| B-1553 | P2 | BUILT | 2026-11-11 IST | owner, awaiting, waiting |
+| B-1553 | P2 | BUILT | 2026-11-11 IST | owner |
 | B-1558 | P2 | RESEARCH | 2026-11-11 IST |  |
 | B-1560 | P2 | RESEARCH | 2026-11-12 IST | owed |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
