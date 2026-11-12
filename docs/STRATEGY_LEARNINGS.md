@@ -1982,3 +1982,24 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: one shared predicate (protective side, non-final, prcTp not SL/SL-M, trgPrc > 0) used by the backcheck, heals, ensure-stop paths and pre-exit cancels, long and short.
 - Reuse: any new order-book scan that decides "is this position protected" must use the shared predicate, never a bare prcTp filter.
 - Profit-booking / exit takeaway: an exit in progress must never be doubled; a doubled sell on intraday MIS could open an unintended short.
+
+## B-1561 (2026-11-12 IST): restarts during market hours lose swing entries
+
+- What happened (11-11): 6 viable swing setups fired on the first scan after each restart, before the Kotak price feed connected, and were refused "no live tick"; the 15-minute pass interval pushed the retry past the 15:14 cutoff.
+- Fix: a swing pass waits until the feed has prices, and a no-tick refusal retries in 60 s.
+- Reuse: any scan that runs at startup must wait for its data feed; any refusal caused by a transient gap must retry quickly, not at the normal interval.
+- Profit-booking / exit takeaway: deploying mid-session costs real entries; prefer deploys before 09:05 or after 15:30 IST.
+
+## B-1563 View 4 'Close now (at live SL)' column (2026-11-12 IST)
+- Mechanism: per open real position, (live Kotak SL trigger - entry) x qty (shorts mirrored) = the P&L locked in if the resting stop fills now; shown gross, as % of entry value, and net of the ~0.8% round-trip cost.
+- Why it matters: a stop above entry but inside the 0.8% cost band still loses money net; the net figure shows which trailed stops have actually locked in profit.
+- Profit-booking / exit takeaway: judge a trailed stop by its net locked-in value, not by SL > entry; a stop under entry + 0.8% has not yet protected any profit.
+
+## B-1564 Realised P&L KPIs were built from one trade (2026-11-12 IST)
+- What happened: the Kotak fill ledger behind View 4's closed trades, ROC, CAGR and XIRR started on 11-11 (rows for 11-02..11-10 lost; Upstash-only table), so every KPI came from BANKBARODA alone.
+- Fix: Kotak's digitally signed contract notes (one per trading day, in Gmail) are the complete fill record; parsed into docs/kotak_contract_note_fills.json and merged with Kotak-wins precedence. True Nov realised result: 7 exits, +Rs63.69 net (gross +84.66; charges and the flat RELIANCE intraday round trip cost Rs21).
+- Profit-booking / exit takeaway: on these small 1-5 share lots, statutory charges eat about a quarter of gross profit, and a flat intraday round trip loses about Rs8; tiny positions need a bigger move to clear costs.
+
+## B-1567 Intraday cell held overnight (2026-11-12 IST)
+- BDL from the chan_kalman 15m long buy cell trailed into profit (SL 1053.55 > entry 1044.90) but was not flattened at 15:10; the 15:15 exchange purge then left it naked overnight, and repeated emergency exits placed nothing.
+- Profit-booking / exit takeaway: an intraday edge only exists if the position is flat by 15:10; any exit refusal must be logged and alarmed, never a silent print.

@@ -25276,6 +25276,9 @@ def _capture_kotak_fill_ledger(position_rows: list, now_ist=None) -> int:
     return n
 
 
+ROC_CONTRACT_NOTE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "kotak_contract_note_fills.json")
+
+
 def _roc_kpis_payload(today=None) -> dict:
     """B-1443: View 4 ROC KPIs from the durable Kotak fill ledger (see roc_kpis.py for every definition)."""
     import roc_kpis
@@ -25291,6 +25294,13 @@ def _roc_kpis_payload(today=None) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[roc] side hints unavailable (non-fatal): {e}")
             hints = {}
+    try:  # B-1564: Kotak contract-note fills (docs/kotak_contract_note_fills.json) win on the days they cover
+        with open(ROC_CONTRACT_NOTE_FILE) as f:
+            rows = roc_kpis.merge_contract_note_fills(rows, json.load(f))
+    except FileNotFoundError:
+        pass
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] contract-note fills not merged (non-fatal): {e}")
     out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr, side_hints=hints)
     out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
                           "holdings open when the ledger began come from tracked_union. App order tables are not used: "
@@ -27046,6 +27056,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     import kotak_live_feed
     tick = kotak_live_feed.get_live_ticks().get(symbol)
     if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+        global _swing_no_tick_seen
+        _swing_no_tick_seen = True  # B-1561: the swing pass re-runs in 60 s
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", strategy=strategy)
         return
     ltp = float(tick["ltp"])
@@ -31553,6 +31565,21 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
 
 SWING_PASS_INTERVAL_SEC = 900  # B-419: repeat swing pass every 15 min during market hours
 _swing_last_pass_ts = 0.0
+SWING_FEED_WARM_MIN_TICKS = 20      # B-1561: a pass waits until the Kotak live feed carries at least this many prices
+SWING_NO_TICK_RETRY_SEC = 60        # B-1561: a fired setup refused only for a missing tick is re-tried after 60 s
+_swing_no_tick_seen = False
+
+
+def _swing_feed_warm() -> bool:
+    """B-1561 (2026-11-11 IST: 6 viable swing setups refused `skipped_no_live_tick` at 12:06, 12:34 and 15:02, each the
+    first pass after a restart, before the websocket had delivered prices; the next pass came 15 min later, after the
+    15:14 cutoff). True when the live feed carries prices for enough symbols that a missing one means a real gap."""
+    try:
+        import kotak_live_feed
+        ticks = kotak_live_feed.get_live_ticks()
+        return sum(1 for t in ticks.values() if t and t.get("ltp")) >= SWING_FEED_WARM_MIN_TICKS
+    except Exception:
+        return True   # never block the scan on a feed-module error; the entry's own tick check still applies
 
 
 def _restore_strategy_scan_counts(conn):
@@ -31591,14 +31618,21 @@ def _run_swing_scan(conn):
         return
     if not _switch_allows_entries(conn):
         return  # ALL TRADING OFF: no new swing entries; scan not consumed, runs after resume
+    if _nse_equity_market_open_now() and not _swing_feed_warm():
+        print("[SWING] pass deferred: Kotak live feed not warm yet (B-1561)")
+        return  # B-1561: not consumed - the next tick retries once prices are flowing
     if first_pass:
         conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
         conn.commit()
+    global _swing_no_tick_seen
     _swing_last_pass_ts = time.time()
+    _swing_no_tick_seen = False
     before = {r[0] for r in conn.execute("SELECT symbol FROM signal_state_swing").fetchall()}
     try:
         return _run_swing_scan_pass(conn)
     finally:
+        if _swing_no_tick_seen:  # B-1561: re-try the refused setups in 60 s, not 15 min
+            _swing_last_pass_ts = time.time() - SWING_PASS_INTERVAL_SEC + SWING_NO_TICK_RETRY_SEC
         try:
             after = {r[0] for r in conn.execute("SELECT symbol FROM signal_state_swing").fetchall()}
             for sym in before ^ after:
