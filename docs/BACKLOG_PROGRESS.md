@@ -15,7 +15,7 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | P2 | 79 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 65 |
-| OPEN | 63 |
+| OPEN | 62 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
 | DEPLOYED | 12 |
@@ -23,9 +23,9 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
 | P3 | 9 |
+| BUILT | 9 |
 | USER | 9 |
 | P0 | 8 |
-| BUILT | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
@@ -500,7 +500,7 @@ Total rows: 1311 | closed: 655 | not closed: 656
 | B-1552 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1554 | P1 | DAILY | 2026-11-11 IST |  |
 | B-1555 | P1 | DAILY | 2026-11-11 IST | owed |
-| B-1556 | P1 | OPEN | 2026-11-11 IST | follow-up |
+| B-1556 | P1 | BUILT | 2026-11-11 IST | follow-up, awaiting, waiting |
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1559 | P1 | USER | 2026-11-12 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
