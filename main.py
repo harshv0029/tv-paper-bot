@@ -29634,6 +29634,10 @@ def _ensure_resting_short_sl(kotak_symbol, qty, trigger_price, product=None):
         res["action"] = "placed_unchecked"
         res["scan_error"] = str(e)
         return res
+    for r in rows:  # B-1556: a triggered BUY stop is a cover in progress - never stack a second stop on it
+        if r.get("trdSym") == kotak_symbol and _is_triggered_stop_row(r, "B"):
+            return {"ok": True, "order_id": str(r.get("nOrdNo")), "trigger_price": float(r.get("trgPrc") or 0),
+                    "action": "stop_triggered_exit_working"}
     live = []
     for r in rows:
         if r.get("trdSym") != kotak_symbol or r.get("trnsTp") != "B":
@@ -29861,6 +29865,8 @@ def _heal_real_swing_short_sl(conn, order_rows) -> list:
             oid, trg = min(live, key=lambda x: x[1])
             conn.execute("UPDATE real_positions_swing_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                          (oid, trg, row["symbol"]))
+        elif not live and row["sl_order_id"] and _own_sl_order_still_working(order_rows, row["sl_order_id"], "B"):
+            continue  # B-1556: the row's own BUY stop triggered and is still working - an exit in progress
         elif not live and row["sl_order_id"]:
             conn.execute("UPDATE real_positions_swing_short SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?",
                          (row["symbol"],))
@@ -30980,15 +30986,21 @@ def _align_intraday_target_to_kotak(conn, order_rows) -> list:
     return out
 
 
+def _is_triggered_stop_row(row, side) -> bool:
+    """B-1556: see kotak_real_orders.is_triggered_stop_row (a triggered stop still working at Kotak)."""
+    import kotak_real_orders
+    return kotak_real_orders.is_triggered_stop_row(row, side)
+
+
 _ORDER_FINAL_STATES = ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired")
 
 
-def _own_sl_order_still_working(order_rows, order_id) -> bool:
+def _own_sl_order_still_working(order_rows, order_id, side="S") -> bool:
     """B-1555: True when `order_id` (this row's own SELL stop) is in Kotak's order book in a non-final state under ANY
     price type - a stop that has triggered becomes a working sell and must not be read as 'no SL'."""
     oid = str(order_id)
     for o in order_rows or []:
-        if str(o.get("nOrdNo")) == oid and str(o.get("trnsTp", "")).upper() == "S":
+        if str(o.get("nOrdNo")) == oid and str(o.get("trnsTp", "")).upper() == side:
             st = str(o.get("ordSt", "")).strip().lower()
             return bool(st) and st not in _ORDER_FINAL_STATES
     return False
@@ -36331,8 +36343,9 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
     terminal = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
     if any(r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
            and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
-           and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
-        return {"status": "already_protected - nothing placed"}
+           and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows) or any(
+            r.get("trdSym") == kotak_trading_symbol and _is_triggered_stop_row(r, "S") for r in order_rows):
+        return {"status": "already_protected - nothing placed"}  # B-1556: a triggered stop counts as protection
     # B-1337: never place a SELL SL on shares Kotak's order book shows sold today (holdings() lists them until T+1)
     if _today_complete_delivery_sells(order_rows, {kotak_trading_symbol}).get(kotak_trading_symbol, 0) >= (held.get("qty") or 0) > 0:
         return {"status": "sold_today - nothing placed (Kotak order book shows a complete sell covering the holding)"}
@@ -38134,7 +38147,8 @@ def _find_unprotected_open_positions(kotak_open_by_trdsym: dict, order_rows: lis
             and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
             and str(row.get("ordSt", row.get("stat", ""))).lower() not in terminal
             for row in order_rows
-        )
+        ) or any(row.get("trdSym") == trd_sym and _is_triggered_stop_row(row, protective_side)
+                 for row in order_rows)  # B-1556: a triggered stop still working is an exit in progress
         if not has_live_sl:
             unprotected.append({
                 "kotak_trading_symbol": trd_sym, "qty": int(info["qty"]), "is_short": info["is_short"],
