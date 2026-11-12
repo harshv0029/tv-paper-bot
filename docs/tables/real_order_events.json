@@ -91631,7 +91631,19 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting LIMIT SELL profit target; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product"
+  },
+  {
+   "id": 7637,
+   "ts": 1794474696.7761207,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "target",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: profit target placement failed | order 261112000731601 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-11-12T09:11:39Z"
+ "synced_at_utc": "2026-11-12T09:11:56Z"
 }
