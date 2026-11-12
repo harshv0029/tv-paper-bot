@@ -91583,7 +91583,19 @@
    "prev_state": "resting SELL trigger Rs136.70",
    "new_state": "resting SELL trigger Rs137.22",
    "detail": "reason: primary_base trail rule raised the stop from Rs136.70 to Rs137.22 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7633,
+   "ts": 1794474179.0045938,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261112000617247",
+   "prev_state": "Rs1009.00",
+   "new_state": "cancel resting SL, then place SL at Rs1034.45",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-12T08:25:56Z"
+ "synced_at_utc": "2026-11-12T09:03:06Z"
 }
