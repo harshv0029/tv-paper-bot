@@ -91213,6 +91213,18 @@
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"18 nse symbols printed new trades today within 120s\", \"symbols\": [\"DABUR.NS\", \"DIXON.NS\", \"EICHERMOT.NS\", \"FEDERALBNK.NS\", \"GAIL.NS\", \"GODFRYPHLP.NS\", \"HDFCBANK.NS\", \"HDFCLIFE.NS\", \"HEROMOTOCO.NS\", \"HINDUNILVR.NS\"], \"count\": 18, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 34.5}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
   },
   {
+   "id": 7603,
+   "ts": 1794455958.4478073,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000014141",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7602,
    "ts": 1794455969.73933,
    "symbol": "LICI.NS",
@@ -91223,7 +91235,31 @@
    "prev_state": null,
    "new_state": "387.2",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 7604,
+   "ts": 1794455970.786734,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261112000082255",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it; Kotak facts: 12-Nov-2026 09:29:25 S SL qty 1 trg 387.20 status trigger pending rejRsn --"
+  },
+  {
+   "id": 7605,
+   "ts": 1794455971.2036152,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261112000082255",
+   "prev_state": "resting SELL trigger Rs385.30",
+   "new_state": "resting SELL trigger Rs387.20",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs385.30 to Rs387.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T03:59:32Z"
+ "synced_at_utc": "2026-11-12T03:59:50Z"
 }
