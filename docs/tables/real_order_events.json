@@ -92495,7 +92495,31 @@
    "prev_state": "unprotected for 1194s",
    "new_state": "forcing full exit",
    "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 7709,
+   "ts": 1794478407.6005518,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 1229s",
+   "new_state": "forcing full exit",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 7710,
+   "ts": 1794478431.7623394,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 1254s",
+   "new_state": "forcing full exit",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
   }
  ],
- "synced_at_utc": "2026-11-12T10:12:55Z"
+ "synced_at_utc": "2026-11-12T10:13:56Z"
 }
