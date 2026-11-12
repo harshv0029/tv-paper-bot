@@ -1,5 +1,11 @@
+import pytest
 import sqlite3, main
 
+
+
+@pytest.fixture(autouse=True)
+def _feed_warm(monkeypatch):
+    monkeypatch.setattr(main, "_swing_feed_warm", lambda: True)  # B-1561: the live feed is not part of these tests
 
 def _conn():
     c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row

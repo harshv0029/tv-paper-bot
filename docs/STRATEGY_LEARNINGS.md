@@ -1982,3 +1982,10 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: one shared predicate (protective side, non-final, prcTp not SL/SL-M, trgPrc > 0) used by the backcheck, heals, ensure-stop paths and pre-exit cancels, long and short.
 - Reuse: any new order-book scan that decides "is this position protected" must use the shared predicate, never a bare prcTp filter.
 - Profit-booking / exit takeaway: an exit in progress must never be doubled; a doubled sell on intraday MIS could open an unintended short.
+
+## B-1561 (2026-11-12 IST): restarts during market hours lose swing entries
+
+- What happened (11-11): 6 viable swing setups fired on the first scan after each restart, before the Kotak price feed connected, and were refused "no live tick"; the 15-minute pass interval pushed the retry past the 15:14 cutoff.
+- Fix: a swing pass waits until the feed has prices, and a no-tick refusal retries in 60 s.
+- Reuse: any scan that runs at startup must wait for its data feed; any refusal caused by a transient gap must retry quickly, not at the normal interval.
+- Profit-booking / exit takeaway: deploying mid-session costs real entries; prefer deploys before 09:05 or after 15:30 IST.
