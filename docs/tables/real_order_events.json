@@ -91643,7 +91643,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: profit target placement failed | order 261112000731601 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 7638,
+   "ts": 1794476270.7365606,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261112000712524",
+   "prev_state": "Rs1034.45",
+   "new_state": "cancel resting SL, then place SL at Rs1053.55",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-12T09:11:56Z"
+ "synced_at_utc": "2026-11-12T09:37:54Z"
 }
