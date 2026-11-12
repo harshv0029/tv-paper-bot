@@ -40,12 +40,12 @@
    "is_short": 0,
    "kotak_trading_symbol": "BDL-EQ",
    "opened_at": 1794471172.3522594,
-   "owner": "intraday",
+   "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1053.55,
    "source": "position",
-   "stop_loss": null,
-   "strategy": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
+   "stop_loss": 1034.45,
+   "strategy": "swing_rerouted_orphan",
    "symbol": "BDL.NS"
   },
   {
