@@ -19618,7 +19618,7 @@
   {
    "day": "2026-11-12",
    "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-   "n": 200
+   "n": 201
   },
   {
    "day": "2026-11-12",
@@ -20663,7 +20663,7 @@
   {
    "day": "2026-11-12",
    "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
-   "n": 200
+   "n": 201
   },
   {
    "day": "2026-11-12",
@@ -21313,7 +21313,7 @@
   {
    "day": "2026-11-12",
    "tag": "sma_crossover__gc__long__1d__atrnone__v1",
-   "n": 202
+   "n": 203
   },
   {
    "day": "2026-11-12",
@@ -21551,5 +21551,5 @@
    "n": 42
   }
  ],
- "synced_at_utc": "2026-11-12T16:53:06Z"
+ "synced_at_utc": "2026-11-12T16:54:14Z"
 }
