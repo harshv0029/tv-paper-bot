@@ -260,3 +260,10 @@ def _swing_feed_warm_by_default(request, monkeypatch):
         return
     import main
     monkeypatch.setattr(main, "_swing_feed_warm", lambda: True)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_contract_notes(monkeypatch):
+    """B-1564: ROC tests use synthetic ledgers; the real contract-note file would replace their covered days."""
+    import main
+    monkeypatch.setattr(main, "ROC_CONTRACT_NOTE_FILE", "/nonexistent/kotak_contract_note_fills.json")

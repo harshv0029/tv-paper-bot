@@ -1994,3 +1994,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Mechanism: per open real position, (live Kotak SL trigger - entry) x qty (shorts mirrored) = the P&L locked in if the resting stop fills now; shown gross, as % of entry value, and net of the ~0.8% round-trip cost.
 - Why it matters: a stop above entry but inside the 0.8% cost band still loses money net; the net figure shows which trailed stops have actually locked in profit.
 - Profit-booking / exit takeaway: judge a trailed stop by its net locked-in value, not by SL > entry; a stop under entry + 0.8% has not yet protected any profit.
+
+## B-1564 Realised P&L KPIs were built from one trade (2026-11-12 IST)
+- What happened: the Kotak fill ledger behind View 4's closed trades, ROC, CAGR and XIRR started on 11-11 (rows for 11-02..11-10 lost; Upstash-only table), so every KPI came from BANKBARODA alone.
+- Fix: Kotak's digitally signed contract notes (one per trading day, in Gmail) are the complete fill record; parsed into docs/kotak_contract_note_fills.json and merged with Kotak-wins precedence. True Nov realised result: 7 exits, +Rs63.69 net (gross +84.66; charges and the flat RELIANCE intraday round trip cost Rs21).
+- Profit-booking / exit takeaway: on these small 1-5 share lots, statutory charges eat about a quarter of gross profit, and a flat intraday round trip loses about Rs8; tiny positions need a bigger move to clear costs.

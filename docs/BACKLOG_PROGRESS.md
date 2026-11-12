@@ -15,14 +15,14 @@ Total rows: 1316 | closed: 655 | not closed: 661
 | P2 | 79 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 65 |
-| OPEN | 64 |
+| OPEN | 63 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
 | DEPLOYED | 12 |
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT | 10 |
+| BUILT | 11 |
 | USER | 10 |
 | P3 | 9 |
 | P0 | 8 |
@@ -505,7 +505,7 @@ Total rows: 1316 | closed: 655 | not closed: 661
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1559 | P1 | USER | 2026-11-12 IST | owed |
 | B-1561 | P1 | BUILT | 2026-11-12 IST | awaiting, waiting |
-| B-1564 | P1 | OPEN | 2026-11-12 IST | needs |
+| B-1564 | P1 | BUILT | 2026-11-12 IST | needs, awaiting, waiting |
 | B-1565 | P1 | OPEN | 2026-11-12 IST |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
