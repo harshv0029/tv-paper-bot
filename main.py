@@ -23026,6 +23026,37 @@ def _news_exit_real_holdings(conn, now_ts: float) -> list:
 NEWS_REAL_QTY_CAP = 1  # B-1543 (user 2026-11-10): real news buys are capped at 1 share until the user affirms a risk-based size
 
 
+def _news_take_paper_owner(conn, symbol: str, side: str):
+    """B-1553 (user 2026-11-12: a paper-only swing trade must not block a real news buy; "It should also place the real
+    money entries n exit n execution"): ("free", None) when no engine row owns the symbol, ("real", None) when a REAL
+    position of any strategy holds it (that engine keeps it), ("paper", old_row) when only a PAPER row owns it: that
+    row is removed so the news engine can take the symbol, and old_row is returned so a failed real entry restores it.
+    side 'long' = signal_state_swing / real_positions_swing, 'short' = signal_state_short / real_positions_short."""
+    sig, real = ("signal_state_swing", "real_positions_swing") if side == "long" else ("signal_state_short", "real_positions_short")
+    row = conn.execute(f"SELECT * FROM {sig} WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return "free", None
+    if conn.execute(f"SELECT 1 FROM {real} WHERE symbol = ?", (symbol,)).fetchone():
+        return "real", None
+    old = dict(row)
+    conn.execute(f"DELETE FROM {sig} WHERE symbol = ?", (symbol,))
+    conn.commit()
+    return "paper", old
+
+
+def _news_restore_paper_owner(conn, side: str, old: dict) -> None:
+    if not old:
+        return
+    sig = "signal_state_swing" if side == "long" else "signal_state_short"
+    try:
+        cols = list(old.keys())
+        conn.execute(f"INSERT OR REPLACE INTO {sig} ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+                     [old[c] for c in cols])
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"[NEWS REAL] B-1553 restore of the paper {side} owner of {old.get('symbol')} failed: {e}")
+
+
 def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, now_ts: float) -> bool:
     """B-1543 (user 2026-11-10: "This news engine is one of entry criteria and skips viability rules ... uses real
     money ... cap on qty"): a confirmed + confident GOOD-news paper open is mirrored as a REAL buy of at most
@@ -23040,11 +23071,15 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
     if direction != "long":
         return False
     tag = NEWS_TRADE_TAGS["long"]
+    _paper_owner = None
     try:
-        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+        _own, _paper_owner = _news_take_paper_owner(conn, symbol, "long")  # B-1553
+        if _own == "real":
             _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=tag,
-                              detail="news buy: another swing strategy already owns this symbol")
+                              detail="news buy: another swing strategy already holds REAL shares of this symbol")
             return False
+        if _paper_owner:
+            print(f"[NEWS REAL] B-1553 {symbol}: paper swing owner {_paper_owner.get('strategy')} handed to the news engine")
         conn.execute("DELETE FROM swing_ltp_peak WHERE symbol = ?", (symbol,))  # B-1544: no peak from an older position
         conn.execute(
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, qty, "
@@ -23056,13 +23091,23 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
         held = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ? AND strategy = ?", (symbol, tag)).fetchone()
         if held:
             conn.execute("UPDATE news_trades SET mode = 'real' WHERE symbol = ? AND direction = 'long' AND status = 'open'", (symbol,))
+            if _paper_owner:
+                _log_real_attempt(conn, symbol, "B", "news_took_paper_owner", strategy=tag,
+                                  detail=f"B-1553: paper swing position of {_paper_owner.get('strategy')} (entry "
+                                         f"{_paper_owner.get('entry_price')}) ended; the news engine owns the real share")
         else:
             conn.execute("DELETE FROM signal_state_swing WHERE symbol = ? AND strategy = ?", (symbol, tag))
+            _news_restore_paper_owner(conn, "long", _paper_owner)
         conn.commit()
         _sync_signal_state_swing_external(conn)
         return bool(held)
     except Exception as e:
         print(f"[NEWS REAL] open {symbol} failed (paper trade unaffected): {e}")
+        try:
+            if _paper_owner and not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+                _news_restore_paper_owner(conn, "long", _paper_owner)
+        except Exception:
+            pass
         return False
 
 
@@ -23078,6 +23123,7 @@ def _news_real_open_short(conn, symbol: str, ltp: float, stop: float, now_ts: fl
     SL). The short engine then owns it: per-tick SL sync, its own exits, the 15:10-15:14 flatten. Intraday only,
     because an overnight cash short is unconfirmed at Kotak (B-871). No new entry from 14:30 IST. One attempt."""
     tag = NEWS_TRADE_TAGS["short"]
+    _paper_owner = None
     try:
         n = ist_now()
         if n.hour * 60 + n.minute >= NEWS_SHORT_ENTRY_CUTOFF_MIN:
@@ -23089,9 +23135,10 @@ def _news_real_open_short(conn, symbol: str, ltp: float, stop: float, now_ts: fl
             _log_real_attempt(conn, symbol, "S", "skipped_not_eligible_asset_class", strategy=tag,
                               detail="news short: symbol is not in the intraday WATCHLIST the short engine manages")
             return False
-        if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ?", (symbol,)).fetchone():
+        _own, _paper_owner = _news_take_paper_owner(conn, symbol, "short")  # B-1553
+        if _own == "real":
             _log_real_attempt(conn, symbol, "S", "skipped_already_open", strategy=tag,
-                              detail="news short: another short strategy already owns this symbol")
+                              detail="news short: another short strategy already holds a REAL short of this symbol")
             return False
         conn.execute(
             "INSERT INTO signal_state_short (symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, "
@@ -23104,12 +23151,21 @@ def _news_real_open_short(conn, symbol: str, ltp: float, stop: float, now_ts: fl
         if held:
             conn.execute("UPDATE news_trades SET mode = 'real' WHERE symbol = ? AND direction = 'short' AND status = 'open'",
                          (symbol,))
+            if _paper_owner:
+                _log_real_attempt(conn, symbol, "S", "news_took_paper_owner", strategy=tag,
+                                  detail=f"B-1553: paper short of {_paper_owner.get('strategy')} ended; the news engine owns the real short")
         else:
             conn.execute("DELETE FROM signal_state_short WHERE symbol = ? AND strategy = ?", (symbol, tag))
+            _news_restore_paper_owner(conn, "short", _paper_owner)
         conn.commit()
         return bool(held)
     except Exception as e:
         print(f"[NEWS REAL] short open {symbol} failed (paper trade unaffected): {e}")
+        try:
+            if _paper_owner and not conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ?", (symbol,)).fetchone():
+                _news_restore_paper_owner(conn, "short", _paper_owner)
+        except Exception:
+            pass
         return False
 
 
@@ -31033,6 +31089,62 @@ def _entry_floor_can_rest(kotak_trading_symbol: str, floor: float) -> bool:
         return False
 
 
+SWING_TRAIL_EOD_START_MIN = 15 * 60 + 10  # B-1559 (user 2026-11-12): trailing swing stops updated at 15:10 IST, every trading day
+SWING_TRAIL_EOD_END_MIN = 15 * 60 + 14    # the exchange purges resting orders at 15:15 IST; the stored level is re-placed at 09:15
+_swing_trail_eod_last_day = None
+
+
+def _swing_trail_eod_due(now_ist=None) -> bool:
+    n = now_ist or ist_now()
+    m = n.hour * 60 + n.minute
+    return SWING_TRAIL_EOD_START_MIN <= m <= SWING_TRAIL_EOD_END_MIN and is_nse_trading_day(n.date())
+
+
+def _swing_trail_eod_update(conn) -> list:
+    """B-1559 (user 2026-11-12, COCHINSHIP: bought 11-09 ~Rs1,240, peaked Rs1,293 that afternoon, stop never left Rs1,203.70
+    because the B-1486 trail only counts COMPLETED daily bars after the entry day; sold 11-11 at Rs1,203.70 after a gap
+    down): at 15:10 IST on every NSE trading day, fold TODAY's price (entry day included) into the stored trail peak of
+    every real long swing position that trails (its own B-1500 rule; fixed-stop positions untouched), then ratchet the
+    resting Kotak stop up through the normal path (_sync_swing_resting_sl_to_strategy: Kotak order book first, place-new-
+    then-cancel-old, never at/above the market, only ever raises). ltp/be kinds use today's highest 1m close, the chand
+    (close) kind uses the latest price. The peak only ever tightens; the next 09:15 IST re-place reads the same stored
+    peak, so the overnight gap risk starts from today's trailed level. Returns the peak updates. Never raises."""
+    out = []
+    try:
+        rows = conn.execute("SELECT r.symbol, s.strategy, s.entry_day, s.entry_price FROM real_positions_swing r "
+                            "JOIN signal_state_swing s ON s.symbol = r.symbol").fetchall()
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL SWING] B-1559 15:10 trail read failed (non-fatal): {e}")
+        return out
+    for row in rows:
+        sym = row["symbol"]
+        try:
+            rule = _swing_long_trail_rule(conn, sym, row["strategy"], row["entry_day"])
+            if rule is None:
+                continue
+            ltp, day_peak = _swing_live_ltp_peak(sym)
+            today = ltp if rule[0] == "chand" else day_peak
+            if not today or today <= 0:
+                continue
+            old = _swing_trail_peak_get(conn, sym, "long", row["entry_day"])
+            base = old if old is not None else float(row["entry_price"])
+            if today <= base + 1e-9:
+                continue
+            new = _swing_trail_peak_put(conn, sym, "long", row["entry_day"], today)
+            out.append({"symbol": sym, "kind": rule[0], "from": base, "to": new})
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING] B-1559 15:10 trail peak failed for {sym} (non-fatal): {e}")
+    try:
+        acts = _sync_swing_resting_sl_to_strategy(conn)
+        moved = {a["symbol"]: a for a in acts if a.get("ok")}
+        for u in out:
+            u["stop"] = moved.get(u["symbol"], {}).get("to")
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL SWING] B-1559 15:10 ratchet failed (non-fatal): {e}")
+    print(f"[REAL SWING] B-1559 15:10 IST trail update: {out}")
+    return out
+
+
 def _sync_swing_resting_sl_to_strategy(conn):
     """Daily (2026-10-06, explicit user instruction): move each open real
     swing position's RESTING Kotak stop to the level its own strategy's exit
@@ -32031,6 +32143,13 @@ async def _scheduler_tick():
                 _swing_sl_trail_seq = _seq0
             except Exception as e:
                 print(f"[REAL SWING] post-scan SL ratchet failed (non-fatal, retries next tick): {e}")
+        global _swing_trail_eod_last_day
+        if _swing_trail_eod_last_day != _today_ist and _swing_trail_eod_due():
+            try:  # B-1559: 15:10 IST trailing-stop update with today's price, entry day included
+                await _real_off_loop(_swing_trail_eod_update)
+                _swing_trail_eod_last_day = _today_ist
+            except Exception as e:
+                print(f"[REAL SWING] B-1559 15:10 trail update failed (non-fatal, retries next tick): {e}")
         try:  # B-1369: entry-day stop breached -> cancel open sells, then market sell (every tick, in session)
             await _real_off_loop(_swing_entry_stop_breach_sweep)
         except Exception as e:
