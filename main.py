@@ -30924,6 +30924,20 @@ def _align_intraday_target_to_kotak(conn, order_rows) -> list:
     return out
 
 
+_ORDER_FINAL_STATES = ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired")
+
+
+def _own_sl_order_still_working(order_rows, order_id) -> bool:
+    """B-1555: True when `order_id` (this row's own SELL stop) is in Kotak's order book in a non-final state under ANY
+    price type - a stop that has triggered becomes a working sell and must not be read as 'no SL'."""
+    oid = str(order_id)
+    for o in order_rows or []:
+        if str(o.get("nOrdNo")) == oid and str(o.get("trnsTp", "")).upper() == "S":
+            st = str(o.get("ordSt", "")).strip().lower()
+            return bool(st) and st not in _ORDER_FINAL_STATES
+    return False
+
+
 def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
     """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
     book and this app's real_positions_swing row disagree about the resting SL, the
@@ -30968,6 +30982,12 @@ def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
                 conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                              (oid, trg, r["symbol"]))
                 out.append({"symbol": r["symbol"], "action": "aligned_to_kotak", "order_id": oid, "trigger": trg})
+        elif r["sl_order_id"] and _own_sl_order_still_working(order_rows, r["sl_order_id"]):
+            # B-1555 (COCHINSHIP 2026-11-11 09:19 IST): the row's own SL had TRIGGERED and was still working (no
+            # longer prcTp SL at Kotak), so it was cleared as "no live SL" and the backfill sent a second SELL that
+            # Kotak's RMS rejected (T1 Used 2 / Available 1) seconds before the first one filled. A triggered stop is
+            # an exit in progress: keep the id, never stack a second sell on it.
+            continue
         elif r["sl_order_id"]:
             conn.execute("UPDATE real_positions_swing SET sl_order_id = NULL WHERE symbol = ?", (r["symbol"],))
             out.append({"symbol": r["symbol"], "action": "cleared_no_live_sl_at_kotak"})
