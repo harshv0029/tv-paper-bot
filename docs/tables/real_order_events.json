@@ -91535,7 +91535,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1390.20",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7629,
+   "ts": 1794471172.3704522,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261112000616691",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1044.90",
+   "detail": "reason: paper long entry signal from strategy chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-12T07:48:18Z"
+ "synced_at_utc": "2026-11-12T08:12:55Z"
 }
