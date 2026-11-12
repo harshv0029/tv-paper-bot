@@ -180,8 +180,8 @@
       <tbody id="rocRows"><tr><td colspan="11" class="dim">loading…</td></tr></tbody></table></details></div>
 <div class="box" id="slBox" style="margin:12px 0;overflow-x:auto"><h2>Active positions · SL check today (IST) <span class="n mono" id="slN"></span></h2>
   <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
-    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
-    <tbody id="slRows"><tr><td colspan="15" class="dim">loading…</td></tr></tbody></table>
+    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="If the live Kotak SL fills: (Kotak SL trigger - entry) x qty (shorts: entry - SL). Gross; net deducts ~0.8% round-trip cost on entry value.">Close now (at live SL)</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
+    <tbody id="slRows"><tr><td colspan="16" class="dim">loading…</td></tr></tbody></table>
   <div class="dim mono" id="slNote" style="font-size:10.5px;margin-top:4px"></div></div>
 <div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
 
@@ -514,6 +514,12 @@
         // B-1476: calendar days held (non-trading days count: the money is tied up), same day = 1, and profit per day.
         const days = slDaysHeld(p.entry_day), num = v => v == null || isNaN(Number(v)) ? "" : Number(v);
         const rpd = days && p.profit_inr != null ? Number(p.profit_inr) / days : null;
+        // B-1563: P&L locked in if the live Kotak SL fills now = (SL - entry) x qty; shorts (entry - SL) x qty.
+        const isShort = p.category === "short_sell" || p.category === "swing_short" || String(p.side || "").toLowerCase() === "short";
+        const q = Math.abs(Number(p.qty)), en = Number(p.entry_price), slp = p.kotak_sl_trigger == null ? null : Number(p.kotak_sl_trigger);
+        const cn = slp == null || !en || !q ? null : (isShort ? en - slp : slp - en) * q;
+        const cnPct = cn == null ? null : cn / (en * q) * 100, cnNet = cn == null ? null : cn - 0.008 * en * q;
+        const cc = cn == null ? "dim" : cn > 0 ? "up" : cn < 0 ? "down" : "";
         const rpdPct = days && p.profit_pct != null ? Number(p.profit_pct) / days : null;
         return `<tr style="border-bottom:1px solid #8882"><td data-v="${i + 1}">${i + 1}</td><td>${esc(p.symbol)} <span class="dim">${esc(p.strategy || "")}</span></td><td data-v="${num(p.entry_price)}">${rs(p.entry_price)}</td><td data-v="${num(p.current_price)}" class="${pc}">${rs(p.current_price)}</td><td data-v="${num(p.qty)}">${esc(p.qty)}</td>` +
           `<td>${esc(SLCAT[p.category] || p.category)}</td><td data-v="${num(p.target_price)}">${p.target_price != null ? rs(p.target_price) : '<span class="dim">rule exit</span>'}</td>` +
@@ -521,12 +527,13 @@
           `<td data-v="${num(p.entry_day_sl)}">${rs(p.entry_day_sl)}${p.entry_day_sl != null ? `<div class="dim" style="font-size:10px">${esc(p.entry_day || "")} · ${p.entry_day_sl_source === "kotak" ? "Kotak" : "strategy"}</div>` : ""}</td>` +
           `<td data-v="${num(p.profit_inr)}" class="${pc}">${p.profit_inr == null ? "-" : (p.profit_inr < 0 ? "-₹" : "₹") + Math.abs(Number(p.profit_inr)).toFixed(2)}</td>` +
           `<td data-v="${num(p.profit_pct)}" class="${pc}">${p.profit_pct == null ? "-" : (p.profit_pct > 0 ? "+" : "") + Number(p.profit_pct).toFixed(2) + "%"}</td>` +
+          `<td data-v="${cn ?? ""}" class="${cc}">${cn == null ? '<span class="dim">no live Kotak SL</span>' : (cn < 0 ? "-₹" : "₹") + Math.abs(cn).toFixed(2) + ` (${(cnPct > 0 ? "+" : "") + cnPct.toFixed(2)}%)<div class="dim" style="font-size:10px">at SL ${rs(slp)} · net ≈ ${(cnNet < 0 ? "-₹" : "₹") + Math.abs(cnNet).toFixed(2)}</div>`}</td>` +
           `<td data-v="${days ?? ""}">${days ?? "-"}</td>` +
           `<td data-v="${rpd ?? ""}" class="${pc}">${rpd == null ? "-" : (rpd < 0 ? "-₹" : "₹") + Math.abs(rpd).toFixed(2) + " INR/day" + (rpdPct == null ? "" : ` (${(rpdPct > 0 ? "+" : "") + rpdPct.toFixed(3)}% /day)`)}</td>` +
           `<td title="${esc(p.sl_rule || "")}">${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td>` +
           // B-1425: the strategy's time stop (latest exit date); it can exit sooner on stop, target or its rule.
           `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td></tr>`;
-      }).join("") || '<tr><td colspan="15" class="dim">no active real positions</td></tr>';
+      }).join("") || '<tr><td colspan="16" class="dim">no active real positions</td></tr>';
       slSortApply();
       $("slNote").textContent = d.note || "";
       // B-1420: capital card from the same poll

@@ -250,3 +250,13 @@ def _b1464_no_leaked_background_work(request, monkeypatch):
     monkeypatch.setattr(main, "_BACKGROUND_THREADS_STARTED", True)
     if "chan" not in request.node.fspath.basename:
         monkeypatch.setattr(main, "_chan_gap_build_selection", lambda *a, **k: {})
+
+
+@pytest.fixture(autouse=True)
+def _swing_feed_warm_by_default(request, monkeypatch):
+    """B-1561: tests have no Kotak live feed, so during real NSE hours the warm-feed wait would defer every swing pass
+    (tests then fail only between 09:15 and 15:30 IST). Only the B-1561 tests exercise the real check."""
+    if request.node.fspath.basename == "test_swing_feed_warm_b1561.py":
+        return
+    import main
+    monkeypatch.setattr(main, "_swing_feed_warm", lambda: True)
