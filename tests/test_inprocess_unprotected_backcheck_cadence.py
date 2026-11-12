@@ -87,7 +87,7 @@ _FIXTURE = pd.DataFrame([
 
 
 def _run_tick_with_heavy_mocks(reconcile_mock):
-    with patch("main._run_swing_scan"), \
+    with patch("main._run_swing_scan"), patch("main._market_open_event_check", return_value=[]), \
          patch("main._fo_chain_monitoring_snapshot"), \
          patch("main._run_fo_options_scan"), \
          patch("main.fetch_ohlc", return_value=_FIXTURE), \
