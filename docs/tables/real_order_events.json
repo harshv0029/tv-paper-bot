@@ -95186,52 +95186,16 @@
   },
   {
    "id": 7933,
-   "ts": 1794485410.3260987,
+   "ts": 1794485494.1612217,
    "symbol": "BDL.NS",
    "kotak_trading_symbol": "BDL-EQ",
-   "leg": "sl",
-   "event": "emergency_exit_triggered",
+   "leg": "reroute",
+   "event": "moved_to_swing",
    "order_id": null,
-   "prev_state": "unprotected for 8232s",
-   "new_state": "forcing full exit",
-   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
-  },
-  {
-   "id": 7934,
-   "ts": 1794485443.5796158,
-   "symbol": "BDL.NS",
-   "kotak_trading_symbol": "BDL-EQ",
-   "leg": "sl",
-   "event": "emergency_exit_triggered",
-   "order_id": null,
-   "prev_state": "unprotected for 8265s",
-   "new_state": "forcing full exit",
-   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
-  },
-  {
-   "id": 7935,
-   "ts": 1794485459.0073385,
-   "symbol": "BDL.NS",
-   "kotak_trading_symbol": "BDL-EQ",
-   "leg": "sl",
-   "event": "emergency_exit_triggered",
-   "order_id": null,
-   "prev_state": "unprotected for 8281s",
-   "new_state": "forcing full exit",
-   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
-  },
-  {
-   "id": 7936,
-   "ts": 1794485480.6867537,
-   "symbol": "BDL.NS",
-   "kotak_trading_symbol": "BDL-EQ",
-   "leg": "sl",
-   "event": "emergency_exit_triggered",
-   "order_id": null,
-   "prev_state": "unprotected for 8302s",
-   "new_state": "forcing full exit",
-   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+   "prev_state": "intraday table (no strategy, no SL, no target)",
+   "new_state": "swing table, stop Rs1034.45 (from previous resting stop-loss logged for this symbol)",
+   "detail": "reason: orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell"
   }
  ],
- "synced_at_utc": "2026-11-12T12:11:22Z"
+ "synced_at_utc": "2026-11-12T12:11:36Z"
 }
