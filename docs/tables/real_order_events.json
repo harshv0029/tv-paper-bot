@@ -91259,7 +91259,31 @@
    "prev_state": "resting SELL trigger Rs385.30",
    "new_state": "resting SELL trigger Rs387.20",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs385.30 to Rs387.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7607,
+   "ts": 1794455979.7444427,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000014373",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
+   "id": 7606,
+   "ts": 1794455992.9297001,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261112000083383",
+   "prev_state": "resting SELL trigger Rs369.00",
+   "new_state": "resting SELL trigger Rs378.20",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs369.00 to Rs378.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T03:59:50Z"
+ "synced_at_utc": "2026-11-12T04:00:08Z"
 }
