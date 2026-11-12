@@ -1,6 +1,22 @@
 {
  "rows": [
   {
+   "day": "2026-11-12",
+   "entry_order_id": "261112000571543",
+   "entry_price": 1434.6,
+   "first_seen_day": "2026-11-12",
+   "is_short": 0,
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "opened_at": 1794469671.4810994,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1390.2,
+   "source": "position",
+   "stop_loss": 1390.1092967321729,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "ADANIENSOL.NS"
+  },
+  {
    "day": "2026-10-09",
    "entry_order_id": "261009000196477",
    "entry_price": 134.39,
