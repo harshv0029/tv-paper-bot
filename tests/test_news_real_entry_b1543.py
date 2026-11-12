@@ -66,6 +66,9 @@ def test_short_stays_paper_and_another_strategys_symbol_is_not_touched():
             assert main._news_real_open(conn, "TESTSTOCK.NS", "short", 100.0, 103.0, 1.0) is False
             conn.execute("INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
                          "entry_ts) VALUES ('TESTSTOCK.NS', 'gap_and_go', '2026-11-10', 100, 90, 5, 1)")
+            conn.execute("INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, opened_at, day, "
+                         "stop_loss, strategy) VALUES ('TESTSTOCK.NS','TESTSTOCK-EQ',5,100,1,'2026-11-10',90,'gap_and_go')")
+            conn.commit()  # B-1553: only a REAL holding of another strategy blocks the news buy
             assert main._news_real_open(conn, "TESTSTOCK.NS", "long", 100.0, 97.0, 1.0) is False
         entry.assert_not_called()
         with patch("main._maybe_place_real_swing_exit") as ex:
