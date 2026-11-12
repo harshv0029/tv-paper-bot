@@ -22,9 +22,9 @@ Total rows: 1313 | closed: 655 | not closed: 658
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT | 10 |
 | USER | 10 |
 | P3 | 9 |
+| BUILT | 9 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
 | OPEN-PARKED | 6 |
@@ -84,6 +84,7 @@ Total rows: 1313 | closed: 655 | not closed: 658
 | O | 1 |
 | B-1484 | 1 |
 | IOC | 1 |
+| FOLLOW-UP | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -500,7 +501,7 @@ Total rows: 1313 | closed: 655 | not closed: 658
 | B-1552 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1554 | P1 | DAILY | 2026-11-11 IST |  |
 | B-1555 | P1 | DAILY | 2026-11-11 IST | owed |
-| B-1556 | P1 | BUILT | 2026-11-11 IST | follow-up, awaiting, waiting |
+| B-1556 | P1 | FOLLOW-UP | 2026-11-11 IST | follow-up |
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
 | B-1559 | P1 | USER | 2026-11-12 IST | owed |
 | B-1561 | P1 | BUILT | 2026-11-12 IST | awaiting, waiting |
