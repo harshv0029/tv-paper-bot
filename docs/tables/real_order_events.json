@@ -90791,7 +90791,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 3 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"3 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\", \"SI=F\"], \"count\": 3, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 8.2}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 7567,
+   "ts": 1794455125.7307544,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261112000014191",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :324.70,  Low Price Range:325.45 High Price Range:397.75  for entity account-XUAEZ across exchange across"
   }
  ],
- "synced_at_utc": "2026-11-12T03:30:17Z"
+ "synced_at_utc": "2026-11-12T03:45:28Z"
 }
