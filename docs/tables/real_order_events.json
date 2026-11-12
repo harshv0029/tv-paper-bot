@@ -91453,6 +91453,18 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs179.83 to Rs180.28 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 7623,
+   "ts": 1794468559.0747495,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000213539",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7622,
    "ts": 1794468569.587971,
    "symbol": "PNB.NS",
@@ -91465,5 +91477,5 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs134.42 to Rs135.42 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T07:30:52Z"
+ "synced_at_utc": "2026-11-12T07:33:06Z"
 }
