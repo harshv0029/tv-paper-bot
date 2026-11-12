@@ -92219,7 +92219,19 @@
    "prev_state": "unprotected for 292s",
    "new_state": "forcing full exit",
    "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 7686,
+   "ts": 1794477530.1697357,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-12T09:57:53Z"
+ "synced_at_utc": "2026-11-12T09:58:54Z"
 }
