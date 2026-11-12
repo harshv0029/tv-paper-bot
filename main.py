@@ -25276,6 +25276,9 @@ def _capture_kotak_fill_ledger(position_rows: list, now_ist=None) -> int:
     return n
 
 
+ROC_CONTRACT_NOTE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "kotak_contract_note_fills.json")
+
+
 def _roc_kpis_payload(today=None) -> dict:
     """B-1443: View 4 ROC KPIs from the durable Kotak fill ledger (see roc_kpis.py for every definition)."""
     import roc_kpis
@@ -25291,6 +25294,13 @@ def _roc_kpis_payload(today=None) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[roc] side hints unavailable (non-fatal): {e}")
             hints = {}
+    try:  # B-1564: Kotak contract-note fills (docs/kotak_contract_note_fills.json) win on the days they cover
+        with open(ROC_CONTRACT_NOTE_FILE) as f:
+            rows = roc_kpis.merge_contract_note_fills(rows, json.load(f))
+    except FileNotFoundError:
+        pass
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] contract-note fills not merged (non-fatal): {e}")
     out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr, side_hints=hints)
     out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
                           "holdings open when the ledger began come from tracked_union. App order tables are not used: "

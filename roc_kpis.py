@@ -95,6 +95,34 @@ def period_bounds(today: dt.date) -> dict:
     }
 
 
+def merge_contract_note_fills(ledger_rows: list, note: dict | None) -> list:
+    """B-1564: Kotak's own contract notes win. On each covered day, the note's rows replace the ledger's rows for the
+    same symbol; a ledger 'opening' row (tracked_union guess) dated on or after the first covered day is dropped for
+    any symbol the notes record a buy for, since the note carries that buy. Note 'opening' rows (pre-window buys
+    whose exit falls in the window) are added unless the ledger already has an opening row for that symbol and day."""
+    if not note or not note.get("rows"):
+        return list(ledger_rows or [])
+    days = set(note.get("covered_days") or [])
+    first = min(days) if days else None
+    nrows = [dict(r) for r in note["rows"]]
+    bought = {r["trdsym"] for r in nrows if float(r.get("buy_qty") or 0) > 0}
+    out = []
+    for r in ledger_rows or []:
+        d, sym = str(r["day"])[:10], r["trdsym"]
+        if r.get("source") == "opening":
+            if first and d >= first and sym in bought:
+                continue
+        elif d in days:
+            continue  # a covered day: Kotak's contract note is the full record of that day's fills
+        out.append(r)
+    have_open = {(str(r["day"])[:10], r["trdsym"]) for r in out if r.get("source") == "opening"}
+    for r in nrows:
+        if r.get("source") == "opening" and (r["day"], r["trdsym"]) in have_open:
+            continue
+        out.append(r)
+    return out
+
+
 def match_round_trips(ledger_rows: list, charges_fn=None, side_hints=None) -> tuple[list, list, list]:
     """FIFO-match ledger rows into closed trades. Returns (closed, open_lots, notes).
     charges_fn(seg, trdsym, prod, buy_amt, sell_amt) -> INR; None means zero charges.
@@ -131,7 +159,7 @@ def match_round_trips(ledger_rows: list, charges_fn=None, side_hints=None) -> tu
             sq, sa = float(r.get("sell_qty") or 0), float(r.get("sell_amt") or 0)
             bpx = ba / bq if bq > 0 else 0.0
             spx = sa / sq if sq > 0 else 0.0
-            src = "opening_lot" if r.get("source") == "opening" else "kotak_positions"
+            src = {"opening": "opening_lot", "contract_note": "kotak_contract_note"}.get(r.get("source"), "kotak_positions")
             # 1) close carried lots (oldest first) with the opposite flow
             while lots:
                 lot = lots[0]
