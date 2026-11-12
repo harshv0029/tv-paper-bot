@@ -1,3 +1,20 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "BDL.NS",
+      "kotak_trading_symbol": "BDL-EQ",
+      "qty": 1,
+      "entry_price": 1044.9,
+      "entry_order_id": "261112000616691",
+      "opened_at": 1794471172.3522594,
+      "day": "2026-11-12",
+      "sl_order_id": null,
+      "sl_trigger_price": 1053.55,
+      "target_order_id": null,
+      "target_price": 1076.25,
+      "exit_legs_json": null,
+      "protection_degraded_since": 1794477178.1826572,
+      "strategy": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1"
+    }
+  ]
 }
