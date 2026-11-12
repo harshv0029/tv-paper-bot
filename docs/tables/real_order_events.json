@@ -91285,6 +91285,18 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs369.00 to Rs378.20 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 7609,
+   "ts": 1794457103.3730628,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000013560",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7608,
    "ts": 1794457114.394467,
    "symbol": "PNB.NS",
@@ -91295,7 +91307,31 @@
    "prev_state": "resting SELL trigger Rs132.35",
    "new_state": "resting SELL trigger Rs132.93",
    "detail": "reason: primary_base trail rule raised the stop from Rs132.35 to Rs132.93 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 7611,
+   "ts": 1794457122.3807654,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000082255",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
+   "id": 7610,
+   "ts": 1794457134.8508506,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261112000139285",
+   "prev_state": "resting SELL trigger Rs387.20",
+   "new_state": "resting SELL trigger Rs388.70",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs387.20 to Rs388.70 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-12T04:18:36Z"
+ "synced_at_utc": "2026-11-12T04:20:00Z"
 }
