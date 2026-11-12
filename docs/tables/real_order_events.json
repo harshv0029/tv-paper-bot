@@ -91597,6 +91597,18 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
+   "id": 7635,
+   "ts": 1794474183.3471687,
+   "symbol": "BDL.NS",
+   "kotak_trading_symbol": "BDL-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261112000617247",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7634,
    "ts": 1794474193.995636,
    "symbol": "BDL.NS",
@@ -91609,5 +91621,5 @@
    "detail": "reason: stop-loss moved to follow the trailing stop"
   }
  ],
- "synced_at_utc": "2026-11-12T09:03:30Z"
+ "synced_at_utc": "2026-11-12T09:04:44Z"
 }
