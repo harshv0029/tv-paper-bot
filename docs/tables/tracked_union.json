@@ -177,22 +177,6 @@
    "symbol": "NHPC.NS"
   },
   {
-   "day": "2026-11-11",
-   "entry_order_id": "261111000294810",
-   "entry_price": 72.35,
-   "first_seen_day": "2026-11-11",
-   "is_short": 0,
-   "kotak_trading_symbol": "NMDC-EQ",
-   "opened_at": 1794410849.486661,
-   "owner": "swing",
-   "qty": 6,
-   "sl_trigger_price": 67.27,
-   "source": "holding",
-   "stop_loss": 67.27147716752411,
-   "strategy": "brk20_min_rr__main_replay__long__1d__atr3_rr3__v1",
-   "symbol": "NMDC.NS"
-  },
-  {
    "day": "2026-11-09",
    "entry_order_id": "261109000822429",
    "entry_price": 131.87,
