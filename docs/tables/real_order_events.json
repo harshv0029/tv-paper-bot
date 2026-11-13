@@ -96167,7 +96167,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261113000033133 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:12.00, Available:6.00  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 8015,
+   "ts": 1794542291.7427225,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261113000066724",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: real market BUY entry; Kotak accepted it; Kotak facts: 13-Nov-2026 09:28:07 B L qty 20 trg 0.00 status complete rejRsn --"
   }
  ],
- "synced_at_utc": "2026-11-13T03:49:20Z"
+ "synced_at_utc": "2026-11-13T03:58:23Z"
 }
