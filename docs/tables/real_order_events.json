@@ -95903,7 +95903,127 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs327.25",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs327.25 already covers the position (target stop Rs310.60), adopted, nothing placed"
+  },
+  {
+   "id": 7993,
+   "ts": 1794541570.4139028,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000014015",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs768.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs768.80 already covers the position (target stop Rs768.80), adopted, nothing placed"
+  },
+  {
+   "id": 7994,
+   "ts": 1794541571.5748565,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261113000015218",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs143.43",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 7995,
+   "ts": 1794541571.6796079,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261113000019444",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it; Kotak facts: 13-Nov-2026 09:16:07 S SL qty 5 trg 69.33 status trigger pending rejRsn --"
+  },
+  {
+   "id": 7996,
+   "ts": 1794541572.8271682,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000019444",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs69.33",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 7997,
+   "ts": 1794541572.8516834,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_placed",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "placed",
+   "detail": "reason: trigger queued at 2026-11-13 00:02:34 IST (market closed) passed fresh re-validation at the open; placed by the swing engine with its SL | swing oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2: confirmed"
+  },
+  {
+   "id": 7998,
+   "ts": 1794541573.1739316,
+   "symbol": "PAGEIND.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_price_out_of_tolerance | swing oneil_shakeout__plus3__long__1w__atr3_h26_pm1_srcmain__nonovl__v2: skipped_price_out_of_tolerance: live price Rs32220.00 is 11.9% away from the signal's entry_price Rs36570.00 (tolerance 2.0%) - not chasing"
+  },
+  {
+   "id": 7999,
+   "ts": 1794541573.9553554,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_price_out_of_tolerance | swing sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: skipped_price_out_of_tolerance: live price Rs12.54 is 2.6% away from the signal's entry_price Rs12.88 (tolerance 2.0%) - not chasing"
+  },
+  {
+   "id": 8000,
+   "ts": 1794541574.7775173,
+   "symbol": "NAUKRI.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1188.10 - capped to 0 by remaining daily cap Rs9174.69 (max 7) and/or real capital Rs9556.09 (max 8)"
+  },
+  {
+   "id": 8001,
+   "ts": 1794541574.7994757,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"198 nse symbols printed new trades today within 120s\", \"symbols\": [\"360ONE.NS\", \"ABB.NS\", \"ABCAPITAL.NS\", \"ADANIENSOL.NS\", \"ADANIENT.NS\", \"ADANIGREEN.NS\", \"ADANIPORTS.NS\", \"ADANIPOWER.NS\", \"AMBUJACEM.NS\", \"APARINDS.NS\"], \"count\": 198, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"joined the in-flight 5-min reconcile\", \"seconds\": 45.3}, \"replay\": {\"placed\": 1, \"dropped\": 3, \"requeued\": 0, \"considered\": 4}}"
+  },
+  {
+   "id": 8002,
+   "ts": 1794541574.8875358,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000013817",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs388.70",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs388.70 already covers the position (target stop Rs388.69), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-13T03:46:11Z"
+ "synced_at_utc": "2026-11-13T03:46:19Z"
 }
