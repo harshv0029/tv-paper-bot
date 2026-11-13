@@ -96083,7 +96083,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs425.15",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs425.15 already covers the position (target stop Rs415.20), adopted, nothing placed"
+  },
+  {
+   "id": 8008,
+   "ts": 1794541600.408382,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000014696",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1390.20",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1390.20 already covers the position (target stop Rs1390.20), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-13T03:46:39Z"
+ "synced_at_utc": "2026-11-13T03:46:53Z"
 }
