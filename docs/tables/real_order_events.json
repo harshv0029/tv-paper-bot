@@ -95207,7 +95207,55 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 5.6}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 7935,
+   "ts": 1794541522.924128,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000013610",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs136.68",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs136.68 (target stop Rs130.43); strategy stop Rs130.43 is outside the day's price band, so the stop rests at the band floor Rs136.68"
+  },
+  {
+   "id": 7936,
+   "ts": 1794541522.934814,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000013807",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs184.51",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs184.51 (target stop Rs174.60); strategy stop Rs174.60 is outside the day's price band, so the stop rests at the band floor Rs184.51"
+  },
+  {
+   "id": 7937,
+   "ts": 1794541522.943968,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000013745",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs143.21",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs143.21 (target stop Rs144.40)"
+  },
+  {
+   "id": 7938,
+   "ts": 1794541522.9568539,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "stop_through_market",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "resting SELL trigger Rs143.21",
+   "detail": "reason: the stop was already through the market when placed; a protective SL rests just under the price and the holding is closed at market (B-1520) | strategy stop Rs144.40, live Rs143.93"
   }
  ],
- "synced_at_utc": "2026-11-13T03:30:14Z"
+ "synced_at_utc": "2026-11-13T03:45:24Z"
 }
