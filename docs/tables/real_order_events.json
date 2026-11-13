@@ -95891,7 +95891,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs137.27",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs137.27 already covers the position (target stop Rs137.27), adopted, nothing placed"
+  },
+  {
+   "id": 7992,
+   "ts": 1794541566.2886333,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000014001",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs327.25",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs327.25 already covers the position (target stop Rs310.60), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-13T03:46:05Z"
+ "synced_at_utc": "2026-11-13T03:46:11Z"
 }
