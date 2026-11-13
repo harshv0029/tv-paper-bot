@@ -20033,12 +20033,12 @@
   {
    "day": "2026-11-13",
    "tag": "bollinger_mean_reversion__ng__short__1d__atrnone__v1",
-   "n": 82
+   "n": 93
   },
   {
    "day": "2026-11-13",
    "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -20808,7 +20808,7 @@
   {
    "day": "2026-11-13",
    "tag": "donchian_breakout__gc__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -21083,7 +21083,7 @@
   {
    "day": "2026-11-13",
    "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -21613,17 +21613,17 @@
   {
    "day": "2026-11-13",
    "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
-   "n": 82
+   "n": 93
   },
   {
    "day": "2026-11-13",
    "tag": "rsi_reversal__ng__short__1d__atrnone__v1",
-   "n": 82
+   "n": 93
   },
   {
    "day": "2026-11-13",
    "tag": "rsi_reversal__si__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -21733,7 +21733,7 @@
   {
    "day": "2026-11-13",
    "tag": "sma_crossover__gc__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -21833,12 +21833,12 @@
   {
    "day": "2026-11-13",
    "tag": "supertrend__cl__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
    "tag": "supertrend__gc__long__1d__atrnone__v1",
-   "n": 81
+   "n": 93
   },
   {
    "day": "2026-11-13",
@@ -21971,5 +21971,5 @@
    "n": 20
   }
  ],
- "synced_at_utc": "2026-11-13T16:30:44Z"
+ "synced_at_utc": "2026-11-13T17:30:54Z"
 }
