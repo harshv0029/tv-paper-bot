@@ -96325,6 +96325,18 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs137.86 to Rs138.02 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 8029,
+   "ts": 1794548653.7897336,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261113000229574",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8028,
    "ts": 1794548663.6794226,
    "symbol": "PNB.NS",
@@ -96335,7 +96347,19 @@
    "prev_state": "resting SELL trigger Rs138.02",
    "new_state": "resting SELL trigger Rs138.14",
    "detail": "reason: primary_base trail rule raised the stop from Rs138.02 to Rs138.14 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8030,
+   "ts": 1794548877.5797727,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261113000268464",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1382.00",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-13T05:44:25Z"
+ "synced_at_utc": "2026-11-13T05:48:00Z"
 }
