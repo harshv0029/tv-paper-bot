@@ -106,7 +106,7 @@
    "opened_at": null,
    "owner": "swing",
    "qty": 20,
-   "sl_trigger_price": null,
+   "sl_trigger_price": 11.71,
    "source": "position",
    "stop_loss": 10.25285598209926,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
