@@ -33,22 +33,6 @@
    "symbol": "BANKINDIA.NS"
   },
   {
-   "day": "2026-11-12",
-   "entry_order_id": "261112000616691",
-   "entry_price": 1044.9,
-   "first_seen_day": "2026-11-12",
-   "is_short": 0,
-   "kotak_trading_symbol": "BDL-EQ",
-   "opened_at": 1794471172.3522594,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1024.4,
-   "source": "holding",
-   "stop_loss": 1034.45,
-   "strategy": "swing_rerouted_orphan",
-   "symbol": "BDL.NS"
-  },
-  {
    "day": "2026-11-09",
    "entry_order_id": "261109000191497",
    "entry_price": 373.3,
@@ -129,22 +113,6 @@
    "symbol": "INDUSTOWER.NS"
   },
   {
-   "day": "2026-11-02",
-   "entry_order_id": "261102000030918",
-   "entry_price": 135.67,
-   "first_seen_day": "2026-11-02",
-   "is_short": 0,
-   "kotak_trading_symbol": "IOC-EQ",
-   "opened_at": 1793620635.7244444,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 143.43,
-   "source": "holding",
-   "stop_loss": 123.2142835344587,
-   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
-   "symbol": "IOC.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000158129",
    "entry_price": 479.05,
@@ -191,6 +159,22 @@
    "stop_loss": 191.91143144880022,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "MEESHO.NS"
+  },
+  {
+   "day": "2026-11-13",
+   "entry_order_id": "261113000018121",
+   "entry_price": 76.28,
+   "first_seen_day": "2026-11-13",
+   "is_short": 0,
+   "kotak_trading_symbol": "NHPC-EQ",
+   "opened_at": 1794541558.6553888,
+   "owner": "swing",
+   "qty": 5,
+   "sl_trigger_price": 69.33,
+   "source": "position",
+   "stop_loss": 67.13398944352824,
+   "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "symbol": "NHPC.NS"
   },
   {
    "day": "2026-11-11",
