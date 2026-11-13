@@ -96371,7 +96371,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1350.80",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8032,
+   "ts": 1794563278.8469846,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-13T05:48:24Z"
+ "synced_at_utc": "2026-11-13T09:48:01Z"
 }
