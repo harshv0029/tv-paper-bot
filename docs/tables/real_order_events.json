@@ -95195,7 +95195,19 @@
    "prev_state": "intraday table (no strategy, no SL, no target)",
    "new_state": "swing table, stop Rs1034.45 (from previous resting stop-loss logged for this symbol)",
    "detail": "reason: orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell"
+  },
+  {
+   "id": 7934,
+   "ts": 1794540612.8596256,
+   "symbol": "MARKET:MCX",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 5.6}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
   }
  ],
- "synced_at_utc": "2026-11-12T12:11:36Z"
+ "synced_at_utc": "2026-11-13T03:30:14Z"
 }
