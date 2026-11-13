@@ -96107,7 +96107,43 @@
    "prev_state": "resting @ Rs67.27",
    "new_state": "cancelled (position exiting)",
    "detail": "reason: brk20_min_rr__main_replay__long__1d__atr3_rr3__v1 paper swing exit: rule_exit"
+  },
+  {
+   "id": 8010,
+   "ts": 1794541730.3105226,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 6 @ Rs72.35",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: brk20_min_rr__main_replay__long__1d__atr3_rr3__v1 paper swing exit: rule_exit"
+  },
+  {
+   "id": 8011,
+   "ts": 1794541733.7179291,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8012,
+   "ts": 1794541737.4730396,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261113000032545",
+   "prev_state": "long 6 @ Rs72.35",
+   "new_state": "closed",
+   "detail": "reason: brk20_min_rr__main_replay__long__1d__atr3_rr3__v1 paper swing exit: rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-13T03:48:52Z"
+ "synced_at_utc": "2026-11-13T03:49:05Z"
 }
