@@ -96229,6 +96229,18 @@
    "detail": "reason: primary_base trail rule raised the stop from Rs137.27 to Rs137.55 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 8021,
+   "ts": 1794545420.030404,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261113000014027",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8020,
    "ts": 1794545431.7368546,
    "symbol": "INDUSTOWER.NS",
@@ -96241,5 +96253,5 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs378.35 to Rs379.05 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-13T04:50:34Z"
+ "synced_at_utc": "2026-11-13T04:51:55Z"
 }
