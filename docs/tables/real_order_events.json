@@ -96047,7 +96047,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs525.05",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs525.05 already covers the position (target stop Rs525.07), adopted, nothing placed"
+  },
+  {
+   "id": 8005,
+   "ts": 1794541587.9943175,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000014027",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs378.35",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs378.35 already covers the position (target stop Rs378.33), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-13T03:46:26Z"
+ "synced_at_utc": "2026-11-13T03:46:33Z"
 }
