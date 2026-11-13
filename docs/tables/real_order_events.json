@@ -96179,7 +96179,19 @@
    "prev_state": null,
    "new_state": "complete",
    "detail": "reason: real market BUY entry; Kotak accepted it; Kotak facts: 13-Nov-2026 09:28:07 B L qty 20 trg 0.00 status complete rejRsn --"
+  },
+  {
+   "id": 8016,
+   "ts": 1794542303.9474323,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000067269",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs11.71",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs11.71 (target stop Rs10.25); strategy stop Rs10.25 is outside the day's price band, so the stop rests at the band floor Rs11.71"
   }
  ],
- "synced_at_utc": "2026-11-13T03:58:23Z"
+ "synced_at_utc": "2026-11-13T03:58:41Z"
 }
