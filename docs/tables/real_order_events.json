@@ -96169,6 +96169,18 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261113000033133 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:12.00, Available:6.00  for entity account-XUAEZ across exchange across segment across product "
   },
   {
+   "id": 8017,
+   "ts": 1794542291.120749,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "entry",
+   "event": "kotak_placed",
+   "order_id": "261113000066724",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
    "id": 8015,
    "ts": 1794542291.7427225,
    "symbol": "IDEA.NS",
@@ -96193,5 +96205,5 @@
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs11.71 (target stop Rs10.25); strategy stop Rs10.25 is outside the day's price band, so the stop rests at the band floor Rs11.71"
   }
  ],
- "synced_at_utc": "2026-11-13T03:58:41Z"
+ "synced_at_utc": "2026-11-13T03:59:57Z"
 }
