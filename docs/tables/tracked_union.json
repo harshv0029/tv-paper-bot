@@ -33,6 +33,22 @@
    "symbol": "BANKINDIA.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 1044.94,
+   "first_seen_day": "2026-11-14",
+   "is_short": 0,
+   "kotak_trading_symbol": "BDL-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000191497",
    "entry_price": 373.3,
@@ -97,38 +113,6 @@
    "symbol": "FEDERALBNK.NS"
   },
   {
-   "day": "2026-11-14",
-   "entry_order_id": "261113000268464",
-   "entry_price": 1382.0,
-   "first_seen_day": "2026-11-14",
-   "is_short": 0,
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "opened_at": 1794597279.2388687,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": null,
-   "source": "position",
-   "stop_loss": 1350.795432559942,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "HCLTECH.NS"
-  },
-  {
-   "day": "2026-11-14",
-   "entry_order_id": "261113000066724",
-   "entry_price": 12.69,
-   "first_seen_day": "2026-11-14",
-   "is_short": 0,
-   "kotak_trading_symbol": "IDEA-EQ",
-   "opened_at": 1794597278.2018569,
-   "owner": "swing",
-   "qty": 20,
-   "sl_trigger_price": null,
-   "source": "position",
-   "stop_loss": 10.25285598209926,
-   "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-   "symbol": "IDEA.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000053915",
    "entry_price": 388.7,
@@ -143,6 +127,22 @@
    "stop_loss": 349.1071472167969,
    "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": "INDUSTOWER.NS"
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 135.69,
+   "first_seen_day": "2026-11-14",
+   "is_short": 0,
+   "kotak_trading_symbol": "IOC-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-11",
@@ -193,20 +193,20 @@
    "symbol": "MEESHO.NS"
   },
   {
-   "day": "2026-11-14",
-   "entry_order_id": "261113000018121",
-   "entry_price": 76.28,
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 72.3633,
    "first_seen_day": "2026-11-14",
    "is_short": 0,
-   "kotak_trading_symbol": "NHPC-EQ",
-   "opened_at": 1794597276.875663,
-   "owner": "swing",
-   "qty": 5,
+   "kotak_trading_symbol": "NMDC-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 6,
    "sl_trigger_price": null,
-   "source": "position",
-   "stop_loss": 67.13398944352824,
-   "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
-   "symbol": "NHPC.NS"
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-09",
