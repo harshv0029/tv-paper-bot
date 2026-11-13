@@ -95521,6 +95521,18 @@
    "detail": "reason: the stop was already through the market when placed; a protective SL rests just under the price and the holding is closed at market (B-1520) | strategy stop Rs1034.45, live Rs1031.40"
   },
   {
+   "id": 7988,
+   "ts": 1794541524.8359475,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261113000014250",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 7963,
    "ts": 1794541524.8370688,
    "symbol": "IOC.NS",
@@ -95843,7 +95855,43 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs334.85",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs334.85 already covers the position (target stop Rs305.37), adopted, nothing placed"
+  },
+  {
+   "id": 7989,
+   "ts": 1794541558.2161057,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000013667",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1159.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1159.80 already covers the position (target stop Rs1159.83), adopted, nothing placed"
+  },
+  {
+   "id": 7990,
+   "ts": 1794541558.6672695,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261113000018121",
+   "prev_state": "no position",
+   "new_state": "long 5 @ Rs76.28",
+   "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
+  },
+  {
+   "id": 7991,
+   "ts": 1794541562.457329,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261113000013613",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs137.27",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs137.27 already covers the position (target stop Rs137.27), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-13T03:45:57Z"
+ "synced_at_utc": "2026-11-13T03:46:05Z"
 }
