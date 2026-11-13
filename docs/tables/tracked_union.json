@@ -97,6 +97,22 @@
    "symbol": "FEDERALBNK.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 12.69,
+   "first_seen_day": "2026-11-13",
+   "is_short": 0,
+   "kotak_trading_symbol": "IDEA-EQ",
+   "opened_at": null,
+   "owner": "swing",
+   "qty": 20,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": 10.25285598209926,
+   "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+   "symbol": null
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000053915",
    "entry_price": 388.7,
