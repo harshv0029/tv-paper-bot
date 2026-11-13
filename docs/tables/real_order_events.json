@@ -96203,7 +96203,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs11.71",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs11.71 (target stop Rs10.25); strategy stop Rs10.25 is outside the day's price band, so the stop rests at the band floor Rs11.71"
+  },
+  {
+   "id": 8018,
+   "ts": 1794545404.1079128,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261113000181427",
+   "prev_state": "resting SELL trigger Rs137.27",
+   "new_state": "resting SELL trigger Rs137.55",
+   "detail": "reason: primary_base trail rule raised the stop from Rs137.27 to Rs137.55 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-13T03:59:57Z"
+ "synced_at_utc": "2026-11-13T04:50:06Z"
 }
