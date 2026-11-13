@@ -3549,5 +3549,47 @@
     "rr_target": 3.0,
     "rr_achieved": 1.25,
     "strategy": null
+  },
+  {
+    "symbol": "IOC.NS",
+    "exit_time_utc": 1794541709.6739593,
+    "entry_price_native": null,
+    "exit_price_native": 144.39714268275668,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "peak_ltp_trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
+  },
+  {
+    "symbol": "NMDC.NS",
+    "exit_time_utc": 1794541724.347046,
+    "entry_price_native": null,
+    "exit_price_native": 69.16999816894531,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -3.16,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "rule_exit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "RVNL.NS",
+    "exit_time_utc": 1794550677.7355273,
+    "entry_price_native": null,
+    "exit_price_native": 200.434322108606,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "peak_ltp_trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
   }
 ]

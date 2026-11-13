@@ -1,24 +1,4 @@
 {
-  "synced_at_utc": "2026-11-12T18:37:33Z",
-  "open_positions": [
-    {
-      "symbol": "BDL.NS",
-      "qty": 1.0,
-      "entry_price_native": 1044.9,
-      "stop_loss_native": 1034.45,
-      "initial_stop_loss_native": 1034.45,
-      "target_native": 1076.25,
-      "fx_to_inr": 1.0,
-      "notional_inr": 1044.9,
-      "orb_high_native": null,
-      "orb_low_native": null,
-      "entry_ts": 1794477469.6285052,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": null,
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-11-13T10:40:54Z",
+  "open_positions": []
 }
