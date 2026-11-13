@@ -96205,6 +96205,18 @@
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs11.71 (target stop Rs10.25); strategy stop Rs10.25 is outside the day's price band, so the stop rests at the band floor Rs11.71"
   },
   {
+   "id": 8019,
+   "ts": 1794545393.7075627,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261113000013613",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8018,
    "ts": 1794545404.1079128,
    "symbol": "PNB.NS",
@@ -96215,7 +96227,19 @@
    "prev_state": "resting SELL trigger Rs137.27",
    "new_state": "resting SELL trigger Rs137.55",
    "detail": "reason: primary_base trail rule raised the stop from Rs137.27 to Rs137.55 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8020,
+   "ts": 1794545431.7368546,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261113000182466",
+   "prev_state": "resting SELL trigger Rs378.35",
+   "new_state": "resting SELL trigger Rs379.05",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs378.35 to Rs379.05 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-13T04:50:06Z"
+ "synced_at_utc": "2026-11-13T04:50:34Z"
 }
