@@ -239,7 +239,31 @@
       "pnl_inr": 7.000048828124818,
       "exit_reason": "flatten_1515",
       "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2"
+    },
+    {
+      "id": 21,
+      "ts": 1794550729.6227753,
+      "symbol": "GVT&D.NS",
+      "qty": 1.0,
+      "entry_price": 4430.60009765625,
+      "exit_price": 4403.0,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 27.60009765625,
+      "exit_reason": "state_exit",
+      "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2"
+    },
+    {
+      "id": 22,
+      "ts": 1794554933.8442993,
+      "symbol": "POWERINDIA.NS",
+      "qty": 1.0,
+      "entry_price": 31115.0,
+      "exit_price": 31680.0,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -565.0,
+      "exit_reason": "state_exit",
+      "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2"
     }
   ],
-  "synced_at_utc": "2026-11-02T10:13:38Z"
+  "synced_at_utc": "2026-11-13T10:16:06Z"
 }
