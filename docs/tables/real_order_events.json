@@ -96359,7 +96359,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs1382.00",
    "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8031,
+   "ts": 1794548896.9492915,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261113000268786",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1350.80",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-13T05:48:00Z"
+ "synced_at_utc": "2026-11-13T05:48:24Z"
 }
