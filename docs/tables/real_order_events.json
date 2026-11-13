@@ -96263,7 +96263,19 @@
    "prev_state": "resting SELL trigger Rs137.55",
    "new_state": "resting SELL trigger Rs137.86",
    "detail": "reason: primary_base trail rule raised the stop from Rs137.55 to Rs137.86 | daily primary_base stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8023,
+   "ts": 1794546302.1961136,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261113000203103",
+   "prev_state": "resting SELL trigger Rs379.05",
+   "new_state": "resting SELL trigger Rs380.65",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs379.05 to Rs380.65 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-13T05:04:53Z"
+ "synced_at_utc": "2026-11-13T05:05:06Z"
 }
