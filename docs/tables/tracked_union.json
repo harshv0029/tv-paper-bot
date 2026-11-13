@@ -98,6 +98,22 @@
   },
   {
    "day": "2026-11-13",
+   "entry_order_id": "261113000268464",
+   "entry_price": 1382.0,
+   "first_seen_day": "2026-11-13",
+   "is_short": 0,
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "opened_at": 1794548877.563133,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1350.8,
+   "source": "position",
+   "stop_loss": 1350.795432559942,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "HCLTECH.NS"
+  },
+  {
+   "day": "2026-11-13",
    "entry_order_id": "261113000066724",
    "entry_price": 12.69,
    "first_seen_day": "2026-11-13",
