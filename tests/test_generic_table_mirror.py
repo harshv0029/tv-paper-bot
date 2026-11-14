@@ -88,14 +88,14 @@ def test_kill_switch_tables_always_restore_over_the_seeded_default(remote):
 
 
 def test_large_table_is_chunked_and_restored(remote, monkeypatch):
-    monkeypatch.setattr(main, "_GENERIC_MIRROR_CHUNK_CHARS", 200)
+    monkeypatch.setattr(main, "_GENERIC_MIRROR_ROWS_PER_CHUNK", 3)  # B-1568 row-chunks
     _fresh_db()
     main.hydrate_generic_tables_from_external()
     with closing(main.get_db()) as c:
         for i in range(10):
             _insert_trade(c, f"S{i}.NS")
     main.sync_generic_tables_external()
-    assert main._generic_mirror_key("trades", "c1") in remote
+    assert main._generic_mirror_key("trades", "r1") in remote
     _fresh_db()
     main._generic_mirror_hydrated.clear()
     main.hydrate_generic_tables_from_external()

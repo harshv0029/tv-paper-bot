@@ -104,7 +104,7 @@ def test_day_fingerprints_match_ist_day_and_state_is_bounded(remote):
     main.sync_fo_option_candles_external()
     for d in (j._last_hash, j._last_push_ts, j._last_fp):
         assert "2001-01-01" not in d
-        assert set(d) <= set(days)
+        assert {k[0] if isinstance(k, tuple) else k for k in d} <= set(days)  # B-1568 (day, "chunks") keys
 
 
 def test_scheduler_derivative_rows_are_pruned(monkeypatch):

@@ -1,11 +1,11 @@
-"""B-1563: View 4 Active positions table has a 'Close now (at live SL)' column = (Kotak SL - entry) x qty, shorts mirrored."""
+"""B-1563: View 4 Active positions table has a 'Close at SL' column (renamed from Close now, user 2026-11-14) = (Kotak SL - entry) x qty, shorts mirrored."""
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parents[1].joinpath("static", "trade-view4.html").read_text()
 
 
 def test_header_present_and_colspans_match():
-    assert "Close now (at live SL)" in SRC
+    assert "Close at SL" in SRC
     assert 'colspan="15"' not in SRC.split('id="slBox"')[1].split("</table>")[0]
     assert SRC.count('colspan="16" class="dim">') >= 2
 

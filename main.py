@@ -24337,6 +24337,28 @@ def _generic_mirror_note_ok() -> None:
         print("[table_mirror] Upstash auth alarm cleared (push succeeded)")
 _git_tier_hydrated: set = set()
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
+_GENERIC_MIRROR_ROWS_PER_CHUNK = 100  # B-1568: row-aligned chunks so one changed/appended row re-sends ~1 chunk
+# B-1568: per-chunk hashes of what Upstash holds live in _generic_mirror_last_hash under (table, "chunks"), so any
+# reset of that memory also resets them (never a stale "already pushed")
+
+
+def _generic_mirror_row_chunks(rows: list) -> list:
+    """B-1568: each chunk is its own JSON array of up to _GENERIC_MIRROR_ROWS_PER_CHUNK rows (rowid order)."""
+    n = _GENERIC_MIRROR_ROWS_PER_CHUNK
+    return [json.dumps(rows[i:i + n], default=str) for i in range(0, len(rows), n)]
+
+
+def _generic_mirror_decode(meta: dict, parts: list) -> list:
+    """Rows from a remote copy: B-1568 row-chunk format (one JSON array per chunk) or the older single JSON string
+    split at fixed character offsets."""
+    if not parts:
+        return []
+    if meta.get("format") == "rowchunks":
+        out = []
+        for p in parts:
+            out.extend(json.loads(p))
+        return out
+    return json.loads("".join(parts))
 _generic_mirror_hydrated: set = set()
 _generic_mirror_last_hash: dict = {}
 # B-1341: positions, trades, signal state and kill switches push on every change (restart safety). Everything else in
@@ -24535,12 +24557,16 @@ def _generic_hydrate_table(conn, table: str) -> bool:
     if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE and not merge:
         return True
     parts = []
+    pfx = "r" if meta.get("format") == "rowchunks" else "c"  # B-1568 row-chunks live under r<i>
     for i in range(int(meta.get("chunks", 0))):
-        part = _upstash_get(_generic_mirror_key(table, f"c{i}"))
+        part = _upstash_get(_generic_mirror_key(table, f"{pfx}{i}"))
         if part is None:
             return False  # incomplete remote copy - don't half-restore
         parts.append(part)
-    rows = json.loads("".join(parts)) if parts else []
+    rows = _generic_mirror_decode(meta, parts)
+    if meta.get("format") == "rowchunks":
+        # B-1568: what Upstash already holds; the next push sends only chunks that differ from it
+        _generic_mirror_last_hash[(table, "chunks")] = [hashlib.sha256(p.encode("utf-8")).hexdigest() for p in parts]
     cols = _generic_mirror_table_columns(conn, table)
     if merge:
         return _generic_merge_log_table(conn, table, rows, cols)
@@ -24708,17 +24734,22 @@ def sync_generic_tables_external(only=None) -> int:
                 continue
         try:
             with closing(get_db()) as conn:
-                rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()]
-            payload = json.dumps(rows, default=str)
-            digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+                rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY rowid").fetchall()]
+            chunks = _generic_mirror_row_chunks(rows)
+            digest = hashlib.sha256("\x1e".join(chunks).encode("utf-8")).hexdigest()
             if _generic_mirror_last_hash.get(table) == digest:
                 continue
-            chunks = [payload[i:i + _GENERIC_MIRROR_CHUNK_CHARS]
-                      for i in range(0, len(payload), _GENERIC_MIRROR_CHUNK_CHARS)] if rows else []
+            # B-1568: send only the row-chunks whose content changed (was: the WHOLE table on any change, which blew
+            # the 10 GB/month Upstash bandwidth on 2026-11-13: trades 182 MB, news_signal_events, real_fo_trades)
+            prev = _generic_mirror_last_hash.get((table, "chunks")) or []
+            hashes = [hashlib.sha256(c.encode("utf-8")).hexdigest() for c in chunks]
             for i, chunk in enumerate(chunks):
-                _upstash_set(_generic_mirror_key(table, f"c{i}"), chunk)
+                if i >= len(prev) or prev[i] != hashes[i]:
+                    _upstash_set(_generic_mirror_key(table, f"r{i}"), chunk)  # own keys: an old-format meta never points here
             _upstash_set(_generic_mirror_key(table, "meta"),
-                         json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": time.time()}))
+                         json.dumps({"format": "rowchunks", "chunks": len(chunks), "rows": len(rows),
+                                     "synced_at": time.time()}))
+            _generic_mirror_last_hash[(table, "chunks")] = hashes
             _generic_mirror_last_hash[table] = digest
             _generic_mirror_last_push_ts[table] = time.time()
             _generic_mirror_note_ok()
@@ -33297,6 +33328,12 @@ def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
                     c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
         if not rows:
             return False  # never overwrite the remote copy with an empty stack
+        # B-1568: the stack is ~1.4 MB and each push is GET + SET + read-back GET; skip when the local stack is
+        # unchanged since the last successful push (re-checked at most every 6 h)
+        local_sig = hashlib.sha256(json.dumps(rows, default=str).encode("utf-8")).hexdigest()
+        if (not allow_drop and st.get("last_push_ok") and st.get("last_local_sig") == local_sig
+                and time.time() - (st.get("last_push_ts") or 0) < 6 * 3600):
+            return True
         if not allow_drop:
             try:
                 raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
@@ -33313,7 +33350,8 @@ def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
         payload = json.dumps(rows)
         _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
         ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
-        st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch")
+        st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch",
+                  last_local_sig=local_sig if ok else None)
         return ok
     except Exception as e:  # noqa: BLE001
         st.update(last_push_ok=False, last_push_ts=time.time(), last_error=str(e)[:200])
@@ -37258,6 +37296,8 @@ def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
         if not any(e.get("boot_ts") == _BOOT_TS for e in events):
             events = (events + [ev])[-_RESTART_EVENTS_CAP:]
             put(_RESTART_EVENTS_KEY, json.dumps(events))
+        if get is _upstash_get:
+            _RESTART_EVENTS_CACHE.update(ts=now, events=events)  # B-1568
         _RESTART_STATE.update(boot_logged=True, last_event=ev)
         print(f"[restart-tracker] boot logged: cause={ev['cause_guess']} downtime_s_max={ev['downtime_s_max']} "
               f"prev_rss_now_mb={ev['prev_rss_now_mb']} prev_loop_lag_s={ev['prev_loop_lag_s']}")
@@ -37294,13 +37334,29 @@ def _restart_summary(events: list, now=None) -> dict:
             "by_cause": by_cause}
 
 
+_RESTART_EVENTS_CACHE = {"ts": 0.0, "events": None}
+_RESTART_EVENTS_CACHE_SECONDS = 3600
+
+
+def _restart_events_cached(now=None) -> list:
+    """B-1568: the events list only changes at a boot (which this process logs itself and caches), so View 4's
+    once-a-minute poll no longer reads the ~70 KB key from Upstash each time (71 MB/day on 2026-11-13)."""
+    now = time.time() if now is None else now
+    c = _RESTART_EVENTS_CACHE
+    if c["events"] is not None and now - c["ts"] < _RESTART_EVENTS_CACHE_SECONDS:
+        return c["events"]
+    raw = _upstash_get(_RESTART_EVENTS_KEY) if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN else None
+    events = json.loads(raw) if raw else []
+    c.update(ts=now, events=events)
+    return events
+
+
 @app.get("/restart-history")
 def restart_history(limit: int = 100):
     """B-1371: Render restarts, newest first, with downtime and the previous run's last RSS/lag/alarms. No token: no
     account data. Reads Upstash, so it works right after a restart."""
     try:
-        raw = _upstash_get(_RESTART_EVENTS_KEY) if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN else None
-        events = json.loads(raw) if raw else []
+        events = _restart_events_cached()
     except Exception as e:  # noqa: BLE001
         return {"error": f"{type(e).__name__}: {str(e)[:160]}", "events": []}
     return {"boot_ist": _ist_str(_BOOT_TS), "uptime_min": round((time.time() - _BOOT_TS) / 60, 1),
