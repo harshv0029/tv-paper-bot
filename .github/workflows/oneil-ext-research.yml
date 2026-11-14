@@ -17,7 +17,12 @@ name: O'Neil extension research (B-467..B-480 B-484..B-487 B-490 B-492 B-494..B-
 # PFnet net/gross, win %, n, avg hold, exit-reason breakdown and the universe size.
 # Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      pivot_atrs:
+        description: "Initial ATR stop multiples swept on the pivot FILTER/EXIT cells, comma-separated (default 3 = run 38207070547; e.g. 1.5,2,3)"
+        required: false
+        default: "3"
 
 jobs:
   scan:
@@ -39,6 +44,7 @@ jobs:
           TF: ${{ matrix.tf }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "3"
+          PIVOT_ATRS: ${{ inputs.pivot_atrs || '3' }}
         run: |
           set -o pipefail
           python3 scripts/oneil_ext_research.py

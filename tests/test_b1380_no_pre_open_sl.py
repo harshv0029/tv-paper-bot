@@ -16,3 +16,12 @@ def test_in_session_sl_sent(monkeypatch):
     monkeypatch.setattr(kro, "_place_real_stop_loss_unlocked",
                         lambda *a: {"ok": True, "order_id": "1", "trigger_price": 175.12})
     assert kro.place_real_stop_loss("WIPRO-EQ", 1, 175.12)["ok"] is True
+
+
+def test_pre_open_short_sl_not_sent(monkeypatch):
+    """B-1380 per-category coverage: the short (BUY) SL path gets the same pre-09:15 IST skip."""
+    monkeypatch.setattr(kro, "_before_equity_open", lambda: True)
+    sent = []
+    monkeypatch.setattr(kro, "_place_real_short_stop_loss_once", lambda *a: sent.append(a) or {"ok": True})
+    res = kro.place_real_short_stop_loss("WIPRO-EQ", 1, 180.0)
+    assert sent == [] and res["ok"] is False and res["action"] == "skipped_pre_open"

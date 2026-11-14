@@ -18483,9 +18483,18 @@ def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
     # 2026-10-06 engine-ownership thumb rule (CLAUDE.md): a position is exited
     # only by the engine that entered it. The intraday engine never closes a
     # symbol the swing engine owns (RVNL/SAIL/DRREDDY/VBL incident).
-    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
-            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+    # B-1567 (BDL 2026-11-12): a PAPER-only signal_state_swing row must not block the exit of a position the buy
+    # engine entered itself (real_positions.strategy set by _maybe_place_real_entry). Only a real swing position, or
+    # a paper swing row next to an untagged (adopted) intraday row, means the swing engine owns it. Every refusal is
+    # logged with its reason, never a bare print (the silent refusal ate BDL's 15:10 flatten and 7 emergency exits).
+    _real_swing = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    _paper_swing = conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+    _own_strategy = row["strategy"] if "strategy" in row.keys() else None
+    if _real_swing or (_paper_swing and not _own_strategy):
         print(f"[REAL] intraday exit REFUSED for {symbol}: owned by the swing engine")
+        _why_log(conn, symbol, "exit", "refused_swing_owned",
+                 detail=f"real_swing_row={bool(_real_swing)} paper_swing_row={bool(_paper_swing)} "
+                        f"strategy={_own_strategy}")
         return
 
     import kotak_real_orders
@@ -24814,12 +24823,28 @@ def _generic_mirror_table_columns(conn, table: str) -> list:
 # restoring, and its next push overwrote the remote history. These tables are MERGED instead (same fix B-1516 gave
 # real_order_events): remote rows keep their ids, local rows written meanwhile are re-added with fresh ids unless the
 # same row (by content key) is already in the remote copy.
-_GENERIC_MIRROR_MERGE_LOG_TABLES = {"real_trades": ("ts", "symbol", "side", "status")}
+# B-1549 follow-up audit (2026-11-14): the other append-only Upstash-tier logs had the same race, so they merge too:
+# trades (paper fills), real_fo_trades (option-leg attempts), news_signal_events (news verdicts; a local eval update on a
+# row the remote also holds keeps the remote copy - it is re-evaluated). Not merged: entry_funnel_events (UPSERT counter
+# rows, a content key would double-count n), real_order_events (git tier, B-1516), tables whose rows are updated in place.
+_GENERIC_MIRROR_MERGE_LOG_TABLES = {
+    "real_trades": ("ts", "symbol", "side", "status"),
+    "trades": ("ts", "symbol", "action", "qty", "price"),
+    "real_fo_trades": ("ts", "leg_key", "side", "status"),
+    "news_signal_events": ("ts", "symbol", "kind", "category", "action"),
+    # B-1564 root cause (ledger lost Nov 2-10, "first ever capture" re-ran 11-11): _capture_kotak_fill_ledger runs on
+    # every P&L refresh, so a capture before the boot restore left the table non-empty, the restore was skipped and
+    # the next push replaced the whole remote ledger with today's rows. Merged on its primary key now.
+    "kotak_fill_ledger": ("day", "trdsym", "prod", "source"),
+}
+# Local rows that are only valid when the remote copy is empty: the ledger's one-time 'opening' rows are seeded on the
+# "first ever capture", which a pre-restore capture wrongly thinks it is; with a remote history they would double-count.
+_GENERIC_MIRROR_MERGE_DROP_LOCAL = {"kotak_fill_ledger": lambda r: r.get("source") == "opening"}
 
 
 def _generic_merge_log_table(conn, table: str, rows: list, cols) -> bool:
     key_cols = _GENERIC_MIRROR_MERGE_LOG_TABLES[table]
-    local = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()]
+    local = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY rowid").fetchall()]
     _key = lambda r: tuple(str(r.get(k)) for k in key_cols)
     remote_keys = {_key(r) for r in rows}
     conn.execute(f"DELETE FROM {table}")
@@ -24829,8 +24854,9 @@ def _generic_merge_log_table(conn, table: str, rows: list, cols) -> bool:
             conn.execute(f"INSERT OR REPLACE INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})",
                          tuple(keep.values()))
     added = 0
+    _drop = _GENERIC_MIRROR_MERGE_DROP_LOCAL.get(table) if rows else None
     for row in local:
-        if _key(row) in remote_keys:
+        if _key(row) in remote_keys or (_drop and _drop(row)):
             continue
         keep = {k: v for k, v in row.items() if k in cols and k != "id"}
         conn.execute(f"INSERT INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})", tuple(keep.values()))
