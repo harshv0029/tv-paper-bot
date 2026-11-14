@@ -30,5 +30,8 @@ def test_scan_source_retries_and_clears():
     a = src.index("def _pf(sym):")
     block = src[a:a + 4000]
     assert "for _attempt in (0, 1):" in block and "SWING_FETCH_RETRY_PAUSE_S" in block
-    assert 'f"daily fetch failed ({_short_fetch_error(e)})"' in block
-    assert "_clear_swing_skipped(symbol)" in block
+    # B-1582: _pf moved into _swing_prefetch_daily; the skip/clear handling stays in the scan pass.
+    b = src.index("def _run_swing_scan_pass")
+    scan = src[b:]
+    assert 'f"daily fetch failed ({_short_fetch_error(e)})"' in scan
+    assert "_clear_swing_skipped(symbol)" in scan

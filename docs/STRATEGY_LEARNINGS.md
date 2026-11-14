@@ -2047,3 +2047,8 @@ Profit-booking / exit takeaway: no trading-rule change; protects position state 
 ## 2026-11-14 IST: SLBM on Kotak is dealer-only (B-1456)
 Kotak's support page: SLBM orders are placed only through the dealer or customer service, not the app or Neo API. So an overnight cash short via a borrow cannot be automated: the most the bot can do is raise an alert (symbol, qty, max borrow fee) that the user places by phone, then adopt the short and protect it with an SL. The dealer step adds delay and a call charge, both of which the B-1456 backtest must include in its costs. Never lend shares held for a swing trade, because lent shares cannot be sold when the stop is hit.
 Profit-booking / exit takeaway: a short reached through the dealer cannot be exited the instant a stop fires unless the cover is a normal market buy. Plan the exit as a regular cash buy-to-cover, with the borrow returned separately, and check this is allowed before any live use.
+
+## 2026-11-14 IST: B-1582 swing prefetch memory growth
+- Mechanism: each swing scan pass built a fresh thread pool for daily-bar prefetch; threads and their per-thread buffers piled up across the session, consistent with the 1.8-2.0 GB OOM restarts on 11-Nov. Prefetch now runs on one persistent 8-worker pool; skip/clear handling unchanged in the scan pass.
+- Coverage: swing done (the only engine using this prefetch); buy, short, bidirectional, futures, options, options_multi, commodity, currency n/a (no daily prefetch pool).
+- Profit-booking / exit takeaway: an OOM restart mid-session delays every exit and SL check by minutes; memory stability is exit safety, so verify the peak after deploy before calling it closed.
