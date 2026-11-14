@@ -24569,6 +24569,18 @@ def _upstash_set(key: str, value: str) -> None:
     resp.raise_for_status()
 
 
+def _upstash_del(*keys) -> None:
+    """B-1572: DEL keys (best effort). Frees Upstash storage held by superseded chunk keys."""
+    if not keys:
+        return
+    resp = requests.post(
+        UPSTASH_REDIS_REST_URL, headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+        json=["DEL", *keys], timeout=10,
+    )
+    _upstash_meter(keys[0], 0, "set")
+    resp.raise_for_status()
+
+
 def _generic_mirror_table_columns(conn, table: str) -> list:
     return [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
 
@@ -24626,6 +24638,8 @@ def _generic_hydrate_table(conn, table: str) -> bool:
     if meta.get("format") == "rowchunks":
         # B-1568: what Upstash already holds; the next push sends only chunks that differ from it
         _generic_mirror_last_hash[(table, "chunks")] = [hashlib.sha256(p.encode("utf-8")).hexdigest() for p in parts]
+    else:
+        _generic_mirror_last_hash[(table, "legacy")] = int(meta.get("chunks", 0))  # B-1572: old c<i> keys to delete
     cols = _generic_mirror_table_columns(conn, table)
     if merge:
         return _generic_merge_log_table(conn, table, rows, cols)
@@ -24809,6 +24823,16 @@ def sync_generic_tables_external(only=None) -> int:
                          json.dumps({"format": "rowchunks", "chunks": len(chunks), "rows": len(rows),
                                      "synced_at": time.time()}))
             _generic_mirror_last_hash[(table, "chunks")] = hashes
+            # B-1572: free storage the new meta no longer points at (old-format c<i> keys after the migration, and
+            # r<i> keys past the end when the table shrank). Upstash free storage is 250 MB (213 MB used 2026-11-14).
+            stale = [_generic_mirror_key(table, f"c{i}")
+                     for i in range(_generic_mirror_last_hash.pop((table, "legacy"), 0) or 0)]
+            stale += [_generic_mirror_key(table, f"r{i}") for i in range(len(chunks), len(prev))]
+            if stale:
+                try:
+                    _upstash_del(*stale)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[table_mirror] {table} stale-chunk delete failed (non-fatal): {e}")
             _generic_mirror_last_hash[table] = digest
             _generic_mirror_last_push_ts[table] = time.time()
             _generic_mirror_note_ok()
@@ -24856,7 +24880,7 @@ def sync_fo_option_candles_external() -> int:
     try:
         import fo_candle_journal
         with closing(get_db()) as conn:
-            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set)
+            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set, del_=_upstash_del)
     except Exception as e:
         print(f"[fo_candle_journal] sync failed (non-fatal): {e}")
         return 0
