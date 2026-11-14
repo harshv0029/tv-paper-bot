@@ -100,7 +100,7 @@ def _prune_day_state(keep_days) -> None:
             d.pop(k, None)
 
 
-def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
+def sync_to_remote(conn, get, set_, now: float | None = None, del_=None) -> int:
     """Push every local day whose content changed. Returns days pushed."""
     now = time.time() if now is None else now
     today = ist_day(now)
@@ -142,6 +142,16 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
         set_(_key(day, "meta"), json.dumps({"format": "rowchunks", "chunks": len(chunks), "rows": len(rows),
                                             "synced_at": now}))
         _last_hash[(day, "chunks")] = hashes
+        # B-1572: delete keys the new meta no longer points at (old c<i> after the migration, r<i> past the end)
+        old_meta = json.loads(meta_raw) if meta_raw else {}
+        stale = [] if old_meta.get("format") == "rowchunks" else [
+            _key(day, f"c{i}") for i in range(int(old_meta.get("chunks", 0)))]
+        stale += [_key(day, f"r{i}") for i in range(len(chunks), len(prev))]
+        if stale and del_ is not None:
+            try:
+                del_(*stale)
+            except Exception:  # noqa: BLE001
+                pass
         known.add(day)
         set_(f"{PREFIX}:days", json.dumps(sorted(known)))
         _last_hash[day] = digest

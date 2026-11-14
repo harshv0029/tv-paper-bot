@@ -157,3 +157,39 @@ def test_restart_history_reads_upstash_once(monkeypatch):
     for _ in range(5):
         assert main.restart_history()["summary"]["total"] == 1
     assert calls.count(main._RESTART_EVENTS_KEY) == 1
+
+
+def test_b1572_legacy_and_tail_chunks_are_deleted(remote, monkeypatch):
+    """B-1572: after the rowchunks write, old c<i> keys and r<i> past the end are DELeted (storage cap 250 MB)."""
+    store, sets = remote
+    dels = []
+    monkeypatch.setattr(main, "_upstash_del", lambda *ks: dels.extend(ks))
+    _fresh_db()
+    store[main._generic_mirror_key(TABLE, "meta")] = json.dumps({"chunks": 2, "rows": 0})
+    store[main._generic_mirror_key(TABLE, "c0")] = "[]"
+    store[main._generic_mirror_key(TABLE, "c1")] = ""
+    main.hydrate_generic_tables_from_external(only={TABLE})
+    _add_positions(3)
+    main.sync_generic_tables_external(only={TABLE})
+    assert dels == [main._generic_mirror_key(TABLE, "c0"), main._generic_mirror_key(TABLE, "c1")]
+    dels.clear()
+    main._generic_mirror_last_hash[(TABLE, "chunks")] += ["x", "y"]  # remote held 2 more chunks than now
+    _add_positions(1, start=3)
+    main.sync_generic_tables_external(only={TABLE})
+    assert dels == [main._generic_mirror_key(TABLE, f"r{i}") for i in (1, 2)]
+
+
+def test_b1572_focandles_delete_legacy_day_chunks(remote):
+    store, _ = remote
+    dels = []
+    day = "2026-11-13"
+    store[j._key(day, "meta")] = json.dumps({"chunks": 1, "rows": 0})
+    import sqlite3
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE fo_option_candles (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                 ",".join(j.COLUMNS) + ")")
+    lo, _hi = j._day_bounds(day)
+    conn.execute(f"INSERT INTO fo_option_candles ({','.join(j.COLUMNS)}) VALUES ({','.join('?' for _ in j.COLUMNS)})",
+                 (1, "X", "NIFTY", "opt", "CE", 1.0, "e", lo + 3600, 1, 1, 1, 1, 1))
+    assert j.sync_to_remote(conn, store.get, store.__setitem__, now=lo + 5 * 86400, del_=lambda *k: dels.extend(k)) == 1
+    assert dels == [j._key(day, "c0")]

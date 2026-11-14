@@ -2015,3 +2015,8 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - A name-only rule over-matches: `intermarket__usdinr_...` are equity swing trades that READ a currency signal. Filing must use what is traded (asset class/universe), not what is read.
 - Closed-market days: when no market anywhere is open, slow ticks and slow dashboard writes save CPU, memory and Upstash bandwidth; protection paths keep running.
 - Profit-booking / exit takeaway: n/a (no exit rule changed); separate commodity and option-leg pools let each one's PFnet ranking be judged on its own costs and hours.
+
+## 2026-11-14 - Upstash suspended at 10 GB/month; migrations must free what they replace (B-1572/B-1573)
+
+Mechanism: the free Upstash database was suspended once the month's 10 GB of bandwidth was used, because every mirrored table was re-uploaded whole (fixed in B-1568). Reviewing the console also showed storage at 213/250 MB, and the B-1568 migration would have written new chunk keys without deleting the old ones, roughly doubling stored size. Lesson: a storage-format migration must delete the keys it supersedes, but only after the new pointer (meta) is written, and must be checked against BOTH free-tier caps (bandwidth and storage), not just the one that failed. A suspended store must never be answered by restarting the bot (it would start empty); hold deploys until the store is back.
+Profit-booking / exit takeaway: no trading-rule change; protects position state (and so stop-loss governance) across restarts, which protects open-position P&L.
