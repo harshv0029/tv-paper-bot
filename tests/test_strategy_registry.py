@@ -131,7 +131,7 @@ def test_max_strategy_checks_per_symbol_per_cycle_scales_with_category_count():
     # number, so this test can't silently drift from what the constant
     # itself is defined to do.
     assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == len(sr.TradeCategory) * sr.TOP_N_PER_CATEGORY
-    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 35
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 45  # B-1569: + commodity, currency
 
 
 def test_is_viable_none_when_no_metrics():
@@ -235,7 +235,9 @@ def test_leaderboard_never_pads_with_fabricated_entries():
     # exists for either asset class) - the leaderboard must return an
     # empty list, never invent placeholder rows.
     # futures holds MCX proxy sweep rows since 2026-10-10; never padded beyond real rows
-    assert all(r["name"].split("__")[1].replace("_mr", "") in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
+    # B-1569: MCX proxy rows moved to COMMODITY; FUTURES keeps only NSE stock-futures rows
+    assert all(r["name"].split("__")[1].replace("_mr", "") in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.COMMODITY, top_n=5))
+    assert all("mcx" not in str(getattr(next(s for s in sr.REGISTRY if s.name == r["name"]).metrics, "universe", "")) for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
     # options holds B-869 index-option research rows since 2026-10-12 (real metrics, entry_fn=None, none viable); never padded
     opt = sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5)
     # B-1232 (2026-10-14): thin-OOS cells registered with their ALL-sample headline can clear the PFnet floor on paper, so "none viable" is
@@ -408,5 +410,5 @@ def test_quality_viable_table_needs_30_trades_and_hold_within_3_trading_days():
 def test_options_multi_enum_b905():
     assert sr.TradeCategory.OPTIONS_MULTI.value == "options_multi"
     assert sr.TradeCategory.OPTIONS.value == "options"  # single-strike key never renamed
-    assert len(sr.TradeCategory) == 7
+    assert len(sr.TradeCategory) == 9  # B-1569: + commodity, currency
     assert sr.leaderboard(sr.TradeCategory.OPTIONS_MULTI) == []

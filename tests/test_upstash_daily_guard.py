@@ -32,6 +32,7 @@ def _fill(monkeypatch, nbytes=0, ops=0):
 
 def test_levels_and_intervals_follow_budget_and_market_hours(monkeypatch):
     monkeypatch.setattr(main, "_upstash_in_market_hours", lambda: True)
+    monkeypatch.setattr(main, "all_markets_closed", lambda *a, **k: False)  # B-1569: market-day branch
     _fill(monkeypatch, nbytes=10)
     assert main._upstash_budget_level() == 0 and main._upstash_noncritical_interval(300) == 300
     _fill(monkeypatch, nbytes=int(main._UPSTASH_DAILY_BYTES_BUDGET * 0.7))
