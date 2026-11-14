@@ -2003,3 +2003,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 ## B-1567 Intraday cell held overnight (2026-11-12 IST)
 - BDL from the chan_kalman 15m long buy cell trailed into profit (SL 1053.55 > entry 1044.90) but was not flattened at 15:10; the 15:15 exchange purge then left it naked overnight, and repeated emergency exits placed nothing.
 - Profit-booking / exit takeaway: an intraday edge only exists if the position is flat by 15:10; any exit refusal must be logged and alarmed, never a silent print.
+
+## B-1568 Upstash bandwidth: meter is not a fix (2026-11-14 IST)
+- What happened: the 10 GB/month Upstash bandwidth limit was crossed again after B-1342 had added a meter, alarms and a throttle. The throttle only touched non-critical writers; the cause (whole-table re-upload on every change and after every restart) stayed, and grew with the tables.
+- Fix: upload only changed row-chunks, seed chunk hashes on restore, cache read-mostly keys in-process.
+- Lesson: when a resource limit is hit, remove the cost that scales with data size first; monitoring and throttles come after, not instead. Check bytes per family against table growth whenever a new mirrored table is added.
+- Profit-booking / exit takeaway: n/a directly; durability of positions, stops and order logs depends on Upstash staying under its limit, so this protects every real exit after a restart.

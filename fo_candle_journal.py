@@ -26,6 +26,7 @@ from datetime import datetime, timedelta, timezone
 
 PREFIX = "tv_paper_bot:focandles:v1"
 CHUNK_CHARS = 600_000
+ROWS_PER_CHUNK = 2000        # B-1568: row-aligned chunks (time order) so appended bars re-send only the tail chunks
 RESTORE_DAYS = 15            # bound startup work; older days stay in Upstash
 CURRENT_DAY_MIN_PUSH_SECONDS = 600
 COLUMNS = ("instrument_token", "kotak_trading_symbol", "underlying", "kind", "right",
@@ -40,6 +41,8 @@ _last_push_ts: dict = {}
 # bars = ~170k rows -> lists + JSON + sha per day, ~150 MB transient each) only to find the hash unchanged, and the
 # work grew with every day of uptime / restored history: the multi-day native-heap ratchet behind B-1447.
 _last_fp: dict = {}
+# B-1568: per-chunk sha256 of what Upstash holds for a day live in _last_hash under (day, "chunks"), so a push sends
+# only changed chunks and any reset of _last_hash also forgets them
 
 
 def ist_day(ts: float) -> str:
@@ -93,7 +96,7 @@ def _prune_day_state(keep_days) -> None:
     """B-1447: drop per-day bookkeeping for days no longer in the local table (bounded by local history)."""
     keep = set(keep_days)
     for d in (_last_hash, _last_push_ts, _last_fp):
-        for k in [k for k in d if k not in keep]:
+        for k in [k for k in d if (k[0] if isinstance(k, tuple) else k) not in keep]:
             d.pop(k, None)
 
 
@@ -119,8 +122,9 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
             f"SELECT {','.join(COLUMNS)} FROM fo_option_candles "
             "WHERE bucket_start_ts >= ? AND bucket_start_ts < ? "
             "ORDER BY bucket_start_ts, instrument_token", (lo, hi)).fetchall()]
-        payload = json.dumps(rows, separators=(",", ":"))
-        digest = hashlib.sha256(payload.encode()).hexdigest()
+        chunks = [json.dumps(rows[i:i + ROWS_PER_CHUNK], separators=(",", ":"))
+                  for i in range(0, len(rows), ROWS_PER_CHUNK)]
+        digest = hashlib.sha256("\x1e".join(chunks).encode()).hexdigest()
         if _last_hash.get(day) == digest:
             _last_fp[day] = fp
             continue
@@ -128,18 +132,45 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
         if meta_raw and int(json.loads(meta_raw).get("rows", 0)) > len(rows):
             _last_fp[day] = fp  # re-checked only once local rows change (remote meta only grows from this process)
             continue  # remote holds more (e.g. after a wipe): restore first, never shrink
-        chunks = [payload[i:i + CHUNK_CHARS] for i in range(0, len(payload), CHUNK_CHARS)]
+        # B-1568: only chunks that differ from what Upstash holds (was: the whole day, ~5-10 MB, every 10 min while
+        # bars accumulated -> 191 MB/day of the 330 MB daily bandwidth budget on 2026-11-13)
+        prev = _last_hash.get((day, "chunks")) or []
+        hashes = [hashlib.sha256(c.encode()).hexdigest() for c in chunks]
         for i, chunk in enumerate(chunks):
-            set_(_key(day, f"c{i}"), chunk)
-        set_(_key(day, "meta"), json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": now}))
+            if i >= len(prev) or prev[i] != hashes[i]:
+                set_(_key(day, f"r{i}"), chunk)  # own keys: an old-format meta never points here
+        set_(_key(day, "meta"), json.dumps({"format": "rowchunks", "chunks": len(chunks), "rows": len(rows),
+                                            "synced_at": now}))
+        _last_hash[(day, "chunks")] = hashes
         known.add(day)
         set_(f"{PREFIX}:days", json.dumps(sorted(known)))
         _last_hash[day] = digest
         _last_push_ts[day] = now
         _last_fp[day] = fp
-        del rows, payload, chunks
+        del rows, chunks
         pushed += 1
     return pushed
+
+
+def _read_parts(get, day: str, meta: dict):
+    """Remote chunk strings for a day (None if incomplete). B-1568 row-chunks live under r<i>, older ones under c<i>."""
+    pfx = "r" if meta.get("format") == "rowchunks" else "c"
+    parts = []
+    for i in range(int(meta.get("chunks", 0))):
+        part = get(_key(day, f"{pfx}{i}"))
+        if part is None:
+            return None
+        parts.append(part)
+    return parts
+
+
+def _decode(meta: dict, parts: list) -> list:
+    if meta.get("format") == "rowchunks":
+        out = []
+        for p in parts:
+            out.extend(json.loads(p))
+        return out
+    return json.loads("".join(parts)) if parts else []
 
 
 def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
@@ -154,18 +185,15 @@ def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
         meta_raw = get(_key(day, "meta"))
         if not meta_raw:
             continue
-        parts = []
-        for i in range(int(json.loads(meta_raw).get("chunks", 0))):
-            part = get(_key(day, f"c{i}"))
-            if part is None:
-                parts = None
-                break
-            parts.append(part)
+        meta = json.loads(meta_raw)
+        parts = _read_parts(get, day, meta)
         if parts is None:
             continue  # incomplete remote copy: never half-restore
+        if meta.get("format") == "rowchunks":
+            _last_hash[(day, "chunks")] = [hashlib.sha256(p.encode()).hexdigest() for p in parts]  # B-1568
         marks = ",".join("?" for _ in COLUMNS)
         before = conn.total_changes
-        for row in json.loads("".join(parts)):
+        for row in _decode(meta, parts):
             conn.execute(f"INSERT OR IGNORE INTO fo_option_candles ({','.join(COLUMNS)}) VALUES ({marks})", row)
         inserted += conn.total_changes - before
         conn.commit()
@@ -177,7 +205,8 @@ def export_day_rows(get, day: str) -> list:
     meta_raw = get(_key(day, "meta"))
     if not meta_raw:
         return []
-    parts = [get(_key(day, f"c{i}")) for i in range(int(json.loads(meta_raw).get("chunks", 0)))]
-    if any(p is None for p in parts):
+    meta = json.loads(meta_raw)
+    parts = _read_parts(get, day, meta)
+    if parts is None:
         return []
-    return [dict(zip(COLUMNS, r)) for r in json.loads("".join(parts))]
+    return [dict(zip(COLUMNS, r)) for r in _decode(meta, parts)]
