@@ -24674,8 +24674,58 @@ def _upstash_unmask(key: str, value):
     return None
 
 
+# B-1576 (2026-11-14, user: "whenever the daily limit on upstash is crossed, pause the usage of upstash for that day"):
+# once today's bytes OR commands reach 100% of the daily budget, every Upstash WRITE is refused until the IST day rolls
+# over (the refused write raises, so each mirror keeps its change-cache unset and pushes on the first write next day).
+# Exempt, so a restart never loses open real money: real positions/stops/signal state, kill switches, runtime settings,
+# T1 flags and the usage counter itself - and even those stop at _UPSTASH_HARD_STOP_FRAC. Reads are NOT paused: they
+# happen at boot (restore) and a skipped restore could later overwrite good data with an empty table.
+_UPSTASH_PAUSE_FRAC = 1.0
+_UPSTASH_HARD_STOP_FRAC = 1.25
+_UPSTASH_PAUSE_EXEMPT_TABLES = frozenset({
+    "real_trades", "real_trading_control", "trading_control", "real_fo_positions", "real_fo_trades",
+    "real_positions_swing_short", "signal_state_swing_short", "swing_entry_stop", "swing_trail_peak",
+    "signal_state", "signal_state_short"})
+_UPSTASH_PAUSE: dict = {"day": "", "paused": False, "since": None, "skipped": {}}
+
+
+class UpstashPausedForDay(Exception):
+    pass
+
+
+def _upstash_pause_exempt(key: str) -> bool:
+    key = str(key)
+    if key in (_REAL_POSITIONS_REDIS_KEY, _REAL_POSITIONS_SHORT_REDIS_KEY, _REAL_POSITIONS_SWING_REDIS_KEY,
+               _SIGNAL_STATE_SWING_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY, _T1_RESTRICTED_REDIS_KEY,
+               _UPSTASH_USAGE_KEY):
+        return True
+    m = re.match(r"tv_paper_bot:tbl:([a-z0-9_]+):", key)
+    return bool(m and m.group(1) in _UPSTASH_PAUSE_EXEMPT_TABLES)
+
+
+def _upstash_pause_check(key: str) -> None:
+    """B-1576: raise UpstashPausedForDay when today's budget is spent and this write is not exempt."""
+    _, b, o = _upstash_usage_totals()
+    frac = max(b / _UPSTASH_DAILY_BYTES_BUDGET, o / _UPSTASH_DAILY_OPS_BUDGET)
+    day = _upstash_usage_day or ist_now().strftime("%Y-%m-%d")
+    if _UPSTASH_PAUSE["day"] != day:
+        _UPSTASH_PAUSE.update(day=day, paused=False, since=None, skipped={})
+    if frac < _UPSTASH_PAUSE_FRAC:
+        return
+    if not _UPSTASH_PAUSE["paused"]:
+        _UPSTASH_PAUSE.update(paused=True, since=time.time())
+        print(f"[upstash_budget] RED FLAG daily limit crossed ({b / 1e6:.1f} MB, {o} cmds): Upstash writes PAUSED "
+              f"for the rest of {day} IST except real-money state (hard stop at {_UPSTASH_HARD_STOP_FRAC:.0%})")
+    if frac < _UPSTASH_HARD_STOP_FRAC and _upstash_pause_exempt(key):
+        return
+    fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
+    _UPSTASH_PAUSE["skipped"][fam] = _UPSTASH_PAUSE["skipped"].get(fam, 0) + 1
+    raise UpstashPausedForDay(f"Upstash daily limit crossed; write to {fam} paused until tomorrow IST")
+
+
 def _upstash_set_url(key: str) -> str:
     """B-1574: URL for a direct SET, recording the key as written by this process."""
+    _upstash_pause_check(key)  # B-1576
     _upstash_db_is_stale()
     _upstash_written_keys.add(key)
     return f"{UPSTASH_REDIS_REST_URL}/set/{key}"
@@ -24705,6 +24755,7 @@ def _upstash_del(*keys) -> None:
     """B-1572: DEL keys (best effort). Frees Upstash storage held by superseded chunk keys."""
     if not keys:
         return
+    _upstash_pause_check(keys[0])  # B-1576: cleanup waits for tomorrow when the day's budget is spent
     resp = requests.post(
         UPSTASH_REDIS_REST_URL, headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
         json=["DEL", *keys], timeout=10,
@@ -34192,6 +34243,10 @@ def upstash_usage():
             "total_ops": ops, "daily_budget_ops": _UPSTASH_DAILY_OPS_BUDGET,
             "ops_pct": round(100 * ops / _UPSTASH_DAILY_OPS_BUDGET, 1),
             "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
+            # B-1576: daily limit crossed -> non-exempt writes refused until the IST day rolls over
+            "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
+            "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
+            "writes_skipped_while_paused": dict(_UPSTASH_PAUSE["skipped"]),
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
