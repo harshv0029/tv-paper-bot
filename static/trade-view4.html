@@ -180,7 +180,7 @@
       <tbody id="rocRows"><tr><td colspan="11" class="dim">loading…</td></tr></tbody></table></details></div>
 <div class="box" id="slBox" style="margin:12px 0;overflow-x:auto"><h2>Active positions · SL check today (IST) <span class="n mono" id="slN"></span></h2>
   <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
-    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="If the live Kotak SL fills: (Kotak SL trigger - entry) x qty (shorts: entry - SL). Gross; net deducts ~0.8% round-trip cost on entry value.">Close now (at live SL)</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
+    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="If the live Kotak SL fills: (Kotak SL trigger - entry) x qty (shorts: entry - SL). Gross; net deducts ~0.8% round-trip cost on entry value.">Close at SL</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
     <tbody id="slRows"><tr><td colspan="16" class="dim">loading…</td></tr></tbody></table>
   <div class="dim mono" id="slNote" style="font-size:10.5px;margin-top:4px"></div></div>
 <div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
@@ -650,12 +650,16 @@
   });
   try { const p = new URLSearchParams(location.search).get("pane") || localStorage.getItem("v4pane"); if (p === "tree") document.querySelector('.subtabs button[data-p="tree"]').click(); } catch (e) {}
 
-  const CAT = {buy: "Buy (intraday long)", short_sell: "Short sell", swing: "Swing", futures: "Futures / MCX", options: "Options", bidirectional: "Bidirectional", other: "Other engines"};
+  const CAT = {buy: "Buy (intraday long)", short_sell: "Short sell", swing: "Swing", futures: "Futures (NSE)", options: "Single leg option", options_multi: "Multi leg option", commodity: "Commodity (MCX)", currency: "Currency (NSE CDS)", bidirectional: "Bidirectional", other: "Other engines"};
+  // B-1569: labels (and any new category) from /category-labels, generated from strategy_registry
+  getJSON("/category-labels").then(d => (d.categories || []).forEach(c => { CAT[c.key] = c.label; })).catch(() => {});
   function catOf(tag) {
     if (/^(universal_score|orb-universal-score)/.test(tag)) return "buy";
     if (/^(range_short|trend_down_momentum_short|failed_breakout_short|gap_and_go_short)/.test(tag)) return "short_sell";
     if (/^(gap_and_go|minervini|order_block|volume_profile|orb-swing)/.test(tag)) return "swing";
-    if (/mcx|^single_leg/.test(tag)) return "futures";
+    if (/mcx/.test(tag)) return "commodity";
+    if (/usdinr|eurinr|gbpinr|jpyinr/.test(tag)) return "currency";
+    if (/^single_leg/.test(tag)) return "options";
     if (/__short__/.test(tag)) return "short_sell";
     if (/__long__/.test(tag)) return "buy";
     if (/__bidirectional__/.test(tag)) return "bidirectional";

@@ -2003,3 +2003,26 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 ## B-1567 Intraday cell held overnight (2026-11-12 IST)
 - BDL from the chan_kalman 15m long buy cell trailed into profit (SL 1053.55 > entry 1044.90) but was not flattened at 15:10; the 15:15 exchange purge then left it naked overnight, and repeated emergency exits placed nothing.
 - Profit-booking / exit takeaway: an intraday edge only exists if the position is flat by 15:10; any exit refusal must be logged and alarmed, never a silent print.
+
+## B-1568 Upstash bandwidth: meter is not a fix (2026-11-14 IST)
+- What happened: the 10 GB/month Upstash bandwidth limit was crossed again after B-1342 had added a meter, alarms and a throttle. The throttle only touched non-critical writers; the cause (whole-table re-upload on every change and after every restart) stayed, and grew with the tables.
+- Fix: upload only changed row-chunks, seed chunk hashes on restore, cache read-mostly keys in-process.
+- Lesson: when a resource limit is hit, remove the cost that scales with data size first; monitoring and throttles come after, not instead. Check bytes per family against table growth whenever a new mirrored table is added.
+- Profit-booking / exit takeaway: n/a directly; durability of positions, stops and order logs depends on Upstash staying under its limit, so this protects every real exit after a restart.
+
+## B-1569 Commodity, currency and option-leg categories (2026-11-14 IST)
+- Categories are pools for leaderboards, viability buckets and views; the real-money gate stays per strategy tag, so re-filing MCX rows from futures to commodity changes no entry.
+- A name-only rule over-matches: `intermarket__usdinr_...` are equity swing trades that READ a currency signal. Filing must use what is traded (asset class/universe), not what is read.
+- Closed-market days: when no market anywhere is open, slow ticks and slow dashboard writes save CPU, memory and Upstash bandwidth; protection paths keep running.
+- Profit-booking / exit takeaway: n/a (no exit rule changed); separate commodity and option-leg pools let each one's PFnet ranking be judged on its own costs and hours.
+
+## 2026-11-14 - Upstash suspended at 10 GB/month; migrations must free what they replace (B-1572/B-1573)
+
+Mechanism: the free Upstash database was suspended once the month's 10 GB of bandwidth was used, because every mirrored table was re-uploaded whole (fixed in B-1568). Reviewing the console also showed storage at 213/250 MB, and the B-1568 migration would have written new chunk keys without deleting the old ones, roughly doubling stored size. Lesson: a storage-format migration must delete the keys it supersedes, but only after the new pointer (meta) is written, and must be checked against BOTH free-tier caps (bandwidth and storage), not just the one that failed. A suspended store must never be answered by restarting the bot (it would start empty); hold deploys until the store is back.
+Profit-booking / exit takeaway: no trading-rule change; protects position state (and so stop-loss governance) across restarts, which protects open-position P&L.
+
+
+## 2026-11-14 - Switching Upstash databases: stale snapshots are worse than empty (B-1574)
+- The bot restores real-money state (positions, stops, kill switches, settings) from Upstash on every restart. An old database restores old reality.
+- Fix: a stale-DB guard (heartbeat age > 7 days, or data without a heartbeat) makes the bot ignore the old values. The git tier and the 5-min Kotak reconcile rebuild the rest.
+- Profit-booking / exit takeaway: after any database switch, check every Kotak holding has a live SL before 09:15 IST, because stop/trail peaks start fresh and stops are re-derived from the entry price.
