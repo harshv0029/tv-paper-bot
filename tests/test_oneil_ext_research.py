@@ -114,3 +114,36 @@ def test_process_symbol_tags_grammar_both_directions():
     assert dirs == {"long", "short"}
     s = orx.finalize(cells, min_n=1)
     assert all("pfgross" in m and "win_pct" in m and "avg_held_bars" in m and "exit_reasons" in m for m in s.values())
+
+
+def test_pivot_atrs_parse_default_and_validation():
+    assert ox.pivot_atrs("") == (3.0,)
+    assert ox.pivot_atrs("1.5, 2,3,3") == (1.5, 2.0, 3.0)
+    import pytest
+    with pytest.raises(ValueError):
+        ox.pivot_atrs("0")
+
+
+def test_pivot_atr_sweep_tags_filter_and_exit_cells():
+    rng = np.random.default_rng(8)
+    n = 900
+    c = 100 * np.exp(np.cumsum(rng.normal(0.0015, 0.02, n)))
+    o = np.r_[c[0], c[:-1]]
+    h, l = np.maximum(o, c) * 1.01, np.minimum(o, c) * 0.99
+    v = rng.uniform(1e5, 3e5, n) * (1 + 3 * (rng.random(n) < 0.05))
+    ix = pd.date_range("2020-01-01", periods=n, freq="B")
+    df = pd.DataFrame(dict(Open=o, High=h, Low=l, Close=c, Volume=v), index=ix)
+    idx = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.0004, 0.01, n))), index=ix)
+    rs = pd.Series(rng.uniform(70, 99, n), index=ix)
+    base, swept = {}, {}
+    ox.process_symbol(df, idx, rs, orx.CFG["1d"], ox.EX["1d"], 0.008, "1d", base, patrs=(3.0,))
+    ox.process_symbol(df, idx, rs, orx.CFG["1d"], ox.EX["1d"], 0.008, "1d", swept, patrs=(1.5, 3.0))
+    # default multiple reproduces the original tags exactly, the new multiple adds its own tags
+    assert set(base) <= set(swept)
+    new = set(swept) - set(base)
+    assert new and all("atr1d5" in t for t in new)
+    assert any(t.startswith("oneil_pivot__exit__") for t in new)
+    assert all(GRAMMAR.match(t) for t in new)
+    fb, fs = orx.finalize(base, min_n=1), orx.finalize(swept, min_n=1)
+    for tag, m in fb.items():
+        assert fs[tag]["n"] == m["n"] and fs[tag]["pfnet"] == m["pfnet"]

@@ -63,6 +63,24 @@ def test_scan_and_order_paths_agree(monkeypatch):
     assert fut["dte"] == 34
 
 
+def test_feed_status_exposes_resolved_mcx_contract():
+    """B-1269: the resolved MCX contract (trdsym + IST expiry) is on get_feed_status()."""
+    today = nf.ist_today()
+    exps = [today + dt.timedelta(days=1), today + dt.timedelta(days=34)]
+    ist = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    rows = [{"pSymbolName": "CRUDEOIL", "pInstType": "FUTCOM", "pSymbol": str(i), "pTrdSymbol": f"CRUDEOIL{i}",
+             "lExpiryDate": dt.datetime(e.year, e.month, e.day, 23, 30, tzinfo=ist).timestamp()}
+            for i, e in enumerate(exps)]
+
+    class _C:
+        def search_scrip(self, **k):
+            return rows
+
+    lf._resolve_mcx_tokens(_C(), ["CL=F"])
+    c = lf.get_feed_status()["mcx_contracts"]["CL=F"]
+    assert c == {"trading_symbol": "CRUDEOIL1", "instrument_token": "1", "expiry_ist": exps[1].isoformat()}
+
+
 def test_both_paths_route_through_shared_helper():
     assert "pick_mcx_future" in inspect.getsource(lf._resolve_mcx_tokens)
     assert "pick_mcx_future" in inspect.getsource(nf.select_nse_future)

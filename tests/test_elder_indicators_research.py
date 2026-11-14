@@ -127,3 +127,28 @@ def test_merge_dir_roundtrip(tmp_path):
                   open(tmp_path / f"s{i}.json", "w"))
     res = er.merge_dir(str(tmp_path))
     assert res["rows"][0]["n"] == 2 and res["symbols_fetched"] == 10
+
+
+def test_adx_bell_ema13_variant_registered_and_differs():
+    """B-760: Elder's 13-EMA smoothed ADX ring-the-bell is its own variant; Wilder default unchanged."""
+    names = [v for v, _, _, _ in er.variant_specs("adx_bell")]
+    assert names.count("ring_bell") == 3 and names.count("ring_bell_ema13") == 3
+    df = synth()
+    a_w, _, _ = er.adx_di(df)
+    a_w14, _, _ = er.adx_di(df, 14, "wilder")
+    a_e, _, _ = er.adx_di(df, 13, "ema")
+    assert a_w.equals(a_w14)
+    assert not a_w.fillna(0).equals(a_e.fillna(0))
+
+
+def test_triple_screen_williams_r_screen2():
+    """B-725: Williams %R(4/5) screen-2 variants exist, on Elder's 0..-100 scale."""
+    specs = [(v, p) for v, p, _, _ in er.variant_specs("triple_screen")]
+    assert ("wr_all", {"w": 4}) in specs and ("wr_all", {"w": 5}) in specs
+    assert ("wr_no_weekly", {"w": 5}) in specs
+    assert not any(v == "wr_weekly_only" for v, _ in specs)
+    df = synth()
+    wr = er.williams_r_elder(df, 5).dropna()
+    assert (wr <= 0).all() and (wr >= -100).all()
+    sig = er.v_triple_screen(df, "wr", 5, "no_weekly")
+    assert len(sig["long"]) == len(df)

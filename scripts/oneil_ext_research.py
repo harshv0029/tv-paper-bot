@@ -63,6 +63,25 @@ EX = {
                hs_max_age=8, tl_age=12, tl_min_sep=2, trip_span=5),
 }
 STOPS = (2.0, 3.0)
+# B-474..B-477/B-485/B-486/B-490/B-492/B-494..B-500: initial ATR stop multiples swept on the pivot-trigger FILTER and
+# EXIT cells (run 38207070547 only had atr3). Env PIVOT_ATRS="1.5,2,3" (default "3" reproduces that run exactly).
+# Each multiple is its own tag (atr param in the tag); a stop is on every trade at every multiple.
+PIVOT_ATRS_DEFAULT = (3.0,)
+
+
+def pivot_atrs(raw=None):
+    raw = os.environ.get("PIVOT_ATRS", "") if raw is None else raw
+    vals = []
+    for tok in str(raw).split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        x = float(tok)
+        if not (x > 0):
+            raise ValueError(f"PIVOT_ATRS multiple must be > 0 (a stop on every trade): {tok!r}")
+        if x not in vals:
+            vals.append(x)
+    return tuple(vals) or PIVOT_ATRS_DEFAULT
 ABN = (0.02, 0.03, 0.05)
 SHAKE_M = (1.0, 2.0)
 VOLPCT = (3.0, 5.0)
@@ -393,7 +412,8 @@ def _exit_key(mode, val):
     return (mode, val if mode in ("ma200ext", "rswarn") else 0)
 
 
-def process_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells):
+def process_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells, patrs=None):
+    patrs = pivot_atrs() if patrs is None else tuple(patrs)
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     v = df["Volume"].to_numpy(float)
     rs = rs_series.reindex(df.index).to_numpy(float)
@@ -429,11 +449,12 @@ def process_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells):
             sg = brk & fm
             if not sg.any():
                 continue
-            rows = simulate_x(sg, o, h, l, c, v, atr, base_h, 3.0, "base", 0, None, side, cost, ex)
-            if rows:
-                bt = ptag("oneil_pivot", "breakout", d, tf, {"h": base_h, "atr": 3.0, "chase": 10})
-                fp = {} if fpk == "na" else {"p": fpk}
-                orx.acc_add(cells, combo(bt, ptag(ffam, fvar, d, tf, fp)), rows)
+            for pam in patrs:
+                rows = simulate_x(sg, o, h, l, c, v, atr, base_h, pam, "base", 0, None, side, cost, ex)
+                if rows:
+                    bt = ptag("oneil_pivot", "breakout", d, tf, {"h": base_h, "atr": pam, "chase": 10})
+                    fp = {} if fpk == "na" else {"p": fpk}
+                    orx.acc_add(cells, combo(bt, ptag(ffam, fvar, d, tf, fp)), rows)
         # exit modes on the pivot trigger
         if brk.any():
             for mode, val in EXIT_MODES:
@@ -449,10 +470,11 @@ def process_symbol(df, idx_series, rs_series, cfg, ex, cost, tf, cells):
                 if key is not None and exarr is None:
                     continue
                 v2 = ex["dull"] if mode == "dull" else (ex["six"] if mode == "six" else val)
-                rows = simulate_x(brk, o, h, l, c, v, atr, hold, 3.0, mode, v2, exarr, side, cost, ex)
-                if rows:
-                    p = {"h": hold, "atr": 3.0, "chase": 10, "xm": mode + (str(int(val)) if val else "")}
-                    orx.acc_add(cells, ptag("oneil_pivot", "exit", d, tf, p), rows)
+                for pam in patrs:
+                    rows = simulate_x(brk, o, h, l, c, v, atr, hold, pam, mode, v2, exarr, side, cost, ex)
+                    if rows:
+                        p = {"h": hold, "atr": pam, "chase": 10, "xm": mode + (str(int(val)) if val else "")}
+                        orx.acc_add(cells, ptag("oneil_pivot", "exit", d, tf, p), rows)
 
 
 def main_run():
