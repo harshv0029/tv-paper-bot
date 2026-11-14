@@ -70,16 +70,23 @@ def atr(df, n=14):
     return tr.ewm(alpha=1.0 / n, adjust=False).mean()
 
 
-def adx_di(df, n=14):
-    h, l = df["High"], df["Low"]
+def adx_di(df, n=14, sm="wilder"):
+    """+DI/-DI/ADX. sm="wilder" (alpha 1/n, default, unchanged) or sm="ema" (alpha 2/(n+1),
+    Elder's 13-EMA smoothing, B-760 book pp.140-141 correction)."""
+    a_ = 1.0 / n if sm == "wilder" else 2.0 / (n + 1)
+    h, l, c = df["High"], df["Low"], df["Close"]
     up, dn = h.diff(), -l.diff()
     pdm = pd.Series(np.where((up > dn) & (up > 0), up, 0.0), index=df.index)
     mdm = pd.Series(np.where((dn > up) & (dn > 0), dn, 0.0), index=df.index)
-    a = atr(df, n)
-    pdi = 100 * pdm.ewm(alpha=1.0 / n, adjust=False).mean() / a
-    mdi = 100 * mdm.ewm(alpha=1.0 / n, adjust=False).mean() / a
+    if sm == "wilder":
+        a = atr(df, n)
+    else:
+        tr = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
+        a = tr.ewm(alpha=a_, adjust=False).mean()
+    pdi = 100 * pdm.ewm(alpha=a_, adjust=False).mean() / a
+    mdi = 100 * mdm.ewm(alpha=a_, adjust=False).mean() / a
     dx = 100 * (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan)
-    return dx.ewm(alpha=1.0 / n, adjust=False).mean(), pdi, mdi
+    return dx.ewm(alpha=a_, adjust=False).mean(), pdi, mdi
 
 
 def stochastic(df, k=5, d=3):
@@ -205,8 +212,14 @@ def v_elder_ray(df, mode="plain", lb=5):
     return _pack(df, long.fillna(False), short.fillna(False), ex_l.fillna(False), ex_s.fillna(False))
 
 
-def v_adx_bell(df, thr=4):
-    adx, pdi, mdi = adx_di(df)
+def williams_r_elder(df, n=5):
+    """Williams %R on Elder's scale: 0 = top of the n-bar range, -100 = bottom (B-725)."""
+    hh, ll = df["High"].rolling(n).max(), df["Low"].rolling(n).min()
+    return -100 * (hh - df["Close"]) / (hh - ll).replace(0, np.nan)
+
+
+def v_adx_bell(df, thr=4, n=14, sm="wilder"):
+    adx, pdi, mdi = adx_di(df, n, sm)
     a, p, m = adx.to_numpy(), pdi.to_numpy(), mdi.to_numpy()
     n = len(df)
     long, short = np.zeros(n, bool), np.zeros(n, bool)
@@ -236,6 +249,9 @@ def v_triple_screen(df, second="fi", win=5, screens="all"):
     elif second == "stoch":
         st = stochastic(df, win, 3)
         s_l, s_s = st < 30, st > 70
+    elif second == "wr":                    # B-725: Williams %R(4/5) as screen 2, -80/-20 lines
+        wr = williams_r_elder(df, win)
+        s_l, s_s = wr < -80, wr > -20
     else:
         bear, bull = df["Low"] - e, df["High"] - e
         s_l, s_s = (bear < 0) & (bear > bear.shift(1)), (bull > 0) & (bull < bull.shift(1))
@@ -284,9 +300,12 @@ def variant_specs(family):
     elif family == "adx_bell":
         for thr in (3, 4, 5):
             S.append(("ring_bell", {"pts": thr}, lambda d, t=thr: v_adx_bell(d, t), {}))
+        for thr in (3, 4, 5):                # B-760: Elder's 13-period EMA smoothing (book pp.140-141)
+            S.append(("ring_bell_ema13", {"pts": thr},
+                      lambda d, t=thr: v_adx_bell(d, t, 13, "ema"), {}))
     elif family == "triple_screen":
         mg = {"be_atr": 1.0, "trail_frac": 0.5}
-        for sec, win in (("fi", 2), ("stoch", 5), ("stoch", 14), ("elder", 13)):
+        for sec, win in (("fi", 2), ("stoch", 5), ("stoch", 14), ("elder", 13), ("wr", 4), ("wr", 5)):
             for scr in ("all", "weekly_only", "no_weekly"):
                 if sec != "fi" and scr == "weekly_only":
                     continue                          # identical to fi's weekly_only

@@ -2032,3 +2032,18 @@ Profit-booking / exit takeaway: no trading-rule change; protects position state 
 - Why: one day over budget used to eat the month and suspend the database, which removes the restart backup for real positions for weeks. Losing a day of dashboard counters is far cheaper.
 - Profit-booking / exit takeaway: protection of open positions (stops, positions, kill switch) is never traded away for storage savings; only dashboard/research data is.
 - B-1577 addendum: the quota is cumulative over the month (day N may use N x daily budget minus what days 1..N-1 used, never past the 10 GB monthly cap), so one heavy day is paid back the next day instead of hiding inside a fresh daily reset.
+
+## 2026-11-14 - Intraday exit refused for a buy-engine position (B-1567)
+- Mechanism: the intraday exit refused any symbol that had a paper swing row, so a real buy-engine position (BDL, chan 15m cell) could not be exited and sat overnight with no SL after 15:15, silently.
+- Fix: refuse only when the real swing table owns it, or a paper swing row exists and the intraday row has no strategy; every refusal is logged with its reason.
+- Coverage: buy: fixed / short: own exit path, no paper-swing check (B-1580 logs its no-row return) / swing: owns its own exits, unchanged / futures, options, MCX, currency: no shared refusal path.
+- Profit-booking / exit takeaway: an exit refusal is a money risk, never a silent return; an unexited intraday position after 15:15 is naked overnight.
+
+## 2026-11-14 IST: B-1380 pre-open short SL and B-1549 trade-table restore
+- Mechanism: a short SL sent before 09:15 IST is rejected by Kotak and wastes a retry; the short SL placer now returns `skipped_pre_open` and the 09:15 protect pass places it. Separately, trade/fill tables were plain-overwritten on restore, so a restart lost the day's closed trades; they now merge-restore.
+- Fit: Kotak-first; no gate loosened; no kill switch.
+- Profit-booking / exit takeaway: P&L review and profit-booking lessons depend on complete trade history surviving restarts; never trust a post-restart trade count without the merge-restore.
+
+## 2026-11-14 IST: SLBM on Kotak is dealer-only (B-1456)
+Kotak's support page: SLBM orders are placed only through the dealer or customer service, not the app or Neo API. So an overnight cash short via a borrow cannot be automated: the most the bot can do is raise an alert (symbol, qty, max borrow fee) that the user places by phone, then adopt the short and protect it with an SL. The dealer step adds delay and a call charge, both of which the B-1456 backtest must include in its costs. Never lend shares held for a swing trade, because lent shares cannot be sold when the stop is hit.
+Profit-booking / exit takeaway: a short reached through the dealer cannot be exited the instant a stop fires unless the cover is a normal market buy. Plan the exit as a regular cash buy-to-cover, with the borrow returned separately, and check this is allowed before any live use.

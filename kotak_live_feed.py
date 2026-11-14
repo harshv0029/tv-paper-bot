@@ -46,6 +46,9 @@ _feed_status = {
     "started_at_utc": None,
     "subscribed_symbols": [],
     "unresolved_symbols": [],
+    # B-1269: the MCX futures contract each proxy (GC=F/SI=F/CL=F) resolved to, so the expiry roll
+    # is visible on /kotak-neo/live-ticks' status without waiting for a tick.
+    "mcx_contracts": {},
 }
 
 # After the SDK's own built-in initial-connect retries (max_connect_retries,
@@ -355,6 +358,13 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
         row = nearest_by_kotak_name.get(kotak_name)
         if row and row.get("pSymbol") is not None:
             resolved[watchlist_sym] = ("mcx_fo", str(row["pSymbol"]))
+            exp = row.get("lExpiryDate")
+            _feed_status.setdefault("mcx_contracts", {})[watchlist_sym] = {
+                "trading_symbol": row.get("pTrdSymbol"),
+                "instrument_token": str(row["pSymbol"]),
+                "expiry_ist": (_dt.datetime.fromtimestamp(exp, _IST).date().isoformat()
+                               if isinstance(exp, (int, float)) else None),
+            }
     return resolved
 
 
