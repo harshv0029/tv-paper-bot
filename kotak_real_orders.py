@@ -1609,6 +1609,11 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
     short stays naked. On that rejection only, retry at the tightest upper-band ceiling
     still above the market (prev close x (1 + band) x 0.997, bands 10/5/2%). The stop is
     only ever lowered toward the market, never below 0.5% over last price."""
+    if _before_equity_open():
+        # B-1380 short coverage (nse_cm only): pre-open rejects every BUY SL with 16387 / 'Adapter is Logged Off'
+        # (00:58 IST 28-Oct). Same failure shape as a Kotak reject, so callers behave exactly as before.
+        return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
+                "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
     trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "short")  # B-1440
     trigger_price, clamped_from = _preclamp_short_stop(kotak_trading_symbol, trigger_price)  # only ever lowers
     trigger_price, market_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "short")  # B-1520

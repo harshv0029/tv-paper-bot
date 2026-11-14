@@ -15,19 +15,19 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | P2 | 78 |
 | DONE-PENDING-VERIFY | 76 |
 | BLOCKED | 64 |
-| OPEN | 59 |
+| OPEN | 57 |
 | P1 | 46 |
 | DONE-MERGED | 22 |
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
 | P3 | 9 |
+| BUILT-ON-BRANCH | 7 |
 | OPEN-PARKED | 6 |
 | P0 | 6 |
-| BUILT-ON-BRANCH | 5 |
 | DEPLOYED | 5 |
+| PARKED | 5 |
 | USER | 5 |
-| PARKED | 4 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | TODO | 3 |
@@ -64,7 +64,6 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1319 | 1 |
 | ITC | 1 |
 | JIOFIN26OCT217 | 1 |
-| KOTAK | 1 |
 | SWING | 1 |
 | F | 1 |
 | B-1388 | 1 |
@@ -89,7 +88,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (304)
+## waiting-on-workflow/deploy (306)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -114,6 +113,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-392 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST: "when I toggle ALL TRADING to OFF it should stop new trades immediately and close the ... | owed, pending, verify |
 | B-404 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST (explicit; this is the user's own ask, so it satisfies the "ask before adding a kill sw... | owed, pending, verify, needs |
 | B-410 | P0 | DONE-PENDING-VERIFY | B-404 delivered 2026-10-11 IST: per-category real-trading toggles (real_enabled_equity / _swing / _fo) as K... | owed, pending, verify |
+| B-1549 | P0 | BUILT-ON-BRANCH | 2026-11-11 IST | owed, follow-up, awaiting, waiting |
 | B-19 | P1 | DONE-PENDING-VERIFY | User: leave until 8am 6 Oct 2026. Suspected T1/settlement rejection (unconfirmed) | pending, verify |
 | B-31 | P1 | DONE-PENDING-VERIFY | Deploy Gate #321 passed: gifted-bell merged to main (4863323), 2026-10-05. Remaining: confirm OB/VP appear ... | remaining, pending, verify, needs, unverified |
 | B-46 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST closure pass: Code + tests/test_holdings_fallback.py on main; remaining check (NYKAA-like ho... | owed, remaining, pending, verify, needs |
@@ -343,6 +343,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-813 | P2 | DONE-PENDING-VERIFY | Matrix-cap fix (2026-10-12 IST, s00 subagent): GitHub caps a matrix at ~40 jobs; three research workflows w... | pending |
 | B-816 | P2 | DONE-PENDING-VERIFY | Trade-view: viable-strategies panel now shows "last data change" (hash of value columns, client localStorag... | owed, pending |
 | B-1221 | P2 | DONE-PENDING-VERIFY | pl1d SHORT main.py replay (run 38501324353, 1d, cost 0.8%): only 2 of the cells were readable from the job ... | owed, remaining, pending, verify, needs |
+| B-1380 | P2 | BUILT-ON-BRANCH | 2026-10-27 09:55 IST | owed, pending |
 | B-1477 | P2 | BLOCKED | 2026-11-05 | blocked, needs, follow-up |
 | B-438 | P3 | BLOCKED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, blocked, needs |
 | B-439 | P3 | PENDING | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending |
@@ -398,7 +399,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (132)
+## ready-to-build (130)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -414,7 +415,6 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1318 | P0 | USER | 2026-10-21 | owed, verify |
 | B-1322 | P0 | JIOFIN26OCT217 | 2026-10-21 | owed, open:, verify, needs |
 | B-1328 | P0 | B-1319 | 2026-10-21 | owed, verify |
-| B-1549 | P0 | OPEN | 2026-11-11 IST | owed, follow-up, awaiting, waiting |
 | B-1567 | P0 | PARTIAL | 2026-11-12 IST | owner |
 | B-1582 | P0 | OPEN | 2026-11-14 IST | verify |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
@@ -441,7 +441,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1485 | P1 | B-1484 | 2026-11-05 | owed, needs |
 | B-1547 | P1 | OPEN | 2026-11-11 IST | follow-up, awaiting, waiting |
 | B-1557 | P1 | OPEN | 2026-11-11 IST |  |
-| B-1564 | P1 | PARTIAL | 2026-11-12 IST | open:, needs |
+| B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1566 | P1 | OPEN | 2026-11-12 IST | needs |
 | B-1578 | P1 | OPEN | 2026-11-14 IST | owed |
 | B-1581 | P1 | OPEN | 2026-11-14 IST | owed |
@@ -497,7 +497,6 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1091 | P2 | BUILT-DISPATCH-OWED | pl1d (STARC fade + gap runaway) LONG + SHORT: candle-size (4h, 1h, 15m, 5m) x ATR {2.5, 4, 6}, real main.py... | owed |
 | B-1120 | P2 | BUILT-DISPATCH-OWED | Flatten FAILED-cell re-test at real MIS cost (owed from B-792: "MIS costs, 4h"): 122 of 200 _fl1515__v2 reg... | owed, needs |
 | B-1232 | P2 | OPEN | Register the tags the B-1231 report finds in saved results but not in the registry (416 unique at first run) |  |
-| B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
 | B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed, verify |
 | B-1453 | P2 | FROM | 2026-11-03 00:35 IST |  |
@@ -516,7 +515,7 @@ Total rows: 1333 | closed: 729 | not closed: 604
 | B-1571 | P2 | OPEN | 2026-11-14 IST |  |
 | B-1579 | P2 | PARKED | 2026-11-14 IST |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
-| B-1456 | P3 | OPEN | 2026-11-03 00:35 IST |  |
+| B-1456 | P3 | PARKED | 2026-11-03 00:35 IST |  |
 | B-1457 | P3 | FROM | 2026-11-03 00:35 IST | owed |
 | B-1503 | P3 | OPEN | 2026-11-06 | owed, follow-up |
 | B-1531 | P3 | OPEN | 2026-11-09 | follow-up |
