@@ -267,3 +267,15 @@ def _no_real_contract_notes(monkeypatch):
     """B-1564: ROC tests use synthetic ledgers; the real contract-note file would replace their covered days."""
     import main
     monkeypatch.setattr(main, "ROC_CONTRACT_NOTE_FILE", "/nonexistent/kotak_contract_note_fills.json")
+
+
+@pytest.fixture(autouse=True)
+def _upstash_db_not_stale():
+    """B-1574: the stale-database check is decided as 'fresh' for every test; tests/test_upstash_stale_db_b1574.py
+    resets it to exercise the check itself."""
+    import main as _m
+    _m._UPSTASH_STALE_DB.update(checked=True, stale=False, reason="test", heartbeat_age_days=None, at=None)
+    _m._upstash_written_keys.clear()
+    yield
+    _m._UPSTASH_STALE_DB.update(checked=True, stale=False)
+    _m._upstash_written_keys.clear()
