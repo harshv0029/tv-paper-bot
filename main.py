@@ -174,6 +174,71 @@ def get_db():
 # git-JSON journal keeps working as a second-layer fallback regardless.
 UPSTASH_REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
 UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+
+# B-1575 (2026-11-14, user: "create two versions ... _1 (October DB) and _2 (this month's) ... keep switching whenever
+# there is a need"): numbered Upstash slots UPSTASH_REDIS_REST_URL_<n> / UPSTASH_REDIS_REST_TOKEN_<n>. At boot the
+# bot uses the reachable slot whose bot heartbeat is newest (ties -> highest slot number); at runtime the 5-min probe
+# fails over to another reachable slot after _UPSTASH_FAILOVER_AFTER consecutive HTTP refusals (suspension, auth).
+# The unsuffixed pair stays as the single-slot fallback when no numbered slot is set. Everything else reads the two
+# globals above at call time, so a switch is just reassigning them. The B-1574 stale-DB guard decides what to restore.
+_UPSTASH_SLOT_MAX = 9
+_UPSTASH_FAILOVER_AFTER = 2
+_UPSTASH_SLOT_STATE: dict = {"slots": [], "active": None, "chosen_by": None, "switches": [], "consecutive_fail": 0}
+
+
+def _upstash_slots_from_env(env=None) -> list:
+    env = os.environ if env is None else env
+    out = []
+    for n in range(1, _UPSTASH_SLOT_MAX + 1):
+        url, tok = env.get(f"UPSTASH_REDIS_REST_URL_{n}"), env.get(f"UPSTASH_REDIS_REST_TOKEN_{n}")
+        if url and tok:
+            out.append((n, url.rstrip("/"), tok))
+    return out
+
+
+def _upstash_slot_heartbeat(url: str, tok: str, http_get=None):
+    """(reachable, last_alive_ts or 0). Never raises."""
+    http_get = http_get or requests.get
+    try:
+        r = http_get(f"{url}/get/restart_tracker:heartbeat", headers={"Authorization": f"Bearer {tok}"}, timeout=5)
+        if r.status_code != 200:
+            return False, 0.0
+        raw = r.json().get("result")
+        return True, float((json.loads(raw) or {}).get("last_alive_ts") or 0) if raw else 0.0
+    except Exception:  # noqa: BLE001
+        return False, 0.0
+
+
+def _upstash_activate_slot(n: int, url: str, tok: str, why: str) -> None:
+    global UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+    prev = _UPSTASH_SLOT_STATE["active"]
+    UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN = url, tok
+    _UPSTASH_SLOT_STATE.update(active=n, chosen_by=why, consecutive_fail=0)
+    _UPSTASH_SLOT_STATE["switches"] = (_UPSTASH_SLOT_STATE["switches"] + [
+        {"ts": time.time(), "from": prev, "to": n, "why": why}])[-20:]
+    print(f"[upstash-slot] using Upstash slot {n} ({why})")
+
+
+def _upstash_select_slot_at_boot(env=None, http_get=None):
+    slots = _upstash_slots_from_env(env)
+    _UPSTASH_SLOT_STATE["slots"] = [n for n, _u, _t in slots]
+    if not slots:
+        return None
+    probes = [(n, u, t) + _upstash_slot_heartbeat(u, t, http_get) for n, u, t in slots]
+    live = [p for p in probes if p[3]]
+    if live:
+        n, u, t, _ok, beat = max(live, key=lambda p: (p[4], p[0]))
+        _upstash_activate_slot(n, u, t, f"boot: reachable, newest heartbeat ({beat or 'none'})")
+    else:
+        n, u, t = slots[-1]
+        _upstash_activate_slot(n, u, t, "boot: no slot reachable, highest slot")
+    return n
+
+
+try:
+    _upstash_select_slot_at_boot()
+except Exception as _e:  # noqa: BLE001
+    print(f"[upstash-slot] boot selection failed, keeping the unsuffixed pair: {_e}")
 _REAL_POSITIONS_REDIS_KEY = "tv_paper_bot:real_positions:v1"
 
 
@@ -190,7 +255,7 @@ def _sync_real_positions_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -231,7 +296,7 @@ def hydrate_real_positions_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_external] hydrate failed (non-fatal): {e}")
         return False
@@ -291,7 +356,7 @@ def _sync_real_positions_short_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_short").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SHORT_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_SHORT_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -318,7 +383,7 @@ def hydrate_real_positions_short_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_SHORT_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_short_external] hydrate failed (non-fatal): {e}")
         return False
@@ -386,7 +451,7 @@ def _sync_real_positions_swing_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SWING_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_SWING_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -413,7 +478,7 @@ def hydrate_real_positions_swing_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_SWING_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_swing_external] hydrate failed (non-fatal): {e}")
         return False
@@ -465,7 +530,7 @@ def _sync_signal_state_swing_external(conn) -> None:
     try:
         rows = [dict(r) for r in conn.execute("SELECT * FROM signal_state_swing").fetchall()]
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_SIGNAL_STATE_SWING_REDIS_KEY}",
+            _upstash_set_url(_SIGNAL_STATE_SWING_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps({"synced_at": time.time(), "rows": rows}).encode("utf-8"),
             timeout=5,
@@ -488,7 +553,7 @@ def hydrate_signal_state_swing_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_SIGNAL_STATE_SWING_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[signal_state_swing_external] hydrate failed (non-fatal): {e}")
         return False
@@ -548,7 +613,7 @@ def _sync_rr_cursor_external(cursor: int) -> None:
         return
     try:
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_RR_CURSOR_REDIS_KEY}",
+            _upstash_set_url(_RR_CURSOR_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=str(int(cursor)).encode("utf-8"),
             timeout=5,
@@ -576,7 +641,7 @@ def hydrate_rr_cursor_from_external() -> int | None:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_RR_CURSOR_REDIS_KEY, resp.json().get("result"))
         return int(raw) if raw is not None else None
     except Exception as e:
         print(f"[rr_cursor_external] hydrate failed (non-fatal): {e}")
@@ -611,7 +676,7 @@ def _sync_check_counts_external(day: str, counts: dict) -> None:
     try:
         body = json.dumps({"day": day, "counts": counts}).encode("utf-8")
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_CHECK_COUNTS_REDIS_KEY}",
+            _upstash_set_url(_CHECK_COUNTS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=body,
             timeout=5,
@@ -747,7 +812,7 @@ def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_CHECK_COUNTS_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return None
         saved = json.loads(raw)
@@ -16445,7 +16510,7 @@ def _sync_t1_restricted_external(conn) -> None:
         rows = conn.execute("SELECT symbol, day, flagged_at, detail FROM real_t1_restricted").fetchall()
         snapshot = [dict(r) for r in rows]
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_T1_RESTRICTED_REDIS_KEY}",
+            _upstash_set_url(_T1_RESTRICTED_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps(snapshot).encode("utf-8"),
             timeout=5,
@@ -16470,7 +16535,7 @@ def hydrate_t1_restricted_from_external(conn) -> int:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_T1_RESTRICTED_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return 0
         snapshot = json.loads(raw)
@@ -24067,7 +24132,14 @@ def _tick_timing_summary() -> dict:
 def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
     """B-1419: the tick used to sleep a fixed 30 s AFTER a ~2 min scan; now it sleeps
     only what is left of the 30 s interval (at least 1 s, so the loop still yields)."""
-    return max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
+    base = max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
+    try:
+        if all_markets_closed():  # B-1569: every market closed -> tick every 10 min (re-checked each tick, and
+            # all_markets_closed() already turns False 15 min before any session opens, so 09:00/09:15 are on time)
+            return max(base, CLOSED_MARKET_TICK_SECONDS - max(0.0, tick_seconds))
+    except Exception:  # noqa: BLE001
+        pass
+    return base
 SCHEDULER_DAILY_RISK_PCT = 2.0  # DEFAULT (fallback) - account-wide daily loss cap, live-editable below
 SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editable below
 
@@ -24196,7 +24268,7 @@ def _sync_runtime_settings_external(conn) -> None:
         rows = conn.execute("SELECT key, value FROM runtime_settings").fetchall()
         snapshot = {r["key"]: r["value"] for r in rows}
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_RUNTIME_SETTINGS_REDIS_KEY}",
+            _upstash_set_url(_RUNTIME_SETTINGS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps(snapshot).encode("utf-8"),
             timeout=5,
@@ -24225,7 +24297,7 @@ def hydrate_runtime_settings_from_external(conn) -> int:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_RUNTIME_SETTINGS_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return 0
         snapshot = json.loads(raw)
@@ -24337,6 +24409,28 @@ def _generic_mirror_note_ok() -> None:
         print("[table_mirror] Upstash auth alarm cleared (push succeeded)")
 _git_tier_hydrated: set = set()
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
+_GENERIC_MIRROR_ROWS_PER_CHUNK = 100  # B-1568: row-aligned chunks so one changed/appended row re-sends ~1 chunk
+# B-1568: per-chunk hashes of what Upstash holds live in _generic_mirror_last_hash under (table, "chunks"), so any
+# reset of that memory also resets them (never a stale "already pushed")
+
+
+def _generic_mirror_row_chunks(rows: list) -> list:
+    """B-1568: each chunk is its own JSON array of up to _GENERIC_MIRROR_ROWS_PER_CHUNK rows (rowid order)."""
+    n = _GENERIC_MIRROR_ROWS_PER_CHUNK
+    return [json.dumps(rows[i:i + n], default=str) for i in range(0, len(rows), n)]
+
+
+def _generic_mirror_decode(meta: dict, parts: list) -> list:
+    """Rows from a remote copy: B-1568 row-chunk format (one JSON array per chunk) or the older single JSON string
+    split at fixed character offsets."""
+    if not parts:
+        return []
+    if meta.get("format") == "rowchunks":
+        out = []
+        for p in parts:
+            out.extend(json.loads(p))
+        return out
+    return json.loads("".join(parts))
 _generic_mirror_hydrated: set = set()
 _generic_mirror_last_hash: dict = {}
 # B-1341: positions, trades, signal state and kill switches push on every change (restart safety). Everything else in
@@ -24415,6 +24509,56 @@ def _upstash_budget_level() -> int:
 _UPSTASH_OFF_HOURS_SLOWDOWN = 6  # B-1342: outside NSE hours (and weekends) dashboard-only state changes slowly
 
 
+# B-1569 (2026-11-14, user: "on closed market day set the limitations for optimised usage"): each category has its own
+# market session; when EVERY category's market is closed (weekend, nights after MCX 23:30, holidays) the bot runs its
+# scheduler slower and its non-critical Upstash writers far slower. Protection, SL, reconcile and exit code paths are
+# never skipped (they still run on each slower tick, and the 5-min backcheck thread keeps its own schedule).
+MCX_FULL_HOLIDAYS_2026 = frozenset({"2026-12-25"})  # MCX closed both sessions (other NSE holidays: MCX evening runs)
+_CATEGORY_SESSIONS = {  # IST minutes [open, close)
+    "nse": (9 * 60 + 15, 15 * 60 + 30),
+    "commodity": (9 * 60, 23 * 60 + 30),
+    "currency": (9 * 60, 17 * 60),
+}
+CLOSED_MARKET_TICK_SECONDS = 600  # scheduler interval when every market is closed (normal: SCHEDULER_INTERVAL_SECONDS)
+CLOSED_MARKET_UPSTASH_SLOWDOWN = 24  # non-critical writers: 300 s -> 2 h when every market is closed
+
+
+def _session_key(cat: str) -> str:
+    return cat if cat in ("commodity", "currency") else "nse"
+
+
+def category_market_open(cat: str, now=None) -> bool:
+    """B-1569: is this category's market in session now (IST)? NSE categories use NSE holidays and special sessions;
+    commodity = MCX 09:00-23:30 weekdays; currency = NSE CDS 09:00-17:00 on NSE trading days."""
+    now = now or ist_now()
+    day = now.strftime("%Y-%m-%d")
+    m = now.hour * 60 + now.minute
+    key = _session_key(cat)
+    if key == "nse":
+        sp = nse_special_session(now)
+        if sp:
+            return sp[0] <= m < sp[1]
+        if now.weekday() >= 5 or day in NSE_HOLIDAYS_2026:
+            return False
+    elif key == "commodity":
+        if now.weekday() >= 5 or day in MCX_FULL_HOLIDAYS_2026:
+            return False
+    elif now.weekday() >= 5 or day in NSE_HOLIDAYS_2026:
+        return False
+    lo, hi = _CATEGORY_SESSIONS[key]
+    return lo <= m < hi
+
+
+def all_markets_closed(now=None, buffer_min: int = 15) -> bool:
+    """B-1569: True when no category's market is open within `buffer_min` minutes either side of now."""
+    now = now or ist_now()
+    for k in ("nse", "commodity", "currency"):
+        for off in (-buffer_min, 0, buffer_min):
+            if category_market_open(k, now + dt.timedelta(minutes=off)):
+                return False
+    return True
+
+
 def _upstash_in_market_hours() -> bool:
     """Weekday 09:00-15:45 IST (NSE session plus a small buffer either side)."""
     now_local = ist_now()
@@ -24434,6 +24578,8 @@ def _upstash_noncritical_interval(base_sec: float):
     if lvl >= 2:
         return None
     ival = base_sec * (_UPSTASH_CONSERVE_SLOWDOWN if lvl == 1 else 1)
+    if all_markets_closed():  # B-1569: nothing trades anywhere -> dashboard data can wait (still pushed if changed)
+        return ival * CLOSED_MARKET_UPSTASH_SLOWDOWN
     return ival if _upstash_in_market_hours() else ival * _UPSTASH_OFF_HOURS_SLOWDOWN
 
 
@@ -24468,6 +24614,73 @@ def _upstash_usage_persist(force: bool = False) -> None:
         print(f"[upstash_budget] persist failed (non-fatal): {e}")
 
 
+# B-1574 (2026-11-14, user: switch back to the early-October Upstash database): a database whose last bot heartbeat is
+# older than _UPSTASH_STALE_DB_DAYS (or that holds bot data but no heartbeat at all - written since 2026-10-30) is a
+# STALE snapshot. Restoring it would bring back weeks-old positions, stops, kill switches and settings over today's
+# reality, so every read of a key this process has not itself written returns None (= empty remote). The bot then
+# starts exactly as on a flushed database: git-tier tables restore from git, the 5-min Kotak reconcile re-adopts open
+# positions and places SLs, and each mirror's first push overwrites the stale key. Loud on /health.
+_UPSTASH_STALE_DB_DAYS = 7
+_UPSTASH_STALE_DB: dict = {"checked": False, "stale": False, "reason": None, "heartbeat_age_days": None, "at": None}
+_upstash_written_keys: set = set()
+_upstash_stale_lock = threading.Lock()
+
+
+def _upstash_raw_get(key: str):
+    resp = requests.get(f"{UPSTASH_REDIS_REST_URL}/get/{key}",
+                        headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=10)
+    resp.raise_for_status()
+    return resp.json().get("result")
+
+
+def _upstash_db_is_stale(now=None, raw_get=None) -> bool:
+    """B-1574: decided once per process from the database as it was BEFORE this process wrote to it."""
+    if _UPSTASH_STALE_DB["checked"]:
+        return _UPSTASH_STALE_DB["stale"]
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) and raw_get is None:
+        return False
+    raw_get = raw_get or _upstash_raw_get
+    with _upstash_stale_lock:
+        if _UPSTASH_STALE_DB["checked"]:
+            return _UPSTASH_STALE_DB["stale"]
+        now = time.time() if now is None else now
+        try:
+            beat = raw_get(_RESTART_HEARTBEAT_KEY)
+            stale, reason, age = False, "fresh", None
+            if beat:
+                last = (json.loads(beat) or {}).get("last_alive_ts") or 0
+                age = round((now - float(last)) / 86400, 2)
+                if age > _UPSTASH_STALE_DB_DAYS:
+                    stale, reason = True, f"last bot heartbeat {age} days ago"
+            elif any(raw_get(k) for k in (_REAL_POSITIONS_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY,
+                                          _generic_mirror_key("trading_control", "meta"))):
+                stale, reason = True, "bot data present but no heartbeat (snapshot from before 2026-10-30)"
+            else:
+                reason = "empty database"
+        except Exception as e:
+            print(f"[upstash-stale-check] could not check, will retry: {e}")
+            return False
+        _UPSTASH_STALE_DB.update(checked=True, stale=stale, reason=reason, heartbeat_age_days=age, at=now)
+        if stale:
+            print(f"[upstash-stale-check] STALE DATABASE ({reason}): NOT restoring it; starting as on a flushed "
+                  f"database and overwriting it with current state")
+        return stale
+
+
+def _upstash_unmask(key: str, value):
+    """B-1574: hide a stale database's old value for any key this process has not written yet."""
+    if value is None or key in _upstash_written_keys or not _upstash_db_is_stale():
+        return value
+    return None
+
+
+def _upstash_set_url(key: str) -> str:
+    """B-1574: URL for a direct SET, recording the key as written by this process."""
+    _upstash_db_is_stale()
+    _upstash_written_keys.add(key)
+    return f"{UPSTASH_REDIS_REST_URL}/set/{key}"
+
+
 def _upstash_get(key: str):
     resp = requests.get(
         f"{UPSTASH_REDIS_REST_URL}/get/{key}",
@@ -24475,16 +24688,28 @@ def _upstash_get(key: str):
     )
     _upstash_meter(key, len(resp.content or b""), "get")
     resp.raise_for_status()
-    return resp.json().get("result")
+    return _upstash_unmask(key, resp.json().get("result"))
 
 
 def _upstash_set(key: str, value: str) -> None:
     resp = requests.post(
-        f"{UPSTASH_REDIS_REST_URL}/set/{key}",
+        _upstash_set_url(key),
         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
         data=value.encode("utf-8"), timeout=10,
     )
     _upstash_meter(key, len(value), "set")
+    resp.raise_for_status()
+
+
+def _upstash_del(*keys) -> None:
+    """B-1572: DEL keys (best effort). Frees Upstash storage held by superseded chunk keys."""
+    if not keys:
+        return
+    resp = requests.post(
+        UPSTASH_REDIS_REST_URL, headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+        json=["DEL", *keys], timeout=10,
+    )
+    _upstash_meter(keys[0], 0, "set")
     resp.raise_for_status()
 
 
@@ -24535,12 +24760,18 @@ def _generic_hydrate_table(conn, table: str) -> bool:
     if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE and not merge:
         return True
     parts = []
+    pfx = "r" if meta.get("format") == "rowchunks" else "c"  # B-1568 row-chunks live under r<i>
     for i in range(int(meta.get("chunks", 0))):
-        part = _upstash_get(_generic_mirror_key(table, f"c{i}"))
+        part = _upstash_get(_generic_mirror_key(table, f"{pfx}{i}"))
         if part is None:
             return False  # incomplete remote copy - don't half-restore
         parts.append(part)
-    rows = json.loads("".join(parts)) if parts else []
+    rows = _generic_mirror_decode(meta, parts)
+    if meta.get("format") == "rowchunks":
+        # B-1568: what Upstash already holds; the next push sends only chunks that differ from it
+        _generic_mirror_last_hash[(table, "chunks")] = [hashlib.sha256(p.encode("utf-8")).hexdigest() for p in parts]
+    else:
+        _generic_mirror_last_hash[(table, "legacy")] = int(meta.get("chunks", 0))  # B-1572: old c<i> keys to delete
     cols = _generic_mirror_table_columns(conn, table)
     if merge:
         return _generic_merge_log_table(conn, table, rows, cols)
@@ -24708,17 +24939,32 @@ def sync_generic_tables_external(only=None) -> int:
                 continue
         try:
             with closing(get_db()) as conn:
-                rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()]
-            payload = json.dumps(rows, default=str)
-            digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+                rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table} ORDER BY rowid").fetchall()]
+            chunks = _generic_mirror_row_chunks(rows)
+            digest = hashlib.sha256("\x1e".join(chunks).encode("utf-8")).hexdigest()
             if _generic_mirror_last_hash.get(table) == digest:
                 continue
-            chunks = [payload[i:i + _GENERIC_MIRROR_CHUNK_CHARS]
-                      for i in range(0, len(payload), _GENERIC_MIRROR_CHUNK_CHARS)] if rows else []
+            # B-1568: send only the row-chunks whose content changed (was: the WHOLE table on any change, which blew
+            # the 10 GB/month Upstash bandwidth on 2026-11-13: trades 182 MB, news_signal_events, real_fo_trades)
+            prev = _generic_mirror_last_hash.get((table, "chunks")) or []
+            hashes = [hashlib.sha256(c.encode("utf-8")).hexdigest() for c in chunks]
             for i, chunk in enumerate(chunks):
-                _upstash_set(_generic_mirror_key(table, f"c{i}"), chunk)
+                if i >= len(prev) or prev[i] != hashes[i]:
+                    _upstash_set(_generic_mirror_key(table, f"r{i}"), chunk)  # own keys: an old-format meta never points here
             _upstash_set(_generic_mirror_key(table, "meta"),
-                         json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": time.time()}))
+                         json.dumps({"format": "rowchunks", "chunks": len(chunks), "rows": len(rows),
+                                     "synced_at": time.time()}))
+            _generic_mirror_last_hash[(table, "chunks")] = hashes
+            # B-1572: free storage the new meta no longer points at (old-format c<i> keys after the migration, and
+            # r<i> keys past the end when the table shrank). Upstash free storage is 250 MB (213 MB used 2026-11-14).
+            stale = [_generic_mirror_key(table, f"c{i}")
+                     for i in range(_generic_mirror_last_hash.pop((table, "legacy"), 0) or 0)]
+            stale += [_generic_mirror_key(table, f"r{i}") for i in range(len(chunks), len(prev))]
+            if stale:
+                try:
+                    _upstash_del(*stale)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[table_mirror] {table} stale-chunk delete failed (non-fatal): {e}")
             _generic_mirror_last_hash[table] = digest
             _generic_mirror_last_push_ts[table] = time.time()
             _generic_mirror_note_ok()
@@ -24766,7 +25012,7 @@ def sync_fo_option_candles_external() -> int:
     try:
         import fo_candle_journal
         with closing(get_db()) as conn:
-            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set)
+            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set, del_=_upstash_del)
     except Exception as e:
         print(f"[fo_candle_journal] sync failed (non-fatal): {e}")
         return 0
@@ -25019,7 +25265,7 @@ def _day_open_capital_inr(conn) -> float:
                 timeout=10,
             )
             resp.raise_for_status()
-            raw = resp.json().get("result")
+            raw = _upstash_unmask(_DAY_OPEN_CAPITAL_REDIS_KEY, resp.json().get("result"))
             if raw:
                 saved = json.loads(raw)
                 if saved.get("day") == today and saved.get("value"):
@@ -25045,7 +25291,7 @@ def _persist_day_open_capital(today: str, value: float) -> None:
     if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
         try:
             requests.post(
-                f"{UPSTASH_REDIS_REST_URL}/set/{_DAY_OPEN_CAPITAL_REDIS_KEY}",
+                _upstash_set_url(_DAY_OPEN_CAPITAL_REDIS_KEY),
                 headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
                 data=json.dumps({"day": today, "value": value}).encode("utf-8"),
                 timeout=5,
@@ -33297,6 +33543,12 @@ def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
                     c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
         if not rows:
             return False  # never overwrite the remote copy with an empty stack
+        # B-1568: the stack is ~1.4 MB and each push is GET + SET + read-back GET; skip when the local stack is
+        # unchanged since the last successful push (re-checked at most every 6 h)
+        local_sig = hashlib.sha256(json.dumps(rows, default=str).encode("utf-8")).hexdigest()
+        if (not allow_drop and st.get("last_push_ok") and st.get("last_local_sig") == local_sig
+                and time.time() - (st.get("last_push_ts") or 0) < 6 * 3600):
+            return True
         if not allow_drop:
             try:
                 raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
@@ -33313,7 +33565,8 @@ def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
         payload = json.dumps(rows)
         _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
         ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
-        st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch")
+        st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch",
+                  last_local_sig=local_sig if ok else None)
         return ok
     except Exception as e:  # noqa: BLE001
         st.update(last_push_ok=False, last_push_ts=time.time(), last_error=str(e)[:200])
@@ -33942,6 +34195,27 @@ def upstash_usage():
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
+def _funnel_categories() -> list:
+    """B-1569: the entry-funnel / View 4 category list comes from strategy_registry.TradeCategory, so a new category
+    shows up in every view without editing each one."""
+    import strategy_registry as sr
+    order = ["buy", "short_sell", "swing", "bidirectional", "futures", "options", "options_multi", "commodity",
+             "currency"]
+    vals = [c.value for c in sr.TradeCategory]
+    return [c for c in order if c in vals] + [c for c in vals if c not in order]
+
+
+@app.get("/category-labels")
+def category_labels():
+    """B-1569: category key -> display label, in display order, plus whether each category's market is open now.
+    Every view reads this instead of a hardcoded list. No token: no account data."""
+    import strategy_registry as sr
+    now = ist_now()
+    return {"categories": [{"key": c, "label": sr.CATEGORY_LABELS.get(c, c), "market_open": category_market_open(c, now)}
+                           for c in _funnel_categories()],
+            "all_markets_closed": all_markets_closed(now)}
+
+
 @app.get("/entry-funnel")
 def entry_funnel():
     """Why entries are (not) happening today, SEPARATELY for each category
@@ -33952,7 +34226,7 @@ def entry_funnel():
     ('no viable strategy' vs 'no setup fired' vs 'setups blocked by ...')."""
     day = ist_now().strftime("%Y-%m-%d")
     _flush_funnel_pending()  # B-1514: buffered gate-closed triggers land before the rolling window is read
-    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    cats = _funnel_categories()  # B-1569: every TradeCategory, incl. commodity, currency, single/multi leg option
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
                "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
     tag_cats = {}
@@ -34102,7 +34376,7 @@ def _entry_funnel_window(since_ts: float, tag_cats: dict, viable_by_cat: dict | 
     included when its newest event is inside the window). Same per-category shape and same rules as the today block
     (exits are never recorded; untagged non-skipped rows are not entry attempts; a long's sell / short's cover is not
     an entry), plus `placed_by_slot` (B-1513: the View 1 viability slot that admitted each placed entry)."""
-    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    cats = _funnel_categories()  # B-1569: every TradeCategory, incl. commodity, currency, single/multi leg option
     out = {c: {"attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "blocked_triggers": 0,
                "paper_entries": 0, "reject_flags": {"viability": 0, "money": 0, "other": 0},
                "placed_by_slot": {}, "_strats": {}, "_fired": set()} for c in cats}
@@ -34549,7 +34823,9 @@ def symbol_strategy_coverage(symbol: str):
     tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
     import strategy_registry as sr
     is_mcx = symbol.endswith("=F") or symbol.upper().startswith("MCX")
-    allowed = ({sr.TradeCategory.FUTURES, sr.TradeCategory.OPTIONS} if is_mcx else
+    is_ccy = symbol.upper().startswith(("USDINR", "EURINR", "GBPINR", "JPYINR"))
+    allowed = ({sr.TradeCategory.COMMODITY, sr.TradeCategory.OPTIONS, sr.TradeCategory.OPTIONS_MULTI} if is_mcx else
+               {sr.TradeCategory.CURRENCY} if is_ccy else
                {sr.TradeCategory.BUY, sr.TradeCategory.SHORT_SELL, sr.TradeCategory.SWING, sr.TradeCategory.BIDIRECTIONAL})
     _reg = {d.name: d for d in sr.REGISTRY}
 
@@ -34811,6 +35087,10 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             return "Equity (intraday) + index option"
         if "futures" in cats:
             return "Futures"
+        if "commodity" in cats:
+            return "MCX commodity"
+        if "currency" in cats:
+            return "Currency derivative"
         return "Equity"
 
     rows = []
@@ -35836,7 +36116,9 @@ async def health():
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
             "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"],
             "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
-            "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM)}
+            "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM),
+            "upstash_stale_db": dict(_UPSTASH_STALE_DB),  # B-1574
+            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")}}
 
 
 @app.get("/watchlist")
@@ -37147,9 +37429,62 @@ def _upstash_probe(now=None) -> dict:
             _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
     if _UPSTASH_PROBE["ok"]:
         _UPSTASH_PROBE["last_ok_at"] = now
+        _UPSTASH_SLOT_STATE["consecutive_fail"] = 0
     else:
         print(f"[upstash-probe] FAIL {_UPSTASH_PROBE['error']}")
+        if str(_UPSTASH_PROBE.get("error") or "").startswith("HTTP "):  # B-1575: a definitive refusal, not a blip
+            _UPSTASH_SLOT_STATE["consecutive_fail"] += 1
+            if _UPSTASH_SLOT_STATE["consecutive_fail"] >= _UPSTASH_FAILOVER_AFTER:
+                _upstash_failover()
     return _UPSTASH_PROBE
+
+
+def _upstash_failover(env=None, http_get=None) -> int | None:
+    """B-1575: switch to another reachable numbered slot. This process's local SQLite is newer than anything in the
+    target, so nothing is restored from it: every key reads as empty until this process writes it (B-1574 mask) and
+    every mirror's change-cache is cleared so the next passes push the full current state there."""
+    cur = _UPSTASH_SLOT_STATE["active"]
+    for n, u, t in _upstash_slots_from_env(env):
+        if n == cur:
+            continue
+        ok, _beat = _upstash_slot_heartbeat(u, t, http_get)
+        if not ok:
+            continue
+        _upstash_activate_slot(n, u, t, f"failover: slot {cur} refused {_UPSTASH_SLOT_STATE['consecutive_fail']}x")
+        _upstash_written_keys.clear()
+        _UPSTASH_STALE_DB.update(checked=True, stale=True, reason=f"runtime failover from slot {cur}: local state "
+                                 "is newer, target is overwritten not restored", heartbeat_age_days=None,
+                                 at=time.time())
+        _upstash_force_full_push()
+        return n
+    print(f"[upstash-slot] failover wanted but no other slot is reachable (active {cur})")
+    return None
+
+
+def _upstash_force_full_push() -> None:
+    """B-1575: after a slot switch, push every mirror's full current state to the new database."""
+    _generic_mirror_last_hash.clear()
+    try:
+        _generic_mirror_last_push_ts.clear()
+    except NameError:
+        pass
+    try:
+        import fo_candle_journal as _fcj
+        for d in (_fcj._last_hash, _fcj._last_push_ts, _fcj._last_fp):
+            d.clear()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        with closing(get_db()) as conn:
+            for fn in (_sync_real_positions_external, _sync_real_positions_short_external,
+                       _sync_real_positions_swing_external, _sync_signal_state_swing_external,
+                       _sync_runtime_settings_external):
+                try:
+                    fn(conn)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[upstash-slot] full push {fn.__name__} failed (retried by its own next change): {e}")
+    except Exception as e:  # noqa: BLE001
+        print(f"[upstash-slot] full push failed: {e}")
 
 
 def _watchdog_loop(sleep=time.sleep, rounds=None):
@@ -37258,6 +37593,8 @@ def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
         if not any(e.get("boot_ts") == _BOOT_TS for e in events):
             events = (events + [ev])[-_RESTART_EVENTS_CAP:]
             put(_RESTART_EVENTS_KEY, json.dumps(events))
+        if get is _upstash_get:
+            _RESTART_EVENTS_CACHE.update(ts=now, events=events)  # B-1568
         _RESTART_STATE.update(boot_logged=True, last_event=ev)
         print(f"[restart-tracker] boot logged: cause={ev['cause_guess']} downtime_s_max={ev['downtime_s_max']} "
               f"prev_rss_now_mb={ev['prev_rss_now_mb']} prev_loop_lag_s={ev['prev_loop_lag_s']}")
@@ -37294,13 +37631,29 @@ def _restart_summary(events: list, now=None) -> dict:
             "by_cause": by_cause}
 
 
+_RESTART_EVENTS_CACHE = {"ts": 0.0, "events": None}
+_RESTART_EVENTS_CACHE_SECONDS = 3600
+
+
+def _restart_events_cached(now=None) -> list:
+    """B-1568: the events list only changes at a boot (which this process logs itself and caches), so View 4's
+    once-a-minute poll no longer reads the ~70 KB key from Upstash each time (71 MB/day on 2026-11-13)."""
+    now = time.time() if now is None else now
+    c = _RESTART_EVENTS_CACHE
+    if c["events"] is not None and now - c["ts"] < _RESTART_EVENTS_CACHE_SECONDS:
+        return c["events"]
+    raw = _upstash_get(_RESTART_EVENTS_KEY) if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN else None
+    events = json.loads(raw) if raw else []
+    c.update(ts=now, events=events)
+    return events
+
+
 @app.get("/restart-history")
 def restart_history(limit: int = 100):
     """B-1371: Render restarts, newest first, with downtime and the previous run's last RSS/lag/alarms. No token: no
     account data. Reads Upstash, so it works right after a restart."""
     try:
-        raw = _upstash_get(_RESTART_EVENTS_KEY) if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN else None
-        events = json.loads(raw) if raw else []
+        events = _restart_events_cached()
     except Exception as e:  # noqa: BLE001
         return {"error": f"{type(e).__name__}: {str(e)[:160]}", "events": []}
     return {"boot_ist": _ist_str(_BOOT_TS), "uptime_min": round((time.time() - _BOOT_TS) / 60, 1),

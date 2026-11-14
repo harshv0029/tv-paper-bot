@@ -39,7 +39,7 @@ the registry never grows what gets checked per symbol per cycle; it only
 changes which (up to MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE) strategies
 currently hold those slots.
 """
-from dataclasses import dataclass, field
+from dataclasses import replace, dataclass, field
 from enum import Enum
 from typing import Callable, Optional
 
@@ -83,6 +83,21 @@ class TradeCategory(str, Enum):
     # check bound rises 30 -> 35 as a ceiling only (an empty category adds no actual checks).
     OPTIONS_MULTI = "options_multi"
     BIDIRECTIONAL = "bidirectional"
+    # B-1569 (2026-11-14, user: "add one separate category named COMMODITY and another currency trade; option
+    # category divides into single leg option and multi leg option"): MCX commodity strategies get their own pool
+    # (moved out of FUTURES, which now means NSE stock/index futures only), CURRENCY is the NSE currency-derivatives
+    # pool (empty until a currency strategy is registered; no live order path yet). OPTIONS / OPTIONS_MULTI keep their
+    # keys and are labelled "Single leg option" / "Multi leg option" (CATEGORY_LABELS).
+    COMMODITY = "commodity"
+    CURRENCY = "currency"
+
+
+# B-1569: one display label per category, used by every view (never hardcode a label list in a page).
+CATEGORY_LABELS = {
+    "buy": "Intraday buy", "short_sell": "Short sell", "swing": "Swing", "futures": "Futures (NSE)",
+    "options": "Single leg option", "options_multi": "Multi leg option", "bidirectional": "Bidirectional",
+    "commodity": "Commodity (MCX)", "currency": "Currency (NSE CDS)",
+}
 
 
 # CLAUDE.md, 2026-09-29 thumb rule (category count updated 2026-10-05 with
@@ -3194,6 +3209,36 @@ def _extend_with_sweeps():
 
 
 _extend_with_sweeps()
+
+_COMMODITY_MARKERS = ("mcx",)
+_CURRENCY_MARKERS = ("usdinr", "eurinr", "gbpinr", "jpyinr", "currency", "cds_")
+
+
+def _asset_category_of(d: "StrategyDef"):
+    """B-1569: COMMODITY for MCX strategies, CURRENCY for currency-derivative strategies, else None. Decided from the
+    tag and its measured universe, so every registry module (present and future) is covered without editing each."""
+    if d.asset_class not in (AssetClass.FUTURES, AssetClass.OPTIONS):
+        return None  # an equity trade that only READS a commodity/currency signal (intermarket__usdinr_...) stays equity
+    text = (d.name + " " + str(getattr(d.metrics, "universe", "") or "")).lower()
+    if any(m in text for m in _CURRENCY_MARKERS):
+        return TradeCategory.CURRENCY
+    if any(m in text for m in _COMMODITY_MARKERS):
+        return TradeCategory.COMMODITY
+    return None
+
+
+def _apply_asset_categories() -> None:
+    """B-1569: an MCX/currency strategy registered under FUTURES moves to its own category; option-leg categories it
+    also carries stay. Metrics, names and status are untouched (data-intact rule)."""
+    for i, d in enumerate(REGISTRY):
+        ac = _asset_category_of(d)
+        if ac is None or ac in d.categories:
+            continue
+        cats = tuple(c for c in d.categories if c is not TradeCategory.FUTURES)
+        REGISTRY[i] = replace(d, categories=(ac,) + cats)
+
+
+_apply_asset_categories()
 
 
 # ---- Viable-strategy bucketing (read-time derived; B-815) -------------------
