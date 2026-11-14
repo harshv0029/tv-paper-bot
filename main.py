@@ -174,6 +174,71 @@ def get_db():
 # git-JSON journal keeps working as a second-layer fallback regardless.
 UPSTASH_REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
 UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+
+# B-1575 (2026-11-14, user: "create two versions ... _1 (October DB) and _2 (this month's) ... keep switching whenever
+# there is a need"): numbered Upstash slots UPSTASH_REDIS_REST_URL_<n> / UPSTASH_REDIS_REST_TOKEN_<n>. At boot the
+# bot uses the reachable slot whose bot heartbeat is newest (ties -> highest slot number); at runtime the 5-min probe
+# fails over to another reachable slot after _UPSTASH_FAILOVER_AFTER consecutive HTTP refusals (suspension, auth).
+# The unsuffixed pair stays as the single-slot fallback when no numbered slot is set. Everything else reads the two
+# globals above at call time, so a switch is just reassigning them. The B-1574 stale-DB guard decides what to restore.
+_UPSTASH_SLOT_MAX = 9
+_UPSTASH_FAILOVER_AFTER = 2
+_UPSTASH_SLOT_STATE: dict = {"slots": [], "active": None, "chosen_by": None, "switches": [], "consecutive_fail": 0}
+
+
+def _upstash_slots_from_env(env=None) -> list:
+    env = os.environ if env is None else env
+    out = []
+    for n in range(1, _UPSTASH_SLOT_MAX + 1):
+        url, tok = env.get(f"UPSTASH_REDIS_REST_URL_{n}"), env.get(f"UPSTASH_REDIS_REST_TOKEN_{n}")
+        if url and tok:
+            out.append((n, url.rstrip("/"), tok))
+    return out
+
+
+def _upstash_slot_heartbeat(url: str, tok: str, http_get=None):
+    """(reachable, last_alive_ts or 0). Never raises."""
+    http_get = http_get or requests.get
+    try:
+        r = http_get(f"{url}/get/restart_tracker:heartbeat", headers={"Authorization": f"Bearer {tok}"}, timeout=5)
+        if r.status_code != 200:
+            return False, 0.0
+        raw = r.json().get("result")
+        return True, float((json.loads(raw) or {}).get("last_alive_ts") or 0) if raw else 0.0
+    except Exception:  # noqa: BLE001
+        return False, 0.0
+
+
+def _upstash_activate_slot(n: int, url: str, tok: str, why: str) -> None:
+    global UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+    prev = _UPSTASH_SLOT_STATE["active"]
+    UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN = url, tok
+    _UPSTASH_SLOT_STATE.update(active=n, chosen_by=why, consecutive_fail=0)
+    _UPSTASH_SLOT_STATE["switches"] = (_UPSTASH_SLOT_STATE["switches"] + [
+        {"ts": time.time(), "from": prev, "to": n, "why": why}])[-20:]
+    print(f"[upstash-slot] using Upstash slot {n} ({why})")
+
+
+def _upstash_select_slot_at_boot(env=None, http_get=None):
+    slots = _upstash_slots_from_env(env)
+    _UPSTASH_SLOT_STATE["slots"] = [n for n, _u, _t in slots]
+    if not slots:
+        return None
+    probes = [(n, u, t) + _upstash_slot_heartbeat(u, t, http_get) for n, u, t in slots]
+    live = [p for p in probes if p[3]]
+    if live:
+        n, u, t, _ok, beat = max(live, key=lambda p: (p[4], p[0]))
+        _upstash_activate_slot(n, u, t, f"boot: reachable, newest heartbeat ({beat or 'none'})")
+    else:
+        n, u, t = slots[-1]
+        _upstash_activate_slot(n, u, t, "boot: no slot reachable, highest slot")
+    return n
+
+
+try:
+    _upstash_select_slot_at_boot()
+except Exception as _e:  # noqa: BLE001
+    print(f"[upstash-slot] boot selection failed, keeping the unsuffixed pair: {_e}")
 _REAL_POSITIONS_REDIS_KEY = "tv_paper_bot:real_positions:v1"
 
 
@@ -190,7 +255,7 @@ def _sync_real_positions_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -231,7 +296,7 @@ def hydrate_real_positions_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_external] hydrate failed (non-fatal): {e}")
         return False
@@ -291,7 +356,7 @@ def _sync_real_positions_short_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_short").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SHORT_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_SHORT_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -318,7 +383,7 @@ def hydrate_real_positions_short_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_SHORT_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_short_external] hydrate failed (non-fatal): {e}")
         return False
@@ -386,7 +451,7 @@ def _sync_real_positions_swing_external(conn) -> None:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SWING_REDIS_KEY}",
+            _upstash_set_url(_REAL_POSITIONS_SWING_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=payload.encode("utf-8"),
             timeout=5,
@@ -413,7 +478,7 @@ def hydrate_real_positions_swing_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_REAL_POSITIONS_SWING_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[real_positions_swing_external] hydrate failed (non-fatal): {e}")
         return False
@@ -465,7 +530,7 @@ def _sync_signal_state_swing_external(conn) -> None:
     try:
         rows = [dict(r) for r in conn.execute("SELECT * FROM signal_state_swing").fetchall()]
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_SIGNAL_STATE_SWING_REDIS_KEY}",
+            _upstash_set_url(_SIGNAL_STATE_SWING_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps({"synced_at": time.time(), "rows": rows}).encode("utf-8"),
             timeout=5,
@@ -488,7 +553,7 @@ def hydrate_signal_state_swing_from_external() -> bool:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_SIGNAL_STATE_SWING_REDIS_KEY, resp.json().get("result"))
     except Exception as e:
         print(f"[signal_state_swing_external] hydrate failed (non-fatal): {e}")
         return False
@@ -548,7 +613,7 @@ def _sync_rr_cursor_external(cursor: int) -> None:
         return
     try:
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_RR_CURSOR_REDIS_KEY}",
+            _upstash_set_url(_RR_CURSOR_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=str(int(cursor)).encode("utf-8"),
             timeout=5,
@@ -576,7 +641,7 @@ def hydrate_rr_cursor_from_external() -> int | None:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_RR_CURSOR_REDIS_KEY, resp.json().get("result"))
         return int(raw) if raw is not None else None
     except Exception as e:
         print(f"[rr_cursor_external] hydrate failed (non-fatal): {e}")
@@ -611,7 +676,7 @@ def _sync_check_counts_external(day: str, counts: dict) -> None:
     try:
         body = json.dumps({"day": day, "counts": counts}).encode("utf-8")
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_CHECK_COUNTS_REDIS_KEY}",
+            _upstash_set_url(_CHECK_COUNTS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=body,
             timeout=5,
@@ -747,7 +812,7 @@ def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_CHECK_COUNTS_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return None
         saved = json.loads(raw)
@@ -16445,7 +16510,7 @@ def _sync_t1_restricted_external(conn) -> None:
         rows = conn.execute("SELECT symbol, day, flagged_at, detail FROM real_t1_restricted").fetchall()
         snapshot = [dict(r) for r in rows]
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_T1_RESTRICTED_REDIS_KEY}",
+            _upstash_set_url(_T1_RESTRICTED_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps(snapshot).encode("utf-8"),
             timeout=5,
@@ -16470,7 +16535,7 @@ def hydrate_t1_restricted_from_external(conn) -> int:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_T1_RESTRICTED_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return 0
         snapshot = json.loads(raw)
@@ -24203,7 +24268,7 @@ def _sync_runtime_settings_external(conn) -> None:
         rows = conn.execute("SELECT key, value FROM runtime_settings").fetchall()
         snapshot = {r["key"]: r["value"] for r in rows}
         requests.post(
-            f"{UPSTASH_REDIS_REST_URL}/set/{_RUNTIME_SETTINGS_REDIS_KEY}",
+            _upstash_set_url(_RUNTIME_SETTINGS_REDIS_KEY),
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
             data=json.dumps(snapshot).encode("utf-8"),
             timeout=5,
@@ -24232,7 +24297,7 @@ def hydrate_runtime_settings_from_external(conn) -> int:
             timeout=10,
         )
         resp.raise_for_status()
-        raw = resp.json().get("result")
+        raw = _upstash_unmask(_RUNTIME_SETTINGS_REDIS_KEY, resp.json().get("result"))
         if not raw:
             return 0
         snapshot = json.loads(raw)
@@ -24549,6 +24614,73 @@ def _upstash_usage_persist(force: bool = False) -> None:
         print(f"[upstash_budget] persist failed (non-fatal): {e}")
 
 
+# B-1574 (2026-11-14, user: switch back to the early-October Upstash database): a database whose last bot heartbeat is
+# older than _UPSTASH_STALE_DB_DAYS (or that holds bot data but no heartbeat at all - written since 2026-10-30) is a
+# STALE snapshot. Restoring it would bring back weeks-old positions, stops, kill switches and settings over today's
+# reality, so every read of a key this process has not itself written returns None (= empty remote). The bot then
+# starts exactly as on a flushed database: git-tier tables restore from git, the 5-min Kotak reconcile re-adopts open
+# positions and places SLs, and each mirror's first push overwrites the stale key. Loud on /health.
+_UPSTASH_STALE_DB_DAYS = 7
+_UPSTASH_STALE_DB: dict = {"checked": False, "stale": False, "reason": None, "heartbeat_age_days": None, "at": None}
+_upstash_written_keys: set = set()
+_upstash_stale_lock = threading.Lock()
+
+
+def _upstash_raw_get(key: str):
+    resp = requests.get(f"{UPSTASH_REDIS_REST_URL}/get/{key}",
+                        headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=10)
+    resp.raise_for_status()
+    return resp.json().get("result")
+
+
+def _upstash_db_is_stale(now=None, raw_get=None) -> bool:
+    """B-1574: decided once per process from the database as it was BEFORE this process wrote to it."""
+    if _UPSTASH_STALE_DB["checked"]:
+        return _UPSTASH_STALE_DB["stale"]
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) and raw_get is None:
+        return False
+    raw_get = raw_get or _upstash_raw_get
+    with _upstash_stale_lock:
+        if _UPSTASH_STALE_DB["checked"]:
+            return _UPSTASH_STALE_DB["stale"]
+        now = time.time() if now is None else now
+        try:
+            beat = raw_get(_RESTART_HEARTBEAT_KEY)
+            stale, reason, age = False, "fresh", None
+            if beat:
+                last = (json.loads(beat) or {}).get("last_alive_ts") or 0
+                age = round((now - float(last)) / 86400, 2)
+                if age > _UPSTASH_STALE_DB_DAYS:
+                    stale, reason = True, f"last bot heartbeat {age} days ago"
+            elif any(raw_get(k) for k in (_REAL_POSITIONS_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY,
+                                          _generic_mirror_key("trading_control", "meta"))):
+                stale, reason = True, "bot data present but no heartbeat (snapshot from before 2026-10-30)"
+            else:
+                reason = "empty database"
+        except Exception as e:
+            print(f"[upstash-stale-check] could not check, will retry: {e}")
+            return False
+        _UPSTASH_STALE_DB.update(checked=True, stale=stale, reason=reason, heartbeat_age_days=age, at=now)
+        if stale:
+            print(f"[upstash-stale-check] STALE DATABASE ({reason}): NOT restoring it; starting as on a flushed "
+                  f"database and overwriting it with current state")
+        return stale
+
+
+def _upstash_unmask(key: str, value):
+    """B-1574: hide a stale database's old value for any key this process has not written yet."""
+    if value is None or key in _upstash_written_keys or not _upstash_db_is_stale():
+        return value
+    return None
+
+
+def _upstash_set_url(key: str) -> str:
+    """B-1574: URL for a direct SET, recording the key as written by this process."""
+    _upstash_db_is_stale()
+    _upstash_written_keys.add(key)
+    return f"{UPSTASH_REDIS_REST_URL}/set/{key}"
+
+
 def _upstash_get(key: str):
     resp = requests.get(
         f"{UPSTASH_REDIS_REST_URL}/get/{key}",
@@ -24556,12 +24688,12 @@ def _upstash_get(key: str):
     )
     _upstash_meter(key, len(resp.content or b""), "get")
     resp.raise_for_status()
-    return resp.json().get("result")
+    return _upstash_unmask(key, resp.json().get("result"))
 
 
 def _upstash_set(key: str, value: str) -> None:
     resp = requests.post(
-        f"{UPSTASH_REDIS_REST_URL}/set/{key}",
+        _upstash_set_url(key),
         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
         data=value.encode("utf-8"), timeout=10,
     )
@@ -25133,7 +25265,7 @@ def _day_open_capital_inr(conn) -> float:
                 timeout=10,
             )
             resp.raise_for_status()
-            raw = resp.json().get("result")
+            raw = _upstash_unmask(_DAY_OPEN_CAPITAL_REDIS_KEY, resp.json().get("result"))
             if raw:
                 saved = json.loads(raw)
                 if saved.get("day") == today and saved.get("value"):
@@ -25159,7 +25291,7 @@ def _persist_day_open_capital(today: str, value: float) -> None:
     if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
         try:
             requests.post(
-                f"{UPSTASH_REDIS_REST_URL}/set/{_DAY_OPEN_CAPITAL_REDIS_KEY}",
+                _upstash_set_url(_DAY_OPEN_CAPITAL_REDIS_KEY),
                 headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
                 data=json.dumps({"day": today, "value": value}).encode("utf-8"),
                 timeout=5,
@@ -35984,7 +36116,9 @@ async def health():
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
             "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"],
             "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
-            "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM)}
+            "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM),
+            "upstash_stale_db": dict(_UPSTASH_STALE_DB),  # B-1574
+            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")}}
 
 
 @app.get("/watchlist")
@@ -37295,9 +37429,62 @@ def _upstash_probe(now=None) -> dict:
             _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
     if _UPSTASH_PROBE["ok"]:
         _UPSTASH_PROBE["last_ok_at"] = now
+        _UPSTASH_SLOT_STATE["consecutive_fail"] = 0
     else:
         print(f"[upstash-probe] FAIL {_UPSTASH_PROBE['error']}")
+        if str(_UPSTASH_PROBE.get("error") or "").startswith("HTTP "):  # B-1575: a definitive refusal, not a blip
+            _UPSTASH_SLOT_STATE["consecutive_fail"] += 1
+            if _UPSTASH_SLOT_STATE["consecutive_fail"] >= _UPSTASH_FAILOVER_AFTER:
+                _upstash_failover()
     return _UPSTASH_PROBE
+
+
+def _upstash_failover(env=None, http_get=None) -> int | None:
+    """B-1575: switch to another reachable numbered slot. This process's local SQLite is newer than anything in the
+    target, so nothing is restored from it: every key reads as empty until this process writes it (B-1574 mask) and
+    every mirror's change-cache is cleared so the next passes push the full current state there."""
+    cur = _UPSTASH_SLOT_STATE["active"]
+    for n, u, t in _upstash_slots_from_env(env):
+        if n == cur:
+            continue
+        ok, _beat = _upstash_slot_heartbeat(u, t, http_get)
+        if not ok:
+            continue
+        _upstash_activate_slot(n, u, t, f"failover: slot {cur} refused {_UPSTASH_SLOT_STATE['consecutive_fail']}x")
+        _upstash_written_keys.clear()
+        _UPSTASH_STALE_DB.update(checked=True, stale=True, reason=f"runtime failover from slot {cur}: local state "
+                                 "is newer, target is overwritten not restored", heartbeat_age_days=None,
+                                 at=time.time())
+        _upstash_force_full_push()
+        return n
+    print(f"[upstash-slot] failover wanted but no other slot is reachable (active {cur})")
+    return None
+
+
+def _upstash_force_full_push() -> None:
+    """B-1575: after a slot switch, push every mirror's full current state to the new database."""
+    _generic_mirror_last_hash.clear()
+    try:
+        _generic_mirror_last_push_ts.clear()
+    except NameError:
+        pass
+    try:
+        import fo_candle_journal as _fcj
+        for d in (_fcj._last_hash, _fcj._last_push_ts, _fcj._last_fp):
+            d.clear()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        with closing(get_db()) as conn:
+            for fn in (_sync_real_positions_external, _sync_real_positions_short_external,
+                       _sync_real_positions_swing_external, _sync_signal_state_swing_external,
+                       _sync_runtime_settings_external):
+                try:
+                    fn(conn)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[upstash-slot] full push {fn.__name__} failed (retried by its own next change): {e}")
+    except Exception as e:  # noqa: BLE001
+        print(f"[upstash-slot] full push failed: {e}")
 
 
 def _watchdog_loop(sleep=time.sleep, rounds=None):

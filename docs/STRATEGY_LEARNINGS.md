@@ -2020,3 +2020,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 
 Mechanism: the free Upstash database was suspended once the month's 10 GB of bandwidth was used, because every mirrored table was re-uploaded whole (fixed in B-1568). Reviewing the console also showed storage at 213/250 MB, and the B-1568 migration would have written new chunk keys without deleting the old ones, roughly doubling stored size. Lesson: a storage-format migration must delete the keys it supersedes, but only after the new pointer (meta) is written, and must be checked against BOTH free-tier caps (bandwidth and storage), not just the one that failed. A suspended store must never be answered by restarting the bot (it would start empty); hold deploys until the store is back.
 Profit-booking / exit takeaway: no trading-rule change; protects position state (and so stop-loss governance) across restarts, which protects open-position P&L.
+
+
+## 2026-11-14 - Switching Upstash databases: stale snapshots are worse than empty (B-1574)
+- The bot restores real-money state (positions, stops, kill switches, settings) from Upstash on every restart. An old database restores old reality.
+- Fix: a stale-DB guard (heartbeat age > 7 days, or data without a heartbeat) makes the bot ignore the old values. The git tier and the 5-min Kotak reconcile rebuild the rest.
+- Profit-booking / exit takeaway: after any database switch, check every Kotak holding has a live SL before 09:15 IST, because stop/trail peaks start fresh and stops are re-derived from the entry price.
