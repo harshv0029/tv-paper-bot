@@ -2009,3 +2009,9 @@ Deployed 14:12 IST; IOC's resting SL stayed at Rs136.38 until the first full swi
 - Fix: upload only changed row-chunks, seed chunk hashes on restore, cache read-mostly keys in-process.
 - Lesson: when a resource limit is hit, remove the cost that scales with data size first; monitoring and throttles come after, not instead. Check bytes per family against table growth whenever a new mirrored table is added.
 - Profit-booking / exit takeaway: n/a directly; durability of positions, stops and order logs depends on Upstash staying under its limit, so this protects every real exit after a restart.
+
+## B-1569 Commodity, currency and option-leg categories (2026-11-14 IST)
+- Categories are pools for leaderboards, viability buckets and views; the real-money gate stays per strategy tag, so re-filing MCX rows from futures to commodity changes no entry.
+- A name-only rule over-matches: `intermarket__usdinr_...` are equity swing trades that READ a currency signal. Filing must use what is traded (asset class/universe), not what is read.
+- Closed-market days: when no market anywhere is open, slow ticks and slow dashboard writes save CPU, memory and Upstash bandwidth; protection paths keep running.
+- Profit-booking / exit takeaway: n/a (no exit rule changed); separate commodity and option-leg pools let each one's PFnet ranking be judged on its own costs and hours.

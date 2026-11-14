@@ -24067,7 +24067,14 @@ def _tick_timing_summary() -> dict:
 def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
     """B-1419: the tick used to sleep a fixed 30 s AFTER a ~2 min scan; now it sleeps
     only what is left of the 30 s interval (at least 1 s, so the loop still yields)."""
-    return max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
+    base = max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
+    try:
+        if all_markets_closed():  # B-1569: every market closed -> tick every 10 min (re-checked each tick, and
+            # all_markets_closed() already turns False 15 min before any session opens, so 09:00/09:15 are on time)
+            return max(base, CLOSED_MARKET_TICK_SECONDS - max(0.0, tick_seconds))
+    except Exception:  # noqa: BLE001
+        pass
+    return base
 SCHEDULER_DAILY_RISK_PCT = 2.0  # DEFAULT (fallback) - account-wide daily loss cap, live-editable below
 SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editable below
 
@@ -24437,6 +24444,56 @@ def _upstash_budget_level() -> int:
 _UPSTASH_OFF_HOURS_SLOWDOWN = 6  # B-1342: outside NSE hours (and weekends) dashboard-only state changes slowly
 
 
+# B-1569 (2026-11-14, user: "on closed market day set the limitations for optimised usage"): each category has its own
+# market session; when EVERY category's market is closed (weekend, nights after MCX 23:30, holidays) the bot runs its
+# scheduler slower and its non-critical Upstash writers far slower. Protection, SL, reconcile and exit code paths are
+# never skipped (they still run on each slower tick, and the 5-min backcheck thread keeps its own schedule).
+MCX_FULL_HOLIDAYS_2026 = frozenset({"2026-12-25"})  # MCX closed both sessions (other NSE holidays: MCX evening runs)
+_CATEGORY_SESSIONS = {  # IST minutes [open, close)
+    "nse": (9 * 60 + 15, 15 * 60 + 30),
+    "commodity": (9 * 60, 23 * 60 + 30),
+    "currency": (9 * 60, 17 * 60),
+}
+CLOSED_MARKET_TICK_SECONDS = 600  # scheduler interval when every market is closed (normal: SCHEDULER_INTERVAL_SECONDS)
+CLOSED_MARKET_UPSTASH_SLOWDOWN = 24  # non-critical writers: 300 s -> 2 h when every market is closed
+
+
+def _session_key(cat: str) -> str:
+    return cat if cat in ("commodity", "currency") else "nse"
+
+
+def category_market_open(cat: str, now=None) -> bool:
+    """B-1569: is this category's market in session now (IST)? NSE categories use NSE holidays and special sessions;
+    commodity = MCX 09:00-23:30 weekdays; currency = NSE CDS 09:00-17:00 on NSE trading days."""
+    now = now or ist_now()
+    day = now.strftime("%Y-%m-%d")
+    m = now.hour * 60 + now.minute
+    key = _session_key(cat)
+    if key == "nse":
+        sp = nse_special_session(now)
+        if sp:
+            return sp[0] <= m < sp[1]
+        if now.weekday() >= 5 or day in NSE_HOLIDAYS_2026:
+            return False
+    elif key == "commodity":
+        if now.weekday() >= 5 or day in MCX_FULL_HOLIDAYS_2026:
+            return False
+    elif now.weekday() >= 5 or day in NSE_HOLIDAYS_2026:
+        return False
+    lo, hi = _CATEGORY_SESSIONS[key]
+    return lo <= m < hi
+
+
+def all_markets_closed(now=None, buffer_min: int = 15) -> bool:
+    """B-1569: True when no category's market is open within `buffer_min` minutes either side of now."""
+    now = now or ist_now()
+    for k in ("nse", "commodity", "currency"):
+        for off in (-buffer_min, 0, buffer_min):
+            if category_market_open(k, now + dt.timedelta(minutes=off)):
+                return False
+    return True
+
+
 def _upstash_in_market_hours() -> bool:
     """Weekday 09:00-15:45 IST (NSE session plus a small buffer either side)."""
     now_local = ist_now()
@@ -24456,6 +24513,8 @@ def _upstash_noncritical_interval(base_sec: float):
     if lvl >= 2:
         return None
     ival = base_sec * (_UPSTASH_CONSERVE_SLOWDOWN if lvl == 1 else 1)
+    if all_markets_closed():  # B-1569: nothing trades anywhere -> dashboard data can wait (still pushed if changed)
+        return ival * CLOSED_MARKET_UPSTASH_SLOWDOWN
     return ival if _upstash_in_market_hours() else ival * _UPSTASH_OFF_HOURS_SLOWDOWN
 
 
@@ -33980,6 +34039,27 @@ def upstash_usage():
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
+def _funnel_categories() -> list:
+    """B-1569: the entry-funnel / View 4 category list comes from strategy_registry.TradeCategory, so a new category
+    shows up in every view without editing each one."""
+    import strategy_registry as sr
+    order = ["buy", "short_sell", "swing", "bidirectional", "futures", "options", "options_multi", "commodity",
+             "currency"]
+    vals = [c.value for c in sr.TradeCategory]
+    return [c for c in order if c in vals] + [c for c in vals if c not in order]
+
+
+@app.get("/category-labels")
+def category_labels():
+    """B-1569: category key -> display label, in display order, plus whether each category's market is open now.
+    Every view reads this instead of a hardcoded list. No token: no account data."""
+    import strategy_registry as sr
+    now = ist_now()
+    return {"categories": [{"key": c, "label": sr.CATEGORY_LABELS.get(c, c), "market_open": category_market_open(c, now)}
+                           for c in _funnel_categories()],
+            "all_markets_closed": all_markets_closed(now)}
+
+
 @app.get("/entry-funnel")
 def entry_funnel():
     """Why entries are (not) happening today, SEPARATELY for each category
@@ -33990,7 +34070,7 @@ def entry_funnel():
     ('no viable strategy' vs 'no setup fired' vs 'setups blocked by ...')."""
     day = ist_now().strftime("%Y-%m-%d")
     _flush_funnel_pending()  # B-1514: buffered gate-closed triggers land before the rolling window is read
-    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    cats = _funnel_categories()  # B-1569: every TradeCategory, incl. commodity, currency, single/multi leg option
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
                "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
     tag_cats = {}
@@ -34140,7 +34220,7 @@ def _entry_funnel_window(since_ts: float, tag_cats: dict, viable_by_cat: dict | 
     included when its newest event is inside the window). Same per-category shape and same rules as the today block
     (exits are never recorded; untagged non-skipped rows are not entry attempts; a long's sell / short's cover is not
     an entry), plus `placed_by_slot` (B-1513: the View 1 viability slot that admitted each placed entry)."""
-    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    cats = _funnel_categories()  # B-1569: every TradeCategory, incl. commodity, currency, single/multi leg option
     out = {c: {"attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "blocked_triggers": 0,
                "paper_entries": 0, "reject_flags": {"viability": 0, "money": 0, "other": 0},
                "placed_by_slot": {}, "_strats": {}, "_fired": set()} for c in cats}
@@ -34587,7 +34667,9 @@ def symbol_strategy_coverage(symbol: str):
     tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
     import strategy_registry as sr
     is_mcx = symbol.endswith("=F") or symbol.upper().startswith("MCX")
-    allowed = ({sr.TradeCategory.FUTURES, sr.TradeCategory.OPTIONS} if is_mcx else
+    is_ccy = symbol.upper().startswith(("USDINR", "EURINR", "GBPINR", "JPYINR"))
+    allowed = ({sr.TradeCategory.COMMODITY, sr.TradeCategory.OPTIONS, sr.TradeCategory.OPTIONS_MULTI} if is_mcx else
+               {sr.TradeCategory.CURRENCY} if is_ccy else
                {sr.TradeCategory.BUY, sr.TradeCategory.SHORT_SELL, sr.TradeCategory.SWING, sr.TradeCategory.BIDIRECTIONAL})
     _reg = {d.name: d for d in sr.REGISTRY}
 
@@ -34849,6 +34931,10 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             return "Equity (intraday) + index option"
         if "futures" in cats:
             return "Futures"
+        if "commodity" in cats:
+            return "MCX commodity"
+        if "currency" in cats:
+            return "Currency derivative"
         return "Equity"
 
     rows = []

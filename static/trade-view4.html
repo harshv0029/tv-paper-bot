@@ -650,12 +650,16 @@
   });
   try { const p = new URLSearchParams(location.search).get("pane") || localStorage.getItem("v4pane"); if (p === "tree") document.querySelector('.subtabs button[data-p="tree"]').click(); } catch (e) {}
 
-  const CAT = {buy: "Buy (intraday long)", short_sell: "Short sell", swing: "Swing", futures: "Futures / MCX", options: "Options", bidirectional: "Bidirectional", other: "Other engines"};
+  const CAT = {buy: "Buy (intraday long)", short_sell: "Short sell", swing: "Swing", futures: "Futures (NSE)", options: "Single leg option", options_multi: "Multi leg option", commodity: "Commodity (MCX)", currency: "Currency (NSE CDS)", bidirectional: "Bidirectional", other: "Other engines"};
+  // B-1569: labels (and any new category) from /category-labels, generated from strategy_registry
+  getJSON("/category-labels").then(d => (d.categories || []).forEach(c => { CAT[c.key] = c.label; })).catch(() => {});
   function catOf(tag) {
     if (/^(universal_score|orb-universal-score)/.test(tag)) return "buy";
     if (/^(range_short|trend_down_momentum_short|failed_breakout_short|gap_and_go_short)/.test(tag)) return "short_sell";
     if (/^(gap_and_go|minervini|order_block|volume_profile|orb-swing)/.test(tag)) return "swing";
-    if (/mcx|^single_leg/.test(tag)) return "futures";
+    if (/mcx/.test(tag)) return "commodity";
+    if (/usdinr|eurinr|gbpinr|jpyinr/.test(tag)) return "currency";
+    if (/^single_leg/.test(tag)) return "options";
     if (/__short__/.test(tag)) return "short_sell";
     if (/__long__/.test(tag)) return "buy";
     if (/__bidirectional__/.test(tag)) return "bidirectional";

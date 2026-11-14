@@ -71,7 +71,8 @@ def test_fetch_cache_survives_concurrent_threads():
     data_fetch._DATA_CACHE.clear()
 
 
-def test_sleep_after_tick_only_tops_up_the_interval():
+def test_sleep_after_tick_only_tops_up_the_interval(monkeypatch):
+    monkeypatch.setattr(main, "all_markets_closed", lambda *a, **k: False)  # B-1569: market-day branch
     assert main._scheduler_sleep_after_tick(0) == main.SCHEDULER_INTERVAL_SECONDS
     assert main._scheduler_sleep_after_tick(10) == main.SCHEDULER_INTERVAL_SECONDS - 10
     assert main._scheduler_sleep_after_tick(120) == 1.0
