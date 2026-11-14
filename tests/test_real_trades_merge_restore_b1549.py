@@ -45,3 +45,55 @@ def test_same_row_is_not_duplicated(remote):  # noqa: F811
     main.hydrate_generic_tables_from_external()
     with closing(main.get_db()) as c:
         assert c.execute("SELECT COUNT(*) FROM real_trades").fetchone()[0] == 1
+
+
+def test_other_append_only_logs_merge_too(remote):  # noqa: F811
+    """B-1549 follow-up: trades / real_fo_trades / news_signal_events written before the restore are merged."""
+    _fresh_db()
+    main.hydrate_generic_tables_from_external()
+    with closing(main.get_db()) as c:
+        c.execute("INSERT INTO trades (ts, symbol, action, qty, price) VALUES (1.0, 'A.NS', 'buy', 1, 10)")
+        c.execute("INSERT INTO real_fo_trades (ts, day, leg_key, side, status) VALUES (1.0, '2026-11-14', 'L1', 'B', 'confirmed')")
+        c.execute("INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action) "
+                  "VALUES (1.0, '2026-11-14', 'A.NS', 'long', 'entry', 'x', 'allow')")
+        c.commit()
+    main.sync_generic_tables_external()
+    _fresh_db()
+    main._generic_mirror_hydrated.clear()
+    with closing(main.get_db()) as c:
+        c.execute("INSERT INTO trades (ts, symbol, action, qty, price) VALUES (2.0, 'B.NS', 'buy', 1, 20)")
+        c.execute("INSERT INTO real_fo_trades (ts, day, leg_key, side, status) VALUES (2.0, '2026-11-14', 'L2', 'B', 'failed')")
+        c.execute("INSERT INTO news_signal_events (ts, day, symbol, direction, kind, category, action) "
+                  "VALUES (2.0, '2026-11-14', 'B.NS', 'short', 'entry', 'x', 'avoid')")
+        c.commit()
+    main.hydrate_generic_tables_from_external()
+    with closing(main.get_db()) as c:
+        for t in ("trades", "real_fo_trades", "news_signal_events"):
+            assert c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] == 2, t
+
+
+def _ledger(c, day, sym, source, bq):
+    c.execute("INSERT OR REPLACE INTO kotak_fill_ledger (day, trdsym, prod, source, buy_qty, buy_amt) "
+              "VALUES (?, ?, 'CNC', ?, ?, ?)", (day, sym, source, bq, bq * 100))
+    c.commit()
+
+
+def test_kotak_fill_ledger_capture_before_restore_keeps_history(remote):  # noqa: F811
+    """B-1564 root cause: a capture before the boot restore must not replace the remote ledger history, and the
+    pre-restore 'opening' rows (it wrongly thinks it is the first ever capture) are dropped when a history exists."""
+    _fresh_db()
+    main.hydrate_generic_tables_from_external()
+    with closing(main.get_db()) as c:
+        _ledger(c, "2026-11-02", "SAIL-EQ", "kotak_positions", 5)
+        _ledger(c, "2026-11-04", "RECLTD-EQ", "kotak_positions", 1)
+    main.sync_generic_tables_external(only=("kotak_fill_ledger",))  # slow table: bypass the 300 s push interval
+    _fresh_db()
+    main._generic_mirror_hydrated.clear()
+    with closing(main.get_db()) as c:                 # capture runs first after the restart
+        _ledger(c, "2026-11-02", "SAIL-EQ", "opening", 5)
+        _ledger(c, "2026-11-11", "BANKBARODA-EQ", "kotak_positions", 2)
+    main.hydrate_generic_tables_from_external()
+    with closing(main.get_db()) as c:
+        got = sorted((r["day"], r["trdsym"], r["source"]) for r in c.execute("SELECT * FROM kotak_fill_ledger"))
+    assert got == [("2026-11-02", "SAIL-EQ", "kotak_positions"), ("2026-11-04", "RECLTD-EQ", "kotak_positions"),
+                   ("2026-11-11", "BANKBARODA-EQ", "kotak_positions")]
