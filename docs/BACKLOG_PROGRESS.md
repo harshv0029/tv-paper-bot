@@ -18,12 +18,12 @@ Total rows: 1328 | closed: 655 | not closed: 673
 | BLOCKED | 65 |
 | P1 | 47 |
 | DONE-MERGED | 22 |
-| USER | 14 |
-| BUILT | 13 |
+| USER | 16 |
 | DEPLOYED | 12 |
 | PENDING | 12 |
 | HARNESS-BUILT-RUN-PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
+| BUILT | 11 |
 | P3 | 9 |
 | P0 | 8 |
 | OWNER-ACTION | 7 |
@@ -457,8 +457,8 @@ Total rows: 1328 | closed: 655 | not closed: 673
 | B-1573 | P0 | OPEN | 2026-11-14 IST | verify, owner |
 | B-1574 | P0 | USER | 2026-11-14 IST |  |
 | B-1575 | P0 | USER | 2026-11-14 IST |  |
-| B-1576 | P0 | BUILT | 2026-11-14 IST | verify, awaiting, waiting |
-| B-1577 | P0 | BUILT | 2026-11-14 IST | awaiting, waiting |
+| B-1576 | P0 | USER | 2026-11-14 IST | verify |
+| B-1577 | P0 | USER | 2026-11-14 IST |  |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
