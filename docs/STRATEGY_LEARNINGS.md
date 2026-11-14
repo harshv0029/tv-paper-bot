@@ -2026,3 +2026,9 @@ Profit-booking / exit takeaway: no trading-rule change; protects position state 
 - The bot restores real-money state (positions, stops, kill switches, settings) from Upstash on every restart. An old database restores old reality.
 - Fix: a stale-DB guard (heartbeat age > 7 days, or data without a heartbeat) makes the bot ignore the old values. The git tier and the 5-min Kotak reconcile rebuild the rest.
 - Profit-booking / exit takeaway: after any database switch, check every Kotak holding has a live SL before 09:15 IST, because stop/trail peaks start fresh and stops are re-derived from the entry price.
+
+## 2026-11-14 - Upstash daily pause (B-1576)
+- Mechanism: once the day's Upstash budget (1/30 of the free 10 GB/500k-cmd month) is used, non-real-money writes stop until the next IST day; real-money state keeps writing up to 125%.
+- Why: one day over budget used to eat the month and suspend the database, which removes the restart backup for real positions for weeks. Losing a day of dashboard counters is far cheaper.
+- Profit-booking / exit takeaway: protection of open positions (stops, positions, kill switch) is never traded away for storage savings; only dashboard/research data is.
+- B-1577 addendum: the quota is cumulative over the month (day N may use N x daily budget minus what days 1..N-1 used, never past the 10 GB monthly cap), so one heavy day is paid back the next day instead of hiding inside a fresh daily reset.
