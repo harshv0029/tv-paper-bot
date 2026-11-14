@@ -24467,6 +24467,32 @@ _upstash_usage_base: dict = {}  # today's counts from earlier processes, restore
 _upstash_usage_base_day = ""
 _upstash_usage_last_persist = 0.0
 _upstash_budget_last_level = 0
+# B-1577 (2026-11-14, user: "quota should work on a cumulative basis: day 1 quota 300 MB but 302 MB used at 11:59 pm,
+# then pause on day 2 once the total is 600 MB"): today's budget = the daily budget + what earlier days of this IST
+# calendar month left unused (negative when they overspent), capped so the month never passes the free-tier total.
+# Days with no record (bot down, fresh database) add nothing, which only makes the budget stricter.
+_UPSTASH_MONTHLY_BYTES = 10_000_000_000
+_UPSTASH_MONTHLY_OPS = 500_000
+_upstash_month_prior: dict = {}  # "YYYY-MM-DD" -> [bytes, ops] for earlier days of the current month
+
+
+def _upstash_today_budget() -> tuple:
+    """(bytes_budget, ops_budget) for today, cumulative over the month so far (B-1577). Never below 0."""
+    used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
+    used_o = sum(int(v[1]) for v in _upstash_month_prior.values())
+    n = len(_upstash_month_prior)
+    b = min((n + 1) * _UPSTASH_DAILY_BYTES_BUDGET - used_b, _UPSTASH_MONTHLY_BYTES - used_b)
+    o = min((n + 1) * _UPSTASH_DAILY_OPS_BUDGET - used_o, _UPSTASH_MONTHLY_OPS - used_o)
+    return max(b, 0), max(o, 0)
+
+
+def _upstash_budget_frac() -> float:
+    """Share of today's (cumulative) budget used: the larger of bytes and commands. inf when nothing is left."""
+    _, b, o = _upstash_usage_totals()
+    bb, ob = _upstash_today_budget()
+    fb = b / bb if bb else float("inf") if b else 0.0
+    fo = o / ob if ob else float("inf") if o else 0.0
+    return max(fb, fo)
 
 
 def _upstash_meter(key: str, nbytes: int, op: str) -> None:
@@ -24501,8 +24527,7 @@ def _upstash_usage_totals() -> tuple:
 
 def _upstash_budget_level() -> int:
     """0 ok, 1 conserve, 2 critical - by the larger of bytes and commands used vs today's budget."""
-    _, b, o = _upstash_usage_totals()
-    frac = max(b / _UPSTASH_DAILY_BYTES_BUDGET, o / _UPSTASH_DAILY_OPS_BUDGET)
+    frac = _upstash_budget_frac()  # B-1577: cumulative over the month
     return 2 if frac >= _UPSTASH_CRITICAL_FRAC else 1 if frac >= _UPSTASH_CONSERVE_FRAC else 0
 
 
@@ -24583,6 +24608,19 @@ def _upstash_noncritical_interval(base_sec: float):
     return ival if _upstash_in_market_hours() else ival * _UPSTASH_OFF_HOURS_SLOWDOWN
 
 
+def _upstash_month_load(prev: dict, day: str) -> None:
+    """B-1577: earlier days of this month from the saved usage record; the saved day (if earlier) is finalised."""
+    days = {k: v for k, v in dict(prev.get("month_days") or {}).items() if isinstance(v, (list, tuple)) and len(v) == 2}
+    pday = prev.get("day")
+    if pday and pday != day and pday not in days:
+        fams = prev.get("families") or {}
+        days[pday] = [sum(int(r.get("get_bytes", 0)) + int(r.get("set_bytes", 0)) for r in fams.values()),
+                      sum(int(r.get("get_ops", 0)) + int(r.get("set_ops", 0)) for r in fams.values())]
+    _upstash_month_prior.clear()
+    _upstash_month_prior.update({k: [int(v[0]), int(v[1])] for k, v in days.items()
+                                 if k[:7] == day[:7] and k < day})
+
+
 def _upstash_usage_persist(force: bool = False) -> None:
     """Restore today's earlier counts once per day per process, then save the running total. Never raises."""
     global _upstash_usage_base_day, _upstash_usage_last_persist, _upstash_budget_last_level
@@ -24600,11 +24638,14 @@ def _upstash_usage_persist(force: bool = False) -> None:
             _upstash_usage_base.clear()
             if prev.get("day") == day:
                 _upstash_usage_base.update(prev.get("families") or {})
+            _upstash_month_load(prev, day)  # B-1577
             _upstash_usage_base_day = day
             if not _upstash_usage_day:
                 _upstash_meter(_UPSTASH_USAGE_KEY, 0, "get")
         fams, b, o = _upstash_usage_totals()
-        _upstash_set(_UPSTASH_USAGE_KEY, json.dumps({"day": day, "families": fams}, separators=(",", ":")))
+        month_days = {**_upstash_month_prior, day: [b, o]}  # B-1577
+        _upstash_set(_UPSTASH_USAGE_KEY, json.dumps({"day": day, "families": fams, "month_days": month_days},
+                                                    separators=(",", ":")))
         lvl = _upstash_budget_level()
         if lvl != _upstash_budget_last_level:
             print(f"[upstash_budget] {'RED FLAG ' if lvl == 2 else ''}level {_upstash_budget_last_level}->{lvl}: "
@@ -24706,7 +24747,7 @@ def _upstash_pause_exempt(key: str) -> bool:
 def _upstash_pause_check(key: str) -> None:
     """B-1576: raise UpstashPausedForDay when today's budget is spent and this write is not exempt."""
     _, b, o = _upstash_usage_totals()
-    frac = max(b / _UPSTASH_DAILY_BYTES_BUDGET, o / _UPSTASH_DAILY_OPS_BUDGET)
+    frac = _upstash_budget_frac()  # B-1577: today's budget includes earlier days' leftover / overspend
     day = _upstash_usage_day or ist_now().strftime("%Y-%m-%d")
     if _UPSTASH_PAUSE["day"] != day:
         _UPSTASH_PAUSE.update(day=day, paused=False, since=None, skipped={})
@@ -34243,6 +34284,9 @@ def upstash_usage():
             "total_ops": ops, "daily_budget_ops": _UPSTASH_DAILY_OPS_BUDGET,
             "ops_pct": round(100 * ops / _UPSTASH_DAILY_OPS_BUDGET, 1),
             "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
+            "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
+            "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
+            "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
             # B-1576: daily limit crossed -> non-exempt writes refused until the IST day rolls over
             "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
             "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
