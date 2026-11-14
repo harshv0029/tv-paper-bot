@@ -24467,6 +24467,32 @@ _upstash_usage_base: dict = {}  # today's counts from earlier processes, restore
 _upstash_usage_base_day = ""
 _upstash_usage_last_persist = 0.0
 _upstash_budget_last_level = 0
+# B-1577 (2026-11-14, user: "quota should work on a cumulative basis: day 1 quota 300 MB but 302 MB used at 11:59 pm,
+# then pause on day 2 once the total is 600 MB"): today's budget = the daily budget + what earlier days of this IST
+# calendar month left unused (negative when they overspent), capped so the month never passes the free-tier total.
+# Days with no record (bot down, fresh database) add nothing, which only makes the budget stricter.
+_UPSTASH_MONTHLY_BYTES = 10_000_000_000
+_UPSTASH_MONTHLY_OPS = 500_000
+_upstash_month_prior: dict = {}  # "YYYY-MM-DD" -> [bytes, ops] for earlier days of the current month
+
+
+def _upstash_today_budget() -> tuple:
+    """(bytes_budget, ops_budget) for today, cumulative over the month so far (B-1577). Never below 0."""
+    used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
+    used_o = sum(int(v[1]) for v in _upstash_month_prior.values())
+    n = len(_upstash_month_prior)
+    b = min((n + 1) * _UPSTASH_DAILY_BYTES_BUDGET - used_b, _UPSTASH_MONTHLY_BYTES - used_b)
+    o = min((n + 1) * _UPSTASH_DAILY_OPS_BUDGET - used_o, _UPSTASH_MONTHLY_OPS - used_o)
+    return max(b, 0), max(o, 0)
+
+
+def _upstash_budget_frac() -> float:
+    """Share of today's (cumulative) budget used: the larger of bytes and commands. inf when nothing is left."""
+    _, b, o = _upstash_usage_totals()
+    bb, ob = _upstash_today_budget()
+    fb = b / bb if bb else float("inf") if b else 0.0
+    fo = o / ob if ob else float("inf") if o else 0.0
+    return max(fb, fo)
 
 
 def _upstash_meter(key: str, nbytes: int, op: str) -> None:
@@ -24501,8 +24527,7 @@ def _upstash_usage_totals() -> tuple:
 
 def _upstash_budget_level() -> int:
     """0 ok, 1 conserve, 2 critical - by the larger of bytes and commands used vs today's budget."""
-    _, b, o = _upstash_usage_totals()
-    frac = max(b / _UPSTASH_DAILY_BYTES_BUDGET, o / _UPSTASH_DAILY_OPS_BUDGET)
+    frac = _upstash_budget_frac()  # B-1577: cumulative over the month
     return 2 if frac >= _UPSTASH_CRITICAL_FRAC else 1 if frac >= _UPSTASH_CONSERVE_FRAC else 0
 
 
@@ -24583,6 +24608,19 @@ def _upstash_noncritical_interval(base_sec: float):
     return ival if _upstash_in_market_hours() else ival * _UPSTASH_OFF_HOURS_SLOWDOWN
 
 
+def _upstash_month_load(prev: dict, day: str) -> None:
+    """B-1577: earlier days of this month from the saved usage record; the saved day (if earlier) is finalised."""
+    days = {k: v for k, v in dict(prev.get("month_days") or {}).items() if isinstance(v, (list, tuple)) and len(v) == 2}
+    pday = prev.get("day")
+    if pday and pday != day and pday not in days:
+        fams = prev.get("families") or {}
+        days[pday] = [sum(int(r.get("get_bytes", 0)) + int(r.get("set_bytes", 0)) for r in fams.values()),
+                      sum(int(r.get("get_ops", 0)) + int(r.get("set_ops", 0)) for r in fams.values())]
+    _upstash_month_prior.clear()
+    _upstash_month_prior.update({k: [int(v[0]), int(v[1])] for k, v in days.items()
+                                 if k[:7] == day[:7] and k < day})
+
+
 def _upstash_usage_persist(force: bool = False) -> None:
     """Restore today's earlier counts once per day per process, then save the running total. Never raises."""
     global _upstash_usage_base_day, _upstash_usage_last_persist, _upstash_budget_last_level
@@ -24600,11 +24638,14 @@ def _upstash_usage_persist(force: bool = False) -> None:
             _upstash_usage_base.clear()
             if prev.get("day") == day:
                 _upstash_usage_base.update(prev.get("families") or {})
+            _upstash_month_load(prev, day)  # B-1577
             _upstash_usage_base_day = day
             if not _upstash_usage_day:
                 _upstash_meter(_UPSTASH_USAGE_KEY, 0, "get")
         fams, b, o = _upstash_usage_totals()
-        _upstash_set(_UPSTASH_USAGE_KEY, json.dumps({"day": day, "families": fams}, separators=(",", ":")))
+        month_days = {**_upstash_month_prior, day: [b, o]}  # B-1577
+        _upstash_set(_UPSTASH_USAGE_KEY, json.dumps({"day": day, "families": fams, "month_days": month_days},
+                                                    separators=(",", ":")))
         lvl = _upstash_budget_level()
         if lvl != _upstash_budget_last_level:
             print(f"[upstash_budget] {'RED FLAG ' if lvl == 2 else ''}level {_upstash_budget_last_level}->{lvl}: "
@@ -24674,8 +24715,58 @@ def _upstash_unmask(key: str, value):
     return None
 
 
+# B-1576 (2026-11-14, user: "whenever the daily limit on upstash is crossed, pause the usage of upstash for that day"):
+# once today's bytes OR commands reach 100% of the daily budget, every Upstash WRITE is refused until the IST day rolls
+# over (the refused write raises, so each mirror keeps its change-cache unset and pushes on the first write next day).
+# Exempt, so a restart never loses open real money: real positions/stops/signal state, kill switches, runtime settings,
+# T1 flags and the usage counter itself - and even those stop at _UPSTASH_HARD_STOP_FRAC. Reads are NOT paused: they
+# happen at boot (restore) and a skipped restore could later overwrite good data with an empty table.
+_UPSTASH_PAUSE_FRAC = 1.0
+_UPSTASH_HARD_STOP_FRAC = 1.25
+_UPSTASH_PAUSE_EXEMPT_TABLES = frozenset({
+    "real_trades", "real_trading_control", "trading_control", "real_fo_positions", "real_fo_trades",
+    "real_positions_swing_short", "signal_state_swing_short", "swing_entry_stop", "swing_trail_peak",
+    "signal_state", "signal_state_short"})
+_UPSTASH_PAUSE: dict = {"day": "", "paused": False, "since": None, "skipped": {}}
+
+
+class UpstashPausedForDay(Exception):
+    pass
+
+
+def _upstash_pause_exempt(key: str) -> bool:
+    key = str(key)
+    if key in (_REAL_POSITIONS_REDIS_KEY, _REAL_POSITIONS_SHORT_REDIS_KEY, _REAL_POSITIONS_SWING_REDIS_KEY,
+               _SIGNAL_STATE_SWING_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY, _T1_RESTRICTED_REDIS_KEY,
+               _UPSTASH_USAGE_KEY):
+        return True
+    m = re.match(r"tv_paper_bot:tbl:([a-z0-9_]+):", key)
+    return bool(m and m.group(1) in _UPSTASH_PAUSE_EXEMPT_TABLES)
+
+
+def _upstash_pause_check(key: str) -> None:
+    """B-1576: raise UpstashPausedForDay when today's budget is spent and this write is not exempt."""
+    _, b, o = _upstash_usage_totals()
+    frac = _upstash_budget_frac()  # B-1577: today's budget includes earlier days' leftover / overspend
+    day = _upstash_usage_day or ist_now().strftime("%Y-%m-%d")
+    if _UPSTASH_PAUSE["day"] != day:
+        _UPSTASH_PAUSE.update(day=day, paused=False, since=None, skipped={})
+    if frac < _UPSTASH_PAUSE_FRAC:
+        return
+    if not _UPSTASH_PAUSE["paused"]:
+        _UPSTASH_PAUSE.update(paused=True, since=time.time())
+        print(f"[upstash_budget] RED FLAG daily limit crossed ({b / 1e6:.1f} MB, {o} cmds): Upstash writes PAUSED "
+              f"for the rest of {day} IST except real-money state (hard stop at {_UPSTASH_HARD_STOP_FRAC:.0%})")
+    if frac < _UPSTASH_HARD_STOP_FRAC and _upstash_pause_exempt(key):
+        return
+    fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
+    _UPSTASH_PAUSE["skipped"][fam] = _UPSTASH_PAUSE["skipped"].get(fam, 0) + 1
+    raise UpstashPausedForDay(f"Upstash daily limit crossed; write to {fam} paused until tomorrow IST")
+
+
 def _upstash_set_url(key: str) -> str:
     """B-1574: URL for a direct SET, recording the key as written by this process."""
+    _upstash_pause_check(key)  # B-1576
     _upstash_db_is_stale()
     _upstash_written_keys.add(key)
     return f"{UPSTASH_REDIS_REST_URL}/set/{key}"
@@ -24705,6 +24796,7 @@ def _upstash_del(*keys) -> None:
     """B-1572: DEL keys (best effort). Frees Upstash storage held by superseded chunk keys."""
     if not keys:
         return
+    _upstash_pause_check(keys[0])  # B-1576: cleanup waits for tomorrow when the day's budget is spent
     resp = requests.post(
         UPSTASH_REDIS_REST_URL, headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
         json=["DEL", *keys], timeout=10,
@@ -34192,6 +34284,13 @@ def upstash_usage():
             "total_ops": ops, "daily_budget_ops": _UPSTASH_DAILY_OPS_BUDGET,
             "ops_pct": round(100 * ops / _UPSTASH_DAILY_OPS_BUDGET, 1),
             "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
+            "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
+            "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
+            "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1576: daily limit crossed -> non-exempt writes refused until the IST day rolls over
+            "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
+            "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
+            "writes_skipped_while_paused": dict(_UPSTASH_PAUSE["skipped"]),
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
