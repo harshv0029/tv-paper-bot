@@ -26319,6 +26319,34 @@ def hydrate_swing_skipped_from_external() -> int:
 
 
 SWING_FETCH_RETRY_PAUSE_S = 2.0
+SWING_PREFETCH_WORKERS = 8  # B-1582: size of the persistent swing-pass 2y daily prefetch pool
+
+
+def _swing_prefetch_daily(symbols) -> dict:
+    """B-1280/B-1391 swing-pass 2y daily prefetch, moved out of _run_swing_scan_pass unchanged except for the pool.
+    {symbol: (frame or None, error or None)} in input order; {} if the pool itself fails (the caller then fetches
+    sequentially, as before). B-1582: runs on the persistent 'swing-prefetch' pool (same 8 workers, same ordered map).
+    A fresh 8-thread pool every 15-min pass rebuilt 8 curl_cffi handles (TLS context + connection cache per thread),
+    the native-heap churn B-1447 measured at +180-200 MB per run for the tick prefetch. Read-only; no order/SL code."""
+    out = {}
+    try:
+        def _pf(sym):
+            # B-1391: one retry after a short pause - a burst of consecutive symbols failing together (live
+            # 2026-10-27: AUBANK..BAJFINANCE) is a transient Yahoo throttle, not bad symbols.
+            for _attempt in (0, 1):
+                try:
+                    return sym, fetch_ohlc(sym, "2y", "1d"), None
+                except Exception as e:  # noqa: BLE001
+                    if _attempt:
+                        return sym, None, e
+                    time.sleep(SWING_FETCH_RETRY_PAUSE_S)
+        with _stage_rss("swing_prefetch"):
+            for sym, d, err in _prefetch_pool(SWING_PREFETCH_WORKERS, "swing-prefetch").map(_pf, list(symbols)):
+                out[sym] = (d, err)
+    except Exception as e:
+        print(f"[SWING] parallel prefetch failed (falling back to sequential): {e}")
+        out = {}
+    return out
 
 
 def _short_fetch_error(e) -> str:
@@ -27954,26 +27982,7 @@ def _run_swing_scan_pass(conn):
     # B-1280: the sequential 2y daily fetch of the whole watchlist delayed every scan record until
     # the last fetch finished (AUBANK unrecorded ~30 min after a restart). Prefetch in parallel;
     # the loop below then consumes the results in the same order with the same visit markers.
-    _prefetched = {}
-    try:
-        from concurrent.futures import ThreadPoolExecutor
-
-        def _pf(sym):
-            # B-1391: one retry after a short pause - a burst of consecutive symbols failing together (live
-            # 2026-10-27: AUBANK..BAJFINANCE) is a transient Yahoo throttle, not bad symbols.
-            for _attempt in (0, 1):
-                try:
-                    return sym, fetch_ohlc(sym, "2y", "1d"), None
-                except Exception as e:  # noqa: BLE001
-                    if _attempt:
-                        return sym, None, e
-                    time.sleep(SWING_FETCH_RETRY_PAUSE_S)
-        with ThreadPoolExecutor(max_workers=8) as _ex:
-            for sym, d, err in _ex.map(_pf, list(SWING_WATCHLIST)):
-                _prefetched[sym] = (d, err)
-    except Exception as e:
-        print(f"[SWING] parallel prefetch failed (falling back to sequential): {e}")
-        _prefetched = {}
+    _prefetched = _swing_prefetch_daily(list(SWING_WATCHLIST))
 
     _SWING_LIVE_PX.clear()
     _oneil_daily_fetch_index()  # B-1463: ^NSEI once per pass for the O'Neil 1d/1w index cells (None -> fail closed)
@@ -36039,8 +36048,9 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         trim = False  # B-1437 thrash guard: clearing every tick forced a full refetch each tick (more churn, not less)
     if level != "ok" and trim:
         try:
-            n = len(_DATA_CACHE)
-            _DATA_CACHE.clear()
+            with data_fetch._CACHE_LOCK:  # B-1582: fetch threads read/prune the dict concurrently
+                n = len(_DATA_CACHE)
+                _DATA_CACHE.clear()
             _trim_native_heap()  # B-1447: gc + malloc_trim, so the cleared frames' pages actually leave RSS
             _MEMORY_STATE.update(trims=_MEMORY_STATE["trims"] + 1, last_trim_ts=time.time(),
                                  last_trim_freed_entries=n)
@@ -37437,7 +37447,7 @@ def _watchdog_day_bump(now=None, put=None, info=None) -> None:
         ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
                                            + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
               "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
-              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch", "op-price"))),
+              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch", "op-price", "swing-prefetch"))),
                                key=lambda t: "(event loop)" not in t)[:5]}  # B-1422: the loop thread first
         _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
