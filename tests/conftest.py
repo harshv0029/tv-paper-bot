@@ -276,6 +276,7 @@ def _upstash_db_not_stale():
     import main as _m
     _m._UPSTASH_STALE_DB.update(checked=True, stale=False, reason="test", heartbeat_age_days=None, at=None)
     _m._upstash_written_keys.clear()
+    _m._UPSTASH_PAUSE.update(day="", paused=False, since=None, skipped={})  # B-1576
     yield
     _m._UPSTASH_STALE_DB.update(checked=True, stale=False)
     _m._upstash_written_keys.clear()
