@@ -2032,3 +2032,9 @@ Profit-booking / exit takeaway: no trading-rule change; protects position state 
 - Why: one day over budget used to eat the month and suspend the database, which removes the restart backup for real positions for weeks. Losing a day of dashboard counters is far cheaper.
 - Profit-booking / exit takeaway: protection of open positions (stops, positions, kill switch) is never traded away for storage savings; only dashboard/research data is.
 - B-1577 addendum: the quota is cumulative over the month (day N may use N x daily budget minus what days 1..N-1 used, never past the 10 GB monthly cap), so one heavy day is paid back the next day instead of hiding inside a fresh daily reset.
+
+## 2026-11-14 - Intraday exit refused for a buy-engine position (B-1567)
+- Mechanism: the intraday exit refused any symbol that had a paper swing row, so a real buy-engine position (BDL, chan 15m cell) could not be exited and sat overnight with no SL after 15:15, silently.
+- Fix: refuse only when the real swing table owns it, or a paper swing row exists and the intraday row has no strategy; every refusal is logged with its reason.
+- Coverage: buy: fixed / short: own exit path, no paper-swing check (B-1580 logs its no-row return) / swing: owns its own exits, unchanged / futures, options, MCX, currency: no shared refusal path.
+- Profit-booking / exit takeaway: an exit refusal is a money risk, never a silent return; an unexited intraday position after 15:15 is naked overnight.

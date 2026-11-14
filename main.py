@@ -18483,9 +18483,18 @@ def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
     # 2026-10-06 engine-ownership thumb rule (CLAUDE.md): a position is exited
     # only by the engine that entered it. The intraday engine never closes a
     # symbol the swing engine owns (RVNL/SAIL/DRREDDY/VBL incident).
-    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
-            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+    # B-1567 (BDL 2026-11-12): a PAPER-only signal_state_swing row must not block the exit of a position the buy
+    # engine entered itself (real_positions.strategy set by _maybe_place_real_entry). Only a real swing position, or
+    # a paper swing row next to an untagged (adopted) intraday row, means the swing engine owns it. Every refusal is
+    # logged with its reason, never a bare print (the silent refusal ate BDL's 15:10 flatten and 7 emergency exits).
+    _real_swing = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    _paper_swing = conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+    _own_strategy = row["strategy"] if "strategy" in row.keys() else None
+    if _real_swing or (_paper_swing and not _own_strategy):
         print(f"[REAL] intraday exit REFUSED for {symbol}: owned by the swing engine")
+        _why_log(conn, symbol, "exit", "refused_swing_owned",
+                 detail=f"real_swing_row={bool(_real_swing)} paper_swing_row={bool(_paper_swing)} "
+                        f"strategy={_own_strategy}")
         return
 
     import kotak_real_orders
