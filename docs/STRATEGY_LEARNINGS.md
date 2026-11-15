@@ -2252,3 +2252,13 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
   - The plain ATR cells reproduce run 43710558361 (1.5 / 2.5 / 4.0: 0.997 / 1.047 / 1.044, n749 vs 751).
 - The adjusted 1d replays (cap5 1.411, fit5 1.242) overstated both. cap5 keeps about a quarter of that edge; fit5 keeps none. fit5's filter keeps only the tight-ATR days, and on raw intraday prices those are the worst days.
 - Profit-booking / exit takeaway: on a gap-buy held for one session, a hard 5% cap on a wide ATR stop helps (1.077 vs 1.044 uncapped) because it cuts the few deep losers while leaving most trades to the 15:15 flatten. Skipping trades whose ATR stop is wider than 5% (fit5) throws away the profitable volatile days.
+
+### 2026-11-15 IST: Douglas / Elder trade management at 15m (run 43728822855)
+- 504 entry and exit cells (scale-out, breakeven ratchet, min R:R, time stop, chase cap, cooldown, trend/regime gates, scale-in), both directions, full NSE universe (5362 with data), 60 days of 15m bars, 0.8% cost. Every cell fails; the best is 0.388 (brk20_min_rr short atr3 rr4, n825).
+- The same cells at 1h (run 43593152439) reach 2.28 (brk20_min_rr long atr3 rr4). The rules are not the problem: a 15m bar's move is too small to cover a 0.8% round trip, so cost swamps every exit design.
+- Profit-booking / exit takeaway: no scale-out, ratchet or trailing design rescues an entry whose average move is under the round-trip cost. Pick the candle size by move per trade vs cost first, then tune the exit.
+
+### 2026-11-15 IST: B-1600 (e) island turn1cr LONG 1h wired
+- Of the three turn1cr 1h cells in run 43692422951, atr4 (1.012) and atr2d5 (1.004) pass the strict PFnet > 1.00 rule and are wired last on the 1h swing leg; atr1d5 (0.962) is not. n3264.
+- The margin is thin: about 1% over cost. Unlike the 4h cells (1.34-1.99), these sit near the line where a small fill-price slip (B-1608: a market fill a few minutes after the signal) can turn them below 1.00.
+- Profit-booking / exit takeaway: on 1h island longs the wider stop (4 ATR) beats the tight one (1.5 ATR); the tight stop takes too many noise stop-outs before the EMA13 rule exit can book the move.
