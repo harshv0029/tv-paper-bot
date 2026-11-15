@@ -21,7 +21,7 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | DONE-PENDING-VERIFY | 14 |
 | P3 | 9 |
 | HARNESS-BUILT-RUN-PENDING | 8 |
-| BUILT-DISPATCH-OWED | 8 |
+| BUILT-DISPATCH-OWED | 7 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
 | BUILT-ON-BRANCH | 4 |
@@ -44,6 +44,7 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | OPENED | 1 |
 | WAITING-ON-WORKFLOW | 1 |
 | P0 | 1 |
+| DONE-FAIL | 1 |
 | REAL | 1 |
 | ITC | 1 |
 | SWING | 1 |
@@ -256,7 +257,7 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | B-789 | P? | DONE-PENDING-VERIFY | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (85)
+## ready-to-build (84)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -267,7 +268,6 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) | needs |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... | owed, follow-up |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
-| B-1180 | P1 | BUILT-DISPATCH-OWED | chan_shape LONG + SHORT mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {1.5, 2.5, 4} x hold {5, 10}, real ... | owed, needs |
 | B-1181 | P1 | BUILT-DISPATCH-OWED | tasuki gap SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {2.5, 4, 6} x universe {etf, full},... | owed, needs |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
@@ -346,7 +346,7 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | B-1390 | P? | USER | 2026-10-27 21:15 IST | owed |
 | B-1391 | P? | USER | 2026-10-27 21:40 IST | awaiting, waiting |
 
-## research-queue (119)
+## research-queue (120)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -390,6 +390,7 @@ Total rows: 1353 | closed: 969 | not closed: 384
 | B-871 | P1 | OPENED | Short-swing engine path with BUY protective SL (1d shorts): brk20_min_rr 1d SHORT cells hold out-of-sample ... | owed, needs, owner |
 | B-891 | P1 | OPEN | 2026-10-13 IST Island reversal SHORT mirror (both-directions rule): main.py port DONE (island_top_signal_on... | owed, remaining, needs |
 | B-1070 | P1 | PARTIAL | 2026-10-14 IST, O'Neil main.py port so the 1w/1d replay genuinely calls main.py (supersedes the "main.py ha... | owed |
+| B-1180 | P1 | DONE-FAIL | chan_shape LONG + SHORT mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {1.5, 2.5, 4} x hold {5, 10}, real ... | owed |
 | B-1269 | P1 | PARTIAL | 2026-10-14 IST user: check live wired cases against Kotak gold/silver/crude tickers | owed, open:, blocked, verify, needs, unverified |
 | B-1597 | P1 | PARTIAL | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed |
 | B-513 | P2 | PARTIAL | 2026-10-11 IST, source: William O'Neil, How to Make Money in Stocks (docs/ on main; 4 readers) | needs |
