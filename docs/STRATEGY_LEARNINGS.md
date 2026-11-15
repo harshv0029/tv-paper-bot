@@ -2129,3 +2129,7 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 ### 2026-11-15 IST — Elder patterns 5m/60d (run 43683612920)
 - 246 cells, full NSE universe (10,852 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.46 (trendline tl_break long, n=80). consol__tri_desc 5m long 0.14-0.23 (n=20-39). Across timeframes the pattern holds on 1d (1.22-1.27) and 1h (1.37-1.42) and fails on 15m and 5m.
 - Profit-booking / exit takeaway: chart-pattern exits need room. On 5m the measured target is a fraction of the 0.8% round trip, so intraday pattern trading is not viable under this cost model.
+
+### 2026-11-15 IST — Silent 4h-fetch bug (B-1598)
+- Every research_interval 4h run fetched 0 symbols, because the resample ran on fetch_ohlc's RangeIndex instead of its "Date" column. Both elder-trend-context 4h runs came back empty and were not registered. Lesson: a merge that reports "fetched with data: 0" is a harness failure, never a strategy result. Check the fetched count before parsing any run.
+- Profit-booking / exit takeaway: none yet. Exits at 4h are still untested for these families until the re-runs land.

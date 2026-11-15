@@ -51,6 +51,17 @@ def test_fetch_interval_4h_fetches_1h_and_resamples():
     assert {t.strftime("%H:%M") for t in out.index} == {"09:15", "13:15"}
 
 
+def test_fetch_interval_4h_handles_real_fetch_ohlc_shape():
+    """B-1598: main.fetch_ohlc returns RangeIndex + "Date" column; 4h used to collapse every symbol to 1 row."""
+    h = _hourly(5)
+    real = h.rename_axis("Date").reset_index()  # the data_fetch.fetch_ohlc shape
+    out = ri.fetch_interval(FakeMain(real), "X.NS", "730d", "4h")
+    assert len(out) == 10 and "Date" in out.columns
+    assert out["Volume"].sum() == h["Volume"].sum()
+    assert {pd.Timestamp(t).strftime("%H:%M") for t in out["Date"]} == {"09:15", "13:15"}
+    assert out["Close"].iloc[-1] == h["Close"].iloc[-1]
+
+
 def test_fetch_interval_passthrough_other_intervals():
     m = FakeMain(_hourly(1))
     assert ri.fetch_interval(m, "X.NS", "60d", "15m") is m.df
