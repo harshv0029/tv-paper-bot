@@ -2213,3 +2213,10 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Island 4h long, bar-0 only (run 43709215753): all four filters stay well above 1.00 on the 09:15-13:15 signals the live 13:15 leg can enter: gap05 2.01-2.08, turn1cr 1.69-1.75, none 1.62-1.65, px20 1.45-1.49. That is at or above the full-day cells, so restricting to bar 0 costs nothing. 4h island short fails on every filter.
 - pl1d (STARC full fade, gap runaway), run 43707237249: only 4h long clears 1.00 (starc atr6 1.129, atr4 1.068, runaway atr6 1.015). Every 1h/15m/5m cell and every short cell fails after 0.8% cost. Wider ATR stops help at 4h (atr6 > atr4 > atr2d5), the same pattern as the 1d cells.
 - Profit-booking / exit takeaway: the passing 4h exits come from the 20-bar timeout (letting the move run), not from the stop. Wide stops that survive noise plus a fixed time exit beat tight stops on these mean-reversion and runaway entries. On faster candles the 0.8% cost eats the edge.
+
+### 2026-11-15 IST: B-1604 chan_gap 1h on raw (unadjusted) prices, run 43710558361
+- Dividend-adjusted daily history pushed prior closes below intraday prices, so the gap-down filter fired far too often for shorts: 4257 short candidates adjusted vs 746 raw.
+- On raw prices with the live 15:15 exit: chan_gap SHORT 1h scores 0.71-0.73 (fail). LONG passes at atr2d5 (1.045) and atr4d0 (1.042) and fails narrowly at atr1d5 (0.995).
+- Exiting at the 15:30 daily close still scores about 2.0 for shorts even on raw prices. Yahoo's NSE daily Open differs from the first 1h open by more than 0.5% on 40-46% of days, so daily and intraday Yahoo bars are not one price basis. Never mix them inside a single trade.
+- The live chan_gap SHORT gate rests on a 1d replay that used adjusted daily bars. That replay needs re-checking on raw prices.
+- Profit-booking / exit takeaway: the 15:30-close "edge" is a data artifact. Book chan_gap exits at the live flatten time (15:10-15:15) on one price source. Short gap fades do not survive an honest exit.
