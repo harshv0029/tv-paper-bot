@@ -2121,3 +2121,7 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - Strongest: the O'Neil weekly cells (newhigh_first 2.01-2.26, pivot 1.69-1.88), almost flat across cost and turnover. The flatbase control reproduced at 3.06, against 3.92 in the registry (n=71), so read that tag's headline number with caution.
 - minervini_vcp falls from 1.47 to 1.23-1.25 with a turnover floor. It still passes, but much of its edge is in illiquid names.
 - Profit-booking / exit takeaway: the long-hold, trailing-exit weekly families absorb extra cost best; short-hold exits (exitexhaust, about 11 bars) are the most cost-sensitive. Prefer wider or longer exits where slippage is uncertain.
+
+### 2026-11-15 IST — Elder trend-context 15m/60d (run 43684505388)
+- 210 cells, full NSE universe file (8,124 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.418 (osc__open_gap_fade long atr3). This is far below the 1h best (0.728) and the 1d best (0.984): the context rules get steadily worse on shorter candles.
+- Profit-booking / exit takeaway: on 15m the average move per trade is smaller than the 0.8% round trip, so no exit design can rescue these rules. Context and regime rules belong on 1d candles, used as a gate in front of an entry engine.

@@ -3138,6 +3138,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ep15.build())
         import strategy_registry_etc1h as _etc1h  # elder-trend-context 1h run 43681690093
         REGISTRY.extend(_etc1h.build())
+        import strategy_registry_etc15m as _etc15  # elder-trend-context 15m run 43684505388
+        REGISTRY.extend(_etc15.build())
         import strategy_registry_slipstress as _ss  # B-422 slippage stress run 43666079363
         REGISTRY.extend(_ss.build())
         import strategy_registry_minervini_lab_main_replay as _mlm
