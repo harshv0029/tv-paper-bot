@@ -19,6 +19,7 @@ import os
 import sys
 
 import numpy as np
+import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -32,12 +33,28 @@ DEFAULT_ATRS = (1.5, 2.5, 4.0)
 DEFAULT_SHARDS = {"1d": 4, "4h": 8, "1h": 8, "15m": 16, "5m": 24}
 
 
-def make_tag(flt, direction, tf, atr):
-    return f"reversal__island_{flt}__{direction}__{tf}__atr{C.num_token(atr)}_within8__nonovl__v2"
+def bar0_only():
+    """B-1603: BAR0_ONLY=1 (4h only) keeps signals whose completion bar is session bucket 0 (09:15-13:15 IST), the only
+    4h signals the live leg enters (_island_4h_entry_timing skips bar-1 signals: no resting SL after 15:15)."""
+    return os.environ.get("BAR0_ONLY", "").strip() == "1"
+
+
+def make_tag(flt, direction, tf, atr, b0=False):
+    b = "_b0" if b0 else ""
+    return f"reversal__island_{flt}__{direction}__{tf}__atr{C.num_token(atr)}_within8{b}__nonovl__v2"
+
+
+def is_bar0(date_str):
+    t = pd.Timestamp(date_str)
+    if t.tzinfo is not None:
+        t = t.tz_convert("Asia/Kolkata")
+    return t.hour * 60 + t.minute < 13 * 60 + 15
 
 
 def cell_specs(tf, atrs):
-    return {make_tag(f, d, tf, a): {"filter": f, "dir": d, "tf": tf, "atr": a} for f in FILTERS for d in DIRS for a in atrs}
+    b0 = bar0_only() and tf == "4h"
+    return {make_tag(f, d, tf, a, b0): {"filter": f, "dir": d, "tf": tf, "atr": a, "b0": b0}
+            for f in FILTERS for d in DIRS for a in atrs}
 
 
 def selector_tag(m, flt, direction):
@@ -108,6 +125,8 @@ def replay_symbol(m, df, specs, cost):
         free = 0
         for k, s in sorted(sig_cache[key].items()):
             if k < free:
+                continue
+            if sp.get("b0") and not is_bar0(dates[k]):
                 continue
             ep = s["entry_price"]
             stop0 = m.brk20_stop_price(ep, s["atr_at_entry"], sp["atr"], sp["dir"])

@@ -13,7 +13,7 @@ Total rows: 1355 | closed: 972 | not closed: 383
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 96 |
 | BLOCKED | 58 |
-| OPEN | 51 |
+| OPEN | 50 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -21,8 +21,8 @@ Total rows: 1355 | closed: 972 | not closed: 383
 | DONE-PENDING-VERIFY | 14 |
 | P3 | 9 |
 | HARNESS-BUILT-RUN-PENDING | 8 |
+| BUILT-DISPATCH-OWED | 7 |
 | OPEN-PARKED | 6 |
-| BUILT-DISPATCH-OWED | 6 |
 | PARKED | 5 |
 | BUILT-ON-BRANCH | 4 |
 | PENDING | 4 |
@@ -279,7 +279,7 @@ Total rows: 1355 | closed: 972 | not closed: 383
 | B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
 | B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
 | B-1600 | P1 | PARTIAL | 2026-11-15 IST | owed, needs |
-| B-1603 | P1 | OPEN | 2026-11-15 IST |  |
+| B-1603 | P1 | BUILT-DISPATCH-OWED | 2026-11-15 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |

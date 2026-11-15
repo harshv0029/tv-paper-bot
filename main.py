@@ -32310,6 +32310,18 @@ def _swing_1h_entry_bar(df1h, opened_at: float):
     return str(done.iloc[-1]) if len(done) else None
 
 
+def _swing_4h_entry_bar(df1h, opened_at: float):
+    """B-1603: 'YYYY-MM-DD HH:MM' of the last session-4h bar that had COMPLETED when the real entry opened (the bar the
+    live 4h island leg stores as entry_day), else None."""
+    if df1h is None or len(df1h) == 0 or not opened_at:
+        return None
+    t = dt.datetime.utcfromtimestamp(float(opened_at)) + dt.timedelta(minutes=IST_OFFSET_MIN)
+    starts = pd.to_datetime(df1h["Date"].astype(str))
+    seen = df1h[(starts + pd.Timedelta(hours=1) <= pd.Timestamp(t)).to_numpy()]  # 1h bars completed at the fill
+    df4h = _island_4h_completed_bars(seen, t) if len(seen) else None
+    return str(df4h["Date"].astype(str).iloc[-1]) if df4h is not None and len(df4h) else None
+
+
 def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     """B-1381 (2026-10-27): a real swing holding opened by a 1h long cell (macddiv / envelope / cup-cheat) whose
     signal_state_swing row was lost (entries were never pushed to the Upstash mirror, so a restart before the next
@@ -32324,7 +32336,8 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     if _orphan_1h_state_last_day == today:
         return []
     fetch = fetch or fetch_ohlc
-    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
+    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS) \
+        | set(ISLAND_TFS_LONG_4H_TAGS)  # B-1603: 4h island long rides the 1h pass (entry_day = the 4h signal bar)
     orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
                if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
     if not orphans:
@@ -32346,6 +32359,8 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
         try:
             df = _hourly_with_str_date(fetch(sym, "60d", "1h"))
             entry_bar = _swing_1h_entry_bar(df, row["opened_at"])
+            if strat in ISLAND_TFS_LONG_4H_TAGS:  # B-1603: the 4h signal bar = last 4h bar completed at the real fill
+                entry_bar = _swing_4h_entry_bar(df, row["opened_at"])
         except Exception as e:
             print(f"[SWING LONG 1h] orphan state derivation failed for {sym}: {e}")
             continue
