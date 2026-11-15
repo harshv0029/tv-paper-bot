@@ -6574,17 +6574,38 @@ GAPFADE_ATR_MULT = 3.0
 GAPFADE_MAX_HOLD_BARS = 30
 GAPFADE_EXHAUST_TAG = "gaps__exhaust_fade__long__1d__atr3_nb5__v1"
 GAPFADE_COMMON_TAG = "gaps__common_fade__long__1d__atr3_nb5__v1"
-GAPFADE_TAGS = (GAPFADE_EXHAUST_TAG, GAPFADE_COMMON_TAG)  # highest PFnet first
+# B-1610 (user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired"): every long gap-fade 1d variant whose
+# strict-FIFO validation (elder-ge11-validate.yml run 43739717415, one position per symbol per cell, full universe, 0.8%
+# cost) kept pooled PFnet > 1.00. tag -> (exhaustion gap?, nbars, ATR stop k). The live atr3_nb5 pair first (main replay
+# 40623860743: common 1.286, exhaust 1.226), then by validation PFnet. The 10 new cells are REPLAY_OWED (real-money gate
+# closed) until scripts/gapfade_main_replay.py calls these functions for them and a run is on file.
+GAPFADE_CELLS = {
+    GAPFADE_EXHAUST_TAG: (True, 5, 3.0),                                   # validation 1.183 n4406
+    GAPFADE_COMMON_TAG: (False, 5, 3.0),                                   # 1.120 n5424
+    "gaps__exhaust_fade__long__1d__atr2_nb5__v1": (True, 5, 2.0),          # 1.166 n4406
+    "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1": (True, 5, 1.5),        # 1.160 n4406
+    "gaps__common_fade__long__1d__atr2_nb5__v1": (False, 5, 2.0),          # 1.101 n5424
+    "gaps__common_fade__long__1d__atr1d5_nb5__v1": (False, 5, 1.5),        # 1.094 n5424
+    "gaps__common_fade__long__1d__atr3_nb3__v1": (False, 3, 3.0),          # 1.090 n6949
+    "gaps__common_fade__long__1d__atr2_nb3__v1": (False, 3, 2.0),          # 1.070 n6949
+    "gaps__common_fade__long__1d__atr3_nb4__v1": (False, 4, 3.0),          # 1.050 n6021
+    "gaps__common_fade__long__1d__atr1d5_nb3__v1": (False, 3, 1.5),        # 1.038 n6949
+    "gaps__common_fade__long__1d__atr2_nb4__v1": (False, 4, 2.0),          # 1.031 n6022
+    "gaps__common_fade__long__1d__atr1d5_nb4__v1": (False, 4, 1.5),        # 1.006 n6023
+}
+GAPFADE_TAGS = tuple(GAPFADE_CELLS)  # entry check order
 
 
 def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | None = None) -> dict | None:
     """Last-bar evaluation of the long gap-fade rule for `tag`. None if no signal / unknown tag."""
-    if tag not in GAPFADE_TAGS:
+    cell = GAPFADE_CELLS.get(tag)
+    if cell is None:
         return None
+    exhaust, nbars, k = cell
     d = df.iloc[-BRK20_CALC_WINDOW:]
     n = len(d)
     j = n - 1
-    i = j - GAPFADE_NBARS
+    i = j - nbars
     if i < GAPFADE_VOL_BARS + 1:
         return None
     h = d["High"].to_numpy(dtype=float)
@@ -6595,7 +6616,7 @@ def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
         return None
     vavg = float(np.mean(v[i - GAPFADE_VOL_BARS:i]))
     high_vol = bool(v[i] >= GAPFADE_VMULT * vavg)
-    if high_vol != (tag == GAPFADE_EXHAUST_TAG):
+    if high_vol != exhaust:
         return None
     if not float(np.min(l[i + 1:j + 1])) >= l[i]:  # no new low since the gap bar
         return None
@@ -6603,7 +6624,7 @@ def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
     if not np.isfinite(atr) or atr <= 0:
         return None
     px = float(c[j]) if entry_price is None else float(entry_price)
-    stop = brk20_stop_price(px, atr, GAPFADE_ATR_MULT, "long")
+    stop = brk20_stop_price(px, atr, k, "long")
     if not (0 < stop < px):
         return None
     return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
@@ -16017,6 +16038,12 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
     "gaps__exhaust_fade__long__1d__atr3_nb5__v1": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
     "gaps__common_fade__long__1d__atr3_nb5__v1": "gaps__common_fade__long__1d__atr3_nb5__v1",
+    **{_t: _t for _t in (  # B-1610: 1:1, each its own research registry row (main replay verifies before real money)
+        "gaps__exhaust_fade__long__1d__atr2_nb5__v1", "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade__long__1d__atr2_nb5__v1", "gaps__common_fade__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade__long__1d__atr3_nb3__v1", "gaps__common_fade__long__1d__atr2_nb3__v1",
+        "gaps__common_fade__long__1d__atr1d5_nb3__v1", "gaps__common_fade__long__1d__atr3_nb4__v1",
+        "gaps__common_fade__long__1d__atr2_nb4__v1", "gaps__common_fade__long__1d__atr1d5_nb4__v1")},
     # B-1466 (2026-11-09): the live swingminrr VCP tags gate on their main.py-calling replay rows (`_mr`, swing-short-
     # main-replay.yml run 38318986997, full NSE 5y, 0.8% cost: rr4 2.845 n51 / rr3 2.295 n110 / rr2 1.589 n327 / base
     # 1.351 n2404), not the scripts/swing_min_rr_research.py sim rows (2.698 / 2.062 / 1.263 / 1.155), which stay registered.
@@ -35326,7 +35353,7 @@ _SWING_SL_RULES = {
        for _t, _c in PL1D_LONG_4H_CELLS.items()},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
        for _t in SWINGMINRR_TAGS},
-    **{_t: f"entry - {GAPFADE_ATR_MULT:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
+    **{_t: f"entry - {GAPFADE_CELLS[_t][2]:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
        for _t in GAPFADE_TAGS},
     **{_t: f"entry - {a:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
        for _t, (a, h) in CHAN_SHAPE_CELLS.items()},

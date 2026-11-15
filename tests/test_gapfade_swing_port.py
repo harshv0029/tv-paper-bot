@@ -40,11 +40,24 @@ def test_signal_parity_with_research():
 def test_unknown_tag_and_tags_replay_verified():
     # B-1396d: main.py replay run 40623860743 (full universe, 1d 5y) cleared the floor for both tags.
     assert main.gapfade_long_entry_signal(_bars(), "nope") is None
-    for t in main.GAPFADE_TAGS:
+    for t in (main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG):
         assert t in main._replay_verified_tags()
         assert t not in main.REPLAY_OWED_TAGS and t not in main.REPLAY_FAILED_TAGS
+    for t in main.GAPFADE_TAGS:
         assert t in main._STRATEGY_TAG_TO_REGISTRY_NAME
-    assert not main.REPLAY_OWED_TAGS  # B-1396: every owed tag now has a main.py replay on file
+    # B-1610: the 10 new variants stay replay-owed (real-money gate closed) until their main.py replay is on file;
+    # before B-1610 no tag was owed (B-1396).
+    new = set(main.GAPFADE_TAGS) - {main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG}
+    assert len(new) == 10 and new <= main.REPLAY_OWED_TAGS
+    assert main.REPLAY_OWED_TAGS <= new | set(main.GAPFADE_TAGS)
+
+
+def test_b1610_cells_param_entry():
+    """Each cell uses its own nbars / ATR k / volume kind; same bars give the same entry, stops scale with k."""
+    assert len(main.GAPFADE_TAGS) == 12 == len(set(main.GAPFADE_TAGS))
+    assert main.GAPFADE_TAGS[:2] == (main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG)
+    for t, (exh, nb, k) in main.GAPFADE_CELLS.items():
+        assert ("exhaust_fade" in t) == exh and f"_nb{nb}__" in t and f"__atr{k:g}".replace(".", "d") in t
 
 
 def test_exit_adapter_stop_rule_timeout():
