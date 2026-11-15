@@ -2114,3 +2114,10 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - 210 regime / MA / oscillator cells, full NSE universe file (7,608 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.728 (regime__wk_align_counter long atr3_wk13, n=86k). The 1d run 38209280422 also had 0 passes (best 0.984).
 - Gross PF 1.2+ on the best cells, but the cost drag is huge at n=86k over 2 years: these rules trade too often on 1h. The weekly-alignment filter is the only family near break-even, on both timeframes.
 - Profit-booking / exit takeaway: rule_exit dominates (about 87% of exits), so these context rules cut winners early. A context filter belongs as a gate on a separate entry engine with its own wider exit, not as a standalone trade rule.
+
+### 2026-11-15 IST — B-422 slippage stress replay (run 43666079363)
+- 7 top viable tags, replayed with main.py drivers on the full NSE universe at cost 0.8/1.2/1.6% x min daily turnover 0/1/5 Cr (63 cells). **61/63 hold PFnet>1.00.** Every tag survives double cost (1.6%) when no turnover floor is set.
+- Weakest: gap_and_go exitexhaust (1.22 control, 1.04 at 1.6%, and 0.93/0.95 once a 1 or 5 Cr turnover floor is added). The turnover floor removes many of its winners, so its edge sits partly in thin names, which is where real slippage is worst. Treat it as the first tag to throttle if live slippage runs high.
+- Strongest: the O'Neil weekly cells (newhigh_first 2.01-2.26, pivot 1.69-1.88), almost flat across cost and turnover. The flatbase control reproduced at 3.06, against 3.92 in the registry (n=71), so read that tag's headline number with caution.
+- minervini_vcp falls from 1.47 to 1.23-1.25 with a turnover floor. It still passes, but much of its edge is in illiquid names.
+- Profit-booking / exit takeaway: the long-hold, trailing-exit weekly families absorb extra cost best; short-hold exits (exitexhaust, about 11 bars) are the most cost-sensitive. Prefer wider or longer exits where slippage is uncertain.
