@@ -34535,6 +34535,31 @@ def _viable_stack_git_rows() -> list:
     return max(cands, key=lambda c: c[-1].get("created_at") or 0) if cands else []
 
 
+def _stack_label_clip(label) -> str:
+    """B-1611: a slots label IS the definition (JSON), so it is never clipped; other labels keep the 120-char cap."""
+    lab = str(label or "")
+    return lab if lab.startswith(VIABLE_SLOTS_PREFIX) else lab[:120]
+
+
+def _stack_label_truncated(created_at, label, rows) -> bool:
+    """B-1611: True when `label` is a slots definition that no longer parses (cut by the old clip) and another copy of
+    the same save (same created_at) carries the longer label it was cut from. Never raises."""
+    lab = str(label or "")
+    if not lab.startswith(VIABLE_SLOTS_PREFIX):
+        return False
+    try:
+        json.loads(lab[len(VIABLE_SLOTS_PREFIX):])
+        return False
+    except (TypeError, ValueError):
+        pass
+    try:
+        ca = round(float(created_at or 0), 3)
+        return any(round(float(a or 0), 3) == ca and len(str(b or "")) > len(lab) and str(b or "").startswith(lab)
+                   for a, b, _ in rows)
+    except (TypeError, ValueError):
+        return False
+
+
 def _restore_viable_stack_from_git_file() -> int:
     """Last-resort restore (user 2026-10-20: the stack must never be empty after a restart): re-insert the newest git
     copy (side branch written on every save, or the docs/viable_stack.json shipped with the deploy) when the Upstash
@@ -34548,7 +34573,7 @@ def _restore_viable_stack_from_git_file() -> int:
                 return 0
             for r in rows:
                 c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
-                          (r.get("created_at") or time.time(), str(r.get("label") or "restored from git")[:120],
+                          (r.get("created_at") or time.time(), _stack_label_clip(r.get("label") or "restored from git"),
                            json.dumps(r.get("names") or [])))
             c.commit()
         return len(rows)
@@ -34588,17 +34613,24 @@ def _viable_stack_merge_remote() -> int:
         with closing(get_db()) as c:
             local = [(r[0], r[1], r[2]) for r in
                      c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
+            # B-1611: drop local copies whose slot definition was cut by the old 120-char clip (they parse to zero
+            # slots, and as the newest row they switched real entry off: View 4 "definition NOT loaded").
+            healed = [r for r in local if not _stack_label_truncated(r[0], r[1], local + remote)]
+            dropped = len(local) - len(healed)
+            local = healed
             seen = {(round(float(a or 0), 3), str(b or "")) for a, b, _ in local}
             added = []
             for ca, label, names in remote:
                 if not ca or names is None:
                     continue
                 k = (round(float(ca), 3), str(label or ""))
-                if k in seen:
+                if k in seen or _stack_label_truncated(ca, label, local + remote):
                     continue
                 seen.add(k)
-                added.append((float(ca), str(label or "restored")[:120], names if isinstance(names, str) else json.dumps(names)))
-            if not added:
+                added.append((float(ca), _stack_label_clip(label or "restored"), names if isinstance(names, str) else json.dumps(names)))
+            if dropped:
+                print(f"[VIABLE-STACK] B-1611: dropped {dropped} truncated-definition row(s)")
+            if not added and not dropped:
                 return 0
             rows = sorted(local + added, key=lambda r: float(r[0] or 0))[-VIABLE_STACK_SIZE:]
             c.execute("DELETE FROM strategy_viable_stack")
@@ -34611,7 +34643,7 @@ def _viable_stack_merge_remote() -> int:
             sync_generic_tables_external(only=("strategy_viable_stack",))
         except Exception:
             pass
-        return len(added)
+        return len(added) + dropped
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] merge failed (non-fatal): {e}")
         return 0
@@ -35030,6 +35062,9 @@ def upstash_usage():
             "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
             "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
             "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
+            # B-1612 (user 2026-11-16: View 4 must say cumulative usage): first IST day of this month with a record
+            # (daily records start 2026-11-14, B-1577; earlier days of the month were not metered).
+            "month_tracked_since": min(list(_upstash_month_prior) + [_upstash_usage_day or ist_now().strftime("%Y-%m-%d")]),
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
             # B-1609: View 4 shows month usage vs the free-tier 10 GB / 500k-command monthly limit
             "month_limit_bytes": _UPSTASH_MONTHLY_BYTES,
