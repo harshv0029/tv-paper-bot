@@ -14,7 +14,19 @@ on:
         required: true
         default: "15m"
         type: choice
-        options: ["15m", "1h", "5m"]
+        options: ["15m", "1h", "5m", "1d"]
+      window_days:
+        description: "B-1602: keep only trade days in the last N calendar days (blank = whole period)"
+        required: false
+        default: ""
+      paired_daily_close:
+        description: "B-1604: 1 = also book each intraday candidate at the 15:30 daily close (_xd1530 twin tags)"
+        required: false
+        default: ""
+      raw_daily:
+        description: "B-1604: 1 = unadjusted (auto_adjust=False) daily + intraday bars (_rawd tags)"
+        required: false
+        default: ""
 
 jobs:
   replay:
@@ -35,6 +47,9 @@ jobs:
       - env:
           DIRECTION: ${{ matrix.direction }}
           INTERVAL: ${{ inputs.interval }}
+          WINDOW_DAYS: ${{ inputs.window_days }}
+          PAIRED_DAILY_CLOSE: ${{ inputs.paired_daily_close }}
+          RAW_DAILY: ${{ inputs.raw_daily }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "12"
         run: python3 scripts/chan_gap_tf_sweep.py run

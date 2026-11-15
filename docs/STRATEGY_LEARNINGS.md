@@ -2180,3 +2180,31 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Island SHORT 1d through main.py functions (run 43692422951): gap05 1.178-1.192, px20 1.076-1.115. The older research-script run (38221645245, reciprocal-price exit) had 0.651 for the same tag family; the main.py exit (brk20_min_rr_exit_reason short) is what the live bot runs, so the main.py number decides. Island LONG 1d matches across both (2.06-2.95 vs 1.94-2.20), so the gap is in the short exit implementation, not the detector.
 - chan_gap long: same trade at every "tf"; only the backtest's stop-check resolution changes. 1d 1.445 and 1h 1.08-1.15 pass, but 5m and 15m fail. A real SL-M fires on ticks, so the finest resolution is the honest one. Re-test owed (B-1602).
 - Profit-booking / exit takeaway: a backtest that checks the stop only at the bar close or bar low of a coarse candle books exits a resting SL would have hit earlier. Judge a stop-dependent cell at the finest bar size available, and treat a pass that shows up only at coarse resolution as unproven.
+
+## 2026-11-15 IST: B-1180 chan_shape candle-size x direction sweep (run 43696407370)
+- 60 cells (long + reciprocal-price short, 1d/4h/1h/15m/5m, ATR 1.5/2.5/4, hold 5/10), real main.py functions, full universe, 0.8% cost: all fail. Best long 1d atr4 hold10 PFnet 0.901; 4h 0.64-0.72; intraday 0.15-0.4; short never above 0.65.
+- PFnet rises with candle size and with the wider stop, so the cost-per-trade drag dominates the shorter candles. The momentum shape has no edge after cost below the daily candle, and not enough on it.
+- Profit-booking / exit takeaway: most chan_shape exits are the max-hold timeout (well under 1.0 PFnet) or the stop (0); the shape rarely runs far enough within 10 bars to pay 0.8%. A time exit on a weak signal books the cost, not a profit.
+
+## 2026-11-15 IST: B-1600 (b) island long 4h wiring and the bar-1 problem
+- 12 island long 4h cells (PFnet 1.34-1.99, main.py-function sweep 43692422951) wired. NSE 4h bars are session-anchored: bar 0 09:15-13:15, bar 1 13:15-15:30. A bar-1 signal is only known at the 15:30 close, after the exchange cancels resting orders (15:15), so live can trade only bar-0 signals; a bar-0-only replay is owed (B-1603).
+- The B-1600 (c) 1d _tfs cells were silently unable to take real entries (unmapped registry name, fail-closed). A wiring test must check the viability path returns a real decision, not only that the tag is in the entry chain.
+- Profit-booking / exit takeaway: the 4h exit is the same brk20 long exit (stop, EMA13 rule, 30-bar hold = 15 sessions); a frozen SL from entry means a 4h trade's worst case is fixed at k x 4h-ATR, smaller than the 1d stop for the same k.
+
+## 2026-11-15 IST: B-1181 tasuki gap candle-size x direction x universe sweep (run 43701581391)
+- Only the live cell survives: ETF short 1d PFnet 1.203 (n83, lower than the older 1.65-2.08 replay but above the floor). Long mirror, intraday and 4h sizes, and the full universe all fail (full-universe long 4h best at 0.80).
+- The edge is specific to ETFs on the daily candle; widening the universe adds trades that lose after cost.
+- Profit-booking / exit takeaway: the 3-bar max hold is the dominant exit everywhere; on intraday bars 3 bars is too short for the gap to close, so the timeout books the 0.8% cost on near-flat trades.
+
+## 2026-11-15 IST: B-1596 brk20 1h long re-run (run 43696686802) and B-1602 chan_gap 1d same-window run (43703402682)
+- brk20 1h long: atr3_rr4 reproduces (1.393 -> 1.379, n2129) and is wired after atr4_rr4. atr3_rr3 slipped from 1.020 to 0.983 on the re-run: a cell sitting within 0.02 of the floor is not stable, and the strict >1.00 rule keeps it out. Wider stop + more R:R room (atr3/atr4, rr4) is where the 1h edge lives; atr2 and rr2d5 lose everywhere.
+- chan_gap same 60-day window: the 1d replay passes (long 1.05-1.14, short 2.55-2.75) while 5m/15m fail (long 0.88-0.92, short 0.76-0.78), yet almost no stop fires at any resolution. So the difference is the exit price, not the stop check: the 1d replay books the 15:30 close, while the intraday replays (and the live bot) flatten at 15:15. The last 15 minutes carry the edge in the 1d numbers.
+- Profit-booking / exit takeaway: for a same-day trade, the flatten time is part of the strategy. A backtest must exit when the live bot exits (15:15 here), or it credits the strategy with a closing auction it never trades. Worth a separate test: hold chan_gap longs to a 15:25 market exit, and check the cost of the 15:15 cutoff.
+
+### 2026-11-15 IST - B-1604: chan_gap 1d vs intraday gap is a price-basis artifact, not the exit time
+- Paired run 43708230898 (1h, 730d, same candidates, same entry and stop walk) booked each trade twice: flat at 15:15 vs at the 15:30 daily close. Short 0.53-0.54 became 12.6-20.3 (win 89-90%); long 1.12-1.20 became 0.94-0.99.
+- Both directions moved toward a LOWER exit price. A 15-minute exit shift cannot do that, but a price-basis mismatch can. data_fetch.fetch_ohlc relies on yfinance's default auto_adjust=True (yfinance 1.8.0). That back-adjusts DAILY bars for dividends but leaves Yahoo intraday bars raw. Over 730d the daily close and history therefore sit below the intraday open.
+- The same mismatch biases candidate selection. Raw intraday opens look like gap-ups against adjusted prior closes: n4257 short vs 572 long at 1h. So every intraday chan_gap cell that uses daily history is suspect until the _rawd rerun. The 1d-mode replay (both sides adjusted) is internally consistent.
+- Live is fine. Today's open vs yesterday's adjusted close only differs on an ex-date, where the adjustment correctly removes the dividend gap.
+- Fix built: RAW_DAILY=1 (auto_adjust=False on daily and intraday, _rawd tags) plus a DOPEN_RATIO diagnostic. The _xd1530 adjusted rows are registered as ARTIFACT and never wired.
+- Profit-booking / exit takeaway: never compare exits priced from two data series with different adjustment bases. A win rate near 90% on a 1-session mean-reversion exit is a data bug until proven otherwise. Price both entry and exit from the same unadjusted series.

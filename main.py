@@ -1929,6 +1929,34 @@ def pnl():
     }
 
 
+NSE_SESSION_OPEN_MINUTE = 9 * 60 + 15
+
+
+def resample_1h_to_4h_session(df, session_open_minute: int = NSE_SESSION_OPEN_MINUTE, bucket_minutes: int = 240):
+    """B-1600 (b): port of scripts/resample_4h.resample_1h_to_4h (the research 4h bars). Each trading DAY is split into
+    session buckets anchored at the 09:15 IST open: bucket 0 = 09:15-13:15 (4 x 1h bars), bucket 1 = 13:15-close (3 x 1h,
+    a short bar ending 15:30). Bars never span two days; stamp = start of the bar's first 1h bar. A tz-aware index is
+    read in IST (Asia/Kolkata) hours; a naive index is taken as IST already. OHLCV: first/max/min/last/sum."""
+    if df is None or len(df) == 0:
+        return df
+    idx = pd.DatetimeIndex(df.index)
+    if idx.tz is not None:
+        idx = idx.tz_convert("Asia/Kolkata")
+        df = df.set_axis(idx)
+    mod = np.asarray(idx.hour * 60 + idx.minute)
+    bucket = np.maximum(0, (mod - session_open_minute) // bucket_minutes)
+    day = np.asarray(idx.normalize().asi8)
+    keys = [day, bucket]
+    g = df.groupby(keys, sort=True)
+    agg = {"Open": g["Open"].first(), "High": g["High"].max(), "Low": g["Low"].min(), "Close": g["Close"].last()}
+    if "Volume" in df.columns:
+        agg["Volume"] = g["Volume"].sum()
+    out = pd.DataFrame(agg)
+    first_ts = pd.Series(idx, index=df.index).groupby(keys, sort=True).first()
+    out.index = pd.DatetimeIndex(first_ts.tolist())
+    return out.sort_index()
+
+
 @app.get("/history")
 def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     """
@@ -1948,7 +1976,8 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     if _resample_4h and not df.empty:
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
-        df = df.resample("4h").agg({"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}).dropna(subset=["Close"])
+        # B-1600 (b): session-anchored 09:15/13:15 IST buckets (the research bars), not a clock resample("4h")
+        df = resample_1h_to_4h_session(df[[c for c in ("Open", "High", "Low", "Close", "Volume") if c in df.columns]].dropna(subset=["Close"]))
 
     if df.empty and interval.endswith(("m", "h")) and period in ("1d", "2d"):
         # "fetch failed: 404" root cause (user 2026-10-11): period=1d intraday is EMPTY whenever there is no session
@@ -6078,6 +6107,30 @@ for _t in _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS:
 for _t in ISLAND_GAP05_TAGS:
     _ISLAND_FILTER_OF_TAG[_t] = "gap05"
 ISLAND_GAP05_MIN_ATR = 0.5
+# B-1600 (b), user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired": the 12 island LONG 4h cells of the same
+# sweep (run 43692422951, docs/backtest_data/island_tf_dir_sweep_run_43692422951.json), every one PFnet > 1.00. 4h bars =
+# 1h bars resampled per resample_1h_to_4h_session (09:15-13:15 / 13:15-15:30 IST). Entry = island_swing_entry_signal on the
+# last COMPLETED 4h bar with the 1d tag of the filter as selector (the sweep's selector_tag), stop = entry - k x ATR14 of the
+# 4h bars; exit = brk20_min_rr_exit_reason long on 4h bars. Kept OUT of ISLAND_ALL_TAGS (that tuple drives the daily-bar
+# entry/exit); the 4h leg lives in _run_long_swing_1h_pass (same signal_state_swing table, one position per symbol).
+# (tag, 1d selector tag, ATR k), ordered by pooled PFnet desc.
+ISLAND_LONG_4H_CELLS = (
+    ("reversal__island_gap05_tfs__long__4h__atr1d5_within8__nonovl__v2", ISLAND_GAP05_TAGS[0], 1.5),    # 1.988 n3129
+    ("reversal__island_gap05_tfs__long__4h__atr2d5_within8__nonovl__v2", ISLAND_GAP05_TAGS[0], 2.5),    # 1.977 n3125
+    ("reversal__island_gap05_tfs__long__4h__atr4_within8__nonovl__v2", ISLAND_GAP05_TAGS[0], 4.0),      # 1.963 n3122
+    ("reversal__island_turn1cr_tfs__long__4h__atr2d5_within8__nonovl__v2", ISLAND_TURN1CR_TAG, 2.5),    # 1.730 n4048
+    ("reversal__island_turn1cr_tfs__long__4h__atr4_within8__nonovl__v2", ISLAND_TURN1CR_TAG, 4.0),      # 1.716 n4047
+    ("reversal__island_turn1cr_tfs__long__4h__atr1d5_within8__nonovl__v2", ISLAND_TURN1CR_TAG, 1.5),    # 1.679 n4069
+    ("reversal__island_none_tfs__long__4h__atr4_within8__nonovl__v2", ISLAND_NONE_TAG, 4.0),            # 1.531 n9906
+    ("reversal__island_none_tfs__long__4h__atr2d5_within8__nonovl__v2", ISLAND_NONE_TAG, 2.5),          # 1.524 n9917
+    ("reversal__island_none_tfs__long__4h__atr1d5_within8__nonovl__v2", ISLAND_NONE_TAG, 1.5),          # 1.493 n9965
+    ("reversal__island_px20_tfs__long__4h__atr4_within8__nonovl__v2", ISLAND_PX20_TAG, 4.0),            # 1.386 n8767
+    ("reversal__island_px20_tfs__long__4h__atr2d5_within8__nonovl__v2", ISLAND_PX20_TAG, 2.5),          # 1.375 n8772
+    ("reversal__island_px20_tfs__long__4h__atr1d5_within8__nonovl__v2", ISLAND_PX20_TAG, 1.5),          # 1.343 n8817
+)
+ISLAND_TFS_LONG_4H_TAGS = tuple(t for t, _s, _k in ISLAND_LONG_4H_CELLS)
+for _t, _s, _k in ISLAND_LONG_4H_CELLS:
+    _ISLAND_ATR_OF_TAG[_t] = _k
 
 
 def island_bottom_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS,
@@ -28226,8 +28279,9 @@ def _run_swing_scan_pass(conn):
                 _SWING_LAST_CLOSE[symbol] = float(df["Close"].iloc[-1])
             except Exception:
                 pass
-            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS:
-                continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
+            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS \
+                    or pos["strategy"] in ISLAND_TFS_LONG_4H_TAGS:
+                continue  # B-984/B-1264/B-1600b: 1h/4h cell, managed by _run_long_swing_1h_pass on hourly/4h bars
             # B-1486: peak-LTP trail cells. The resting stop (checked intraday, BEFORE the strategy's own exit, as the
             # band_cap replay does) is the trailed level; walk every completed bar since entry, persist the peak, and on
             # a trail hit let the strategy's own exit pre-empt it only on an EARLIER bar (df cut before the hit bar).
@@ -28832,7 +28886,7 @@ BRK20_SHORT_SWING_ATR_OF_TAG.update({t: k for t, _sel, k in ISLAND_SHORT_SWING_C
 SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS) + tuple(t for t, _s, _k in ISLAND_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
-REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
+REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(ISLAND_TFS_LONG_4H_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
     | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS) | frozenset(PL1D_CELLS) | frozenset(CHAN_GAP_LONG_CELLS)
 
 
@@ -28853,7 +28907,7 @@ def _replay_rows() -> list:
     _bd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
     # B-1600: the island tf/dir sweep calls the real main.py entry/stop/exit functions (scripts/island_tf_dir_sweep_replay.py),
     # so it is a main.py replay too; its _tfs tags are distinct names and never collide with older rows.
-    for f in sorted(_g.glob(os.path.join(_bd, "*main_replay_run_*.json")) + _g.glob(os.path.join(_bd, "island_tf_dir_sweep_run_*.json"))):
+    for f in sorted(_g.glob(os.path.join(_bd, "*main_replay_run_*.json")) + _g.glob(os.path.join(_bd, "*_tf_dir_sweep_run_*.json"))):  # B-1181: every tf/dir sweep calls main.py fns
         try:
             for r in _j.load(open(f)).get("rows", []):
                 m = r.get("metrics") if isinstance(r.get("metrics"), dict) else r
@@ -29289,6 +29343,12 @@ TASUKI_SHORT_CELLS = {
     "tasuki__gap_etf__short__1d__atr6_h3__v1": 6.0,
     "tasuki__gap_etf__short__1d__atr4_h3__v1": 4.0,
     "tasuki__gap_etf__short__1d__atr2d5_h3__v1": 2.5,
+    # B-1181 (user 2026-11-15 "PFnet >1 ... all variants will be wired"): the tf/dir sweep's etf short 1d cells (run
+    # 43701581391, main.py fns, PFnet 1.203 n83) are the same rule under their own immutable `_tfs` registry names; the
+    # plain tags above keep priority (one position per symbol), these take the symbol only when the plain ones cannot.
+    "tasuki__gap_etf_tfs__short__1d__atr6_h3__v1": 6.0,
+    "tasuki__gap_etf_tfs__short__1d__atr4_h3__v1": 4.0,
+    "tasuki__gap_etf_tfs__short__1d__atr2d5_h3__v1": 2.5,
 }
 
 
@@ -29863,6 +29923,11 @@ def _chan_kalman_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0
 # the close of bar 30 after the fill. Appended after chan_kalman in the 1h chain; no new switch.
 BRK20_1H_LONG_TAG = "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1"
 BRK20_1H_LONG_CELLS = {BRK20_1H_LONG_TAG: (4.0, 4.0, BRK20_MAX_HOLD_BARS)}  # tag -> (ATR stop multiple, min R:R, hold bars)
+# B-1596 (user 2026-11-15 "PFnet >1 ... all variants will be wired"): atr3_rr4 is its own entry (3xATR stop, >= 4R room),
+# main.py replay 1.393 (n 2129) and re-run 43696686802 1.379; checked after atr4_rr4 (1.700). Its be1 twin (1.395/1.382)
+# shares the entry, so it cannot take a symbol the plain cell has not already taken: not wired (B-1471 precedent).
+# atr3_rr3 (1.020 then 0.983 on the re-run) and every atr2 / rr2d5 cell fail on the re-run: not wired.
+BRK20_1H_LONG_CELLS["brk20_min_rr__main_replay__long__1h__atr3_rr4__v1"] = (3.0, 4.0, BRK20_MAX_HOLD_BARS)
 for _t in BRK20_1H_LONG_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
 
@@ -29954,6 +30019,9 @@ def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
         _scan_cell(t, (lambda t=t: chan_kalman_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
     for t in BRK20_1H_LONG_CELLS:
         _scan_cell(t, (lambda t=t: brk20_1h_long_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+    df4h = _island_4h_completed_bars(df1h) if evaluate else None  # B-1600 (b): the 4h island cells on the same 1h frame
+    for t in ISLAND_TFS_LONG_4H_TAGS:
+        _scan_cell(t, (lambda t=t: _island_long_4h_signal(df4h, t)) if evaluate else None, count=count, blocked=evaluate)
 
 
 def _with_held_1h_long_symbols(conn, symbols: list) -> list:
@@ -29961,7 +30029,8 @@ def _with_held_1h_long_symbols(conn, symbols: list) -> list:
     (NIFTY-200), so a held symbol outside it (GSEC5IETF, an ETF) never had its strategy exit evaluated."""
     out, seen = list(symbols), set(symbols)
     try:
-        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
+        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS) \
+            | set(ISLAND_TFS_LONG_4H_TAGS)
         for r in conn.execute("SELECT symbol, strategy FROM signal_state_swing").fetchall():
             if r[1] in cells and r[0] not in seen:
                 out.append(r[0])
@@ -29971,6 +30040,169 @@ def _with_held_1h_long_symbols(conn, symbols: list) -> list:
     return out
 
 
+# ---- B-1600 (b): island reversal LONG 4h cells (ISLAND_LONG_4H_CELLS) on the long swing engine's 1h leg ----
+# Data: the SAME 60d 1h frame _run_long_swing_1h_pass already fetches per symbol (no extra fetch), resampled to the research
+# 4h bars (resample_1h_to_4h_session) with only COMPLETED 4h bars kept: bar 0 (09:15) completes at 13:15 IST once its 12:15
+# 1h bar is in; bar 1 (13:15) completes at 15:30. ATR/EMA warm-up is ~80 bars instead of the research's 400 (Wilder weight
+# left on the seed < 1%).
+# ENTRY TIMING (research fill = signal-bar close, first exit bar = the next 4h bar): a bar-0 signal is entered in the same
+# session from 13:15 to ISLAND_4H_ENTRY_END_MIN at the live price (the swing pass's _SWING_LIVE_PX, else the bar-0 close), so
+# the fill sits inside bar 1, the research's first exit bar. A bar-1 signal is known only at 15:30: no SL can rest after the
+# 15:15 exchange cancel and the next-open fill would carry the overnight gap the research never paid, so it is NOT entered;
+# it is logged once as skipped_4h_signal_after_close (never silently). Stop = live entry - k x ATR14(4h), frozen.
+ISLAND_4H_ENTRY_START_MIN = 13 * 60 + 15
+ISLAND_4H_ENTRY_END_MIN = 15 * 60
+_ISLAND_4H_CELL = {t: (s, k) for t, s, k in ISLAND_LONG_4H_CELLS}
+_ISLAND_4H_SIG_CACHE: dict = {}      # symbol -> (last completed 4h bar Date, {selector tag: signal or None})
+_ISLAND_4H_SKIP_LOGGED: set = set()  # (symbol, bar Date) whose skipped_* was already logged
+for _t in ISLAND_TFS_LONG_4H_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own _tfs registry row (never merged)
+for _t in ISLAND_TFS_LONG_1D_TAGS:  # B-1600 (c) fix: the 1d _tfs cells were never mapped -> unmapped_tag, no real entry
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
+
+
+def _island_4h_completed_bars(df1h, now_naive=None):
+    """4h frame (string Date 'YYYY-MM-DD HH:MM' = bar start, IST) of COMPLETED bars only, from an _hourly_with_str_date
+    1h frame. None when empty."""
+    if df1h is None or len(df1h) == 0:
+        return None
+    ts = pd.DatetimeIndex(pd.to_datetime(df1h["Date"].astype(str)))
+    cols = [c for c in ("Open", "High", "Low", "Close", "Volume") if c in df1h.columns]
+    r = resample_1h_to_4h_session(df1h[cols].set_axis(ts))
+    if r is None or len(r) == 0:
+        return None
+    now = pd.Timestamp(now_naive if now_naive is not None else ist_now().replace(tzinfo=None))
+    last = r.index[-1]
+    bar0 = (last.hour * 60 + last.minute) < NSE_SESSION_OPEN_MINUTE + 240
+    end = last.normalize() + (pd.Timedelta(hours=13, minutes=15) if bar0 else pd.Timedelta(hours=15, minutes=30))
+    need = last.normalize() + (pd.Timedelta(hours=12, minutes=15) if bar0 else pd.Timedelta(hours=15, minutes=15))
+    if now < end or ts[-1] < need:
+        r = r.iloc[:-1]  # still forming (or its last 1h bar is not in yet)
+    if "Volume" not in r.columns:
+        r = r.assign(Volume=0.0)
+    out = r.reset_index(drop=True)
+    out.insert(0, "Date", pd.DatetimeIndex(r.index).strftime("%Y-%m-%d %H:%M"))
+    return out
+
+
+def _island_4h_reprice(sig, k, entry_price=None):
+    """Re-sets the stop of a selector-tag signal with the cell's own ATR k (and an optional live entry price)."""
+    if not sig:
+        return None
+    px = float(sig["signal_close"] if entry_price is None else entry_price)
+    stop = brk20_stop_price(px, sig["atr_at_entry"], k, "long")
+    if not (0 < stop < px):
+        return None
+    return {**sig, "entry_price": px, "stop_loss": float(stop), "risk": px - stop, "atr_mult": k, "tf": "4h"}
+
+
+def _island_long_4h_signal(df4h, tag, entry_price=None):
+    """Signal of one ISLAND_LONG_4H_CELLS tag on the last completed 4h bar: the sweep's selector-tag detector, stop re-set
+    with the cell's own ATR k. None when no signal / unknown tag / invalid stop."""
+    cell = _ISLAND_4H_CELL.get(tag)
+    if cell is None or df4h is None or len(df4h) < 20:
+        return None
+    return _island_4h_reprice(island_swing_entry_signal(df4h, cell[0]), cell[1], entry_price)
+
+
+def _island_4h_entry_timing(bar_date: str, now) -> tuple:
+    """(enter?, skipped_* status) for a signal on the 4h bar stamped `bar_date` (see the block comment above)."""
+    if str(bar_date)[11:16] != "09:15":
+        return False, "skipped_4h_signal_after_close"
+    if str(bar_date)[:10] != now.strftime("%Y-%m-%d"):
+        return False, "skipped_4h_signal_stale"
+    mins = now.hour * 60 + now.minute
+    if not (ISLAND_4H_ENTRY_START_MIN <= mins < ISLAND_4H_ENTRY_END_MIN):
+        return False, "skipped_4h_entry_window_closed"
+    return True, ""
+
+
+def _island_long_4h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0, now=None) -> str | None:
+    """Opens at most one island 4h long position (first cell in PFnet order that fires). Detector runs once per filter per
+    completed 4h bar (cached); real mirror via _maybe_place_real_swing_entry (SL with the entry, viability, switch)."""
+    for tag in ISLAND_TFS_LONG_4H_TAGS:
+        _record_strategy_scan(tag)
+    now = now or ist_now()
+    df4h = _island_4h_completed_bars(df1h, now.replace(tzinfo=None))
+    if df4h is None or len(df4h) < 20:
+        return None
+    bar = str(df4h["Date"].iloc[-1])
+    hit = _ISLAND_4H_SIG_CACHE.get(symbol)
+    if hit is None or hit[0] != bar:
+        hit = (bar, {s: island_swing_entry_signal(df4h, s) for s in dict.fromkeys(s for _t, s, _k in ISLAND_LONG_4H_CELLS)})
+        _ISLAND_4H_SIG_CACHE[symbol] = hit
+    for tag, sel, k in ISLAND_LONG_4H_CELLS:
+        base = hit[1].get(sel)
+        if not base:
+            continue
+        ok, why = _island_4h_entry_timing(bar, now)
+        if not ok:
+            if (symbol, bar) not in _ISLAND_4H_SKIP_LOGGED:
+                if len(_ISLAND_4H_SKIP_LOGGED) > 5000:
+                    _ISLAND_4H_SKIP_LOGGED.clear()
+                _ISLAND_4H_SKIP_LOGGED.add((symbol, bar))
+                print(f"[SWING LONG 4h] {why} {symbol} ({tag}) signal bar {bar}")
+                try:
+                    _log_real_attempt(conn, symbol, "B", why, strategy=tag,
+                                      detail=f"island 4h signal on bar {bar}: entered only 13:15-15:00 IST on a bar-0 signal")
+                except Exception:
+                    pass
+            return None
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        live = _SWING_LIVE_PX.get(symbol)
+        sig = _island_4h_reprice(base, k, float(live) if live and float(live) > 0 else None)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, bar, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"], "tf": "4h",
+                         "signal_bar": bar, "signal_close": sig["signal_close"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 4h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f} bar {bar}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
+def _island_long_4h_exit(df4h, pos):
+    """(reason, exit_px) via brk20_min_rr_exit_reason long, replayed on every completed 4h bar after the signal bar
+    (entry_day = the signal bar's 4h Date; fill bar = the next 4h bar, matched by timestamp). Stop = the frozen
+    initial_stop_loss. None while open."""
+    if df4h is None or len(df4h) == 0:
+        return None
+    dates = df4h["Date"].astype(str).to_numpy()
+    idx = np.flatnonzero(dates <= str(pos["entry_day"]))
+    if len(idx) == 0 or int(idx[-1]) + 1 >= len(df4h):
+        return None
+    start = int(idx[-1]) + 1
+    fill = str(dates[start])
+    for j in range(start, len(df4h)):
+        r, px = brk20_min_rr_exit_reason(df4h.iloc[max(0, j - 399): j + 1], fill, float(pos["entry_price"]),
+                                         float(pos["initial_stop_loss"]), "long")
+        if r:
+            return "island_" + r, float(px)
+    return None
+
+
 def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
     """1h leg of the LONG swing engine: exits for open macddiv cells first, then entries. Hourly bars with the
     still-forming bar dropped. Never raises per symbol."""
@@ -29978,7 +30210,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
     for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS and pos["strategy"] not in BRK20_1H_LONG_CELLS) \
+            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS and pos["strategy"] not in BRK20_1H_LONG_CELLS
+                                    and pos["strategy"] not in ISLAND_TFS_LONG_4H_TAGS) \
                     or (pos is None and symbol in done_syms):
                 try:  # B-1275: another engine's position / done today: every 1h cell still scanned + trigger evaluated, no order
                     _df_scan = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
@@ -30001,6 +30234,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                     ex = _chan_kalman_long_1h_exit(df, pos)
                 elif pos["strategy"] in BRK20_1H_LONG_CELLS:
                     ex = _brk20_long_1h_exit(df, pos)
+                elif pos["strategy"] in ISLAND_TFS_LONG_4H_TAGS:
+                    ex = _island_long_4h_exit(_island_4h_completed_bars(df), pos)  # B-1600 (b): replay on 4h bars
                 else:
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
@@ -30012,7 +30247,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                 if _envelope_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1264
                     if _cup_cheat_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1266
                         if _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1465
-                            _brk20_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1471: LAST of the 1h chain
+                            if _brk20_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1471
+                                _island_long_4h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1600 (b): LAST
         except Exception as e:
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
@@ -32074,6 +32310,18 @@ def _swing_1h_entry_bar(df1h, opened_at: float):
     return str(done.iloc[-1]) if len(done) else None
 
 
+def _swing_4h_entry_bar(df1h, opened_at: float):
+    """B-1603: 'YYYY-MM-DD HH:MM' of the last session-4h bar that had COMPLETED when the real entry opened (the bar the
+    live 4h island leg stores as entry_day), else None."""
+    if df1h is None or len(df1h) == 0 or not opened_at:
+        return None
+    t = dt.datetime.utcfromtimestamp(float(opened_at)) + dt.timedelta(minutes=IST_OFFSET_MIN)
+    starts = pd.to_datetime(df1h["Date"].astype(str))
+    seen = df1h[(starts + pd.Timedelta(hours=1) <= pd.Timestamp(t)).to_numpy()]  # 1h bars completed at the fill
+    df4h = _island_4h_completed_bars(seen, t) if len(seen) else None
+    return str(df4h["Date"].astype(str).iloc[-1]) if df4h is not None and len(df4h) else None
+
+
 def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     """B-1381 (2026-10-27): a real swing holding opened by a 1h long cell (macddiv / envelope / cup-cheat) whose
     signal_state_swing row was lost (entries were never pushed to the Upstash mirror, so a restart before the next
@@ -32088,7 +32336,8 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     if _orphan_1h_state_last_day == today:
         return []
     fetch = fetch or fetch_ohlc
-    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS)
+    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS) \
+        | set(ISLAND_TFS_LONG_4H_TAGS)  # B-1603: 4h island long rides the 1h pass (entry_day = the 4h signal bar)
     orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
                if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
     if not orphans:
@@ -32110,6 +32359,8 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
         try:
             df = _hourly_with_str_date(fetch(sym, "60d", "1h"))
             entry_bar = _swing_1h_entry_bar(df, row["opened_at"])
+            if strat in ISLAND_TFS_LONG_4H_TAGS:  # B-1603: the 4h signal bar = last 4h bar completed at the real fill
+                entry_bar = _swing_4h_entry_bar(df, row["opened_at"])
         except Exception as e:
             print(f"[SWING LONG 1h] orphan state derivation failed for {sym}: {e}")
             continue
@@ -34835,7 +35086,7 @@ _SWING_SL_RULES = {
     **{_t: f"entry - {_a:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t, _a, _r in BRK20_LONG_SWING_CELLS},
     **{_t: f"entry - {_ISLAND_ATR_OF_TAG.get(_t, ISLAND_ATR_MULT):g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
-       for _t in ISLAND_ALL_TAGS},
+       for _t in ISLAND_ALL_TAGS + ISLAND_TFS_LONG_4H_TAGS},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
        for _t in SWINGMINRR_TAGS},
     **{_t: f"entry - {GAPFADE_ATR_MULT:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
@@ -34972,7 +35223,8 @@ def _strategy_hold_spec(tag):
         return MACDDIV_MAX_HOLD_BARS, tf
     if tag in SWINGMINRR_SHORT_1H_CELLS:
         return SWINGMINRR_GATE_SHORT_1H_MAX_HOLD, tf
-    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
+    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in ISLAND_TFS_LONG_4H_TAGS \
+            or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
         return BRK20_MAX_HOLD_BARS, tf
     if len(parts) >= 5:
         m = re.search(r"(?:^|_)(?:h|hold)(\d+)(?:_|$)", parts[4])

@@ -1,0 +1,1628 @@
+{
+ "run": "tasuki-tf-dir-sweep-replay.yml run 43701581391",
+ "cost_round_trip_pct": 0.8,
+ "source": "aggregate job log (artifact download 403)",
+ "note": "long = real fns on reciprocal-price frame mirror of the short rule; ETF and full universes; tag = registered `_tfs` name; printed_as = the name the sweep printed, with '__' written as '~' so it is not re-read as a tag",
+ "rows": [
+  {
+   "tag": "tasuki__gap_etf_tfs__long__15m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~15m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 45,
+    "pfnet": 0.0662,
+    "pfgross": 1.3981,
+    "win_pct": 6.67,
+    "avg_held_bars": 2.93,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 41,
+      "pfnet": 0.07850498293246978,
+      "win_pct": 7.32,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.25
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__15m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~15m~atr4_h3~v1",
+   "metrics": {
+    "n": 45,
+    "pfnet": 0.0673,
+    "pfgross": 1.5591,
+    "win_pct": 6.67,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 45,
+      "pfnet": 0.06733782916263648,
+      "win_pct": 6.67,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__15m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~15m~atr6_h3~v1",
+   "metrics": {
+    "n": 45,
+    "pfnet": 0.0673,
+    "pfgross": 1.5591,
+    "win_pct": 6.67,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 45,
+      "pfnet": 0.06733782916263648,
+      "win_pct": 6.67,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1d__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1d~atr2d5_h3~v1",
+   "metrics": {
+    "n": 77,
+    "pfnet": 0.2235,
+    "pfgross": 0.3846,
+    "win_pct": 40.26,
+    "avg_held_bars": 2.88,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 71,
+      "pfnet": 0.5689240866987387,
+      "win_pct": 43.66,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 6,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1d__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1d~atr4_h3~v1",
+   "metrics": {
+    "n": 77,
+    "pfnet": 0.2461,
+    "pfgross": 0.4311,
+    "win_pct": 40.26,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 76,
+      "pfnet": 0.44075085067584746,
+      "win_pct": 40.79,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1d__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1d~atr6_h3~v1",
+   "metrics": {
+    "n": 77,
+    "pfnet": 0.2461,
+    "pfgross": 0.4311,
+    "win_pct": 40.26,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 76,
+      "pfnet": 0.44075085067584746,
+      "win_pct": 40.79,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 144,
+    "pfnet": 0.089,
+    "pfgross": 1.3535,
+    "win_pct": 11.11,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 141,
+      "pfnet": 0.09581665826915359,
+      "win_pct": 11.35,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1h~atr4_h3~v1",
+   "metrics": {
+    "n": 144,
+    "pfnet": 0.0892,
+    "pfgross": 1.3578,
+    "win_pct": 11.11,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 143,
+      "pfnet": 0.09396539374577237,
+      "win_pct": 11.19,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__1h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~1h~atr6_h3~v1",
+   "metrics": {
+    "n": 144,
+    "pfnet": 0.0872,
+    "pfgross": 1.2522,
+    "win_pct": 11.11,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 143,
+      "pfnet": 0.09396539374577237,
+      "win_pct": 11.19,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__4h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~4h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 104,
+    "pfnet": 0.5873,
+    "pfgross": 1.6607,
+    "win_pct": 29.81,
+    "avg_held_bars": 2.97,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 97,
+      "pfnet": 0.8421524053485027,
+      "win_pct": 31.96,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 7,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.57
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__4h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~4h~atr4_h3~v1",
+   "metrics": {
+    "n": 104,
+    "pfnet": 0.6131,
+    "pfgross": 1.773,
+    "win_pct": 30.77,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 103,
+      "pfnet": 0.6455702944649525,
+      "win_pct": 31.07,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__4h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~4h~atr6_h3~v1",
+   "metrics": {
+    "n": 104,
+    "pfnet": 0.6166,
+    "pfgross": 1.7913,
+    "win_pct": 30.77,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 104,
+      "pfnet": 0.6166082248131611,
+      "win_pct": 30.77,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__5m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~5m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 114,
+    "pfnet": 0.0236,
+    "pfgross": 1.3338,
+    "win_pct": 3.51,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 109,
+      "pfnet": 0.025465598718805115,
+      "win_pct": 3.67,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 5,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.6
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__5m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~5m~atr4_h3~v1",
+   "metrics": {
+    "n": 114,
+    "pfnet": 0.0239,
+    "pfgross": 1.5295,
+    "win_pct": 3.51,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 113,
+      "pfnet": 0.024289282255411982,
+      "win_pct": 3.54,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__long__5m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~long~5m~atr6_h3~v1",
+   "metrics": {
+    "n": 114,
+    "pfnet": 0.0238,
+    "pfgross": 1.4729,
+    "win_pct": 3.51,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 113,
+      "pfnet": 0.024289282255411982,
+      "win_pct": 3.54,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__15m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~15m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 80,
+    "pfnet": 0.0208,
+    "pfgross": 1.3722,
+    "win_pct": 6.25,
+    "avg_held_bars": 2.9,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 73,
+      "pfnet": 0.025338775287291664,
+      "win_pct": 6.85,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 7,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.86
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__15m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~15m~atr4_h3~v1",
+   "metrics": {
+    "n": 80,
+    "pfnet": 0.0209,
+    "pfgross": 1.3877,
+    "win_pct": 6.25,
+    "avg_held_bars": 2.96,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 77,
+      "pfnet": 0.022712955114256125,
+      "win_pct": 6.49,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__15m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~15m~atr6_h3~v1",
+   "metrics": {
+    "n": 80,
+    "pfnet": 0.0206,
+    "pfgross": 1.304,
+    "win_pct": 6.25,
+    "avg_held_bars": 2.96,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 78,
+      "pfnet": 0.021934713775435134,
+      "win_pct": 6.41,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1d__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1d~atr2d5_h3~v1",
+   "metrics": {
+    "n": 83,
+    "pfnet": 1.2029,
+    "pfgross": 2.563,
+    "win_pct": 42.17,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 82,
+      "pfnet": 1.4558316237778164,
+      "win_pct": 42.68,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1d__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1d~atr4_h3~v1",
+   "metrics": {
+    "n": 83,
+    "pfnet": 1.2029,
+    "pfgross": 2.563,
+    "win_pct": 42.17,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 82,
+      "pfnet": 1.4558316237778164,
+      "win_pct": 42.68,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1d__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1d~atr6_h3~v1",
+   "metrics": {
+    "n": 83,
+    "pfnet": 1.2029,
+    "pfgross": 2.563,
+    "win_pct": 42.17,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 82,
+      "pfnet": 1.4558316237778164,
+      "win_pct": 42.68,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 145,
+    "pfnet": 0.1151,
+    "pfgross": 1.5095,
+    "win_pct": 15.86,
+    "avg_held_bars": 2.9,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 132,
+      "pfnet": 0.16635039512977562,
+      "win_pct": 17.42,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 13,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.85
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1h~atr4_h3~v1",
+   "metrics": {
+    "n": 145,
+    "pfnet": 0.1183,
+    "pfgross": 1.6474,
+    "win_pct": 15.86,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 143,
+      "pfnet": 0.12765218270500828,
+      "win_pct": 16.08,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__1h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~1h~atr6_h3~v1",
+   "metrics": {
+    "n": 145,
+    "pfnet": 0.1211,
+    "pfgross": 1.7927,
+    "win_pct": 15.86,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 145,
+      "pfnet": 0.12114511647167041,
+      "win_pct": 15.86,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__4h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~4h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 92,
+    "pfnet": 0.2312,
+    "pfgross": 0.6231,
+    "win_pct": 22.83,
+    "avg_held_bars": 2.88,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 78,
+      "pfnet": 0.41366664715063073,
+      "win_pct": 26.92,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 14,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.21
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__4h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~4h~atr4_h3~v1",
+   "metrics": {
+    "n": 92,
+    "pfnet": 0.2254,
+    "pfgross": 0.5991,
+    "win_pct": 22.83,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 89,
+      "pfnet": 0.24632827348544364,
+      "win_pct": 23.6,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__4h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~4h~atr6_h3~v1",
+   "metrics": {
+    "n": 92,
+    "pfnet": 0.221,
+    "pfgross": 0.5812,
+    "win_pct": 22.83,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 91,
+      "pfnet": 0.22930766918786105,
+      "win_pct": 23.08,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__5m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~5m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 121,
+    "pfnet": 0.0119,
+    "pfgross": 0.9933,
+    "win_pct": 2.48,
+    "avg_held_bars": 2.9,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 112,
+      "pfnet": 0.013675447256365502,
+      "win_pct": 2.68,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 9,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__5m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~5m~atr4_h3~v1",
+   "metrics": {
+    "n": 121,
+    "pfnet": 0.0189,
+    "pfgross": 1.2512,
+    "win_pct": 3.31,
+    "avg_held_bars": 2.95,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 117,
+      "pfnet": 0.02030729822550078,
+      "win_pct": 3.42,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf_tfs__short__5m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_etf~short~5m~atr6_h3~v1",
+   "metrics": {
+    "n": 121,
+    "pfnet": 0.0189,
+    "pfgross": 1.2043,
+    "win_pct": 3.31,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 118,
+      "pfnet": 0.019935088782075977,
+      "win_pct": 3.39,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__15m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~long~15m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 1040,
+    "pfnet": 0.1025,
+    "pfgross": 0.9214,
+    "win_pct": 10.38,
+    "avg_held_bars": 2.93,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 968,
+      "pfnet": 0.12267743258489634,
+      "win_pct": 11.16,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 70,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.99
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__15m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~long~15m~atr4_h3~v1",
+   "metrics": {
+    "n": 1040,
+    "pfnet": 0.1055,
+    "pfgross": 0.9674,
+    "win_pct": 10.48,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1017,
+      "pfnet": 0.11284295818767172,
+      "win_pct": 10.72,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 21,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.19
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__15m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~long~15m~atr6_h3~v1",
+   "metrics": {
+    "n": 1040,
+    "pfnet": 0.106,
+    "pfgross": 0.9812,
+    "win_pct": 10.48,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1033,
+      "pfnet": 0.10809468586212695,
+      "win_pct": 10.55,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 5,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.4
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1d__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1d~atr2d5_h3~v1",
+   "metrics": {
+    "n": 929,
+    "pfnet": 0.6346,
+    "pfgross": 0.9304,
+    "win_pct": 40.15,
+    "avg_held_bars": 2.97,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 886,
+      "pfnet": 0.8188833534550032,
+      "win_pct": 42.1,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 41,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.29
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1d__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1d~atr4_h3~v1",
+   "metrics": {
+    "n": 929,
+    "pfnet": 0.6598,
+    "pfgross": 0.9753,
+    "win_pct": 40.26,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 923,
+      "pfnet": 0.6988906490210844,
+      "win_pct": 40.52,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.67
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1d__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1d~atr6_h3~v1",
+   "metrics": {
+    "n": 929,
+    "pfnet": 0.6606,
+    "pfgross": 0.9767,
+    "win_pct": 40.26,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 925,
+      "pfnet": 0.6934454345410906,
+      "win_pct": 40.43,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.67
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 3479,
+    "pfnet": 0.2214,
+    "pfgross": 0.9451,
+    "win_pct": 17.51,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3378,
+      "pfnet": 0.24551489945810037,
+      "win_pct": 18.03,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 101,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1h~atr4_h3~v1",
+   "metrics": {
+    "n": 3479,
+    "pfnet": 0.2222,
+    "pfgross": 0.9485,
+    "win_pct": 17.53,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3462,
+      "pfnet": 0.22794594077978445,
+      "win_pct": 17.62,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 17,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.41
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__1h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~long~1h~atr6_h3~v1",
+   "metrics": {
+    "n": 3479,
+    "pfnet": 0.2219,
+    "pfgross": 0.9453,
+    "win_pct": 17.53,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3474,
+      "pfnet": 0.22410704351518174,
+      "win_pct": 17.56,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 5,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.2
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__4h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~long~4h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 1633,
+    "pfnet": 0.8008,
+    "pfgross": 1.4857,
+    "win_pct": 40.29,
+    "avg_held_bars": 2.97,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1558,
+      "pfnet": 1.0000204937988892,
+      "win_pct": 42.23,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 71,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.32
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__4h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~long~4h~atr4_h3~v1",
+   "metrics": {
+    "n": 1632,
+    "pfnet": 0.7978,
+    "pfgross": 1.4747,
+    "win_pct": 40.38,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1611,
+      "pfnet": 0.8535488099588447,
+      "win_pct": 40.91,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 17,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.82
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__4h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~long~4h~atr6_h3~v1",
+   "metrics": {
+    "n": 1632,
+    "pfnet": 0.8004,
+    "pfgross": 1.4817,
+    "win_pct": 40.38,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1623,
+      "pfnet": 0.8270908207146594,
+      "win_pct": 40.6,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 5,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.4
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__5m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~long~5m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 3240,
+    "pfnet": 0.0634,
+    "pfgross": 1.1588,
+    "win_pct": 7.28,
+    "avg_held_bars": 2.95,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3026,
+      "pfnet": 0.0726247966557395,
+      "win_pct": 7.77,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 212,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.2
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.9721470464691402,
+      "win_pct": 50.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__5m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~long~5m~atr4_h3~v1",
+   "metrics": {
+    "n": 3240,
+    "pfnet": 0.0634,
+    "pfgross": 1.1579,
+    "win_pct": 7.31,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3171,
+      "pfnet": 0.06663168348577221,
+      "win_pct": 7.44,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 67,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.12
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.9721470464691402,
+      "win_pct": 50.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__long__5m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~long~5m~atr6_h3~v1",
+   "metrics": {
+    "n": 3240,
+    "pfnet": 0.0634,
+    "pfgross": 1.1541,
+    "win_pct": 7.31,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3217,
+      "pfnet": 0.06439226539212224,
+      "win_pct": 7.34,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 21,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.14
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.9721470464691402,
+      "win_pct": 50.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__15m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~short~15m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 1102,
+    "pfnet": 0.1044,
+    "pfgross": 1.0406,
+    "win_pct": 13.61,
+    "avg_held_bars": 2.93,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1009,
+      "pfnet": 0.13447839863567032,
+      "win_pct": 14.87,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 92,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.12
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__15m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~short~15m~atr4_h3~v1",
+   "metrics": {
+    "n": 1102,
+    "pfnet": 0.1048,
+    "pfgross": 1.0514,
+    "win_pct": 13.61,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1067,
+      "pfnet": 0.11751858695426783,
+      "win_pct": 14.06,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 34,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.26
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__15m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~short~15m~atr6_h3~v1",
+   "metrics": {
+    "n": 1102,
+    "pfnet": 0.1077,
+    "pfgross": 1.0902,
+    "win_pct": 13.7,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1093,
+      "pfnet": 0.11094432632428797,
+      "win_pct": 13.82,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 8,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.25
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1d__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1d~atr2d5_h3~v1",
+   "metrics": {
+    "n": 1472,
+    "pfnet": 0.5281,
+    "pfgross": 0.8432,
+    "win_pct": 40.62,
+    "avg_held_bars": 2.96,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1390,
+      "pfnet": 0.726903555950653,
+      "win_pct": 43.02,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 80,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.27
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1d__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1d~atr4_h3~v1",
+   "metrics": {
+    "n": 1472,
+    "pfnet": 0.5436,
+    "pfgross": 0.8729,
+    "win_pct": 40.69,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1456,
+      "pfnet": 0.5829152272986025,
+      "win_pct": 41.14,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 14,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.43
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1d__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1d~atr6_h3~v1",
+   "metrics": {
+    "n": 1472,
+    "pfnet": 0.5435,
+    "pfgross": 0.8727,
+    "win_pct": 40.69,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1467,
+      "pfnet": 0.5546716759357827,
+      "win_pct": 40.83,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     },
+     "stop_hit": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 2255,
+    "pfnet": 0.25,
+    "pfgross": 1.1033,
+    "win_pct": 24.61,
+    "avg_held_bars": 2.95,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 2117,
+      "pfnet": 0.3279996384031754,
+      "win_pct": 26.22,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 137,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.12
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1h~atr4_h3~v1",
+   "metrics": {
+    "n": 2255,
+    "pfnet": 0.2555,
+    "pfgross": 1.1408,
+    "win_pct": 24.66,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 2218,
+      "pfnet": 0.2799812693346404,
+      "win_pct": 25.07,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 36,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.22
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__1h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~short~1h~atr6_h3~v1",
+   "metrics": {
+    "n": 2255,
+    "pfnet": 0.2585,
+    "pfgross": 1.1622,
+    "win_pct": 24.7,
+    "avg_held_bars": 3.0,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 2245,
+      "pfnet": 0.2681892950962114,
+      "win_pct": 24.81,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 9,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.33
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__4h__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~short~4h~atr2d5_h3~v1",
+   "metrics": {
+    "n": 1042,
+    "pfnet": 0.4637,
+    "pfgross": 0.8971,
+    "win_pct": 38.48,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 947,
+      "pfnet": 0.7168228624249515,
+      "win_pct": 42.24,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 92,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.34
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": 2.1079263256451584,
+      "win_pct": 33.33,
+      "avg_held_bars": 1.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__4h__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~short~4h~atr4_h3~v1",
+   "metrics": {
+    "n": 1042,
+    "pfnet": 0.4709,
+    "pfgross": 0.9033,
+    "win_pct": 38.87,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1018,
+      "pfnet": 0.5268480855445206,
+      "win_pct": 39.69,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 21,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.24
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": 2.1079263256451584,
+      "win_pct": 33.33,
+      "avg_held_bars": 1.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__4h__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~short~4h~atr6_h3~v1",
+   "metrics": {
+    "n": 1042,
+    "pfnet": 0.474,
+    "pfgross": 0.9112,
+    "win_pct": 38.87,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 1033,
+      "pfnet": 0.49131791489594884,
+      "win_pct": 39.11,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": 2.1079263256451584,
+      "win_pct": 33.33,
+      "avg_held_bars": 1.67
+     },
+     "stop_hit": {
+      "n": 6,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__5m__atr2d5_h3__v1",
+   "printed_as": "tasuki~gap_full~short~5m~atr2d5_h3~v1",
+   "metrics": {
+    "n": 3281,
+    "pfnet": 0.0332,
+    "pfgross": 1.3222,
+    "win_pct": 5.12,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3056,
+      "pfnet": 0.03885490554727641,
+      "win_pct": 5.5,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 225,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.07
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__5m__atr4_h3__v1",
+   "printed_as": "tasuki~gap_full~short~5m~atr4_h3~v1",
+   "metrics": {
+    "n": 3281,
+    "pfnet": 0.0339,
+    "pfgross": 1.3183,
+    "win_pct": 5.27,
+    "avg_held_bars": 2.98,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3191,
+      "pfnet": 0.03661836418568506,
+      "win_pct": 5.42,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 90,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.16
+     }
+    }
+   }
+  },
+  {
+   "tag": "tasuki__gap_full_tfs__short__5m__atr6_h3__v1",
+   "printed_as": "tasuki~gap_full~short~5m~atr6_h3~v1",
+   "metrics": {
+    "n": 3281,
+    "pfnet": 0.0354,
+    "pfgross": 1.3272,
+    "win_pct": 5.36,
+    "avg_held_bars": 2.99,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 3240,
+      "pfnet": 0.03703705291781246,
+      "win_pct": 5.43,
+      "avg_held_bars": 3.0
+     },
+     "stop_hit": {
+      "n": 41,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.15
+     }
+    }
+   }
+  }
+ ]
+}

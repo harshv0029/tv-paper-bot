@@ -1,0 +1,141 @@
+{
+ "run": "chan-gap-tf-sweep.yml run 43705156877 (interval=1h, window_days=60, B-1602)",
+ "interval": "1h",
+ "period": "730d, trade days in the last 60 calendar days",
+ "cost_round_trip_pct": 0.8,
+ "source": "merge job log (artifact download 403)",
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr1d5_top10_w60d__v1",
+   "metrics": {
+    "n": 35,
+    "pfnet": 0.7879,
+    "pfgross": 1.51,
+    "win_pct": 34.29,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 34,
+      "pfnet": 0.9358243860032888,
+      "win_pct": 35.29,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr2d5_top10_w60d__v1",
+   "metrics": {
+    "n": 35,
+    "pfnet": 0.838,
+    "pfgross": 1.658,
+    "win_pct": 34.29,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 35,
+      "pfnet": 0.8379800133056335,
+      "win_pct": 34.29,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr4d0_top10_w60d__v1",
+   "metrics": {
+    "n": 35,
+    "pfnet": 0.838,
+    "pfgross": 1.658,
+    "win_pct": 34.29,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 35,
+      "pfnet": 0.8379800133056335,
+      "win_pct": 34.29,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr1d5_top10_w60d__v1",
+   "metrics": {
+    "n": 91,
+    "pfnet": 1.1445,
+    "pfgross": 2.4086,
+    "win_pct": 56.04,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 84,
+      "pfnet": 2.09986128284677,
+      "win_pct": 60.71,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 7,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr2d5_top10_w60d__v1",
+   "metrics": {
+    "n": 91,
+    "pfnet": 1.0898,
+    "pfgross": 2.246,
+    "win_pct": 56.04,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 88,
+      "pfnet": 1.5589747429742453,
+      "win_pct": 57.95,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr4d0_top10_w60d__v1",
+   "metrics": {
+    "n": 91,
+    "pfnet": 1.0787,
+    "pfgross": 2.2139,
+    "win_pct": 56.04,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 90,
+      "pfnet": 1.2284825754333035,
+      "win_pct": 56.67,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  }
+ ]
+}
