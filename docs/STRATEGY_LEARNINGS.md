@@ -2185,3 +2185,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - 60 cells (long + reciprocal-price short, 1d/4h/1h/15m/5m, ATR 1.5/2.5/4, hold 5/10), real main.py functions, full universe, 0.8% cost: all fail. Best long 1d atr4 hold10 PFnet 0.901; 4h 0.64-0.72; intraday 0.15-0.4; short never above 0.65.
 - PFnet rises with candle size and with the wider stop, so the cost-per-trade drag dominates the shorter candles. The momentum shape has no edge after cost below the daily candle, and not enough on it.
 - Profit-booking / exit takeaway: most chan_shape exits are the max-hold timeout (well under 1.0 PFnet) or the stop (0); the shape rarely runs far enough within 10 bars to pay 0.8%. A time exit on a weak signal books the cost, not a profit.
+
+## 2026-11-15 IST: B-1600 (b) island long 4h wiring and the bar-1 problem
+- 12 island long 4h cells (PFnet 1.34-1.99, main.py-function sweep 43692422951) wired. NSE 4h bars are session-anchored: bar 0 09:15-13:15, bar 1 13:15-15:30. A bar-1 signal is only known at the 15:30 close, after the exchange cancels resting orders (15:15), so live can trade only bar-0 signals; a bar-0-only replay is owed (B-1603).
+- The B-1600 (c) 1d _tfs cells were silently unable to take real entries (unmapped registry name, fail-closed). A wiring test must check the viability path returns a real decision, not only that the tag is in the entry chain.
+- Profit-booking / exit takeaway: the 4h exit is the same brk20 long exit (stop, EMA13 rule, 30-bar hold = 15 sessions); a frozen SL from entry means a 4h trade's worst case is fixed at k x 4h-ATR, smaller than the 1d stop for the same k.
