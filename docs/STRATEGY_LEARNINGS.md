@@ -2269,3 +2269,9 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Elder Directional System DI13 at 1h (run 43735474064, 2513 symbols): all 192 cells fail, pooled best 0.60. The daily dirsys cells already failed OOS; at 1h they lose more to cost.
 - At 15m (runs 43736692561 / 43736695008, 2681 symbols) and 5m (runs 43738631635 / 43738634380, 2684) both families fail outright: Elder ge11 pooled best 0.235 / 0.132, dirsys13 best 0.444 / 0.245. PFnet roughly halves with each step down in bar size.
 - Profit-booking / exit takeaway: a gap fade on 4h bars holds about 3.5 bars (two sessions), and over that window the 0.8% round trip takes the whole fade. Only the daily version, which holds days, has room for the exit to book a move bigger than cost.
+
+### 2026-11-15 IST: Elder gap-fade 1d, strict-FIFO validation (B-850, run 43739717415)
+- One position per symbol per cell, 2361 symbols, 5 years, 0.8% cost. 12 long gap-fade cells keep pooled PFnet > 1.00: exhaust_fade nb5 1.16-1.18 (n4406), common_fade nb5 1.09-1.12 (n5424), nb3 1.04-1.09 (n6949), nb4 1.01-1.05. MACD hist_exhaust and every short fail.
+- Out of sample the split widens: exhaust_fade drops to 0.78, while common_fade nb5 holds at 1.05. The common (low-volume) gap is the steadier fade; the high-volume exhaustion gap did its best work in the early years.
+- Elder dirsys13 at 4h (run 43739720015) fails too: best 0.747.
+- Profit-booking / exit takeaway: the gap fade books its move in about 3.4 days through the rule exit (high below the prior high). Waiting longer for the gap to fill (nb5 vs nb3) raises PFnet, and a wider stop (3 ATR) beats a tight one in every cell.

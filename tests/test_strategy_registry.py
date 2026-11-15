@@ -152,7 +152,7 @@ def test_is_viable_false_for_every_short_sell_candidate():
     shorts = sr.strategies_by_category(sr.TradeCategory.SHORT_SELL)
     assert shorts, "expected at least one registered short-sell strategy"
     # 2026-10-10: sector_rotation sweep cells (B-336) are the only viable shorts; research-only.
-    assert all(s.is_viable() is False for s in shorts if not (lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n or n.startswith('oneil_flatbase__breakout__short__1w')) and '__short__' in n) or '_tfs__short__' in n)(s.name))  # 2026-11-15 B-1600: island main.py-sweep shorts, research-only, wiring awaits user review
+    assert all(s.is_viable() is False for s in shorts if not (lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n or n.startswith('oneil_flatbase__breakout__short__1w')) and '__short__' in n) or '_tfs__short__' in n or ('_seg' in n and n.endswith('__v3')))(s.name))  # 2026-11-15 B-850: ge11 IS/OOS/bull/bear SEGMENT rows (research harness; pooled shorts all fail)  # 2026-11-15 B-1600: island main.py-sweep shorts, research-only, wiring awaits user review
 
 
 def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_registry():
