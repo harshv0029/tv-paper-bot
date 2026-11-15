@@ -40,7 +40,10 @@ def build():
                     source="scripts/chan_gap_tf_sweep.py",
                     evidence=(f"{ref}: raw docs/backtest_data/{os.path.basename(fn)}: PFnet {m['pfnet']}, gross {m['pfgross']}, "
                               f"win {m['win_pct']}%, n={m['n']}; exits {json.dumps(m.get('exit_reasons'), separators=(',', ':'))}"),
-                    notes=("PFnet>1.00 on the main.py-function sweep; wiring owed (show the user first)." if float(m["pfnet"]) > 1.0
+                    notes=("B-1604 ARTIFACT, never wire: exit at the dividend-ADJUSTED daily close vs an unadjusted intraday entry "
+                           "(yfinance auto_adjust=True adjusts daily bars only); short and long both shift toward a lower exit price."
+                           if "_xd1530" in tag and "_rawd" not in tag else
+                           "PFnet>1.00 on the main.py-function sweep; wiring owed (show the user first)." if float(m["pfnet"]) > 1.0
                            else "Fails PFnet>1.00 after 0.8% cost at this candle size; not wired. Small n (yfinance intraday cap).")))
             except Exception:
                 continue

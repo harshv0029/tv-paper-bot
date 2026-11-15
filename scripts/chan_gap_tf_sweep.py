@@ -48,11 +48,33 @@ def window_days():
     return int(v) if v else None
 
 
-def tag_for(direction, interval, mult, window=None, xd=False):
+def tag_for(direction, interval, mult, window=None, xd=False, raw=False):
     k = ("%.1f" % mult).replace(".", "d")
     w = f"_w{window}d" if window else ""
     x = "_xd1530" if xd else ""
-    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}{x}__v1"
+    r = "_rawd" if raw else ""
+    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}{r}{x}__v1"
+
+
+def raw_daily():
+    """B-1604: RAW_DAILY=1 fetches daily AND intraday bars with auto_adjust=False (unadjusted exchange prices).
+    data_fetch.fetch_ohlc uses yfinance's default auto_adjust=True, which back-adjusts DAILY bars for dividends but
+    leaves Yahoo intraday bars unadjusted, so over a 730d window the daily history (gap filter, 15:30 close) sits
+    below the intraday open the replay enters at. Tags get _rawd so the adjusted runs stay distinct rows."""
+    return os.environ.get("RAW_DAILY", "").strip() == "1"
+
+
+def fetch_raw(symbol, period, interval):
+    """Unadjusted OHLC, same frame shape as data_fetch.fetch_ohlc (Date column, flat columns, NaN rows dropped)."""
+    import yfinance as yf
+    df = yf.download(symbol, period=period, interval=interval, progress=False, threads=False, auto_adjust=False)
+    if df is None or df.empty:
+        return None
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    df = df.reset_index()
+    df = df.rename(columns={("Date" if "Date" in df.columns else "Datetime"): "Date"}).drop(columns=["Adj Close"], errors="ignore")
+    return df.dropna(subset=["Open", "High", "Low", "Close"]).reset_index(drop=True)
 
 
 def paired_daily_close():
@@ -108,6 +130,7 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
     out = []
     win = window_days()
     pair = paired_daily_close() and interval != "1d"
+    raw = raw_daily()
     start = (pd.Timestamp.now(tz="Asia/Kolkata").normalize() - pd.Timedelta(days=win)).strftime("%Y-%m-%d") if win else ""
     for d in sorted(days):
         if d < start:
@@ -117,7 +140,9 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
         if k < NEED or bars.empty:
             continue
         o = float(bars["Open"].iloc[0])
-        dclose = float(daily["Close"].iloc[k]) if k < len(ddates) and ddates[k] == d else None
+        same = k < len(ddates) and ddates[k] == d
+        dclose = float(daily["Close"].iloc[k]) if same else None
+        dopen_ratio = float(daily["Open"].iloc[k]) / o if same and o > 0 else None  # B-1604 diagnostic: ~1.0 when consistent
         hist = daily.iloc[max(0, k - LOOKBACK):k]
         sig = m.chan_gap_entry_signal(hist, o, direction, atrs[0])
         if not sig:
@@ -128,10 +153,10 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
             if not sg:
                 continue
             walk = day_walk(m, bars, o, sg["stop_loss"], direction, interval)
-            res[tag_for(direction, interval, mult, win)] = list(walk)
+            res[tag_for(direction, interval, mult, win, raw=raw)] = list(walk)
             if pair and dclose is not None:  # B-1604: same trade, exit at the 15:30 daily close unless stopped by 15:15
-                res[tag_for(direction, interval, mult, win, xd=True)] = list(walk) if walk[0] == "stop" else ["close", dclose]
-        out.append((d, {k2: sig[k2] for k2 in ("entry_price", "score", "gap")}, res))
+                res[tag_for(direction, interval, mult, win, xd=True, raw=raw)] = list(walk) if walk[0] == "stop" else ["close", dclose]
+        out.append((d, {**{k2: sig[k2] for k2 in ("entry_price", "score", "gap")}, "dopen_ratio": dopen_ratio}, res))
     return out
 
 
@@ -168,8 +193,9 @@ def load_pairs(m, interval, shard, nshards, limit=None):
     out = {}
     for s in syms:
         try:
-            daily = m.fetch_ohlc(s, "5y", "1d")
-            intr = daily_as_intraday(daily) if interval == "1d" else m.fetch_ohlc(s, PERIOD_BY_INTERVAL[interval], interval)
+            fetch = fetch_raw if raw_daily() else m.fetch_ohlc
+            daily = fetch(s, "5y", "1d")
+            intr = daily_as_intraday(daily) if interval == "1d" else fetch(s, PERIOD_BY_INTERVAL[interval], interval)
         except Exception:
             continue
         if daily is None or intr is None or len(daily) < NEED + 3 or len(intr) < 10:
@@ -220,13 +246,21 @@ def merge(d, out_path=None):
     for (direction, interval), g in sorted(groups.items()):
         cost = g["meta"]["cost_round_trip_pct"] / 100.0
         aggs = {t: br.agg_new() for t in sorted(g["tags"])}
+        ratios = []
         for date in sorted(g["by_date"]):
             day = g["by_date"][date]
             for s in m.chan_gap_select_top({s: c["sig"] for s, c in day.items()}, direction, g["meta"]["top_n"]):
                 ep = day[s]["sig"]["entry_price"]
+                if day[s]["sig"].get("dopen_ratio"):
+                    ratios.append(day[s]["sig"]["dopen_ratio"])
                 for t, v in day[s]["res"].items():
                     gross = (v[1] - ep) / ep if direction == "long" else (ep - v[1]) / ep
                     br.agg_add(aggs[t], [{"gross": gross, "net": gross - cost, "held": 1, "reason": v[0]}])
+        if ratios:  # B-1604: daily Open / intraday first-bar open on the traded days (1.0 = same price basis)
+            rr = np.array(ratios)
+            print("DOPEN_RATIO", direction, interval, "n", len(rr), "median", round(float(np.median(rr)), 5),
+                  "p10", round(float(np.percentile(rr, 10)), 5), "p90", round(float(np.percentile(rr, 90)), 5),
+                  "frac_off_0.5pct", round(float(np.mean(np.abs(rr - 1) > 0.005)), 4))
         for t, a in aggs.items():
             mt = br.agg_metrics(a)
             mt["avg_held_hours"] = round(mt["avg_held_bars"] * HOURS_PER_SESSION, 1)

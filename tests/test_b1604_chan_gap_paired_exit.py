@@ -49,3 +49,20 @@ def test_unpaired_has_no_twins(tmp_path, monkeypatch):
 def test_paired_ignored_on_1d(tmp_path, monkeypatch):
     cands = _run(tmp_path, monkeypatch, "1", "1d")
     assert not any(t.endswith("_xd1530__v1") for c in cands for t in c["res"])
+
+
+def test_rawd_tag_grammar():
+    from scripts import chan_gap_tf_sweep as cg
+    assert cg.tag_for("short", "1h", 2.5, raw=True) == "chan_gap__short_on_gap__short__1h__atr2d5_top10_rawd__v1"
+    assert cg.tag_for("short", "1h", 2.5, raw=True, xd=True) == "chan_gap__short_on_gap__short__1h__atr2d5_top10_rawd_xd1530__v1"
+
+
+def test_rawd_env_switches_tags_and_records_dopen_ratio(monkeypatch):
+    import main as m
+    from scripts import chan_gap_tf_sweep as cg
+    monkeypatch.setenv("RAW_DAILY", "1")
+    daily, intr = cg.synthetic_pair(3, "1h")
+    out = cg.day_candidates(m, daily, intr, "short", "1h", (2.5,)) + cg.day_candidates(m, daily, intr, "long", "1h", (2.5,))
+    for _d, sig, res in out:
+        assert all("_rawd" in t for t in res)
+        assert sig["dopen_ratio"] is None or sig["dopen_ratio"] > 0
