@@ -2109,3 +2109,8 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - 246 cells (consol 78, trendline 60, reversal 60, bars 48) on the full NSE universe (10,832 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.474 (trendline channel short atr3).
 - consol__tri_desc, the 1h and 1d winner (1h long 1.37-1.42, 1d long 1.22-1.27), collapses on 15m: long 0.03-0.07, short 0.12-0.21, n=14-45. The 60-day window gives too few triangles, and 15m costs eat the edge. Treat tri_desc as a 1h+ pattern; B-1597's main.py replay should focus on 1d/1h and include 15m only for completeness.
 - Profit-booking / exit takeaway: on 15m most exits are rule_exit with tiny average moves, so the 0.8% round trip dominates. Pattern exits need a 1h+ hold to clear costs.
+
+### 2026-11-15 IST — Elder trend-context 1h/730d (run 43681690093)
+- 210 regime / MA / oscillator cells, full NSE universe file (7,608 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.728 (regime__wk_align_counter long atr3_wk13, n=86k). The 1d run 38209280422 also had 0 passes (best 0.984).
+- Gross PF 1.2+ on the best cells, but the cost drag is huge at n=86k over 2 years: these rules trade too often on 1h. The weekly-alignment filter is the only family near break-even, on both timeframes.
+- Profit-booking / exit takeaway: rule_exit dominates (about 87% of exits), so these context rules cut winners early. A context filter belongs as a gate on a separate entry engine with its own wider exit, not as a standalone trade rule.
