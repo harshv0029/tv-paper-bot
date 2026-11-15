@@ -125,6 +125,7 @@ def test_status_endpoint_reports_stale_true_when_never_checked():
     _fresh_db()
     result = main.real_protection_status()
     assert isinstance(result.pop("exchange_purge_window"), bool)
+    result.pop("broker_outage", None)  # B-1557
     assert result == {"checked_at": None, "unprotected_positions": [], "stale": True}
 
 

@@ -2324,9 +2324,10 @@ function renderUnprotectedBanner(status) {
     el.textContent = `ℹ No resting stop-loss overnight (expected): the exchange cancels all standing orders at 15:15 IST. SLs are re-placed at the 9:15 AM IST open — ${pn}.`;
     return;
   }
+  const outage = status?.broker_outage?.active ? ` ⚠ BROKER OUTAGE: Kotak is refusing orders (${status.broker_outage.last_detail || "adapter down"}); SL retries backed off to ${status.broker_outage.sl_retry_backoff_s}s per symbol until the first accepted order.` : "";
   if (unprotected.length > 0) {
     const names = unprotected.map(u => `${u.kotak_trading_symbol} (qty ${u.qty}${u.is_short ? ", short" : ""})`).join(", ");
-    el.textContent = `⚠ NO STOP-LOSS: ${unprotected.length} open real position(s) have no live stop-loss order at Kotak right now — ${names}. Real money, no downside protection.`;
+    el.textContent = `⚠ NO STOP-LOSS: ${unprotected.length} open real position(s) have no live stop-loss order at Kotak right now — ${names}. Real money, no downside protection.` + outage;
   } else {
     el.textContent = "⚠ Stop-loss protection status unknown — the last backcheck against Kotak's own order book is stale or hasn't run yet. Not a confirmed all-clear.";
   }

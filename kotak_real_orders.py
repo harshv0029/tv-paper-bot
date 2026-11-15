@@ -325,16 +325,106 @@ def _report_send(leg: str, purpose: str, trdsym, res, order_id_hint=None) -> Non
         print(f"[order_log] B-1448 send report failed (non-fatal): {e}")
 
 
+# B-1557 (2026-11-10 live: Kotak "ADAPTER is down" on every order 09:15-15:15 IST; ~5,600 SL retries, ~every 30 s per
+# symbol, tripped Kotak's login throttle "too many request received"). A broker-wide outage = the outage marker on
+# sends for >= BROKER_OUTAGE_MIN_SYMBOLS distinct symbols within BROKER_OUTAGE_WINDOW_S with no successful send since.
+# While it lasts, a stop-loss send for a symbol that itself hit the marker < BROKER_OUTAGE_SL_BACKOFF_S ago is not sent
+# (60 s, well inside the 5-min protection guarantee). Every symbol's first attempt is always sent, and the first
+# accepted send of any kind clears the outage at once (normal cadence resumes).
+BROKER_OUTAGE_MARKERS = ("adapter is down", "too many request")
+BROKER_OUTAGE_MIN_SYMBOLS = 2
+BROKER_OUTAGE_WINDOW_S = 300.0
+BROKER_OUTAGE_SL_BACKOFF_S = 60.0
+_SL_LEGS = ("sl", "short_sl", "fo_sl")
+_OUTAGE_FAILS: dict = {}   # trdSym -> ts of its latest outage-marker failure
+_OUTAGE_STATE: dict = {"since": None, "skipped": 0, "last_detail": None}
+
+
+def _is_outage_detail(res) -> bool:
+    if not isinstance(res, dict) or res.get("ok"):
+        return False
+    d = str(res.get("detail") or "").lower()
+    return any(m in d for m in BROKER_OUTAGE_MARKERS)
+
+
+def broker_outage_active(now=None) -> bool:
+    now = time.time() if now is None else now
+    return sum(1 for t in _OUTAGE_FAILS.values() if now - t <= BROKER_OUTAGE_WINDOW_S) >= BROKER_OUTAGE_MIN_SYMBOLS
+
+
+def broker_outage_status() -> dict:
+    """Read-only state for /real-protection-status and the dashboard banner."""
+    active = broker_outage_active()
+    return {"active": active, "since_ts": _OUTAGE_STATE["since"] if active else None,
+            "symbols": sorted(_OUTAGE_FAILS) if active else [], "sl_sends_backed_off": _OUTAGE_STATE["skipped"],
+            "last_detail": _OUTAGE_STATE["last_detail"] if active else None,
+            "sl_retry_backoff_s": BROKER_OUTAGE_SL_BACKOFF_S}
+
+
+def _outage_note(trdsym, res) -> None:
+    if not isinstance(res, dict):
+        return
+    if res.get("ok"):
+        if _OUTAGE_FAILS or _OUTAGE_STATE["since"]:
+            if _OUTAGE_STATE["since"]:
+                print(f"[REAL] B-1557 broker outage CLEARED: {trdsym} send accepted; SL retries back to normal cadence")
+            _OUTAGE_FAILS.clear()
+            _OUTAGE_STATE.update(since=None, skipped=0, last_detail=None)
+        return
+    if not _is_outage_detail(res):
+        return
+    was = broker_outage_active()
+    _OUTAGE_FAILS[str(trdsym)] = time.time()
+    _OUTAGE_STATE["last_detail"] = str(res.get("detail") or "")[:200]
+    if not was and broker_outage_active():
+        _OUTAGE_STATE["since"] = time.time()
+        msg = (f"BROKER-WIDE OUTAGE: Kotak refused sends for {len(_OUTAGE_FAILS)} symbols "
+               f"({_OUTAGE_STATE['last_detail'][:80]}); SL retries per symbol backed off to {int(BROKER_OUTAGE_SL_BACKOFF_S)}s")
+        print(f"[REAL] B-1557 {msg}")
+        sink = _SEND_SINK
+        if sink is not None:
+            try:
+                sink({"symbol": None, "kotak_trading_symbol": None, "leg": "broker", "event": "broker_outage_detected",
+                      "order_id": None, "new_state": "outage", "detail": _OUTAGE_STATE["last_detail"],
+                      "reason": msg, "immediate": True, "ts": time.time()})
+            except Exception as e:  # noqa: BLE001
+                print(f"[order_log] B-1557 outage report failed (non-fatal): {e}")
+
+
+def _outage_backoff_result(leg: str, trdsym):
+    """A not-sent result for an SL send during a broker-wide outage, or None to send normally."""
+    if leg not in _SL_LEGS or not trdsym:
+        return None
+    last = _OUTAGE_FAILS.get(str(trdsym))
+    if last is None or not broker_outage_active():
+        return None
+    wait = BROKER_OUTAGE_SL_BACKOFF_S - (time.time() - last)
+    if wait <= 0:
+        return None
+    _OUTAGE_STATE["skipped"] += 1
+    return {"ok": False, "order_id": None, "action": "skipped_broker_outage_backoff",
+            "detail": f"B-1557: broker-wide outage ({_OUTAGE_STATE['last_detail'] or 'adapter down'}); "
+                      f"SL retry for {trdsym} backed off {int(wait)}s more (not sent)", "raw_response": None}
+
+
 def _records_send(leg: str, purpose: str):
     """Decorator for every function that sends one order to Kotak (first positional arg = the trading symbol,
-    or the order id for a cancel). Reports the returned outcome; never changes the result or what is sent."""
+    or the order id for a cancel). Reports the returned outcome; never changes the result or what is sent
+    (B-1557 exception: during a broker-wide outage an SL resend for a symbol that just hit it waits 60 s)."""
     import functools
 
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
-            res = fn(*args, **kwargs)
             first = args[0] if args else (kwargs.get("kotak_trading_symbol") or kwargs.get("order_id"))
+            skip = _outage_backoff_result(leg, first)
+            if skip is not None:
+                return skip
+            res = fn(*args, **kwargs)
+            try:
+                _outage_note(first if leg != "cancel" else "cancel", res)
+            except Exception as e:  # noqa: BLE001 - never break an order path
+                print(f"[REAL] B-1557 outage tracking failed (non-fatal): {e}")
             if leg == "cancel":
                 _report_send(leg, purpose, None, res, order_id_hint=str(first) if first else None)
             else:
@@ -1210,6 +1300,7 @@ def stop_placeable_for_entry(kotak_trading_symbol: str, stop: float, ltp: float)
 # stop above) the position's entry-day stop. main.py registers the provider; fn(kotak_trading_symbol, side) -> float or
 # None. Never loosens a stop: it only raises a long trigger / lowers a short one.
 _STOP_FLOOR_PROVIDER = None
+_CLOSED_CHECKED = threading.local()  # B-1581: set while ensure_resting_sl has run the closed-position check
 _FLOOR_BYPASS = threading.local()  # B-1367: set only around ensure_resting_sl's restore of a just-cancelled stop
 
 
@@ -1350,12 +1441,99 @@ def _before_equity_open() -> bool:
     return n.hour * 60 + n.minute < 9 * 60 + 15
 
 
+def today_open_close_qty(rows, kotak_trading_symbol: str, close_side: str = "S") -> tuple:
+    """B-1581: (opened, closed) quantities on `kotak_trading_symbol` in today's Kotak order book (it only holds today's
+    orders). opened = filled qty of COMPLETE orders on the opening side ("B" for a long); closed = filled qty of
+    COMPLETE orders on `close_side` (any price type: a triggered SL fills as L) plus still-working MARKET closes (an
+    exit in flight)."""
+    open_side = "B" if close_side == "S" else "S"
+    opened = closed = 0
+    for r in rows or []:
+        if not isinstance(r, dict) or r.get("trdSym") != kotak_trading_symbol:
+            continue
+        st = str(r.get("ordSt", r.get("stat", ""))).strip().lower()
+        side = str(r.get("trnsTp", "")).upper()
+        try:
+            q = int(float(r.get("qty") or 0))
+            filled = int(float(r.get("fldQty") or 0)) or (q if st == "complete" else 0)
+        except (TypeError, ValueError):
+            continue
+        if st == "complete":
+            if side == open_side:
+                opened += filled
+            elif side == close_side:
+                closed += filled
+        elif (side == close_side and st not in _TERMINAL_ORDER_STATUSES
+              and str(r.get("prcTp", "")).upper() in ("MKT", "MARKET")):
+            closed += max(q, filled)
+    return opened, closed
+
+
+def _holdings_gross_qty(kotak_trading_symbol: str):
+    """Delivery qty Kotak's holdings() lists for the symbol, NOT netted: holdings() keeps a share sold today until
+    T+1 (B-303), so this is the start-of-day holding. None when holdings() cannot be read."""
+    try:
+        resp = kotak_neo.holdings()
+        hrows = resp.get("data") if isinstance(resp, dict) else None
+        if not isinstance(hrows, list):
+            return None
+    except Exception:  # noqa: BLE001
+        return None
+    total = 0
+    for h in hrows:
+        try:
+            if (isinstance(h, dict) and h.get("exchangeSegment") == "nse_cm"
+                    and f"{h.get('symbol')}-{h.get('series') or 'EQ'}" == kotak_trading_symbol):
+                total += int(float(h.get("quantity") or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _position_already_closed(kotak_trading_symbol: str, qty: int, close_side: str, rows=None):
+    """B-1581 (NMDC 13-Nov-2026: the swing rule-exit SELL was confirmed 09:18:57 IST, then the 5-min swing backfill
+    sent a fresh SELL SL at 09:19:05 that Kotak rejected "Check T1 holdings ... Used:12, Available:6"; the local row
+    still existed because the exit was in flight, and holdings() lists sold shares until T+1). Guard run before any
+    NEW stop order, from Kotak's own data: remaining = start-of-day delivery holding (longs only) + today's opening
+    fills - today's closes (complete, or a market exit still working). Returns a skip result when remaining <= 0,
+    else None. Fails OPEN (None) whenever a Kotak read fails: protecting a held position beats skipping it."""
+    if rows is None:
+        try:
+            rows = order_rows_from_report(kotak_neo.login().order_report())
+        except Exception:  # noqa: BLE001
+            return None
+        if rows is None:
+            return None
+    opened, closed = today_open_close_qty(rows, kotak_trading_symbol, close_side)
+    if closed <= 0:
+        return None  # nothing closed today: the common case, no extra Kotak call
+    start = 0
+    if close_side == "S":
+        start = _holdings_gross_qty(kotak_trading_symbol)
+        if start is None:
+            return None
+    remaining = start + opened - closed
+    if remaining > 0:
+        return None  # e.g. a staged/partial exit: the rest is still held and must stay protected
+    return {"ok": False, "order_id": None, "action": "skipped_position_closed",
+            "detail": (f"B-1581: Kotak shows {kotak_trading_symbol} already "
+                       f"{'sold' if close_side == 'S' else 'bought back'}/exiting today (start-of-day holding "
+                       f"{start} + opened {opened} - closed {closed} = {remaining}; asked qty {qty}); no new stop "
+                       "on a closed position"),
+            "raw_response": None}
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "CNC") -> dict:
     if _before_equity_open():
         # Same failure shape as a Kotak reject, so callers behave exactly as before, minus the doomed order.
         return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
                 "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
     with _sl_symbol_lock(kotak_trading_symbol):
+        if not getattr(_CLOSED_CHECKED, "on", False):  # ensure_resting_sl already checked this same book
+            skip = _position_already_closed(kotak_trading_symbol, qty, "S")
+            if skip is not None:
+                skip["trigger_price"] = trigger_price
+                return skip
         res = _place_real_stop_loss_unlocked(kotak_trading_symbol, qty, trigger_price, **_product_kw(product))
         if res.get("ok") and res.get("order_id"):
             _RECENT_SL_PLACED[kotak_trading_symbol] = {"order_id": str(res["order_id"]), "qty": int(qty),
@@ -1538,6 +1716,11 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
         if row.get("trdSym") == kotak_trading_symbol and is_triggered_stop_row(row, "S"):
             return {"ok": True, "order_id": str(row.get("nOrdNo")), "trigger_price": float(row.get("trgPrc") or 0),
                     "action": "stop_triggered_exit_working", "raw_response": None}
+    # B-1581: shares already sold (or a market exit working) today -> the position is gone, never re-protect it.
+    skip = _position_already_closed(kotak_trading_symbol, qty, "S", rows)
+    if skip is not None:
+        skip["trigger_price"] = trigger_price
+        return skip
     live = []
     for row in rows:
         if row.get("trdSym") != kotak_trading_symbol or row.get("trnsTp") != "S":
@@ -1570,7 +1753,11 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
     # live SL already at that level is adopted instead of being cancelled and re-placed every pass.
     trigger_price, _mk_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "long")
     desired = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
-    res = _ensure_resting_sl_decide(kotak_trading_symbol, qty, trigger_price, desired, live)
+    _CLOSED_CHECKED.on = True
+    try:
+        res = _ensure_resting_sl_decide(kotak_trading_symbol, qty, trigger_price, desired, live)
+    finally:
+        _CLOSED_CHECKED.on = False
     if _mk_info:
         res.update(_mk_info)
     return res
@@ -1630,6 +1817,10 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
         # (00:58 IST 28-Oct). Same failure shape as a Kotak reject, so callers behave exactly as before.
         return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
                 "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
+    skip = _position_already_closed(kotak_trading_symbol, qty, "B")  # B-1581: never re-protect a covered short
+    if skip is not None:
+        skip["trigger_price"] = trigger_price
+        return skip
     trigger_price, floor_info = apply_entry_day_floor(kotak_trading_symbol, trigger_price, "short")  # B-1440
     trigger_price, clamped_from = _preclamp_short_stop(kotak_trading_symbol, trigger_price)  # only ever lowers
     trigger_price, market_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "short")  # B-1520

@@ -17427,6 +17427,15 @@ def _maybe_place_real_short_entry(conn, symbol: str):
 
 
 _SHORT_EXIT_NO_ROW_LOGGED: set = set()  # B-1580 (symbol, IST day) already logged
+_SHORT_COVER_CLOSED_LOGGED: set = set()  # B-313: (symbol, IST date) already logged as skipped_market_closed
+
+
+def _nse_closed_for_short_cover() -> bool:
+    """B-313: True only when the NSE session is confidently closed; any error reads as open (old behaviour)."""
+    try:
+        return not category_market_open("short")
+    except Exception:
+        return False
 
 
 def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
@@ -17457,6 +17466,19 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
         _sync_real_positions_short_external(conn)
         _why_log(conn, symbol, "short_cover", "stale_row_cleared", kotak_trading_symbol=real_row["kotak_trading_symbol"],
                  prev_state=f"short {real_row['qty']} (app row)", new_state="no short at Kotak; row removed, no order sent")
+        return
+
+    # B-313 second half (2026-11-14 IST, journal real_order_log): with the Kotak adapter logged off at night the
+    # Kotak-first read above returns None, so 10-13/10-16/10-23/10-28 01:00-01:30 IST each fired 2-9 market
+    # BUY-to-covers (ESILVER, IVZINGOLD, YESBANK, COALINDIA), all rejected for no LTP. A real short is NSE-only
+    # (MIS); outside the NSE session no cover can fill, so none is sent. Protection resumes at the 09:15 IST open.
+    if _nse_closed_for_short_cover():
+        _key = (symbol, ist_now().strftime("%Y-%m-%d"))
+        if _key not in _SHORT_COVER_CLOSED_LOGGED:
+            _SHORT_COVER_CLOSED_LOGGED.add(_key)
+            _why_log(conn, symbol, "short_cover", "skipped_market_closed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                     prev_state=f"short {real_row['qty']} (app row)",
+                     new_state="NSE market closed; no cover sent (Kotak cannot fill). Re-checked at the open")
         return
 
     import kotak_real_orders
@@ -19502,7 +19524,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
         else:
             elapsed = time.time() - real_row["protection_degraded_since"]
             timeout = _protection_degraded_timeout_seconds(get_scheduler_capital_inr())
-            if elapsed > timeout:
+            if elapsed > timeout and not _nse_closed_for_short_cover():  # B-313: no emergency cover outside the NSE session
                 print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} has had NO resting stop "
                       f"for {elapsed:.0f}s (tolerance {timeout:.0f}s at current capital) - "
                       f"forcing an emergency cover")
@@ -23694,14 +23716,20 @@ def real_protection_status():
         row = conn.execute(
             "SELECT checked_at, unprotected_json FROM real_protection_snapshot WHERE id = 1"
         ).fetchone()
+    try:
+        import kotak_real_orders as _kro
+        _outage = _kro.broker_outage_status()  # B-1557: broker-wide outage banner
+    except Exception:
+        _outage = None
     if not row:
         return {"checked_at": None, "unprotected_positions": [], "stale": True,
-                "exchange_purge_window": _exchange_purge_window()}
+                "exchange_purge_window": _exchange_purge_window(), "broker_outage": _outage}
     return {
         "checked_at": row["checked_at"],
         "unprotected_positions": json.loads(row["unprotected_json"]),
         "stale": (time.time() - row["checked_at"]) > 900,
         "exchange_purge_window": _exchange_purge_window(),
+        "broker_outage": _outage,
     }
 
 
@@ -38344,6 +38372,8 @@ def _open_protect_place(plan: dict) -> dict:
                                             "09:15 IST open protect-first pass: overnight holding had no resting "
                                             "stop-loss (the exchange cancels every resting order at 15:15 IST)")
                 _swing_exit_if_stop_through_market(conn, it["symbol"], res)  # B-1520
+            elif res.get("action") == "skipped_position_closed":
+                pass  # B-1581: Kotak shows the holding already sold today; nothing to protect
             else:
                 failed.append(it["kotak_trading_symbol"])
                 _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
@@ -39505,6 +39535,11 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 _swing_exit_if_stop_through_market(conn, r["symbol"], sl_result)  # B-1520
                 backfill_entry["sl_order_id"] = sl_result["order_id"]
                 backfill_entry["sl_placed"] = True
+            elif sl_result.get("action") == "skipped_position_closed":
+                # B-1581 (NMDC 13-Nov): Kotak shows the shares already sold/exiting today; the exit path or the
+                # holdings-netted ghost cleanup closes this row. Not a failed SL, so no failure log and no T1 flag.
+                backfill_entry["sl_placed"] = False
+                backfill_entry["sl_skipped"] = sl_result.get("detail")
             else:
                 _log_real_order_event(
                     conn, r["symbol"], "sl", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
