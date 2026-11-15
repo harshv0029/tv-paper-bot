@@ -23,6 +23,8 @@ T15 = [
     "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
 ]
 
+_AT_FLOOR = "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2"
+
 
 def test_15m_cells_wired_mapped_verified():
     names = {d.name for d in sr.REGISTRY}
@@ -30,7 +32,10 @@ def test_15m_cells_wired_mapped_verified():
         assert t in main.CHAN_SHORT_CELLS and main.CHAN_SHORT_CELL_INTERVAL[t] == "15m"
         assert t in names and main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         assert t not in main.REPLAY_OWED_TAGS  # replay 38390561217 on file
-        assert t in main._replay_verified_tags()
+        if t == _AT_FLOOR:  # PFnet exactly 1.000: strict floor (user 2026-11-15 "PFnet >1") closes it at the real gate
+            assert t in main._replay_failed_tags() and t not in main._replay_verified_tags()
+        else:
+            assert t in main._replay_verified_tags()
     assert len([t for t in main.CHAN_SHORT_CELLS if "__15m__" in t]) == len(T15)
     assert not any("cst0d3" in t or "atr1d5_hold40_ve1d0e4" in t for t in main.CHAN_SHORT_CELLS if "__15m__" in t)
     assert main.CHAN_SHORT_CELL_INTERVAL[main.CHAN_SHORT_TAG] == "5m"

@@ -2168,3 +2168,15 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Elder indicators 15m (run 43693213969, 300 tags, main.py functions, full universe, 60d, 0.8% cost): 0 pass. Family bests: adx_bell long 0.379, obv long 0.339, adx_bell short 0.285. Every family is far weaker at 15m than at 1h (0.714 best). Cost per trade swamps the smaller 15m moves.
 - chan_gap 5m (run 43694587564): 0 pass, and the numbers match 15m exactly (long n 65, short n 157). The gap is a daily-open condition, so the candle size changes only the stop granularity, not the entries. chan_gap is now done at every intraday size; only 1h long (1.08-1.15) passes (B-1600 d).
 - Profit-booking / exit takeaway: on intraday Elder indicators most exits are rule exits or stops that close before the move covers the 0.8% cost. Shorter candles add trades, not edge, so any exit tuning should start from 1h, not 15m.
+
+## 2026-11-15 IST: Elder indicators 5m (B-579 family)
+- Run 43695454674 (elder-indicators-research.yml, 5m, 60d, 0.8% cost, 21704 symbol-fetches): 300 tags, 0 with PFnet > 1.00. Best adx_bell ring_bell long atr3_pts5 0.224 (n 70704).
+- Ladder across candle sizes is monotone: 1h best, then 15m (0.379), then 5m (0.224). Each step down to a smaller candle multiplies trade count about 3x while the per-trade edge stays below the 0.8% round-trip cost, so cost eats more of it.
+- Not wired (wiring needs pooled PFnet > 1.00). 4h run still owed to finish the candle-size grid.
+- Profit-booking / exit takeaway: on 5m, rule_exit (52% of exits) and stop_loss (26%) both close trades well before a move can cover 0.8%; a smaller candle needs a wider or profit-gated exit, not a tighter one.
+
+## 2026-11-15 IST: B-1600 wiring (island short 1d, island long 1d _tfs) and the chan_gap resolution question
+- User rule (2026-11-15): PFnet > 1.00 is the only wiring condition; every passing variant is wired.
+- Island SHORT 1d through main.py functions (run 43692422951): gap05 1.178-1.192, px20 1.076-1.115. The older research-script run (38221645245, reciprocal-price exit) had 0.651 for the same tag family; the main.py exit (brk20_min_rr_exit_reason short) is what the live bot runs, so the main.py number decides. Island LONG 1d matches across both (2.06-2.95 vs 1.94-2.20), so the gap is in the short exit implementation, not the detector.
+- chan_gap long: same trade at every "tf"; only the backtest's stop-check resolution changes. 1d 1.445 and 1h 1.08-1.15 pass, but 5m and 15m fail. A real SL-M fires on ticks, so the finest resolution is the honest one. Re-test owed (B-1602).
+- Profit-booking / exit takeaway: a backtest that checks the stop only at the bar close or bar low of a coarse candle books exits a resting SL would have hit earlier. Judge a stop-dependent cell at the finest bar size available, and treat a pass that shows up only at coarse resolution as unproven.

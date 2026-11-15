@@ -1,5 +1,5 @@
 """B-881: full-universe replay of main.SWINGMINRR_TAGS (VCP gate rr4/rr3/rr2 + base, long 1d) and
-main.SHORT_SWING_TAGS (6 brk20 1d short cells) through the REAL main.py functions.
+main.BRK20_SHORT_SWING_CELLS (6 brk20 1d short cells) through the REAL main.py functions.
 
 Entry: main.swingminrr_vcp_entry_signal(df, tag) (long) / main.brk20_min_rr_entry_signal(df, 'short', atr, rr) with
 the cell params from main.BRK20_SHORT_SWING_CELLS (the exact call main.short_swing_entry_signal makes per cell,

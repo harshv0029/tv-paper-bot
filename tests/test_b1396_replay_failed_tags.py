@@ -29,7 +29,7 @@ def test_flat_and_nested_rows_are_both_read(tmp_path, monkeypatch):
 def test_a_later_passing_run_overrides_an_earlier_failing_one(tmp_path, monkeypatch):
     _files(tmp_path, monkeypatch, {
         "a_main_replay_run_1.json": [{"tag": "t", "metrics": {"n": 10, "pfnet": 0.5}}],
-        "a_main_replay_run_2.json": [{"tag": "t", "metrics": {"n": 10, "pfnet": sr.PFNET_LIVE_FLOOR}}],
+        "a_main_replay_run_2.json": [{"tag": "t", "metrics": {"n": 10, "pfnet": sr.PFNET_LIVE_FLOOR + 0.01}}],
     })
     assert main._replay_failed_tags() == frozenset()
     assert main._replay_verified_tags() == frozenset({"t"})

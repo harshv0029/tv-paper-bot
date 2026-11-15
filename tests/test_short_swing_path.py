@@ -49,7 +49,8 @@ def _breakdown(n=100):
 
 
 def test_tags_map_one_to_one_and_follow_grammar():
-    assert len(main.SHORT_SWING_TAGS) == 6 == len(set(main.SHORT_SWING_TAGS))
+    assert len(main.BRK20_SHORT_SWING_CELLS) == 6
+    assert len(main.SHORT_SWING_TAGS) == 6 + len(main.ISLAND_SHORT_SWING_CELLS) == len(set(main.SHORT_SWING_TAGS))  # B-1600 a
     for tag, atr, rr in main.BRK20_SHORT_SWING_CELLS:
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag
         m = re.match(r"^brk20_min_rr__main_replay__short__1d__atr(\d)_rr(\d)(d5)?__v1$", tag)

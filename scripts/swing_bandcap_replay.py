@@ -107,7 +107,8 @@ def family_tags(m, family):
             "envelope": "ENVELOPE_LONG_LIVE_CELLS", "cup_cheat": "CUP_CHEAT_LONG_LIVE_CELLS"}
     if family in live:
         return list(getattr(m, live[family]))
-    return list(m.SHORT_SWING_TAGS)
+    # brk20 short cells only: the island short cells (B-1600 a) replay via scripts/island_tf_dir_sweep_replay.py
+    return [t for t, _a, _r in m.BRK20_SHORT_SWING_CELLS]
 
 
 def load(m, family, shard, nshards, limit):
