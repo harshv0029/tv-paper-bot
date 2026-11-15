@@ -28907,7 +28907,7 @@ def _replay_rows() -> list:
     _bd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
     # B-1600: the island tf/dir sweep calls the real main.py entry/stop/exit functions (scripts/island_tf_dir_sweep_replay.py),
     # so it is a main.py replay too; its _tfs tags are distinct names and never collide with older rows.
-    for f in sorted(_g.glob(os.path.join(_bd, "*main_replay_run_*.json")) + _g.glob(os.path.join(_bd, "island_tf_dir_sweep_run_*.json"))):
+    for f in sorted(_g.glob(os.path.join(_bd, "*main_replay_run_*.json")) + _g.glob(os.path.join(_bd, "*_tf_dir_sweep_run_*.json"))):  # B-1181: every tf/dir sweep calls main.py fns
         try:
             for r in _j.load(open(f)).get("rows", []):
                 m = r.get("metrics") if isinstance(r.get("metrics"), dict) else r
@@ -29343,6 +29343,12 @@ TASUKI_SHORT_CELLS = {
     "tasuki__gap_etf__short__1d__atr6_h3__v1": 6.0,
     "tasuki__gap_etf__short__1d__atr4_h3__v1": 4.0,
     "tasuki__gap_etf__short__1d__atr2d5_h3__v1": 2.5,
+    # B-1181 (user 2026-11-15 "PFnet >1 ... all variants will be wired"): the tf/dir sweep's etf short 1d cells (run
+    # 43701581391, main.py fns, PFnet 1.203 n83) are the same rule under their own immutable `_tfs` registry names; the
+    # plain tags above keep priority (one position per symbol), these take the symbol only when the plain ones cannot.
+    "tasuki__gap_etf_tfs__short__1d__atr6_h3__v1": 6.0,
+    "tasuki__gap_etf_tfs__short__1d__atr4_h3__v1": 4.0,
+    "tasuki__gap_etf_tfs__short__1d__atr2d5_h3__v1": 2.5,
 }
 
 

@@ -2190,3 +2190,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - 12 island long 4h cells (PFnet 1.34-1.99, main.py-function sweep 43692422951) wired. NSE 4h bars are session-anchored: bar 0 09:15-13:15, bar 1 13:15-15:30. A bar-1 signal is only known at the 15:30 close, after the exchange cancels resting orders (15:15), so live can trade only bar-0 signals; a bar-0-only replay is owed (B-1603).
 - The B-1600 (c) 1d _tfs cells were silently unable to take real entries (unmapped registry name, fail-closed). A wiring test must check the viability path returns a real decision, not only that the tag is in the entry chain.
 - Profit-booking / exit takeaway: the 4h exit is the same brk20 long exit (stop, EMA13 rule, 30-bar hold = 15 sessions); a frozen SL from entry means a 4h trade's worst case is fixed at k x 4h-ATR, smaller than the 1d stop for the same k.
+
+## 2026-11-15 IST: B-1181 tasuki gap candle-size x direction x universe sweep (run 43701581391)
+- Only the live cell survives: ETF short 1d PFnet 1.203 (n83, lower than the older 1.65-2.08 replay but above the floor). Long mirror, intraday and 4h sizes, and the full universe all fail (full-universe long 4h best at 0.80).
+- The edge is specific to ETFs on the daily candle; widening the universe adds trades that lose after cost.
+- Profit-booking / exit takeaway: the 3-bar max hold is the dominant exit everywhere; on intraday bars 3 bars is too short for the gap to close, so the timeout books the 0.8% cost on near-flat trades.
