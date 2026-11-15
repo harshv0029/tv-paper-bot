@@ -13,7 +13,7 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 96 |
 | BLOCKED | 58 |
-| OPEN | 49 |
+| OPEN | 48 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -27,10 +27,10 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
+| USER | 4 |
 | FROM | 4 |
 | DEPLOYED | 3 |
 | DISPATCH-READY | 3 |
-| USER | 3 |
 | TODO | 2 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
@@ -61,11 +61,11 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 131 | 7 |
-| P1 | 484 | 118 |
+| P1 | 483 | 117 |
 | P2 | 442 | 96 |
 | P3 | 126 | 57 |
 | Info | 1 | 0 |
-| P? | 176 | 102 |
+| P? | 177 | 103 |
 
 ## needs-owner (1)
 
@@ -170,7 +170,7 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | B-557 | P2 | PARTIAL | 2026-10-11 IST, source: Mark Douglas, Trading in the Zone (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-561 | P2 | PARTIAL | 2026-10-11 IST, source: Mark Douglas, Trading in the Zone (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-569 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
-| B-572 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | pending, needs, awaiting, waiting |
+| B-572 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-574 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-604 | P2 | PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
 | B-605 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, awaiting, waiting |
@@ -274,7 +274,6 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | B-1547 | P1 | OPEN | 2026-11-11 IST | follow-up, awaiting, waiting |
 | B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | pending, verify |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
-| B-1566 | P1 | OPEN | 2026-11-12 IST | owed, needs |
 | B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
 | B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
 | B-1600 | P1 | PARTIAL | 2026-11-15 IST | owed, needs |
@@ -341,6 +340,7 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | B-1389 | P? | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
 | B-1390 | P? | USER | 2026-10-27 21:15 IST | owed |
 | B-1391 | P? | USER | 2026-10-27 21:40 IST | awaiting, waiting |
+| B-1566 | P? | USER | 2026-11-12 IST | owed, needs |
 | B-1605 | P? | FROM | 2026-11-15 IST |  |
 
 ## research-queue (119)

@@ -49,6 +49,7 @@ def test_audit_runs_on_live_functions_and_writes_rows(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["AAA.NS"])
     out = tmp_path / "fra.json"
     monkeypatch.setattr(m, "OUT", str(out))
+    monkeypatch.setattr(m, "BOT_URL", "")  # never call the live bot from a test (CI sets GITHUB_ACTIONS)
     m.main_run()
     d = json.load(open(out))
     tags = {r["tag"] for r in d["rows"]}
@@ -60,3 +61,33 @@ def test_audit_runs_on_live_functions_and_writes_rows(monkeypatch, tmp_path):
             if "__5m__" in r["tag"] or "__15m__" in r["tag"]:
                 hm = pd.Timestamp(bar).tz_convert("Asia/Kolkata")
                 assert 9 * 60 + 15 <= hm.hour * 60 + hm.minute < 15 * 60
+
+
+def test_live_counts_and_verdict(monkeypatch):
+    m = _load()
+    payload = {"day": "2026-11-16", "categories": {
+        "buy": {"strategies": [{"strategy": "A", "scans": 5, "fired": 0, "blocked_triggers": 2, "attempts": 0}],
+                "no_signal_strategies": [{"strategy": "B", "scans": 9}]},
+        "swing": {"strategies": [{"strategy": "A", "scans": 7, "fired": 1, "blocked_triggers": 0, "attempts": 1}]}}}
+
+    class R:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, *a):
+            return json.dumps(payload).encode()
+
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=None: R())
+    live = m.live_counts("https://bot.example")
+    assert live["day"] == "2026-11-16" and live["tags"]["A"] == {"scans": 7, "fired": 1, "blocked_triggers": 2, "attempts": 1}
+    assert live["tags"]["B"]["scans"] == 9 and live["tags"]["B"]["fired"] == 0
+    monkeypatch.setattr(m, "SESSIONS", 1)
+    assert m.verdict({"tag": "B", "symbol_session_fires": 3}, live, "2026-11-16") == "SUSPECT_WIRING"
+    assert m.verdict({"tag": "A", "symbol_session_fires": 3}, live, "2026-11-16") == "ok"
+    assert m.verdict({"tag": "C", "symbol_session_fires": 0}, live, "2026-11-16") == "ok"
+    assert m.verdict({"tag": "B", "symbol_session_fires": 3}, live, "2026-11-13") == "n/a"  # different day: no verdict
+    assert m.live_counts("") is None
