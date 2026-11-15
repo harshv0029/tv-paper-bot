@@ -107,7 +107,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1350.8,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 1350.795432559942,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "HCLTECH.NS"
@@ -123,7 +123,7 @@
    "owner": "swing",
    "qty": 20,
    "sl_trigger_price": 11.71,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 10.25285598209926,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "IDEA.NS"
@@ -203,7 +203,7 @@
    "owner": "swing",
    "qty": 5,
    "sl_trigger_price": 69.33,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 67.13398944352824,
    "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
    "symbol": "NHPC.NS"
