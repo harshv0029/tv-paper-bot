@@ -1,0 +1,20 @@
+{
+ "run_id": "43728496268",
+ "cost_round_trip_pct": 0.8,
+ "source": "docs/backtest_data/chan_gap_tf_sweep_1h_run_43728496268.json",
+ "note": "B-1606 live-basis re-measure of the cap5/fit5 long cells: raw (auto_adjust=False) daily+intraday bars, the real main.py cap5/fit5 stop rules, exit at the last 1h bar ending <= 15:15 IST.",
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1",
+   "measured_tag": "chan_gap__buy_on_gap__long__1h__atr4d0cap5_top10_rawd__v1",
+   "n": 749,
+   "pfnet": 1.0773
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__fit5_top10__v1",
+   "measured_tag": "chan_gap__buy_on_gap__long__1h__fit5_top10_rawd__v1",
+   "n": 191,
+   "pfnet": 0.4379
+  }
+ ]
+}

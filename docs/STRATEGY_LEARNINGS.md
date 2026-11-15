@@ -2244,3 +2244,11 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - The only live chan_gap fill (DABUR short, 2026-10-30) filled at Rs365.50 at 09:24:45 IST, a market fill about 9 minutes after the open. The 1h replay entered at 369.05 (a stale first bar equal to the prior 15:15 bar) and the adjusted daily open was 366.6, so the real fill was worse for a short than both replays.
 - So the 1h replay (PFnet 0.71) is the closer of the two and is still optimistic, and the daily-open replay (1.22) overstates the edge. The short gate stays closed. n=1, and no more fills can come while the short is unwired.
 - Profit-booking / exit takeaway: for open-gap fades, judge a cell on the price a market order actually gets a few minutes after the open, not the bar Open; a gap that half-fills before the fill erases most of a fade's edge.
+
+### 2026-11-15 IST: B-1606 chan_gap LONG cap5 / fit5 on the live basis
+- Re-measured with raw (unadjusted) daily and 1h bars, the real main.py cap5/fit5 stop rules, and an exit at the last 1h bar ending <= 15:15 IST. Full NSE universe, 730 days, 0.8% cost, run 43728496268.
+  - atr4d0cap5 (4 x ATR, capped 5% below entry): PFnet 1.077, n749, win 37.1%. 53 trades stopped, 696 closed at 1.67. It stays wired (> 1.00).
+  - fit5 (first ATR cell whose stop fits 5%, else no entry): PFnet 0.438, n191, win 29.3%. Gated off via live_exit_remeasure_run_43728496268.json.
+  - The plain ATR cells reproduce run 43710558361 (1.5 / 2.5 / 4.0: 0.997 / 1.047 / 1.044, n749 vs 751).
+- The adjusted 1d replays (cap5 1.411, fit5 1.242) overstated both. cap5 keeps about a quarter of that edge; fit5 keeps none. fit5's filter keeps only the tight-ATR days, and on raw intraday prices those are the worst days.
+- Profit-booking / exit takeaway: on a gap-buy held for one session, a hard 5% cap on a wide ATR stop helps (1.077 vs 1.044 uncapped) because it cuts the few deep losers while leaving most trades to the 15:15 flatten. Skipping trades whose ATR stop is wider than 5% (fit5) throws away the profitable volatile days.
