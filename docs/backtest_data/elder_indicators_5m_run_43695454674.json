@@ -1,0 +1,4025 @@
+{
+ "run_ref": "elder-indicators-research.yml run 43695454674 (2026-11-15 IST, 5m, 60d, cost 0.8%)",
+ "interval": "5m",
+ "universe": "NSE full universe (21704 symbol-fetches summed over families)",
+ "source": "merge job log (artifact download 403)",
+ "rows": [
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr3_pts5__v1",
+   "n": 70704,
+   "pfnet": 0.224,
+   "win_pct": 15.4,
+   "avg_hold_bars": 16.6,
+   "exit_reasons": {
+    "data_end": 238,
+    "max_hold_timeout": 15174,
+    "rule_exit": 36830,
+    "stop_loss": 18462
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr3_pts4__v1",
+   "n": 77152,
+   "pfnet": 0.216,
+   "win_pct": 15.0,
+   "avg_hold_bars": 16.2,
+   "exit_reasons": {
+    "data_end": 277,
+    "max_hold_timeout": 15803,
+    "rule_exit": 41142,
+    "stop_loss": 19930
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr3_pts3__v1",
+   "n": 85534,
+   "pfnet": 0.208,
+   "win_pct": 14.7,
+   "avg_hold_bars": 15.7,
+   "exit_reasons": {
+    "data_end": 309,
+    "max_hold_timeout": 16554,
+    "rule_exit": 46849,
+    "stop_loss": 21822
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr2_pts5__v1",
+   "n": 71908,
+   "pfnet": 0.208,
+   "win_pct": 13.9,
+   "avg_hold_bars": 14.7,
+   "exit_reasons": {
+    "data_end": 195,
+    "max_hold_timeout": 13250,
+    "rule_exit": 24006,
+    "stop_loss": 34457
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr2_pts4__v1",
+   "n": 78775,
+   "pfnet": 0.201,
+   "win_pct": 13.6,
+   "avg_hold_bars": 14.4,
+   "exit_reasons": {
+    "data_end": 229,
+    "max_hold_timeout": 13834,
+    "rule_exit": 27224,
+    "stop_loss": 37488
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr2_pts3__v1",
+   "n": 87828,
+   "pfnet": 0.194,
+   "win_pct": 13.3,
+   "avg_hold_bars": 14.0,
+   "exit_reasons": {
+    "data_end": 255,
+    "max_hold_timeout": 14603,
+    "rule_exit": 31422,
+    "stop_loss": 41548
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr1d5_pts5__v1",
+   "n": 73091,
+   "pfnet": 0.193,
+   "win_pct": 12.4,
+   "avg_hold_bars": 12.8,
+   "exit_reasons": {
+    "data_end": 164,
+    "max_hold_timeout": 11352,
+    "rule_exit": 16266,
+    "stop_loss": 45309
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr3_lb40__v1",
+   "n": 90583,
+   "pfnet": 0.189,
+   "win_pct": 12.4,
+   "avg_hold_bars": 10.1,
+   "exit_reasons": {
+    "data_end": 210,
+    "max_hold_timeout": 3171,
+    "rule_exit": 72442,
+    "stop_loss": 14760
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr1d5_pts4__v1",
+   "n": 80459,
+   "pfnet": 0.186,
+   "win_pct": 12.1,
+   "avg_hold_bars": 12.5,
+   "exit_reasons": {
+    "data_end": 181,
+    "max_hold_timeout": 11991,
+    "rule_exit": 18511,
+    "stop_loss": 49776
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr2_lb40__v1",
+   "n": 93132,
+   "pfnet": 0.182,
+   "win_pct": 11.6,
+   "avg_hold_bars": 9.4,
+   "exit_reasons": {
+    "data_end": 184,
+    "max_hold_timeout": 3019,
+    "rule_exit": 57906,
+    "stop_loss": 32023
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__long__5m__atr1d5_pts3__v1",
+   "n": 90217,
+   "pfnet": 0.181,
+   "win_pct": 11.8,
+   "avg_hold_bars": 12.2,
+   "exit_reasons": {
+    "data_end": 206,
+    "max_hold_timeout": 12728,
+    "rule_exit": 21787,
+    "stop_loss": 55496
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr1d5_lb40__v1",
+   "n": 96839,
+   "pfnet": 0.173,
+   "win_pct": 10.7,
+   "avg_hold_bars": 8.5,
+   "exit_reasons": {
+    "data_end": 161,
+    "max_hold_timeout": 2830,
+    "rule_exit": 45705,
+    "stop_loss": 48143
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr3_pts5__v1",
+   "n": 83626,
+   "pfnet": 0.165,
+   "win_pct": 16.1,
+   "avg_hold_bars": 17.5,
+   "exit_reasons": {
+    "data_end": 292,
+    "max_hold_timeout": 20781,
+    "rule_exit": 40502,
+    "stop_loss": 22051
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr3_pts4__v1",
+   "n": 91096,
+   "pfnet": 0.163,
+   "win_pct": 15.8,
+   "avg_hold_bars": 17.2,
+   "exit_reasons": {
+    "data_end": 323,
+    "max_hold_timeout": 21967,
+    "rule_exit": 45302,
+    "stop_loss": 23504
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr3_pts3__v1",
+   "n": 100342,
+   "pfnet": 0.161,
+   "win_pct": 15.6,
+   "avg_hold_bars": 16.8,
+   "exit_reasons": {
+    "data_end": 366,
+    "max_hold_timeout": 23275,
+    "rule_exit": 51216,
+    "stop_loss": 25485
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr2_pts5__v1",
+   "n": 85211,
+   "pfnet": 0.156,
+   "win_pct": 14.8,
+   "avg_hold_bars": 16.0,
+   "exit_reasons": {
+    "data_end": 255,
+    "max_hold_timeout": 18744,
+    "rule_exit": 27591,
+    "stop_loss": 38621
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr2_pts4__v1",
+   "n": 93121,
+   "pfnet": 0.154,
+   "win_pct": 14.6,
+   "avg_hold_bars": 15.7,
+   "exit_reasons": {
+    "data_end": 278,
+    "max_hold_timeout": 19914,
+    "rule_exit": 31307,
+    "stop_loss": 41622
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr2_pts3__v1",
+   "n": 102948,
+   "pfnet": 0.153,
+   "win_pct": 14.5,
+   "avg_hold_bars": 15.4,
+   "exit_reasons": {
+    "data_end": 335,
+    "max_hold_timeout": 21348,
+    "rule_exit": 35999,
+    "stop_loss": 45266
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr3_lb20__v1",
+   "n": 156152,
+   "pfnet": 0.153,
+   "win_pct": 10.4,
+   "avg_hold_bars": 9.2,
+   "exit_reasons": {
+    "data_end": 389,
+    "max_hold_timeout": 4299,
+    "rule_exit": 130565,
+    "stop_loss": 20899
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr2_lb20__v1",
+   "n": 159549,
+   "pfnet": 0.148,
+   "win_pct": 9.8,
+   "avg_hold_bars": 8.7,
+   "exit_reasons": {
+    "data_end": 352,
+    "max_hold_timeout": 4100,
+    "rule_exit": 107882,
+    "stop_loss": 47215
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr1d5_pts5__v1",
+   "n": 86787,
+   "pfnet": 0.145,
+   "win_pct": 13.4,
+   "avg_hold_bars": 14.3,
+   "exit_reasons": {
+    "data_end": 232,
+    "max_hold_timeout": 16653,
+    "rule_exit": 19707,
+    "stop_loss": 50195
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr1d5_pts4__v1",
+   "n": 95304,
+   "pfnet": 0.144,
+   "win_pct": 13.2,
+   "avg_hold_bars": 14.1,
+   "exit_reasons": {
+    "data_end": 258,
+    "max_hold_timeout": 17806,
+    "rule_exit": 22564,
+    "stop_loss": 54676
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell__short__5m__atr1d5_pts3__v1",
+   "n": 105991,
+   "pfnet": 0.143,
+   "win_pct": 13.1,
+   "avg_hold_bars": 13.9,
+   "exit_reasons": {
+    "data_end": 304,
+    "max_hold_timeout": 19194,
+    "rule_exit": 26007,
+    "stop_loss": 60486
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr1d5_lb20__v1",
+   "n": 164725,
+   "pfnet": 0.142,
+   "win_pct": 9.2,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 307,
+    "max_hold_timeout": 3871,
+    "rule_exit": 86627,
+    "stop_loss": 73920
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr3_pts5__v1",
+   "n": 104045,
+   "pfnet": 0.139,
+   "win_pct": 10.3,
+   "avg_hold_bars": 9.5,
+   "exit_reasons": {
+    "data_end": 258,
+    "max_hold_timeout": 4036,
+    "rule_exit": 82807,
+    "stop_loss": 16944
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr3_pts4__v1",
+   "n": 111450,
+   "pfnet": 0.136,
+   "win_pct": 10.1,
+   "avg_hold_bars": 9.3,
+   "exit_reasons": {
+    "data_end": 271,
+    "max_hold_timeout": 4115,
+    "rule_exit": 89420,
+    "stop_loss": 17644
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr2_pts5__v1",
+   "n": 104714,
+   "pfnet": 0.134,
+   "win_pct": 9.8,
+   "avg_hold_bars": 9.0,
+   "exit_reasons": {
+    "data_end": 234,
+    "max_hold_timeout": 3744,
+    "rule_exit": 66622,
+    "stop_loss": 34114
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr3_pts3__v1",
+   "n": 120450,
+   "pfnet": 0.133,
+   "win_pct": 9.9,
+   "avg_hold_bars": 9.1,
+   "exit_reasons": {
+    "data_end": 286,
+    "max_hold_timeout": 4223,
+    "rule_exit": 97425,
+    "stop_loss": 18516
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr2_pts4__v1",
+   "n": 112322,
+   "pfnet": 0.13,
+   "win_pct": 9.6,
+   "avg_hold_bars": 8.8,
+   "exit_reasons": {
+    "data_end": 249,
+    "max_hold_timeout": 3812,
+    "rule_exit": 72294,
+    "stop_loss": 35967
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr2_pts3__v1",
+   "n": 121507,
+   "pfnet": 0.127,
+   "win_pct": 9.3,
+   "avg_hold_bars": 8.6,
+   "exit_reasons": {
+    "data_end": 262,
+    "max_hold_timeout": 3923,
+    "rule_exit": 79502,
+    "stop_loss": 37820
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr1d5_pts5__v1",
+   "n": 105576,
+   "pfnet": 0.127,
+   "win_pct": 9.1,
+   "avg_hold_bars": 8.3,
+   "exit_reasons": {
+    "data_end": 207,
+    "max_hold_timeout": 3406,
+    "rule_exit": 52713,
+    "stop_loss": 49250
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr1d5_pts4__v1",
+   "n": 113398,
+   "pfnet": 0.123,
+   "win_pct": 8.9,
+   "avg_hold_bars": 8.1,
+   "exit_reasons": {
+    "data_end": 212,
+    "max_hold_timeout": 3491,
+    "rule_exit": 57549,
+    "stop_loss": 52146
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__long__5m__atr1d5_pts3__v1",
+   "n": 122905,
+   "pfnet": 0.12,
+   "win_pct": 8.7,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 229,
+    "max_hold_timeout": 3616,
+    "rule_exit": 63603,
+    "stop_loss": 55457
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr3_lb10__v1",
+   "n": 271085,
+   "pfnet": 0.12,
+   "win_pct": 8.3,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 577,
+    "max_hold_timeout": 5524,
+    "rule_exit": 238170,
+    "stop_loss": 26814
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr2_lb10__v1",
+   "n": 275275,
+   "pfnet": 0.116,
+   "win_pct": 8.0,
+   "avg_hold_bars": 7.6,
+   "exit_reasons": {
+    "data_end": 529,
+    "max_hold_timeout": 5338,
+    "rule_exit": 207410,
+    "stop_loss": 61998
+   }
+  },
+  {
+   "tag": "obv__confirm__long__5m__atr1d5_lb10__v1",
+   "n": 281623,
+   "pfnet": 0.112,
+   "win_pct": 7.6,
+   "avg_hold_bars": 7.2,
+   "exit_reasons": {
+    "data_end": 484,
+    "max_hold_timeout": 5119,
+    "rule_exit": 174373,
+    "stop_loss": 101647
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr3_lb40__v1",
+   "n": 120094,
+   "pfnet": 0.111,
+   "win_pct": 10.3,
+   "avg_hold_bars": 10.2,
+   "exit_reasons": {
+    "data_end": 231,
+    "max_hold_timeout": 5081,
+    "rule_exit": 96083,
+    "stop_loss": 18699
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr2_lb40__v1",
+   "n": 122568,
+   "pfnet": 0.107,
+   "win_pct": 9.8,
+   "avg_hold_bars": 9.7,
+   "exit_reasons": {
+    "data_end": 205,
+    "max_hold_timeout": 4871,
+    "rule_exit": 80106,
+    "stop_loss": 37386
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__long__5m__atr3_w2__v1",
+   "n": 176508,
+   "pfnet": 0.106,
+   "win_pct": 10.1,
+   "avg_hold_bars": 10.9,
+   "exit_reasons": {
+    "data_end": 1291,
+    "max_hold_timeout": 18669,
+    "rule_exit": 1582,
+    "stop_loss": 45267,
+    "trail_stop": 109699
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__long__5m__atr3_w2__v1",
+   "n": 144381,
+   "pfnet": 0.104,
+   "win_pct": 10.0,
+   "avg_hold_bars": 11.2,
+   "exit_reasons": {
+    "data_end": 1045,
+    "max_hold_timeout": 15806,
+    "rule_exit": 1322,
+    "stop_loss": 36734,
+    "trail_stop": 89474
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr3_w5__v1",
+   "n": 106326,
+   "pfnet": 0.104,
+   "win_pct": 9.8,
+   "avg_hold_bars": 11.6,
+   "exit_reasons": {
+    "data_end": 667,
+    "max_hold_timeout": 12062,
+    "rule_exit": 946,
+    "stop_loss": 26211,
+    "trail_stop": 66440
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__long__5m__atr3_w13__v1",
+   "n": 114645,
+   "pfnet": 0.104,
+   "win_pct": 9.9,
+   "avg_hold_bars": 11.6,
+   "exit_reasons": {
+    "data_end": 841,
+    "max_hold_timeout": 13068,
+    "rule_exit": 1044,
+    "stop_loss": 28023,
+    "trail_stop": 71669
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr3_pts5__v1",
+   "n": 127540,
+   "pfnet": 0.102,
+   "win_pct": 10.6,
+   "avg_hold_bars": 10.8,
+   "exit_reasons": {
+    "data_end": 289,
+    "max_hold_timeout": 7571,
+    "rule_exit": 99922,
+    "stop_loss": 19758
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr1d5_lb40__v1",
+   "n": 126433,
+   "pfnet": 0.102,
+   "win_pct": 9.1,
+   "avg_hold_bars": 9.0,
+   "exit_reasons": {
+    "data_end": 184,
+    "max_hold_timeout": 4590,
+    "rule_exit": 66463,
+    "stop_loss": 55196
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr3_w5__v1",
+   "n": 98789,
+   "pfnet": 0.101,
+   "win_pct": 9.8,
+   "avg_hold_bars": 11.5,
+   "exit_reasons": {
+    "data_end": 718,
+    "max_hold_timeout": 10935,
+    "rule_exit": 1011,
+    "stop_loss": 25216,
+    "trail_stop": 60909
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr3_pts4__v1",
+   "n": 136082,
+   "pfnet": 0.1,
+   "win_pct": 10.4,
+   "avg_hold_bars": 10.6,
+   "exit_reasons": {
+    "data_end": 307,
+    "max_hold_timeout": 7777,
+    "rule_exit": 107305,
+    "stop_loss": 20693
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr3_w4__v1",
+   "n": 99383,
+   "pfnet": 0.1,
+   "win_pct": 9.8,
+   "avg_hold_bars": 11.5,
+   "exit_reasons": {
+    "data_end": 735,
+    "max_hold_timeout": 10964,
+    "rule_exit": 1015,
+    "stop_loss": 25450,
+    "trail_stop": 61219
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr2_pts5__v1",
+   "n": 128474,
+   "pfnet": 0.099,
+   "win_pct": 10.1,
+   "avg_hold_bars": 10.4,
+   "exit_reasons": {
+    "data_end": 274,
+    "max_hold_timeout": 7135,
+    "rule_exit": 83319,
+    "stop_loss": 37746
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr3_w14__v1",
+   "n": 95867,
+   "pfnet": 0.099,
+   "win_pct": 9.7,
+   "avg_hold_bars": 11.3,
+   "exit_reasons": {
+    "data_end": 593,
+    "max_hold_timeout": 10235,
+    "rule_exit": 860,
+    "stop_loss": 23803,
+    "trail_stop": 60376
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr3_pts3__v1",
+   "n": 146852,
+   "pfnet": 0.098,
+   "win_pct": 10.3,
+   "avg_hold_bars": 10.3,
+   "exit_reasons": {
+    "data_end": 333,
+    "max_hold_timeout": 8061,
+    "rule_exit": 116763,
+    "stop_loss": 21695
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr3_lb20__v1",
+   "n": 194761,
+   "pfnet": 0.098,
+   "win_pct": 9.3,
+   "avg_hold_bars": 9.7,
+   "exit_reasons": {
+    "data_end": 319,
+    "max_hold_timeout": 7370,
+    "rule_exit": 161810,
+    "stop_loss": 25262
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr3_lb40__v1",
+   "n": 173658,
+   "pfnet": 0.097,
+   "win_pct": 6.7,
+   "avg_hold_bars": 6.0,
+   "exit_reasons": {
+    "data_end": 320,
+    "max_hold_timeout": 2269,
+    "rule_exit": 156917,
+    "stop_loss": 14152
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr2_pts4__v1",
+   "n": 137195,
+   "pfnet": 0.096,
+   "win_pct": 10.0,
+   "avg_hold_bars": 10.2,
+   "exit_reasons": {
+    "data_end": 291,
+    "max_hold_timeout": 7354,
+    "rule_exit": 89855,
+    "stop_loss": 39695
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr3_n26__v1",
+   "n": 428807,
+   "pfnet": 0.096,
+   "win_pct": 6.8,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 824,
+    "max_hold_timeout": 22782,
+    "rule_exit": 369732,
+    "stop_loss": 35469
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr2_pts3__v1",
+   "n": 148180,
+   "pfnet": 0.095,
+   "win_pct": 9.8,
+   "avg_hold_bars": 9.9,
+   "exit_reasons": {
+    "data_end": 313,
+    "max_hold_timeout": 7626,
+    "rule_exit": 98347,
+    "stop_loss": 41894
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr2_lb20__v1",
+   "n": 197957,
+   "pfnet": 0.095,
+   "win_pct": 8.9,
+   "avg_hold_bars": 9.3,
+   "exit_reasons": {
+    "data_end": 288,
+    "max_hold_timeout": 7117,
+    "rule_exit": 138674,
+    "stop_loss": 51878
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr1d5_pts5__v1",
+   "n": 129646,
+   "pfnet": 0.094,
+   "win_pct": 9.5,
+   "avg_hold_bars": 9.8,
+   "exit_reasons": {
+    "data_end": 253,
+    "max_hold_timeout": 6649,
+    "rule_exit": 68543,
+    "stop_loss": 54201
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr1d5_pts4__v1",
+   "n": 138596,
+   "pfnet": 0.093,
+   "win_pct": 9.4,
+   "avg_hold_bars": 9.6,
+   "exit_reasons": {
+    "data_end": 268,
+    "max_hold_timeout": 6868,
+    "rule_exit": 74227,
+    "stop_loss": 57233
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr2_lb40__v1",
+   "n": 175350,
+   "pfnet": 0.093,
+   "win_pct": 6.4,
+   "avg_hold_bars": 5.8,
+   "exit_reasons": {
+    "data_end": 297,
+    "max_hold_timeout": 2193,
+    "rule_exit": 141537,
+    "stop_loss": 31323
+   }
+  },
+  {
+   "tag": "adx_bell__ring_bell_ema13__short__5m__atr1d5_pts3__v1",
+   "n": 149924,
+   "pfnet": 0.092,
+   "win_pct": 9.3,
+   "avg_hold_bars": 9.4,
+   "exit_reasons": {
+    "data_end": 290,
+    "max_hold_timeout": 7156,
+    "rule_exit": 81721,
+    "stop_loss": 60757
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr2_n26__v1",
+   "n": 430280,
+   "pfnet": 0.092,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.5,
+   "exit_reasons": {
+    "data_end": 765,
+    "max_hold_timeout": 21614,
+    "rule_exit": 325480,
+    "stop_loss": 82421
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr1d5_lb20__v1",
+   "n": 202969,
+   "pfnet": 0.091,
+   "win_pct": 8.4,
+   "avg_hold_bars": 8.8,
+   "exit_reasons": {
+    "data_end": 256,
+    "max_hold_timeout": 6775,
+    "rule_exit": 116863,
+    "stop_loss": 79075
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr3_n21__v1",
+   "n": 474458,
+   "pfnet": 0.09,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 860,
+    "max_hold_timeout": 17558,
+    "rule_exit": 419770,
+    "stop_loss": 36270
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr1d5_lb40__v1",
+   "n": 178066,
+   "pfnet": 0.09,
+   "win_pct": 6.1,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 276,
+    "max_hold_timeout": 2097,
+    "rule_exit": 124122,
+    "stop_loss": 51571
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr3_n5__v1",
+   "n": 495365,
+   "pfnet": 0.089,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 774,
+    "max_hold_timeout": 23397,
+    "rule_exit": 432777,
+    "stop_loss": 38417
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr3_n5__v1",
+   "n": 494242,
+   "pfnet": 0.089,
+   "win_pct": 6.4,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 773,
+    "max_hold_timeout": 23379,
+    "rule_exit": 431705,
+    "stop_loss": 38385
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr3_n7__v1",
+   "n": 491114,
+   "pfnet": 0.089,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 707,
+    "max_hold_timeout": 22671,
+    "rule_exit": 429779,
+    "stop_loss": 37957
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__long__5m__atr2_w2__v1",
+   "n": 214499,
+   "pfnet": 0.089,
+   "win_pct": 8.7,
+   "avg_hold_bars": 8.6,
+   "exit_reasons": {
+    "data_end": 1095,
+    "max_hold_timeout": 12038,
+    "rule_exit": 1255,
+    "stop_loss": 82876,
+    "trail_stop": 117235
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr2_w5__v1",
+   "n": 122353,
+   "pfnet": 0.089,
+   "win_pct": 8.4,
+   "avg_hold_bars": 9.3,
+   "exit_reasons": {
+    "data_end": 513,
+    "max_hold_timeout": 7534,
+    "rule_exit": 703,
+    "stop_loss": 45124,
+    "trail_stop": 68479
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__long__5m__atr2_w13__v1",
+   "n": 133273,
+   "pfnet": 0.089,
+   "win_pct": 8.6,
+   "avg_hold_bars": 9.2,
+   "exit_reasons": {
+    "data_end": 680,
+    "max_hold_timeout": 8157,
+    "rule_exit": 770,
+    "stop_loss": 49040,
+    "trail_stop": 74626
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr1d5_n26__v1",
+   "n": 432128,
+   "pfnet": 0.088,
+   "win_pct": 6.2,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 689,
+    "max_hold_timeout": 20176,
+    "rule_exit": 276921,
+    "stop_loss": 134342
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr3_n6__v1",
+   "n": 494597,
+   "pfnet": 0.088,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 735,
+    "max_hold_timeout": 22979,
+    "rule_exit": 432629,
+    "stop_loss": 38254
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr3_n7__v1",
+   "n": 492390,
+   "pfnet": 0.088,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 711,
+    "max_hold_timeout": 22685,
+    "rule_exit": 431003,
+    "stop_loss": 37991
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr3_n6__v1",
+   "n": 493344,
+   "pfnet": 0.088,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 735,
+    "max_hold_timeout": 22974,
+    "rule_exit": 431383,
+    "stop_loss": 38252
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__long__5m__atr2_w2__v1",
+   "n": 171755,
+   "pfnet": 0.088,
+   "win_pct": 8.5,
+   "avg_hold_bars": 8.9,
+   "exit_reasons": {
+    "data_end": 863,
+    "max_hold_timeout": 9964,
+    "rule_exit": 1029,
+    "stop_loss": 65970,
+    "trail_stop": 93929
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr2_n21__v1",
+   "n": 476044,
+   "pfnet": 0.087,
+   "win_pct": 6.2,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 800,
+    "max_hold_timeout": 16790,
+    "rule_exit": 373473,
+    "stop_loss": 84981
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr2_n5__v1",
+   "n": 504398,
+   "pfnet": 0.087,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.9,
+   "exit_reasons": {
+    "data_end": 730,
+    "max_hold_timeout": 22821,
+    "rule_exit": 389864,
+    "stop_loss": 90983
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr2_n5__v1",
+   "n": 503256,
+   "pfnet": 0.087,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.9,
+   "exit_reasons": {
+    "data_end": 729,
+    "max_hold_timeout": 22807,
+    "rule_exit": 388815,
+    "stop_loss": 90905
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr2_n6__v1",
+   "n": 502942,
+   "pfnet": 0.086,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.8,
+   "exit_reasons": {
+    "data_end": 686,
+    "max_hold_timeout": 22364,
+    "rule_exit": 389448,
+    "stop_loss": 90444
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr2_n7__v1",
+   "n": 500188,
+   "pfnet": 0.086,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.8,
+   "exit_reasons": {
+    "data_end": 672,
+    "max_hold_timeout": 22015,
+    "rule_exit": 387943,
+    "stop_loss": 89558
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr2_n6__v1",
+   "n": 501681,
+   "pfnet": 0.086,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.8,
+   "exit_reasons": {
+    "data_end": 686,
+    "max_hold_timeout": 22358,
+    "rule_exit": 388231,
+    "stop_loss": 90406
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr2_n7__v1",
+   "n": 498891,
+   "pfnet": 0.086,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.8,
+   "exit_reasons": {
+    "data_end": 668,
+    "max_hold_timeout": 22000,
+    "rule_exit": 386755,
+    "stop_loss": 89468
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr3_n26__v1",
+   "n": 433972,
+   "pfnet": 0.085,
+   "win_pct": 8.0,
+   "avg_hold_bars": 9.1,
+   "exit_reasons": {
+    "data_end": 815,
+    "max_hold_timeout": 34617,
+    "rule_exit": 358285,
+    "stop_loss": 40255
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr2_w14__v1",
+   "n": 112015,
+   "pfnet": 0.085,
+   "win_pct": 8.3,
+   "avg_hold_bars": 9.0,
+   "exit_reasons": {
+    "data_end": 457,
+    "max_hold_timeout": 6433,
+    "rule_exit": 657,
+    "stop_loss": 41669,
+    "trail_stop": 62799
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr2_w5__v1",
+   "n": 112756,
+   "pfnet": 0.085,
+   "win_pct": 8.5,
+   "avg_hold_bars": 9.1,
+   "exit_reasons": {
+    "data_end": 569,
+    "max_hold_timeout": 6632,
+    "rule_exit": 757,
+    "stop_loss": 43310,
+    "trail_stop": 61488
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr3_lb10__v1",
+   "n": 317275,
+   "pfnet": 0.084,
+   "win_pct": 8.2,
+   "avg_hold_bars": 8.7,
+   "exit_reasons": {
+    "data_end": 475,
+    "max_hold_timeout": 9958,
+    "rule_exit": 274440,
+    "stop_loss": 32402
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr1d5_n5__v1",
+   "n": 517134,
+   "pfnet": 0.084,
+   "win_pct": 5.9,
+   "avg_hold_bars": 6.6,
+   "exit_reasons": {
+    "data_end": 678,
+    "max_hold_timeout": 22049,
+    "rule_exit": 341449,
+    "stop_loss": 152958
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr1d5_n5__v1",
+   "n": 515950,
+   "pfnet": 0.084,
+   "win_pct": 5.9,
+   "avg_hold_bars": 6.6,
+   "exit_reasons": {
+    "data_end": 677,
+    "max_hold_timeout": 22030,
+    "rule_exit": 340442,
+    "stop_loss": 152801
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr2_w4__v1",
+   "n": 113392,
+   "pfnet": 0.084,
+   "win_pct": 8.4,
+   "avg_hold_bars": 9.1,
+   "exit_reasons": {
+    "data_end": 592,
+    "max_hold_timeout": 6616,
+    "rule_exit": 767,
+    "stop_loss": 43785,
+    "trail_stop": 61632
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr1d5_n21__v1",
+   "n": 478100,
+   "pfnet": 0.083,
+   "win_pct": 5.9,
+   "avg_hold_bars": 6.7,
+   "exit_reasons": {
+    "data_end": 723,
+    "max_hold_timeout": 15760,
+    "rule_exit": 320967,
+    "stop_loss": 140650
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr2_n26__v1",
+   "n": 435179,
+   "pfnet": 0.083,
+   "win_pct": 7.7,
+   "avg_hold_bars": 8.8,
+   "exit_reasons": {
+    "data_end": 758,
+    "max_hold_timeout": 33115,
+    "rule_exit": 318287,
+    "stop_loss": 83019
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr1d5_n6__v1",
+   "n": 514854,
+   "pfnet": 0.083,
+   "win_pct": 5.8,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 639,
+    "max_hold_timeout": 21603,
+    "rule_exit": 340668,
+    "stop_loss": 151944
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__long__5m__atr1d5_n7__v1",
+   "n": 511272,
+   "pfnet": 0.083,
+   "win_pct": 5.8,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 622,
+    "max_hold_timeout": 21216,
+    "rule_exit": 339484,
+    "stop_loss": 149950
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr1d5_n6__v1",
+   "n": 513556,
+   "pfnet": 0.083,
+   "win_pct": 5.9,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 639,
+    "max_hold_timeout": 21592,
+    "rule_exit": 339540,
+    "stop_loss": 151785
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__long__5m__atr1d5_n7__v1",
+   "n": 509944,
+   "pfnet": 0.083,
+   "win_pct": 5.8,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 618,
+    "max_hold_timeout": 21198,
+    "rule_exit": 338356,
+    "stop_loss": 149772
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr2_lb10__v1",
+   "n": 321234,
+   "pfnet": 0.082,
+   "win_pct": 7.9,
+   "avg_hold_bars": 8.5,
+   "exit_reasons": {
+    "data_end": 425,
+    "max_hold_timeout": 9695,
+    "rule_exit": 243382,
+    "stop_loss": 67732
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr3_lb20__v1",
+   "n": 253810,
+   "pfnet": 0.082,
+   "win_pct": 5.8,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 426,
+    "max_hold_timeout": 2737,
+    "rule_exit": 233310,
+    "stop_loss": 17337
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr3_n5__v1",
+   "n": 502965,
+   "pfnet": 0.081,
+   "win_pct": 7.7,
+   "avg_hold_bars": 8.4,
+   "exit_reasons": {
+    "data_end": 953,
+    "max_hold_timeout": 35710,
+    "rule_exit": 421060,
+    "stop_loss": 45242
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr3_n6__v1",
+   "n": 500481,
+   "pfnet": 0.081,
+   "win_pct": 7.6,
+   "avg_hold_bars": 8.3,
+   "exit_reasons": {
+    "data_end": 985,
+    "max_hold_timeout": 34877,
+    "rule_exit": 419769,
+    "stop_loss": 44850
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr3_n5__v1",
+   "n": 503105,
+   "pfnet": 0.081,
+   "win_pct": 7.7,
+   "avg_hold_bars": 8.4,
+   "exit_reasons": {
+    "data_end": 953,
+    "max_hold_timeout": 35703,
+    "rule_exit": 421182,
+    "stop_loss": 45267
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr3_n6__v1",
+   "n": 500593,
+   "pfnet": 0.081,
+   "win_pct": 7.6,
+   "avg_hold_bars": 8.3,
+   "exit_reasons": {
+    "data_end": 985,
+    "max_hold_timeout": 34874,
+    "rule_exit": 419896,
+    "stop_loss": 44838
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr1d5_n26__v1",
+   "n": 436659,
+   "pfnet": 0.08,
+   "win_pct": 7.4,
+   "avg_hold_bars": 8.5,
+   "exit_reasons": {
+    "data_end": 685,
+    "max_hold_timeout": 31349,
+    "rule_exit": 276303,
+    "stop_loss": 128322
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr2_lb20__v1",
+   "n": 255600,
+   "pfnet": 0.08,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.4,
+   "exit_reasons": {
+    "data_end": 400,
+    "max_hold_timeout": 2673,
+    "rule_exit": 213487,
+    "stop_loss": 39040
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr2_n5__v1",
+   "n": 511070,
+   "pfnet": 0.08,
+   "win_pct": 7.4,
+   "avg_hold_bars": 8.2,
+   "exit_reasons": {
+    "data_end": 893,
+    "max_hold_timeout": 34980,
+    "rule_exit": 379784,
+    "stop_loss": 95413
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr3_n7__v1",
+   "n": 498597,
+   "pfnet": 0.08,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.2,
+   "exit_reasons": {
+    "data_end": 1000,
+    "max_hold_timeout": 34159,
+    "rule_exit": 419036,
+    "stop_loss": 44402
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr2_n5__v1",
+   "n": 511197,
+   "pfnet": 0.08,
+   "win_pct": 7.4,
+   "avg_hold_bars": 8.2,
+   "exit_reasons": {
+    "data_end": 893,
+    "max_hold_timeout": 34973,
+    "rule_exit": 379898,
+    "stop_loss": 95433
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr3_n7__v1",
+   "n": 498664,
+   "pfnet": 0.08,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.2,
+   "exit_reasons": {
+    "data_end": 999,
+    "max_hold_timeout": 34156,
+    "rule_exit": 419119,
+    "stop_loss": 44390
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr3_n21__v1",
+   "n": 481847,
+   "pfnet": 0.079,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.5,
+   "exit_reasons": {
+    "data_end": 815,
+    "max_hold_timeout": 28184,
+    "rule_exit": 411049,
+    "stop_loss": 41799
+   }
+  },
+  {
+   "tag": "obv__confirm__short__5m__atr1d5_lb10__v1",
+   "n": 327430,
+   "pfnet": 0.079,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.1,
+   "exit_reasons": {
+    "data_end": 390,
+    "max_hold_timeout": 9351,
+    "rule_exit": 211645,
+    "stop_loss": 106044
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr2_n6__v1",
+   "n": 508022,
+   "pfnet": 0.079,
+   "win_pct": 7.4,
+   "avg_hold_bars": 8.1,
+   "exit_reasons": {
+    "data_end": 922,
+    "max_hold_timeout": 34120,
+    "rule_exit": 378494,
+    "stop_loss": 94486
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr2_n7__v1",
+   "n": 505786,
+   "pfnet": 0.079,
+   "win_pct": 7.3,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 938,
+    "max_hold_timeout": 33373,
+    "rule_exit": 377983,
+    "stop_loss": 93492
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr2_n6__v1",
+   "n": 508124,
+   "pfnet": 0.079,
+   "win_pct": 7.4,
+   "avg_hold_bars": 8.1,
+   "exit_reasons": {
+    "data_end": 922,
+    "max_hold_timeout": 34116,
+    "rule_exit": 378618,
+    "stop_loss": 94468
+   }
+  },
+  {
+   "tag": "elder_ray__plain__long__5m__atr3_lb0__v1",
+   "n": 410511,
+   "pfnet": 0.078,
+   "win_pct": 5.4,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 527,
+    "max_hold_timeout": 4258,
+    "rule_exit": 386169,
+    "stop_loss": 19557
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr3_n13__v1",
+   "n": 587120,
+   "pfnet": 0.078,
+   "win_pct": 5.9,
+   "avg_hold_bars": 6.0,
+   "exit_reasons": {
+    "data_end": 842,
+    "max_hold_timeout": 6844,
+    "rule_exit": 541976,
+    "stop_loss": 37458
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr1d5_n5__v1",
+   "n": 522671,
+   "pfnet": 0.078,
+   "win_pct": 7.2,
+   "avg_hold_bars": 7.9,
+   "exit_reasons": {
+    "data_end": 833,
+    "max_hold_timeout": 34172,
+    "rule_exit": 336805,
+    "stop_loss": 150861
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr1d5_n5__v1",
+   "n": 522770,
+   "pfnet": 0.078,
+   "win_pct": 7.2,
+   "avg_hold_bars": 7.9,
+   "exit_reasons": {
+    "data_end": 833,
+    "max_hold_timeout": 34165,
+    "rule_exit": 336891,
+    "stop_loss": 150881
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr2_n7__v1",
+   "n": 505851,
+   "pfnet": 0.078,
+   "win_pct": 7.3,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 937,
+    "max_hold_timeout": 33371,
+    "rule_exit": 378045,
+    "stop_loss": 93498
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__long__5m__atr1d5_w13__v1",
+   "n": 149820,
+   "pfnet": 0.078,
+   "win_pct": 7.4,
+   "avg_hold_bars": 7.6,
+   "exit_reasons": {
+    "data_end": 549,
+    "max_hold_timeout": 5666,
+    "rule_exit": 602,
+    "stop_loss": 68272,
+    "trail_stop": 74731
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__short__5m__atr3_w13__v1",
+   "n": 236042,
+   "pfnet": 0.078,
+   "win_pct": 8.9,
+   "avg_hold_bars": 11.2,
+   "exit_reasons": {
+    "data_end": 304,
+    "max_hold_timeout": 26025,
+    "rule_exit": 1353,
+    "stop_loss": 54656,
+    "trail_stop": 153704
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr2_n21__v1",
+   "n": 483184,
+   "pfnet": 0.077,
+   "win_pct": 7.2,
+   "avg_hold_bars": 8.2,
+   "exit_reasons": {
+    "data_end": 759,
+    "max_hold_timeout": 27033,
+    "rule_exit": 369019,
+    "stop_loss": 86373
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr1d5_lb20__v1",
+   "n": 258479,
+   "pfnet": 0.077,
+   "win_pct": 5.4,
+   "avg_hold_bars": 5.2,
+   "exit_reasons": {
+    "data_end": 378,
+    "max_hold_timeout": 2583,
+    "rule_exit": 189571,
+    "stop_loss": 65947
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr1d5_n6__v1",
+   "n": 518792,
+   "pfnet": 0.077,
+   "win_pct": 7.1,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 853,
+    "max_hold_timeout": 33239,
+    "rule_exit": 335652,
+    "stop_loss": 149048
+   }
+  },
+  {
+   "tag": "roc__roc_centerline__short__5m__atr1d5_n7__v1",
+   "n": 515937,
+   "pfnet": 0.077,
+   "win_pct": 7.0,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 876,
+    "max_hold_timeout": 32467,
+    "rule_exit": 334889,
+    "stop_loss": 147705
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr1d5_n6__v1",
+   "n": 518848,
+   "pfnet": 0.077,
+   "win_pct": 7.1,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 853,
+    "max_hold_timeout": 33236,
+    "rule_exit": 335763,
+    "stop_loss": 148996
+   }
+  },
+  {
+   "tag": "roc__mom_centerline__short__5m__atr1d5_n7__v1",
+   "n": 515984,
+   "pfnet": 0.077,
+   "win_pct": 7.0,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 875,
+    "max_hold_timeout": 32464,
+    "rule_exit": 334935,
+    "stop_loss": 147710
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__short__5m__atr3_w2__v1",
+   "n": 297898,
+   "pfnet": 0.077,
+   "win_pct": 8.7,
+   "avg_hold_bars": 10.9,
+   "exit_reasons": {
+    "data_end": 370,
+    "max_hold_timeout": 31178,
+    "rule_exit": 1778,
+    "stop_loss": 70883,
+    "trail_stop": 193689
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__short__5m__atr3_w2__v1",
+   "n": 376590,
+   "pfnet": 0.077,
+   "win_pct": 8.6,
+   "avg_hold_bars": 10.7,
+   "exit_reasons": {
+    "data_end": 465,
+    "max_hold_timeout": 38852,
+    "rule_exit": 2239,
+    "stop_loss": 91015,
+    "trail_stop": 244019
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr1d5_w5__v1",
+   "n": 136466,
+   "pfnet": 0.077,
+   "win_pct": 7.3,
+   "avg_hold_bars": 7.7,
+   "exit_reasons": {
+    "data_end": 420,
+    "max_hold_timeout": 5151,
+    "rule_exit": 547,
+    "stop_loss": 62469,
+    "trail_stop": 67879
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr3_w14__v1",
+   "n": 177174,
+   "pfnet": 0.077,
+   "win_pct": 8.8,
+   "avg_hold_bars": 10.7,
+   "exit_reasons": {
+    "data_end": 244,
+    "max_hold_timeout": 17237,
+    "rule_exit": 981,
+    "stop_loss": 42421,
+    "trail_stop": 116291
+   }
+  },
+  {
+   "tag": "elder_ray__plain__long__5m__atr2_lb0__v1",
+   "n": 412445,
+   "pfnet": 0.076,
+   "win_pct": 5.3,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 513,
+    "max_hold_timeout": 4164,
+    "rule_exit": 361992,
+    "stop_loss": 45776
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__long__5m__atr1d5_w2__v1",
+   "n": 252021,
+   "pfnet": 0.076,
+   "win_pct": 7.4,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 934,
+    "max_hold_timeout": 8565,
+    "rule_exit": 1033,
+    "stop_loss": 120800,
+    "trail_stop": 120689
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr2_n13__v1",
+   "n": 589006,
+   "pfnet": 0.075,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.9,
+   "exit_reasons": {
+    "data_end": 784,
+    "max_hold_timeout": 6606,
+    "rule_exit": 492160,
+    "stop_loss": 89456
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr1d5_n21__v1",
+   "n": 484870,
+   "pfnet": 0.075,
+   "win_pct": 6.9,
+   "avg_hold_bars": 8.0,
+   "exit_reasons": {
+    "data_end": 685,
+    "max_hold_timeout": 25787,
+    "rule_exit": 323588,
+    "stop_loss": 134810
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__long__5m__atr1d5_w2__v1",
+   "n": 196841,
+   "pfnet": 0.075,
+   "win_pct": 7.3,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 717,
+    "max_hold_timeout": 6981,
+    "rule_exit": 819,
+    "stop_loss": 93993,
+    "trail_stop": 94331
+   }
+  },
+  {
+   "tag": "elder_ray__plain__long__5m__atr1d5_lb0__v1",
+   "n": 415624,
+   "pfnet": 0.074,
+   "win_pct": 5.1,
+   "avg_hold_bars": 5.3,
+   "exit_reasons": {
+    "data_end": 477,
+    "max_hold_timeout": 4030,
+    "rule_exit": 329803,
+    "stop_loss": 81314
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr3_w5__v1",
+   "n": 210784,
+   "pfnet": 0.074,
+   "win_pct": 8.5,
+   "avg_hold_bars": 11.0,
+   "exit_reasons": {
+    "data_end": 268,
+    "max_hold_timeout": 21624,
+    "rule_exit": 1132,
+    "stop_loss": 49356,
+    "trail_stop": 138404
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__long__5m__atr1d5_w14__v1",
+   "n": 126936,
+   "pfnet": 0.074,
+   "win_pct": 7.2,
+   "avg_hold_bars": 7.4,
+   "exit_reasons": {
+    "data_end": 380,
+    "max_hold_timeout": 4540,
+    "rule_exit": 524,
+    "stop_loss": 58486,
+    "trail_stop": 63006
+   }
+  },
+  {
+   "tag": "elder_ray__veto__long__5m__atr3_lb0__v1",
+   "n": 227142,
+   "pfnet": 0.073,
+   "win_pct": 5.3,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 291,
+    "max_hold_timeout": 2203,
+    "rule_exit": 212294,
+    "stop_loss": 12354
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr1d5_w5__v1",
+   "n": 124946,
+   "pfnet": 0.073,
+   "win_pct": 7.3,
+   "avg_hold_bars": 7.4,
+   "exit_reasons": {
+    "data_end": 459,
+    "max_hold_timeout": 4447,
+    "rule_exit": 594,
+    "stop_loss": 59698,
+    "trail_stop": 59748
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr3_w5__v1",
+   "n": 197811,
+   "pfnet": 0.073,
+   "win_pct": 8.7,
+   "avg_hold_bars": 10.8,
+   "exit_reasons": {
+    "data_end": 293,
+    "max_hold_timeout": 19489,
+    "rule_exit": 1265,
+    "stop_loss": 47565,
+    "trail_stop": 129199
+   }
+  },
+  {
+   "tag": "elder_ray__plain__short__5m__atr3_lb0__v1",
+   "n": 425133,
+   "pfnet": 0.072,
+   "win_pct": 6.4,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 461,
+    "max_hold_timeout": 8844,
+    "rule_exit": 390029,
+    "stop_loss": 25799
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr1d5_n13__v1",
+   "n": 591545,
+   "pfnet": 0.072,
+   "win_pct": 5.5,
+   "avg_hold_bars": 5.7,
+   "exit_reasons": {
+    "data_end": 716,
+    "max_hold_timeout": 6296,
+    "rule_exit": 432666,
+    "stop_loss": 151867
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__long__5m__atr1d5_w4__v1",
+   "n": 125813,
+   "pfnet": 0.072,
+   "win_pct": 7.2,
+   "avg_hold_bars": 7.4,
+   "exit_reasons": {
+    "data_end": 472,
+    "max_hold_timeout": 4401,
+    "rule_exit": 595,
+    "stop_loss": 60515,
+    "trail_stop": 59830
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr3_w4__v1",
+   "n": 202096,
+   "pfnet": 0.072,
+   "win_pct": 8.7,
+   "avg_hold_bars": 10.9,
+   "exit_reasons": {
+    "data_end": 296,
+    "max_hold_timeout": 20254,
+    "rule_exit": 1308,
+    "stop_loss": 48439,
+    "trail_stop": 131799
+   }
+  },
+  {
+   "tag": "elder_ray__veto__long__5m__atr2_lb0__v1",
+   "n": 227445,
+   "pfnet": 0.071,
+   "win_pct": 5.1,
+   "avg_hold_bars": 5.4,
+   "exit_reasons": {
+    "data_end": 276,
+    "max_hold_timeout": 2133,
+    "rule_exit": 196811,
+    "stop_loss": 28225
+   }
+  },
+  {
+   "tag": "elder_ray__plain__short__5m__atr2_lb0__v1",
+   "n": 427080,
+   "pfnet": 0.07,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.4,
+   "exit_reasons": {
+    "data_end": 432,
+    "max_hold_timeout": 8645,
+    "rule_exit": 365109,
+    "stop_loss": 52894
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr3_n9__v1",
+   "n": 680493,
+   "pfnet": 0.07,
+   "win_pct": 5.6,
+   "avg_hold_bars": 5.2,
+   "exit_reasons": {
+    "data_end": 786,
+    "max_hold_timeout": 2534,
+    "rule_exit": 639357,
+    "stop_loss": 37816
+   }
+  },
+  {
+   "tag": "elder_ray__veto__short__5m__atr3_lb0__v1",
+   "n": 226665,
+   "pfnet": 0.069,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.4,
+   "exit_reasons": {
+    "data_end": 255,
+    "max_hold_timeout": 4442,
+    "rule_exit": 206730,
+    "stop_loss": 15238
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr3_lb10__v1",
+   "n": 358431,
+   "pfnet": 0.069,
+   "win_pct": 5.0,
+   "avg_hold_bars": 5.0,
+   "exit_reasons": {
+    "data_end": 482,
+    "max_hold_timeout": 3104,
+    "rule_exit": 334963,
+    "stop_loss": 19882
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr3_lb40__v1",
+   "n": 241394,
+   "pfnet": 0.069,
+   "win_pct": 6.5,
+   "avg_hold_bars": 6.3,
+   "exit_reasons": {
+    "data_end": 380,
+    "max_hold_timeout": 4373,
+    "rule_exit": 215651,
+    "stop_loss": 20990
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__short__5m__atr2_w13__v1",
+   "n": 269162,
+   "pfnet": 0.069,
+   "win_pct": 7.8,
+   "avg_hold_bars": 9.2,
+   "exit_reasons": {
+    "data_end": 257,
+    "max_hold_timeout": 18622,
+    "rule_exit": 1015,
+    "stop_loss": 90474,
+    "trail_stop": 158794
+   }
+  },
+  {
+   "tag": "elder_ray__plain__short__5m__atr1d5_lb0__v1",
+   "n": 430154,
+   "pfnet": 0.068,
+   "win_pct": 6.0,
+   "avg_hold_bars": 6.3,
+   "exit_reasons": {
+    "data_end": 385,
+    "max_hold_timeout": 8429,
+    "rule_exit": 335795,
+    "stop_loss": 85545
+   }
+  },
+  {
+   "tag": "elder_ray__veto__long__5m__atr1d5_lb0__v1",
+   "n": 227909,
+   "pfnet": 0.068,
+   "win_pct": 4.9,
+   "avg_hold_bars": 5.2,
+   "exit_reasons": {
+    "data_end": 256,
+    "max_hold_timeout": 2044,
+    "rule_exit": 176738,
+    "stop_loss": 48871
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr2_n9__v1",
+   "n": 682607,
+   "pfnet": 0.068,
+   "win_pct": 5.4,
+   "avg_hold_bars": 5.1,
+   "exit_reasons": {
+    "data_end": 734,
+    "max_hold_timeout": 2474,
+    "rule_exit": 587821,
+    "stop_loss": 91578
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr2_lb10__v1",
+   "n": 360144,
+   "pfnet": 0.068,
+   "win_pct": 4.9,
+   "avg_hold_bars": 4.9,
+   "exit_reasons": {
+    "data_end": 455,
+    "max_hold_timeout": 3032,
+    "rule_exit": 311139,
+    "stop_loss": 45518
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr2_w14__v1",
+   "n": 201782,
+   "pfnet": 0.068,
+   "win_pct": 7.7,
+   "avg_hold_bars": 8.7,
+   "exit_reasons": {
+    "data_end": 208,
+    "max_hold_timeout": 12175,
+    "rule_exit": 752,
+    "stop_loss": 69614,
+    "trail_stop": 119033
+   }
+  },
+  {
+   "tag": "elder_ray__veto__short__5m__atr2_lb0__v1",
+   "n": 226962,
+   "pfnet": 0.067,
+   "win_pct": 6.0,
+   "avg_hold_bars": 6.3,
+   "exit_reasons": {
+    "data_end": 239,
+    "max_hold_timeout": 4312,
+    "rule_exit": 192317,
+    "stop_loss": 30094
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr2_lb40__v1",
+   "n": 243502,
+   "pfnet": 0.067,
+   "win_pct": 6.4,
+   "avg_hold_bars": 6.1,
+   "exit_reasons": {
+    "data_end": 349,
+    "max_hold_timeout": 4248,
+    "rule_exit": 196694,
+    "stop_loss": 42211
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__short__5m__atr2_w2__v1",
+   "n": 344189,
+   "pfnet": 0.067,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.9,
+   "exit_reasons": {
+    "data_end": 321,
+    "max_hold_timeout": 22302,
+    "rule_exit": 1379,
+    "stop_loss": 119865,
+    "trail_stop": 200322
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__short__5m__atr2_w2__v1",
+   "n": 447381,
+   "pfnet": 0.067,
+   "win_pct": 7.5,
+   "avg_hold_bars": 8.7,
+   "exit_reasons": {
+    "data_end": 409,
+    "max_hold_timeout": 28242,
+    "rule_exit": 1802,
+    "stop_loss": 158103,
+    "trail_stop": 258825
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__long__5m__atr1d5_n9__v1",
+   "n": 685521,
+   "pfnet": 0.066,
+   "win_pct": 5.2,
+   "avg_hold_bars": 4.9,
+   "exit_reasons": {
+    "data_end": 672,
+    "max_hold_timeout": 2388,
+    "rule_exit": 524767,
+    "stop_loss": 157694
+   }
+  },
+  {
+   "tag": "elder_ray__veto__short__5m__atr1d5_lb0__v1",
+   "n": 227357,
+   "pfnet": 0.065,
+   "win_pct": 5.8,
+   "avg_hold_bars": 6.1,
+   "exit_reasons": {
+    "data_end": 214,
+    "max_hold_timeout": 4161,
+    "rule_exit": 175318,
+    "stop_loss": 47664
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr3_n13__v1",
+   "n": 599738,
+   "pfnet": 0.065,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.0,
+   "exit_reasons": {
+    "data_end": 792,
+    "max_hold_timeout": 12740,
+    "rule_exit": 542261,
+    "stop_loss": 43945
+   }
+  },
+  {
+   "tag": "obv__breakout__long__5m__atr1d5_lb10__v1",
+   "n": 362941,
+   "pfnet": 0.065,
+   "win_pct": 4.7,
+   "avg_hold_bars": 4.7,
+   "exit_reasons": {
+    "data_end": 427,
+    "max_hold_timeout": 2922,
+    "rule_exit": 281257,
+    "stop_loss": 78335
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr1d5_lb40__v1",
+   "n": 246540,
+   "pfnet": 0.065,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.0,
+   "exit_reasons": {
+    "data_end": 315,
+    "max_hold_timeout": 4099,
+    "rule_exit": 176390,
+    "stop_loss": 65736
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr2_w5__v1",
+   "n": 236444,
+   "pfnet": 0.065,
+   "win_pct": 7.5,
+   "avg_hold_bars": 9.0,
+   "exit_reasons": {
+    "data_end": 217,
+    "max_hold_timeout": 15048,
+    "rule_exit": 870,
+    "stop_loss": 80146,
+    "trail_stop": 140163
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr2_n13__v1",
+   "n": 601403,
+   "pfnet": 0.064,
+   "win_pct": 6.3,
+   "avg_hold_bars": 6.9,
+   "exit_reasons": {
+    "data_end": 741,
+    "max_hold_timeout": 12329,
+    "rule_exit": 496433,
+    "stop_loss": 91900
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr3_lb20__v1",
+   "n": 322603,
+   "pfnet": 0.064,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.1,
+   "exit_reasons": {
+    "data_end": 468,
+    "max_hold_timeout": 5363,
+    "rule_exit": 292261,
+    "stop_loss": 24511
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr3_w4__v1",
+   "n": 544015,
+   "pfnet": 0.064,
+   "win_pct": 6.3,
+   "avg_hold_bars": 5.2,
+   "exit_reasons": {
+    "data_end": 819,
+    "max_hold_timeout": 21565,
+    "rule_exit": 321891,
+    "stop_loss": 60673,
+    "trail_stop": 139067
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr3_w5__v1",
+   "n": 534962,
+   "pfnet": 0.064,
+   "win_pct": 6.3,
+   "avg_hold_bars": 5.3,
+   "exit_reasons": {
+    "data_end": 800,
+    "max_hold_timeout": 21408,
+    "rule_exit": 315286,
+    "stop_loss": 59378,
+    "trail_stop": 138090
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr2_w4__v1",
+   "n": 226406,
+   "pfnet": 0.063,
+   "win_pct": 7.6,
+   "avg_hold_bars": 8.8,
+   "exit_reasons": {
+    "data_end": 249,
+    "max_hold_timeout": 13728,
+    "rule_exit": 1013,
+    "stop_loss": 79638,
+    "trail_stop": 131778
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr2_w5__v1",
+   "n": 221555,
+   "pfnet": 0.063,
+   "win_pct": 7.6,
+   "avg_hold_bars": 8.8,
+   "exit_reasons": {
+    "data_end": 249,
+    "max_hold_timeout": 13180,
+    "rule_exit": 974,
+    "stop_loss": 77956,
+    "trail_stop": 129196
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr1d5_n13__v1",
+   "n": 603475,
+   "pfnet": 0.062,
+   "win_pct": 6.1,
+   "avg_hold_bars": 6.7,
+   "exit_reasons": {
+    "data_end": 663,
+    "max_hold_timeout": 11881,
+    "rule_exit": 444898,
+    "stop_loss": 146033
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr2_lb20__v1",
+   "n": 324726,
+   "pfnet": 0.062,
+   "win_pct": 5.9,
+   "avg_hold_bars": 5.9,
+   "exit_reasons": {
+    "data_end": 434,
+    "max_hold_timeout": 5233,
+    "rule_exit": 268862,
+    "stop_loss": 50197
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr3_w5__v1",
+   "n": 430750,
+   "pfnet": 0.062,
+   "win_pct": 7.2,
+   "avg_hold_bars": 7.7,
+   "exit_reasons": {
+    "data_end": 514,
+    "max_hold_timeout": 27665,
+    "rule_exit": 135893,
+    "stop_loss": 72840,
+    "trail_stop": 193838
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr2_n20__v1",
+   "n": 709482,
+   "pfnet": 0.061,
+   "win_pct": 3.9,
+   "avg_hold_bars": 4.3,
+   "exit_reasons": {
+    "breakeven_stop": 317878,
+    "data_end": 648,
+    "max_hold_timeout": 10331,
+    "rule_exit": 315020,
+    "stop_loss": 65605
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr3_n20__v1",
+   "n": 702054,
+   "pfnet": 0.061,
+   "win_pct": 3.9,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "breakeven_stop": 324832,
+    "data_end": 666,
+    "max_hold_timeout": 10405,
+    "rule_exit": 339279,
+    "stop_loss": 26872
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr1d5_lb20__v1",
+   "n": 327896,
+   "pfnet": 0.061,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.8,
+   "exit_reasons": {
+    "data_end": 400,
+    "max_hold_timeout": 5077,
+    "rule_exit": 243142,
+    "stop_loss": 79277
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr3_w4__v1",
+   "n": 443772,
+   "pfnet": 0.061,
+   "win_pct": 7.1,
+   "avg_hold_bars": 7.7,
+   "exit_reasons": {
+    "data_end": 524,
+    "max_hold_timeout": 28714,
+    "rule_exit": 141799,
+    "stop_loss": 74519,
+    "trail_stop": 198216
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr1d5_w14__v1",
+   "n": 224016,
+   "pfnet": 0.06,
+   "win_pct": 6.7,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 164,
+    "max_hold_timeout": 9403,
+    "rule_exit": 581,
+    "stop_loss": 96002,
+    "trail_stop": 117866
+   }
+  },
+  {
+   "tag": "triple_screen__elder_all__short__5m__atr1d5_w13__v1",
+   "n": 298655,
+   "pfnet": 0.06,
+   "win_pct": 6.8,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 202,
+    "max_hold_timeout": 14336,
+    "rule_exit": 788,
+    "stop_loss": 124697,
+    "trail_stop": 158632
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr1d5_n20__v1",
+   "n": 720093,
+   "pfnet": 0.059,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.2,
+   "exit_reasons": {
+    "breakeven_stop": 307568,
+    "data_end": 603,
+    "max_hold_timeout": 10235,
+    "rule_exit": 284920,
+    "stop_loss": 116767
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr3_w5__v1",
+   "n": 459730,
+   "pfnet": 0.059,
+   "win_pct": 6.8,
+   "avg_hold_bars": 7.8,
+   "exit_reasons": {
+    "data_end": 473,
+    "max_hold_timeout": 30632,
+    "rule_exit": 147481,
+    "stop_loss": 74508,
+    "trail_stop": 206636
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr3_w14__v1",
+   "n": 416373,
+   "pfnet": 0.059,
+   "win_pct": 6.8,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 481,
+    "max_hold_timeout": 24136,
+    "rule_exit": 150227,
+    "stop_loss": 65077,
+    "trail_stop": 176452
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr3_lb10__v1",
+   "n": 416722,
+   "pfnet": 0.058,
+   "win_pct": 5.6,
+   "avg_hold_bars": 5.7,
+   "exit_reasons": {
+    "data_end": 525,
+    "max_hold_timeout": 6159,
+    "rule_exit": 382773,
+    "stop_loss": 27265
+   }
+  },
+  {
+   "tag": "triple_screen__fi_all__short__5m__atr1d5_w2__v1",
+   "n": 385808,
+   "pfnet": 0.058,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.5,
+   "exit_reasons": {
+    "data_end": 259,
+    "max_hold_timeout": 17242,
+    "rule_exit": 1120,
+    "stop_loss": 167266,
+    "trail_stop": 199921
+   }
+  },
+  {
+   "tag": "triple_screen__fi_weekly_only__short__5m__atr1d5_w2__v1",
+   "n": 516680,
+   "pfnet": 0.058,
+   "win_pct": 6.6,
+   "avg_hold_bars": 7.2,
+   "exit_reasons": {
+    "data_end": 340,
+    "max_hold_timeout": 22293,
+    "rule_exit": 1501,
+    "stop_loss": 227820,
+    "trail_stop": 264726
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr3_w5__v1",
+   "n": 568999,
+   "pfnet": 0.058,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.3,
+   "exit_reasons": {
+    "data_end": 739,
+    "max_hold_timeout": 23272,
+    "rule_exit": 337721,
+    "stop_loss": 58698,
+    "trail_stop": 148569
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr2_w4__v1",
+   "n": 570771,
+   "pfnet": 0.058,
+   "win_pct": 5.8,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "data_end": 657,
+    "max_hold_timeout": 13148,
+    "rule_exit": 302945,
+    "stop_loss": 116069,
+    "trail_stop": 137952
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr2_w5__v1",
+   "n": 561384,
+   "pfnet": 0.058,
+   "win_pct": 5.8,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "data_end": 634,
+    "max_hold_timeout": 13146,
+    "rule_exit": 296904,
+    "stop_loss": 113487,
+    "trail_stop": 137213
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr3_n20__v1",
+   "n": 710934,
+   "pfnet": 0.057,
+   "win_pct": 4.6,
+   "avg_hold_bars": 5.0,
+   "exit_reasons": {
+    "breakeven_stop": 333392,
+    "data_end": 608,
+    "max_hold_timeout": 17631,
+    "rule_exit": 330302,
+    "stop_loss": 29001
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr3_n9__v1",
+   "n": 699660,
+   "pfnet": 0.057,
+   "win_pct": 5.9,
+   "avg_hold_bars": 5.9,
+   "exit_reasons": {
+    "data_end": 769,
+    "max_hold_timeout": 4613,
+    "rule_exit": 649460,
+    "stop_loss": 44818
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr2_lb10__v1",
+   "n": 418825,
+   "pfnet": 0.057,
+   "win_pct": 5.4,
+   "avg_hold_bars": 5.6,
+   "exit_reasons": {
+    "data_end": 488,
+    "max_hold_timeout": 6034,
+    "rule_exit": 355926,
+    "stop_loss": 56377
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__long__5m__atr3_w2__v1",
+   "n": 948357,
+   "pfnet": 0.057,
+   "win_pct": 5.6,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "data_end": 1196,
+    "max_hold_timeout": 30816,
+    "rule_exit": 607390,
+    "stop_loss": 92588,
+    "trail_stop": 216367
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_all__short__5m__atr1d5_w5__v1",
+   "n": 258359,
+   "pfnet": 0.057,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.6,
+   "exit_reasons": {
+    "data_end": 175,
+    "max_hold_timeout": 11329,
+    "rule_exit": 673,
+    "stop_loss": 108777,
+    "trail_stop": 137405
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__short__5m__atr3_w13__v1",
+   "n": 578693,
+   "pfnet": 0.057,
+   "win_pct": 6.5,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 607,
+    "max_hold_timeout": 37557,
+    "rule_exit": 220750,
+    "stop_loss": 84294,
+    "trail_stop": 235485
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr1d5_n20__v1",
+   "n": 726107,
+   "pfnet": 0.056,
+   "win_pct": 4.5,
+   "avg_hold_bars": 4.9,
+   "exit_reasons": {
+    "breakeven_stop": 320104,
+    "data_end": 521,
+    "max_hold_timeout": 17506,
+    "rule_exit": 281289,
+    "stop_loss": 106687
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr2_n20__v1",
+   "n": 717291,
+   "pfnet": 0.056,
+   "win_pct": 4.6,
+   "avg_hold_bars": 5.0,
+   "exit_reasons": {
+    "breakeven_stop": 328100,
+    "data_end": 564,
+    "max_hold_timeout": 17574,
+    "rule_exit": 307219,
+    "stop_loss": 63834
+   }
+  },
+  {
+   "tag": "obv__breakout__short__5m__atr1d5_lb10__v1",
+   "n": 422037,
+   "pfnet": 0.056,
+   "win_pct": 5.3,
+   "avg_hold_bars": 5.5,
+   "exit_reasons": {
+    "data_end": 448,
+    "max_hold_timeout": 5878,
+    "rule_exit": 325319,
+    "stop_loss": 90392
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr3_band80__v1",
+   "n": 771780,
+   "pfnet": 0.056,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 350989,
+    "data_end": 670,
+    "max_hold_timeout": 4231,
+    "rule_exit": 389641,
+    "stop_loss": 26249
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr3_band75__v1",
+   "n": 731943,
+   "pfnet": 0.056,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 331368,
+    "data_end": 621,
+    "max_hold_timeout": 4014,
+    "rule_exit": 371054,
+    "stop_loss": 24886
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr3_band70__v1",
+   "n": 683822,
+   "pfnet": 0.056,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 308058,
+    "data_end": 589,
+    "max_hold_timeout": 3742,
+    "rule_exit": 348124,
+    "stop_loss": 23309
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__short__5m__atr3_w2__v1",
+   "n": 739129,
+   "pfnet": 0.056,
+   "win_pct": 6.3,
+   "avg_hold_bars": 7.1,
+   "exit_reasons": {
+    "data_end": 741,
+    "max_hold_timeout": 44541,
+    "rule_exit": 285845,
+    "stop_loss": 111664,
+    "trail_stop": 296338
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr3_lb10__v1",
+   "n": 428995,
+   "pfnet": 0.055,
+   "win_pct": 5.3,
+   "avg_hold_bars": 3.6,
+   "exit_reasons": {
+    "data_end": 320,
+    "max_hold_timeout": 11,
+    "rule_exit": 411523,
+    "stop_loss": 17141
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr2_n13__v1",
+   "n": 871747,
+   "pfnet": 0.055,
+   "win_pct": 3.7,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 390204,
+    "data_end": 730,
+    "max_hold_timeout": 4597,
+    "rule_exit": 402485,
+    "stop_loss": 73731
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr3_n13__v1",
+   "n": 863695,
+   "pfnet": 0.055,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 397916,
+    "data_end": 750,
+    "max_hold_timeout": 4633,
+    "rule_exit": 430285,
+    "stop_loss": 30111
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr2_n9__v1",
+   "n": 701578,
+   "pfnet": 0.055,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.8,
+   "exit_reasons": {
+    "data_end": 722,
+    "max_hold_timeout": 4495,
+    "rule_exit": 601694,
+    "stop_loss": 94667
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__long__5m__atr2_band0__v1",
+   "n": 871198,
+   "pfnet": 0.055,
+   "win_pct": 3.7,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 390000,
+    "data_end": 730,
+    "max_hold_timeout": 4594,
+    "rule_exit": 402239,
+    "stop_loss": 73635
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__long__5m__atr3_band0__v1",
+   "n": 863166,
+   "pfnet": 0.055,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 397716,
+    "data_end": 750,
+    "max_hold_timeout": 4631,
+    "rule_exit": 429981,
+    "stop_loss": 30088
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr2_band80__v1",
+   "n": 777434,
+   "pfnet": 0.055,
+   "win_pct": 3.8,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 344233,
+    "data_end": 651,
+    "max_hold_timeout": 4194,
+    "rule_exit": 364492,
+    "stop_loss": 63864
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr2_band75__v1",
+   "n": 736897,
+   "pfnet": 0.055,
+   "win_pct": 3.7,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 324900,
+    "data_end": 604,
+    "max_hold_timeout": 3976,
+    "rule_exit": 347096,
+    "stop_loss": 60321
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr2_band70__v1",
+   "n": 688040,
+   "pfnet": 0.055,
+   "win_pct": 3.7,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "breakeven_stop": 301987,
+    "data_end": 566,
+    "max_hold_timeout": 3707,
+    "rule_exit": 325480,
+    "stop_loss": 56300
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr2_w14__v1",
+   "n": 450757,
+   "pfnet": 0.055,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.2,
+   "exit_reasons": {
+    "data_end": 416,
+    "max_hold_timeout": 17110,
+    "rule_exit": 142428,
+    "stop_loss": 111541,
+    "trail_stop": 179262
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__long__5m__atr3_w13__v1",
+   "n": 703913,
+   "pfnet": 0.055,
+   "win_pct": 5.4,
+   "avg_hold_bars": 4.9,
+   "exit_reasons": {
+    "data_end": 932,
+    "max_hold_timeout": 25425,
+    "rule_exit": 442480,
+    "stop_loss": 65736,
+    "trail_stop": 169340
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr1d5_w4__v1",
+   "n": 247471,
+   "pfnet": 0.055,
+   "win_pct": 6.7,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 198,
+    "max_hold_timeout": 10016,
+    "rule_exit": 791,
+    "stop_loss": 108746,
+    "trail_stop": 127720
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr2_w4__v1",
+   "n": 477866,
+   "pfnet": 0.055,
+   "win_pct": 6.5,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 442,
+    "max_hold_timeout": 19560,
+    "rule_exit": 132773,
+    "stop_loss": 128016,
+    "trail_stop": 197075
+   }
+  },
+  {
+   "tag": "triple_screen__wr_all__short__5m__atr1d5_w5__v1",
+   "n": 241836,
+   "pfnet": 0.055,
+   "win_pct": 6.7,
+   "avg_hold_bars": 7.3,
+   "exit_reasons": {
+    "data_end": 195,
+    "max_hold_timeout": 9613,
+    "rule_exit": 766,
+    "stop_loss": 106043,
+    "trail_stop": 125219
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr2_w5__v1",
+   "n": 463947,
+   "pfnet": 0.055,
+   "win_pct": 6.5,
+   "avg_hold_bars": 6.5,
+   "exit_reasons": {
+    "data_end": 437,
+    "max_hold_timeout": 18750,
+    "rule_exit": 127194,
+    "stop_loss": 124837,
+    "trail_stop": 192729
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr3_lb5__v1",
+   "n": 435099,
+   "pfnet": 0.054,
+   "win_pct": 5.2,
+   "avg_hold_bars": 3.4,
+   "exit_reasons": {
+    "data_end": 314,
+    "max_hold_timeout": 5,
+    "rule_exit": 417781,
+    "stop_loss": 16999
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr2_lb10__v1",
+   "n": 430613,
+   "pfnet": 0.054,
+   "win_pct": 5.2,
+   "avg_hold_bars": 3.5,
+   "exit_reasons": {
+    "data_end": 309,
+    "max_hold_timeout": 11,
+    "rule_exit": 388505,
+    "stop_loss": 41788
+   }
+  },
+  {
+   "tag": "ema_gate__slope_turn__short__5m__atr1d5_n9__v1",
+   "n": 704068,
+   "pfnet": 0.054,
+   "win_pct": 5.6,
+   "avg_hold_bars": 5.7,
+   "exit_reasons": {
+    "data_end": 658,
+    "max_hold_timeout": 4356,
+    "rule_exit": 546680,
+    "stop_loss": 152374
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr3_lb40__v1",
+   "n": 187809,
+   "pfnet": 0.054,
+   "win_pct": 5.8,
+   "avg_hold_bars": 2.6,
+   "exit_reasons": {
+    "data_end": 71,
+    "max_hold_timeout": 530,
+    "rule_exit": 175475,
+    "stop_loss": 11733
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr1d5_band80__v1",
+   "n": 785886,
+   "pfnet": 0.054,
+   "win_pct": 3.7,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "breakeven_stop": 333759,
+    "data_end": 608,
+    "max_hold_timeout": 4144,
+    "rule_exit": 332853,
+    "stop_loss": 114522
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr1d5_band75__v1",
+   "n": 744250,
+   "pfnet": 0.054,
+   "win_pct": 3.7,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "breakeven_stop": 314902,
+    "data_end": 568,
+    "max_hold_timeout": 3925,
+    "rule_exit": 316835,
+    "stop_loss": 108020
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__long__5m__atr1d5_band70__v1",
+   "n": 694288,
+   "pfnet": 0.054,
+   "win_pct": 3.6,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "breakeven_stop": 292564,
+    "data_end": 529,
+    "max_hold_timeout": 3666,
+    "rule_exit": 296959,
+    "stop_loss": 100570
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr2_w5__v1",
+   "n": 598459,
+   "pfnet": 0.054,
+   "win_pct": 5.3,
+   "avg_hold_bars": 4.7,
+   "exit_reasons": {
+    "data_end": 570,
+    "max_hold_timeout": 14733,
+    "rule_exit": 322099,
+    "stop_loss": 110978,
+    "trail_stop": 150079
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr3_w14__v1",
+   "n": 595193,
+   "pfnet": 0.054,
+   "win_pct": 5.3,
+   "avg_hold_bars": 4.8,
+   "exit_reasons": {
+    "data_end": 662,
+    "max_hold_timeout": 19609,
+    "rule_exit": 376627,
+    "stop_loss": 55957,
+    "trail_stop": 142338
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr1d5_n13__v1",
+   "n": 883725,
+   "pfnet": 0.053,
+   "win_pct": 3.7,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "breakeven_stop": 378387,
+    "data_end": 682,
+    "max_hold_timeout": 4554,
+    "rule_exit": 367718,
+    "stop_loss": 132384
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr2_lb40__v1",
+   "n": 189827,
+   "pfnet": 0.053,
+   "win_pct": 5.7,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 62,
+    "max_hold_timeout": 505,
+    "rule_exit": 164595,
+    "stop_loss": 24665
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__long__5m__atr1d5_band0__v1",
+   "n": 883149,
+   "pfnet": 0.053,
+   "win_pct": 3.7,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "breakeven_stop": 378201,
+    "data_end": 682,
+    "max_hold_timeout": 4551,
+    "rule_exit": 367523,
+    "stop_loss": 132192
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr2_w5__v1",
+   "n": 495717,
+   "pfnet": 0.053,
+   "win_pct": 6.2,
+   "avg_hold_bars": 6.7,
+   "exit_reasons": {
+    "data_end": 396,
+    "max_hold_timeout": 21422,
+    "rule_exit": 139684,
+    "stop_loss": 126139,
+    "trail_stop": 208076
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__short__5m__atr2_w13__v1",
+   "n": 624954,
+   "pfnet": 0.053,
+   "win_pct": 6.0,
+   "avg_hold_bars": 6.4,
+   "exit_reasons": {
+    "data_end": 522,
+    "max_hold_timeout": 27172,
+    "rule_exit": 210516,
+    "stop_loss": 145237,
+    "trail_stop": 241507
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr1d5_w4__v1",
+   "n": 594740,
+   "pfnet": 0.053,
+   "win_pct": 5.3,
+   "avg_hold_bars": 4.1,
+   "exit_reasons": {
+    "data_end": 525,
+    "max_hold_timeout": 8800,
+    "rule_exit": 278752,
+    "stop_loss": 174062,
+    "trail_stop": 132601
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__long__5m__atr1d5_w5__v1",
+   "n": 584938,
+   "pfnet": 0.053,
+   "win_pct": 5.3,
+   "avg_hold_bars": 4.1,
+   "exit_reasons": {
+    "data_end": 510,
+    "max_hold_timeout": 8848,
+    "rule_exit": 273500,
+    "stop_loss": 170141,
+    "trail_stop": 131939
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr3_lb3__v1",
+   "n": 439296,
+   "pfnet": 0.052,
+   "win_pct": 5.1,
+   "avg_hold_bars": 3.2,
+   "exit_reasons": {
+    "data_end": 296,
+    "max_hold_timeout": 1,
+    "rule_exit": 422432,
+    "stop_loss": 16567
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr2_lb5__v1",
+   "n": 436666,
+   "pfnet": 0.052,
+   "win_pct": 5.1,
+   "avg_hold_bars": 3.4,
+   "exit_reasons": {
+    "data_end": 302,
+    "max_hold_timeout": 5,
+    "rule_exit": 394964,
+    "stop_loss": 41395
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr1d5_lb10__v1",
+   "n": 433372,
+   "pfnet": 0.052,
+   "win_pct": 5.1,
+   "avg_hold_bars": 3.5,
+   "exit_reasons": {
+    "data_end": 280,
+    "max_hold_timeout": 9,
+    "rule_exit": 357411,
+    "stop_loss": 75672
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr3_n9__v1",
+   "n": 1000071,
+   "pfnet": 0.052,
+   "win_pct": 3.8,
+   "avg_hold_bars": 3.8,
+   "exit_reasons": {
+    "breakeven_stop": 417177,
+    "data_end": 758,
+    "max_hold_timeout": 1881,
+    "rule_exit": 546694,
+    "stop_loss": 33561
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr1d5_lb40__v1",
+   "n": 192447,
+   "pfnet": 0.052,
+   "win_pct": 5.6,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 55,
+    "max_hold_timeout": 492,
+    "rule_exit": 154273,
+    "stop_loss": 37627
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__long__5m__atr2_w2__v1",
+   "n": 1000339,
+   "pfnet": 0.052,
+   "win_pct": 5.3,
+   "avg_hold_bars": 4.2,
+   "exit_reasons": {
+    "data_end": 982,
+    "max_hold_timeout": 19758,
+    "rule_exit": 576887,
+    "stop_loss": 181863,
+    "trail_stop": 220849
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr2_lb3__v1",
+   "n": 440749,
+   "pfnet": 0.051,
+   "win_pct": 5.0,
+   "avg_hold_bars": 3.2,
+   "exit_reasons": {
+    "data_end": 285,
+    "max_hold_timeout": 1,
+    "rule_exit": 399861,
+    "stop_loss": 40602
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr2_n9__v1",
+   "n": 1008878,
+   "pfnet": 0.051,
+   "win_pct": 3.8,
+   "avg_hold_bars": 3.7,
+   "exit_reasons": {
+    "breakeven_stop": 409434,
+    "data_end": 736,
+    "max_hold_timeout": 1864,
+    "rule_exit": 514173,
+    "stop_loss": 82671
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__long__5m__atr2_w13__v1",
+   "n": 737985,
+   "pfnet": 0.051,
+   "win_pct": 5.1,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "data_end": 755,
+    "max_hold_timeout": 16232,
+    "rule_exit": 422826,
+    "stop_loss": 125878,
+    "trail_stop": 172294
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr1d5_lb5__v1",
+   "n": 439293,
+   "pfnet": 0.05,
+   "win_pct": 5.0,
+   "avg_hold_bars": 3.3,
+   "exit_reasons": {
+    "data_end": 273,
+    "max_hold_timeout": 4,
+    "rule_exit": 364149,
+    "stop_loss": 74867
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__long__5m__atr1d5_n9__v1",
+   "n": 1022359,
+   "pfnet": 0.05,
+   "win_pct": 3.7,
+   "avg_hold_bars": 3.6,
+   "exit_reasons": {
+    "breakeven_stop": 397492,
+    "data_end": 682,
+    "max_hold_timeout": 1851,
+    "rule_exit": 472601,
+    "stop_loss": 149733
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr3_n13__v1",
+   "n": 877953,
+   "pfnet": 0.05,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "breakeven_stop": 409618,
+    "data_end": 646,
+    "max_hold_timeout": 9234,
+    "rule_exit": 425538,
+    "stop_loss": 32917
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__short__5m__atr3_band0__v1",
+   "n": 877430,
+   "pfnet": 0.05,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "breakeven_stop": 409373,
+    "data_end": 646,
+    "max_hold_timeout": 9232,
+    "rule_exit": 425270,
+    "stop_loss": 32909
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr3_band80__v1",
+   "n": 795884,
+   "pfnet": 0.05,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "breakeven_stop": 368512,
+    "data_end": 588,
+    "max_hold_timeout": 8396,
+    "rule_exit": 389078,
+    "stop_loss": 29310
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__short__5m__atr2_w2__v1",
+   "n": 804501,
+   "pfnet": 0.05,
+   "win_pct": 5.8,
+   "avg_hold_bars": 6.2,
+   "exit_reasons": {
+    "data_end": 637,
+    "max_hold_timeout": 32120,
+    "rule_exit": 271368,
+    "stop_loss": 196329,
+    "trail_stop": 304047
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr2_w14__v1",
+   "n": 625361,
+   "pfnet": 0.05,
+   "win_pct": 5.0,
+   "avg_hold_bars": 4.3,
+   "exit_reasons": {
+    "data_end": 511,
+    "max_hold_timeout": 12461,
+    "rule_exit": 359639,
+    "stop_loss": 108265,
+    "trail_stop": 144485
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr1d5_w14__v1",
+   "n": 482192,
+   "pfnet": 0.05,
+   "win_pct": 5.7,
+   "avg_hold_bars": 5.4,
+   "exit_reasons": {
+    "data_end": 346,
+    "max_hold_timeout": 13290,
+    "rule_exit": 132900,
+    "stop_loss": 159070,
+    "trail_stop": 176586
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__long__5m__atr1d5_lb3__v1",
+   "n": 443195,
+   "pfnet": 0.049,
+   "win_pct": 4.9,
+   "avg_hold_bars": 3.1,
+   "exit_reasons": {
+    "data_end": 259,
+    "max_hold_timeout": 1,
+    "rule_exit": 369252,
+    "stop_loss": 73683
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr1d5_n13__v1",
+   "n": 894879,
+   "pfnet": 0.049,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "breakeven_stop": 394293,
+    "data_end": 555,
+    "max_hold_timeout": 9172,
+    "rule_exit": 368827,
+    "stop_loss": 122032
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr2_n13__v1",
+   "n": 885020,
+   "pfnet": 0.049,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 403741,
+    "data_end": 595,
+    "max_hold_timeout": 9184,
+    "rule_exit": 398976,
+    "stop_loss": 72524
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr3_lb20__v1",
+   "n": 254937,
+   "pfnet": 0.049,
+   "win_pct": 5.2,
+   "avg_hold_bars": 2.8,
+   "exit_reasons": {
+    "data_end": 138,
+    "max_hold_timeout": 837,
+    "rule_exit": 238758,
+    "stop_loss": 15204
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__short__5m__atr1d5_band0__v1",
+   "n": 894337,
+   "pfnet": 0.049,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "breakeven_stop": 394091,
+    "data_end": 555,
+    "max_hold_timeout": 9168,
+    "rule_exit": 368597,
+    "stop_loss": 121926
+   }
+  },
+  {
+   "tag": "stoch_filter__baseline__short__5m__atr2_band0__v1",
+   "n": 884496,
+   "pfnet": 0.049,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 403490,
+    "data_end": 595,
+    "max_hold_timeout": 9180,
+    "rule_exit": 398736,
+    "stop_loss": 72495
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr1d5_band80__v1",
+   "n": 808730,
+   "pfnet": 0.049,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 354615,
+    "data_end": 506,
+    "max_hold_timeout": 8313,
+    "rule_exit": 336958,
+    "stop_loss": 108338
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr2_band80__v1",
+   "n": 801273,
+   "pfnet": 0.049,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 363208,
+    "data_end": 541,
+    "max_hold_timeout": 8348,
+    "rule_exit": 364642,
+    "stop_loss": 64534
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr2_band75__v1",
+   "n": 759949,
+   "pfnet": 0.049,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 343040,
+    "data_end": 519,
+    "max_hold_timeout": 7880,
+    "rule_exit": 347396,
+    "stop_loss": 61114
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr3_band75__v1",
+   "n": 755247,
+   "pfnet": 0.049,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.6,
+   "exit_reasons": {
+    "breakeven_stop": 348134,
+    "data_end": 566,
+    "max_hold_timeout": 7930,
+    "rule_exit": 370764,
+    "stop_loss": 27853
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr2_band70__v1",
+   "n": 709267,
+   "pfnet": 0.049,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 318454,
+    "data_end": 491,
+    "max_hold_timeout": 7288,
+    "rule_exit": 326108,
+    "stop_loss": 56926
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr3_band70__v1",
+   "n": 705270,
+   "pfnet": 0.049,
+   "win_pct": 4.3,
+   "avg_hold_bars": 4.5,
+   "exit_reasons": {
+    "breakeven_stop": 323319,
+    "data_end": 534,
+    "max_hold_timeout": 7336,
+    "rule_exit": 348063,
+    "stop_loss": 26018
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr1d5_w5__v1",
+   "n": 625582,
+   "pfnet": 0.049,
+   "win_pct": 4.8,
+   "avg_hold_bars": 4.2,
+   "exit_reasons": {
+    "data_end": 462,
+    "max_hold_timeout": 10086,
+    "rule_exit": 301347,
+    "stop_loss": 166817,
+    "trail_stop": 146870
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr1d5_w4__v1",
+   "n": 507691,
+   "pfnet": 0.049,
+   "win_pct": 5.9,
+   "avg_hold_bars": 5.6,
+   "exit_reasons": {
+    "data_end": 366,
+    "max_hold_timeout": 14302,
+    "rule_exit": 121962,
+    "stop_loss": 180734,
+    "trail_stop": 190327
+   }
+  },
+  {
+   "tag": "triple_screen__wr_no_weekly__short__5m__atr1d5_w5__v1",
+   "n": 492670,
+   "pfnet": 0.049,
+   "win_pct": 5.9,
+   "avg_hold_bars": 5.6,
+   "exit_reasons": {
+    "data_end": 360,
+    "max_hold_timeout": 13719,
+    "rule_exit": 116811,
+    "stop_loss": 175687,
+    "trail_stop": 186093
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr2_lb20__v1",
+   "n": 257061,
+   "pfnet": 0.048,
+   "win_pct": 5.1,
+   "avg_hold_bars": 2.7,
+   "exit_reasons": {
+    "data_end": 128,
+    "max_hold_timeout": 803,
+    "rule_exit": 224188,
+    "stop_loss": 31942
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr1d5_band75__v1",
+   "n": 766552,
+   "pfnet": 0.048,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "breakeven_stop": 334823,
+    "data_end": 487,
+    "max_hold_timeout": 7840,
+    "rule_exit": 320836,
+    "stop_loss": 102566
+   }
+  },
+  {
+   "tag": "stoch_filter__stoch_veto__short__5m__atr1d5_band70__v1",
+   "n": 714902,
+   "pfnet": 0.048,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.4,
+   "exit_reasons": {
+    "breakeven_stop": 310703,
+    "data_end": 458,
+    "max_hold_timeout": 7247,
+    "rule_exit": 301046,
+    "stop_loss": 95448
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__long__5m__atr1d5_w2__v1",
+   "n": 1049470,
+   "pfnet": 0.048,
+   "win_pct": 4.8,
+   "avg_hold_bars": 3.8,
+   "exit_reasons": {
+    "data_end": 811,
+    "max_hold_timeout": 13795,
+    "rule_exit": 535957,
+    "stop_loss": 281138,
+    "trail_stop": 217769
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__short__5m__atr1d5_w5__v1",
+   "n": 526811,
+   "pfnet": 0.048,
+   "win_pct": 5.6,
+   "avg_hold_bars": 5.8,
+   "exit_reasons": {
+    "data_end": 331,
+    "max_hold_timeout": 16235,
+    "rule_exit": 130152,
+    "stop_loss": 176809,
+    "trail_stop": 203284
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__short__5m__atr1d5_w13__v1",
+   "n": 666478,
+   "pfnet": 0.048,
+   "win_pct": 5.5,
+   "avg_hold_bars": 5.7,
+   "exit_reasons": {
+    "data_end": 438,
+    "max_hold_timeout": 21058,
+    "rule_exit": 197617,
+    "stop_loss": 206973,
+    "trail_stop": 240392
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr3_lb10__v1",
+   "n": 335250,
+   "pfnet": 0.047,
+   "win_pct": 4.8,
+   "avg_hold_bars": 3.2,
+   "exit_reasons": {
+    "data_end": 236,
+    "max_hold_timeout": 1675,
+    "rule_exit": 314736,
+    "stop_loss": 18603
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr1d5_lb20__v1",
+   "n": 259943,
+   "pfnet": 0.047,
+   "win_pct": 5.0,
+   "avg_hold_bars": 2.6,
+   "exit_reasons": {
+    "data_end": 118,
+    "max_hold_timeout": 780,
+    "rule_exit": 209985,
+    "stop_loss": 49060
+   }
+  },
+  {
+   "tag": "triple_screen__elder_no_weekly__long__5m__atr1d5_w13__v1",
+   "n": 769333,
+   "pfnet": 0.047,
+   "win_pct": 4.7,
+   "avg_hold_bars": 4.0,
+   "exit_reasons": {
+    "data_end": 611,
+    "max_hold_timeout": 11238,
+    "rule_exit": 395795,
+    "stop_loss": 191552,
+    "trail_stop": 170137
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr1d5_lb10__v1",
+   "n": 339868,
+   "pfnet": 0.046,
+   "win_pct": 4.6,
+   "avg_hold_bars": 3.1,
+   "exit_reasons": {
+    "data_end": 199,
+    "max_hold_timeout": 1593,
+    "rule_exit": 277438,
+    "stop_loss": 60638
+   }
+  },
+  {
+   "tag": "obv__diverge__short__5m__atr2_lb10__v1",
+   "n": 337254,
+   "pfnet": 0.046,
+   "win_pct": 4.7,
+   "avg_hold_bars": 3.2,
+   "exit_reasons": {
+    "data_end": 217,
+    "max_hold_timeout": 1628,
+    "rule_exit": 296246,
+    "stop_loss": 39163
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr2_n9__v1",
+   "n": 1027680,
+   "pfnet": 0.045,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.2,
+   "exit_reasons": {
+    "breakeven_stop": 429767,
+    "data_end": 629,
+    "max_hold_timeout": 3620,
+    "rule_exit": 511713,
+    "stop_loss": 81951
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr3_n9__v1",
+   "n": 1019938,
+   "pfnet": 0.045,
+   "win_pct": 4.2,
+   "avg_hold_bars": 4.2,
+   "exit_reasons": {
+    "breakeven_stop": 436037,
+    "data_end": 690,
+    "max_hold_timeout": 3627,
+    "rule_exit": 542540,
+    "stop_loss": 37044
+   }
+  },
+  {
+   "tag": "triple_screen__fi_no_weekly__short__5m__atr1d5_w2__v1",
+   "n": 863517,
+   "pfnet": 0.045,
+   "win_pct": 5.2,
+   "avg_hold_bars": 5.4,
+   "exit_reasons": {
+    "data_end": 520,
+    "max_hold_timeout": 24876,
+    "rule_exit": 253112,
+    "stop_loss": 283429,
+    "trail_stop": 301580
+   }
+  },
+  {
+   "tag": "triple_screen__stoch_no_weekly__long__5m__atr1d5_w14__v1",
+   "n": 654895,
+   "pfnet": 0.045,
+   "win_pct": 4.6,
+   "avg_hold_bars": 3.9,
+   "exit_reasons": {
+    "data_end": 422,
+    "max_hold_timeout": 8700,
+    "rule_exit": 336768,
+    "stop_loss": 166371,
+    "trail_stop": 142634
+   }
+  },
+  {
+   "tag": "ema13__ema_dip__short__5m__atr1d5_n9__v1",
+   "n": 1038757,
+   "pfnet": 0.044,
+   "win_pct": 4.1,
+   "avg_hold_bars": 4.1,
+   "exit_reasons": {
+    "breakeven_stop": 420053,
+    "data_end": 592,
+    "max_hold_timeout": 3609,
+    "rule_exit": 476054,
+    "stop_loss": 138449
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr3_lb10__v1",
+   "n": 448629,
+   "pfnet": 0.041,
+   "win_pct": 5.1,
+   "avg_hold_bars": 3.7,
+   "exit_reasons": {
+    "data_end": 309,
+    "max_hold_timeout": 12,
+    "rule_exit": 426921,
+    "stop_loss": 21387
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr3_lb10__v1",
+   "n": 396218,
+   "pfnet": 0.041,
+   "win_pct": 3.5,
+   "avg_hold_bars": 2.9,
+   "exit_reasons": {
+    "data_end": 193,
+    "max_hold_timeout": 991,
+    "rule_exit": 380943,
+    "stop_loss": 14091
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr2_lb10__v1",
+   "n": 450231,
+   "pfnet": 0.04,
+   "win_pct": 5.0,
+   "avg_hold_bars": 3.6,
+   "exit_reasons": {
+    "data_end": 282,
+    "max_hold_timeout": 9,
+    "rule_exit": 403880,
+    "stop_loss": 46060
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr2_lb10__v1",
+   "n": 397972,
+   "pfnet": 0.04,
+   "win_pct": 3.5,
+   "avg_hold_bars": 2.9,
+   "exit_reasons": {
+    "data_end": 178,
+    "max_hold_timeout": 952,
+    "rule_exit": 361788,
+    "stop_loss": 35054
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr3_lb5__v1",
+   "n": 455761,
+   "pfnet": 0.039,
+   "win_pct": 4.9,
+   "avg_hold_bars": 3.5,
+   "exit_reasons": {
+    "data_end": 311,
+    "max_hold_timeout": 2,
+    "rule_exit": 434356,
+    "stop_loss": 21092
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr1d5_lb10__v1",
+   "n": 400949,
+   "pfnet": 0.039,
+   "win_pct": 3.4,
+   "avg_hold_bars": 2.8,
+   "exit_reasons": {
+    "data_end": 163,
+    "max_hold_timeout": 923,
+    "rule_exit": 339048,
+    "stop_loss": 60815
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr3_lb3__v1",
+   "n": 459667,
+   "pfnet": 0.038,
+   "win_pct": 4.8,
+   "avg_hold_bars": 3.3,
+   "exit_reasons": {
+    "data_end": 297,
+    "rule_exit": 438732,
+    "stop_loss": 20638
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr2_lb5__v1",
+   "n": 457299,
+   "pfnet": 0.038,
+   "win_pct": 4.8,
+   "avg_hold_bars": 3.4,
+   "exit_reasons": {
+    "data_end": 283,
+    "max_hold_timeout": 2,
+    "rule_exit": 411504,
+    "stop_loss": 45510
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr1d5_lb10__v1",
+   "n": 452813,
+   "pfnet": 0.038,
+   "win_pct": 4.8,
+   "avg_hold_bars": 3.6,
+   "exit_reasons": {
+    "data_end": 241,
+    "max_hold_timeout": 9,
+    "rule_exit": 376055,
+    "stop_loss": 76508
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr3_lb20__v1",
+   "n": 325164,
+   "pfnet": 0.038,
+   "win_pct": 3.5,
+   "avg_hold_bars": 2.6,
+   "exit_reasons": {
+    "data_end": 132,
+    "max_hold_timeout": 558,
+    "rule_exit": 312579,
+    "stop_loss": 11895
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr3_lb40__v1",
+   "n": 259573,
+   "pfnet": 0.038,
+   "win_pct": 3.6,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 107,
+    "max_hold_timeout": 368,
+    "rule_exit": 249107,
+    "stop_loss": 9991
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr2_lb3__v1",
+   "n": 461103,
+   "pfnet": 0.037,
+   "win_pct": 4.7,
+   "avg_hold_bars": 3.3,
+   "exit_reasons": {
+    "data_end": 271,
+    "rule_exit": 416143,
+    "stop_loss": 44689
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr1d5_lb5__v1",
+   "n": 459797,
+   "pfnet": 0.037,
+   "win_pct": 4.6,
+   "avg_hold_bars": 3.4,
+   "exit_reasons": {
+    "data_end": 243,
+    "max_hold_timeout": 2,
+    "rule_exit": 383994,
+    "stop_loss": 75558
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr2_lb20__v1",
+   "n": 327090,
+   "pfnet": 0.037,
+   "win_pct": 3.4,
+   "avg_hold_bars": 2.6,
+   "exit_reasons": {
+    "data_end": 117,
+    "max_hold_timeout": 524,
+    "rule_exit": 296236,
+    "stop_loss": 30213
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr2_lb40__v1",
+   "n": 261582,
+   "pfnet": 0.037,
+   "win_pct": 3.6,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 94,
+    "max_hold_timeout": 345,
+    "rule_exit": 235673,
+    "stop_loss": 25470
+   }
+  },
+  {
+   "tag": "elder_ray__exit_div__short__5m__atr1d5_lb3__v1",
+   "n": 463470,
+   "pfnet": 0.036,
+   "win_pct": 4.5,
+   "avg_hold_bars": 3.2,
+   "exit_reasons": {
+    "data_end": 234,
+    "rule_exit": 388908,
+    "stop_loss": 74328
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr1d5_lb20__v1",
+   "n": 330403,
+   "pfnet": 0.036,
+   "win_pct": 3.4,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 107,
+    "max_hold_timeout": 506,
+    "rule_exit": 277659,
+    "stop_loss": 52131
+   }
+  },
+  {
+   "tag": "obv__diverge__long__5m__atr1d5_lb40__v1",
+   "n": 264976,
+   "pfnet": 0.036,
+   "win_pct": 3.5,
+   "avg_hold_bars": 2.5,
+   "exit_reasons": {
+    "data_end": 84,
+    "max_hold_timeout": 334,
+    "rule_exit": 220615,
+    "stop_loss": 43943
+   }
+  }
+ ]
+}

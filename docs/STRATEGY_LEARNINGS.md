@@ -2168,3 +2168,9 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Elder indicators 15m (run 43693213969, 300 tags, main.py functions, full universe, 60d, 0.8% cost): 0 pass. Family bests: adx_bell long 0.379, obv long 0.339, adx_bell short 0.285. Every family is far weaker at 15m than at 1h (0.714 best). Cost per trade swamps the smaller 15m moves.
 - chan_gap 5m (run 43694587564): 0 pass, and the numbers match 15m exactly (long n 65, short n 157). The gap is a daily-open condition, so the candle size changes only the stop granularity, not the entries. chan_gap is now done at every intraday size; only 1h long (1.08-1.15) passes (B-1600 d).
 - Profit-booking / exit takeaway: on intraday Elder indicators most exits are rule exits or stops that close before the move covers the 0.8% cost. Shorter candles add trades, not edge, so any exit tuning should start from 1h, not 15m.
+
+## 2026-11-15 IST: Elder indicators 5m (B-579 family)
+- Run 43695454674 (elder-indicators-research.yml, 5m, 60d, 0.8% cost, 21704 symbol-fetches): 300 tags, 0 with PFnet > 1.00. Best adx_bell ring_bell long atr3_pts5 0.224 (n 70704).
+- Ladder across candle sizes is monotone: 1h best, then 15m (0.379), then 5m (0.224). Each step down to a smaller candle multiplies trade count about 3x while the per-trade edge stays below the 0.8% round-trip cost, so cost eats more of it.
+- Not wired (wiring needs pooled PFnet > 1.00). 4h run still owed to finish the candle-size grid.
+- Profit-booking / exit takeaway: on 5m, rule_exit (52% of exits) and stop_loss (26%) both close trades well before a move can cover 0.8%; a smaller candle needs a wider or profit-gated exit, not a tighter one.
