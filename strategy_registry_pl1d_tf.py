@@ -40,7 +40,9 @@ def build():
                     source="scripts/pl1d_tf_dir_sweep_replay.py",
                     evidence=(f"{ref}: raw docs/backtest_data/{os.path.basename(fn)}: PFnet {m['pfnet']}, gross {m['pfgross']}, "
                               f"win {m['win_pct']}%, n={m['n']}, hold {bars} bars; exits {json.dumps(m.get('exit_reasons'), separators=(',', ':'))}"),
-                    notes=("PFnet>1.00 on the main.py-function sweep; wiring owed (B-1605: 4h live leg enters bar-0 signals only, "
+                    notes=("B-1605 WIRED: main.PL1D_LONG_4H_CELLS on the long swing engine's 4h leg (bar-0 signal, entered 13:15-15:00 IST)."
+                           if ok and "_b0__" in tag and "__long__" in tag else
+                           "PFnet>1.00 on the main.py-function sweep; wiring owed (B-1605: 4h live leg enters bar-0 signals only, "
                            "so a bar0_only replay comes first, as B-1603 did for island)." if ok
                            else "Fails PFnet>1.00 after 0.8% cost at this candle size; not wired.")))
             except Exception:

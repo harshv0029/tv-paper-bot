@@ -1,0 +1,368 @@
+{
+ "run": "pl1d-tf-dir-sweep-replay.yml run 43714020903 (B-1605: 4h x ATR {2.5,4,6} x long/short, hold 20 bars, BAR0_ONLY=1: signals on the 09:15 4h bar only)",
+ "cost_round_trip_pct": 0.8,
+ "bar0_only": true,
+ "source": "merge job log (artifact download 403)",
+ "rows": [
+  {
+   "tag": "gap__runaway__long__4h__atr2d5_h20_b0__v1",
+   "metrics": {
+    "n": 15332,
+    "pfnet": 1.0036,
+    "pfgross": 1.2399,
+    "win_pct": 42.25,
+    "avg_held_bars": 15.79,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 9176,
+      "pfnet": 5.354925530873793,
+      "win_pct": 66.78,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 5548,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.5
+     },
+     "data_end_forced_close": {
+      "n": 608,
+      "pfnet": 2.345100935277317,
+      "win_pct": 57.57,
+      "avg_held_bars": 9.75
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap__runaway__long__4h__atr4_h20_b0__v1",
+   "metrics": {
+    "n": 15076,
+    "pfnet": 0.994,
+    "pfgross": 1.2123,
+    "win_pct": 45.14,
+    "avg_held_bars": 18.08,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 11746,
+      "pfnet": 2.227099878109243,
+      "win_pct": 54.92,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 2681,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 11.67
+     },
+     "data_end_forced_close": {
+      "n": 649,
+      "pfnet": 1.734008289385506,
+      "win_pct": 54.7,
+      "avg_held_bars": 9.88
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap__runaway__long__4h__atr6_h20_b0__v1",
+   "metrics": {
+    "n": 14969,
+    "pfnet": 1.0202,
+    "pfgross": 1.2438,
+    "win_pct": 46.05,
+    "avg_held_bars": 19.13,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 13437,
+      "pfnet": 1.3522968224209797,
+      "win_pct": 48.65,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 872,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.65
+     },
+     "data_end_forced_close": {
+      "n": 660,
+      "pfnet": 1.5640697333983842,
+      "win_pct": 53.94,
+      "avg_held_bars": 9.9
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap__runaway__short__4h__atr2d5_h20_b0__v1",
+   "metrics": {
+    "n": 11016,
+    "pfnet": 0.086,
+    "pfgross": 0.0991,
+    "win_pct": 39.31,
+    "avg_held_bars": 15.08,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 6034,
+      "pfnet": 5.197981876649111,
+      "win_pct": 70.5,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 4809,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.1
+     },
+     "data_end_forced_close": {
+      "n": 173,
+      "pfnet": 0.5050841690725605,
+      "win_pct": 43.93,
+      "avg_held_bars": 9.93
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap__runaway__short__4h__atr4_h20_b0__v1",
+   "metrics": {
+    "n": 10820,
+    "pfnet": 0.0612,
+    "pfgross": 0.0702,
+    "win_pct": 43.8,
+    "avg_held_bars": 17.67,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 7877,
+      "pfnet": 1.936409591064448,
+      "win_pct": 59.2,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 2731,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 11.52
+     },
+     "data_end_forced_close": {
+      "n": 212,
+      "pfnet": 0.2664928216639742,
+      "win_pct": 35.85,
+      "avg_held_bars": 10.48
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap__runaway__short__4h__atr6_h20_b0__v1",
+   "metrics": {
+    "n": 10769,
+    "pfnet": 0.0425,
+    "pfgross": 0.0487,
+    "win_pct": 44.62,
+    "avg_held_bars": 18.98,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 9234,
+      "pfnet": 0.9980768608573116,
+      "win_pct": 51.21,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 1289,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 13.22
+     },
+     "data_end_forced_close": {
+      "n": 246,
+      "pfnet": 0.17032420936058768,
+      "win_pct": 30.89,
+      "avg_held_bars": 10.69
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__long__4h__atr2d5_h20_b0__v1",
+   "metrics": {
+    "n": 15803,
+    "pfnet": 0.9343,
+    "pfgross": 1.1835,
+    "win_pct": 36.57,
+    "avg_held_bars": 13.78,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 8052,
+      "pfnet": 7.339857504774192,
+      "win_pct": 71.04,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 7652,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 7.26
+     },
+     "data_end_forced_close": {
+      "n": 99,
+      "pfnet": 4.3069815151772906,
+      "win_pct": 59.6,
+      "avg_held_bars": 12.37
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__long__4h__atr4_h20_b0__v1",
+   "metrics": {
+    "n": 14223,
+    "pfnet": 1.0086,
+    "pfgross": 1.2545,
+    "win_pct": 43.2,
+    "avg_held_bars": 16.83,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 9986,
+      "pfnet": 3.328367641427239,
+      "win_pct": 60.95,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 4134,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.27
+     },
+     "data_end_forced_close": {
+      "n": 103,
+      "pfnet": 3.0422425054949875,
+      "win_pct": 56.31,
+      "avg_held_bars": 12.55
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__long__4h__atr6_h20_b0__v1",
+   "metrics": {
+    "n": 13397,
+    "pfnet": 1.0649,
+    "pfgross": 1.3203,
+    "win_pct": 46.16,
+    "avg_held_bars": 18.54,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 11299,
+      "pfnet": 1.976634790322466,
+      "win_pct": 54.24,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 1993,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.54
+     },
+     "data_end_forced_close": {
+      "n": 105,
+      "pfnet": 2.291210613519698,
+      "win_pct": 52.38,
+      "avg_held_bars": 12.71
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__short__4h__atr2d5_h20_b0__v1",
+   "metrics": {
+    "n": 27381,
+    "pfnet": 0.6757,
+    "pfgross": 0.8453,
+    "win_pct": 38.96,
+    "avg_held_bars": 12.74,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 12784,
+      "pfnet": 14.215334134169785,
+      "win_pct": 81.71,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 14155,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 6.32
+     },
+     "data_end_forced_close": {
+      "n": 442,
+      "pfnet": 1.7656843773840027,
+      "win_pct": 50.0,
+      "avg_held_bars": 8.52
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__short__4h__atr4_h20_b0__v1",
+   "metrics": {
+    "n": 24563,
+    "pfnet": 0.711,
+    "pfgross": 0.8745,
+    "win_pct": 45.82,
+    "avg_held_bars": 15.59,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 15573,
+      "pfnet": 4.800394143060768,
+      "win_pct": 70.86,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 8442,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 7.88
+     },
+     "data_end_forced_close": {
+      "n": 548,
+      "pfnet": 0.7965564982503873,
+      "win_pct": 39.96,
+      "avg_held_bars": 9.3
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__short__4h__atr6_h20_b0__v1",
+   "metrics": {
+    "n": 22536,
+    "pfnet": 0.7155,
+    "pfgross": 0.8757,
+    "win_pct": 48.92,
+    "avg_held_bars": 17.54,
+    "exit_reasons": {
+     "pl1d_short_max_hold_timeout": {
+      "n": 17324,
+      "pfnet": 2.3242777546219937,
+      "win_pct": 62.42,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_short_stop_loss": {
+      "n": 4634,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.33
+     },
+     "data_end_forced_close": {
+      "n": 578,
+      "pfnet": 0.5663161065249719,
+      "win_pct": 36.51,
+      "avg_held_bars": 9.63
+     }
+    }
+   }
+  }
+ ]
+}
