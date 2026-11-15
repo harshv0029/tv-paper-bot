@@ -19,6 +19,10 @@ on:
         description: "B-1602: keep only trade days in the last N calendar days (blank = whole period)"
         required: false
         default: ""
+      paired_daily_close:
+        description: "B-1604: 1 = also book each intraday candidate at the 15:30 daily close (_xd1530 twin tags)"
+        required: false
+        default: ""
 
 jobs:
   replay:
@@ -40,6 +44,7 @@ jobs:
           DIRECTION: ${{ matrix.direction }}
           INTERVAL: ${{ inputs.interval }}
           WINDOW_DAYS: ${{ inputs.window_days }}
+          PAIRED_DAILY_CLOSE: ${{ inputs.paired_daily_close }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "12"
         run: python3 scripts/chan_gap_tf_sweep.py run

@@ -48,10 +48,18 @@ def window_days():
     return int(v) if v else None
 
 
-def tag_for(direction, interval, mult, window=None):
+def tag_for(direction, interval, mult, window=None, xd=False):
     k = ("%.1f" % mult).replace(".", "d")
     w = f"_w{window}d" if window else ""
-    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}__v1"
+    x = "_xd1530" if xd else ""
+    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}{x}__v1"
+
+
+def paired_daily_close():
+    """B-1604: PAIRED_DAILY_CLOSE=1 (intraday intervals only) also books every candidate at that day's DAILY close (the
+    15:30 bar the 1d replay uses) when the intraday stop did not fire by 15:15. Same candidates, same entry, same stop
+    walk: the only difference between the plain tag and its _xd1530 twin is the exit time (15:15 live vs 15:30)."""
+    return os.environ.get("PAIRED_DAILY_CLOSE", "").strip() == "1"
 
 
 def daily_as_intraday(daily):
@@ -99,6 +107,7 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
     days = split_days(intr, interval, m.CHAN_FLATTEN_CUTOFF_MIN)
     out = []
     win = window_days()
+    pair = paired_daily_close() and interval != "1d"
     start = (pd.Timestamp.now(tz="Asia/Kolkata").normalize() - pd.Timedelta(days=win)).strftime("%Y-%m-%d") if win else ""
     for d in sorted(days):
         if d < start:
@@ -108,6 +117,7 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
         if k < NEED or bars.empty:
             continue
         o = float(bars["Open"].iloc[0])
+        dclose = float(daily["Close"].iloc[k]) if k < len(ddates) and ddates[k] == d else None
         hist = daily.iloc[max(0, k - LOOKBACK):k]
         sig = m.chan_gap_entry_signal(hist, o, direction, atrs[0])
         if not sig:
@@ -117,7 +127,10 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
             sg = m.chan_gap_entry_signal(hist, o, direction, mult)
             if not sg:
                 continue
-            res[tag_for(direction, interval, mult, win)] = list(day_walk(m, bars, o, sg["stop_loss"], direction, interval))
+            walk = day_walk(m, bars, o, sg["stop_loss"], direction, interval)
+            res[tag_for(direction, interval, mult, win)] = list(walk)
+            if pair and dclose is not None:  # B-1604: same trade, exit at the 15:30 daily close unless stopped by 15:15
+                res[tag_for(direction, interval, mult, win, xd=True)] = list(walk) if walk[0] == "stop" else ["close", dclose]
         out.append((d, {k2: sig[k2] for k2 in ("entry_price", "score", "gap")}, res))
     return out
 
