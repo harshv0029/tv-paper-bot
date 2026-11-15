@@ -6060,7 +6060,18 @@ ISLAND_GAP05_TAGS = (_ISLAND_GAP05 + "nonovl__v2", _ISLAND_GAP05 + "segis__v2")
 _ISLAND_SEG_TAGS = tuple(f"reversal__island_{f}__long__1d__atr1d5_within8__{seg}__v2"
                          for f in ("none", "px20", "turn1cr") for seg in ("segis", "segoos"))
 ISLAND_WIRENEXT_TAGS = _ISLAND_V1_TAGS + ISLAND_GAP05_TAGS + _ISLAND_SEG_TAGS
-ISLAND_ALL_TAGS = ISLAND_GAP05_TAGS + ISLAND_SWING_TAGS + _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS
+# B-1600 (c), user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired": the 12 island LONG 1d cells of the
+# main.py-function tf/dir sweep (scripts/island_tf_dir_sweep_replay.py, run 43692422951; same detector/filters, stop =
+# entry - k x ATR14, exit brk20_min_rr_exit_reason long), every one PFnet > 1.00. Ordered by pooled PFnet, so they take
+# a symbol before the older atr1d5 tags (same signal); each keeps its own registry row (strategy_registry_island_tf.py).
+_ISLAND_ATR_OF_TAG: dict = {}
+ISLAND_TFS_LONG_1D_TAGS = tuple(
+    f"reversal__island_{f}_tfs__long__1d__atr{a}_within8__nonovl__v2"
+    for f in ("gap05", "none", "px20", "turn1cr") for a in ("4", "2d5", "1d5"))
+for _t in ISLAND_TFS_LONG_1D_TAGS:
+    _ISLAND_FILTER_OF_TAG[_t] = _t.split("__")[1][len("island_"):-len("_tfs")]
+    _ISLAND_ATR_OF_TAG[_t] = {"4": 4.0, "2d5": 2.5, "1d5": 1.5}[_t.split("__")[4].split("_")[0][3:]]
+ISLAND_ALL_TAGS = ISLAND_TFS_LONG_1D_TAGS + ISLAND_GAP05_TAGS + ISLAND_SWING_TAGS + _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS
 for _t in _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS:
     _f = _t.split("__")[1].replace("island_", "")
     _ISLAND_FILTER_OF_TAG[_t] = "none" if _f == "island" else _f
@@ -6124,14 +6135,14 @@ def island_swing_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
     px = float(d["Close"].iloc[-1]) if entry_price is None else float(entry_price)
     if not px > 0:
         return None
-    stop = brk20_stop_price(px, atr, ISLAND_ATR_MULT, "long")
+    stop = brk20_stop_price(px, atr, _ISLAND_ATR_OF_TAG.get(tag, ISLAND_ATR_MULT), "long")
     if not (0 < stop < px):
         return None
     return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop,
             "signal_close": float(d["Close"].iloc[-1]), "direction": "long", "filter": flt}
 
 
-def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, atr_mult=None):
     """Swing exit fn signature. Replays every completed bar after entry_day through the research exit order
     (brk20_min_rr_exit_reason, long: stop -> EMA13 rule exit -> 30-bar max hold), so a skipped scan day cannot hide
     a stop or the exact timeout. Entry price recovered from the frozen stop: entry = stop + 1.5 x ATR."""
@@ -6143,7 +6154,7 @@ def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, runnin
     new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
     if float(atr_at_entry or 0.0) <= 0:
         return None, new_running_max
-    entry_price = float(initial_stop) + ISLAND_ATR_MULT * float(atr_at_entry)
+    entry_price = float(initial_stop) + float(atr_mult or ISLAND_ATR_MULT) * float(atr_at_entry)  # B-1600 (c): per-tag k
     fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     dates = d["Date"].astype(str).str[:10].to_numpy()
     starts = np.flatnonzero(dates >= fill_day)
@@ -28372,7 +28383,8 @@ def _run_swing_scan_pass(conn):
                     conn.commit()
             elif pos["strategy"] in ISLAND_ALL_TAGS:
                 reason, new_running_max = _island_swing_exit_adapter(
-                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    atr_mult=_ISLAND_ATR_OF_TAG.get(pos["strategy"], ISLAND_ATR_MULT))
                 if not reason:
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
@@ -28803,7 +28815,21 @@ BRK20_SHORT_SWING_CELLS = (
     ("brk20_min_rr__main_replay__short__1d__atr3_rr3__v1", 3.0, 3.0),
 )
 BRK20_SHORT_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_SHORT_SWING_CELLS}
-SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
+# B-1600 (a), user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired": island reversal SHORT 1d cells
+# from the main.py-function sweep (scripts/island_tf_dir_sweep_replay.py, run 43692422951; entry =
+# island_short_entry_signal with the filter's selector tag, stop = brk20_stop_price(entry, ATR14, k, "short"), exit =
+# brk20_min_rr_exit_reason short, the same exit _short_swing_exit_reason replays). (tag, filter selector tag, ATR k),
+# ordered by pooled PFnet. Tags are the registry rows of strategy_registry_island_tf.py (1:1, never merged).
+ISLAND_SHORT_SWING_CELLS = (
+    ("reversal__island_gap05_tfs__short__1d__atr4_within8__nonovl__v2", ISLAND_SHORT_GAP05_TAG, 4.0),     # 1.192 n2765
+    ("reversal__island_gap05_tfs__short__1d__atr2d5_within8__nonovl__v2", ISLAND_SHORT_GAP05_TAG, 2.5),   # 1.184 n2768
+    ("reversal__island_gap05_tfs__short__1d__atr1d5_within8__nonovl__v2", ISLAND_SHORT_GAP05_TAG, 1.5),   # 1.178 n2779
+    ("reversal__island_px20_tfs__short__1d__atr4_within8__nonovl__v2", ISLAND_SHORT_PX20_TAG, 4.0),       # 1.115 n6572
+    ("reversal__island_px20_tfs__short__1d__atr2d5_within8__nonovl__v2", ISLAND_SHORT_PX20_TAG, 2.5),     # 1.105 n6578
+    ("reversal__island_px20_tfs__short__1d__atr1d5_within8__nonovl__v2", ISLAND_SHORT_PX20_TAG, 1.5),     # 1.076 n6592
+)
+BRK20_SHORT_SWING_ATR_OF_TAG.update({t: k for t, _sel, k in ISLAND_SHORT_SWING_CELLS})  # exit + hold lookups
+SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS) + tuple(t for t, _s, _k in ISLAND_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
 REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
@@ -28814,7 +28840,7 @@ def _replay_verified_tags() -> frozenset:
     """Tags whose main.py-calling full-universe replay (docs/backtest_data/*main_replay_run_*.json, rows[].metrics)
     cleared PFNET_LIVE_FLOOR with at least one trade (user 2026-10-15: n>=30 is not a wiring constraint, PFnet floor only). Derived at read time; a missing/unreadable file verifies nothing."""
     import strategy_registry as _sr
-    return frozenset(t for t, n, pf in _replay_rows() if n >= 1 and pf >= _sr.PFNET_LIVE_FLOOR)
+    return frozenset(t for t, n, pf in _replay_rows() if n >= 1 and pf > _sr.PFNET_LIVE_FLOOR)  # strict (user 2026-11-03/15)
 
 
 def _replay_rows() -> list:
@@ -28824,7 +28850,10 @@ def _replay_rows() -> list:
     import glob as _g
     import json as _j
     out = []
-    for f in sorted(_g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "*main_replay_run_*.json"))):
+    _bd = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
+    # B-1600: the island tf/dir sweep calls the real main.py entry/stop/exit functions (scripts/island_tf_dir_sweep_replay.py),
+    # so it is a main.py replay too; its _tfs tags are distinct names and never collide with older rows.
+    for f in sorted(_g.glob(os.path.join(_bd, "*main_replay_run_*.json")) + _g.glob(os.path.join(_bd, "island_tf_dir_sweep_run_*.json"))):
         try:
             for r in _j.load(open(f)).get("rows", []):
                 m = r.get("metrics") if isinstance(r.get("metrics"), dict) else r
@@ -29172,6 +29201,16 @@ def short_swing_entry_signal(df):
         sig = brk20_min_rr_entry_signal(df, "short", atr_mult, min_rr)
         if sig and sig["stop_loss"] > sig["entry_price"]:
             return tag, sig
+    base = {}
+    for tag, sel, k in ISLAND_SHORT_SWING_CELLS:  # B-1600 (a): one detector call per filter, stop re-set per ATR k
+        if sel not in base:
+            base[sel] = island_short_entry_signal(df, sel)
+        b = base[sel]
+        if not b:
+            continue
+        stop = float(brk20_stop_price(b["entry_price"], b["atr_at_entry"], k, "short"))
+        if stop > b["entry_price"] > 0:
+            return tag, dict(b, stop_loss=stop, risk=stop - b["entry_price"])
     return None, None
 
 
@@ -34795,7 +34834,7 @@ _SWING_SL_RULES = {
        for _t, _c in ONEIL_DAILY_CELLS.items()},
     **{_t: f"entry - {_a:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t, _a, _r in BRK20_LONG_SWING_CELLS},
-    **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
+    **{_t: f"entry - {_ISLAND_ATR_OF_TAG.get(_t, ISLAND_ATR_MULT):g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t in ISLAND_ALL_TAGS},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
        for _t in SWINGMINRR_TAGS},

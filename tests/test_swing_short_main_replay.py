@@ -35,14 +35,15 @@ def _short_case():
 
 def test_tag_specs_cover_both_registries():
     specs = R.tag_specs(main)
-    assert set(main.SWINGMINRR_TAGS) <= set(specs) and set(main.SHORT_SWING_TAGS) <= set(specs)
-    assert len(main.SWINGMINRR_TAGS) == 4 and len(main.SHORT_SWING_TAGS) == 6
-    assert {s["dir"] for t, s in specs.items() if t in main.SHORT_SWING_TAGS} == {"short"}
+    brk = [t for t, _a, _r in main.BRK20_SHORT_SWING_CELLS]  # island short cells replay elsewhere (B-1600 a)
+    assert set(main.SWINGMINRR_TAGS) <= set(specs) and set(brk) <= set(specs)
+    assert len(main.SWINGMINRR_TAGS) == 4 and len(brk) == 6
+    assert {s["dir"] for t, s in specs.items() if t in brk} == {"short"}
 
 
 def test_short_replay_calls_real_functions_and_stops_out(monkeypatch):
     specs = R.tag_specs(main)
-    tag = main.SHORT_SWING_TAGS[-1]   # atr3_rr3
+    tag = main.BRK20_SHORT_SWING_CELLS[-1][0]   # atr3_rr3
     calls = {"entry": 0, "exit": 0}
     real_e, real_x = main.brk20_min_rr_entry_signal, main._short_swing_exit_reason
     monkeypatch.setattr(main, "brk20_min_rr_entry_signal", lambda *a, **k: (calls.__setitem__("entry", calls["entry"] + 1), real_e(*a, **k))[1])
@@ -74,7 +75,7 @@ def test_long_replay_vcp_gate_and_adapter(monkeypatch):
 
 def test_fill_next_open_differs_and_merge_roundtrip(tmp_path):
     specs = R.tag_specs(main)
-    tag = main.SHORT_SWING_TAGS[-1]
+    tag = main.BRK20_SHORT_SWING_CELLS[-1][0]
     a = R.replay_symbol(main, _short_case(), tag, specs[tag], COST, "signal_close")
     b = R.replay_symbol(main, _short_case(), tag, specs[tag], COST, "next_open")
     assert a and b
