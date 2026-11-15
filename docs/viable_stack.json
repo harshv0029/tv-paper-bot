@@ -3176,7 +3176,7 @@
       "created_at": 1794547173.4301581,
       "label": "slots:[{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
-      "count": 3260,
+      "count": 3365,
       "slots": [
         {
           "name": "Slot 1",
@@ -3187,8 +3187,8 @@
             "min_trades": 1,
             "max_hold_hrs": 140.0
           },
-          "count": 2802,
-          "admits_first": 2802
+          "count": 2907,
+          "admits_first": 2907
         },
         {
           "name": "Slot 2",
@@ -3199,7 +3199,7 @@
             "min_trades": 1,
             "max_hold_hrs": 750.0
           },
-          "count": 756,
+          "count": 761,
           "admits_first": 458
         }
       ],
@@ -9541,7 +9541,7 @@
       "created_at": 1794547166.078621,
       "label": "slots:[{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
-      "count": 3260,
+      "count": 3365,
       "slots": [
         {
           "name": "Slot 1",
@@ -9552,8 +9552,8 @@
             "min_trades": 1,
             "max_hold_hrs": 140.0
           },
-          "count": 2802,
-          "admits_first": 2802
+          "count": 2907,
+          "admits_first": 2907
         },
         {
           "name": "Slot 2",
@@ -9564,7 +9564,7 @@
             "min_trades": 1,
             "max_hold_hrs": 750.0
           },
-          "count": 756,
+          "count": 761,
           "admits_first": 458
         }
       ],
@@ -12741,7 +12741,7 @@
         "min_trades": 1,
         "max_hold_hrs": 140.0
       },
-      "count": 2802,
+      "count": 2907,
       "slots": [
         {
           "name": "Slot 1",
@@ -12752,8 +12752,8 @@
             "min_trades": 1,
             "max_hold_hrs": 140.0
           },
-          "count": 2802,
-          "admits_first": 2802
+          "count": 2907,
+          "admits_first": 2907
         }
       ],
       "enabled_slots": 1,
@@ -15471,7 +15471,7 @@
         "min_trades": 1,
         "max_hold_hrs": 750.0
       },
-      "count": 756,
+      "count": 761,
       "slots": [
         {
           "name": "Slot 1",
@@ -15482,8 +15482,8 @@
             "min_trades": 1,
             "max_hold_hrs": 750.0
           },
-          "count": 756,
-          "admits_first": 756
+          "count": 761,
+          "admits_first": 761
         }
       ],
       "enabled_slots": 1,
@@ -18948,7 +18948,7 @@
       "created_at": 1794547051.9908814,
       "label": "slots:[{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0}]",
       "criteria": null,
-      "count": 2802,
+      "count": 2907,
       "slots": [
         {
           "name": "Slot 1",
@@ -18959,8 +18959,8 @@
             "min_trades": 1,
             "max_hold_hrs": 140.0
           },
-          "count": 2802,
-          "admits_first": 2802
+          "count": 2907,
+          "admits_first": 2907
         },
         {
           "name": "Slot 2",
@@ -18971,7 +18971,7 @@
             "min_trades": 1,
             "max_hold_hrs": 140.0
           },
-          "count": 2802,
+          "count": 2907,
           "admits_first": 0
         }
       ],
@@ -21690,7 +21690,7 @@
         "min_trades": 1,
         "max_hold_hrs": 750.0
       },
-      "count": 756,
+      "count": 761,
       "slots": [
         {
           "name": "Slot 1",
@@ -21701,8 +21701,8 @@
             "min_trades": 1,
             "max_hold_hrs": 750.0
           },
-          "count": 756,
-          "admits_first": 756
+          "count": 761,
+          "admits_first": 761
         }
       ],
       "enabled_slots": 1,
@@ -22460,7 +22460,7 @@
         "min_trades": 1,
         "max_hold_hrs": 750.0
       },
-      "count": 756,
+      "count": 761,
       "slots": [
         {
           "name": "Slot 1",
@@ -22471,8 +22471,8 @@
             "min_trades": 1,
             "max_hold_hrs": 750.0
           },
-          "count": 756,
-          "admits_first": 756
+          "count": 761,
+          "admits_first": 761
         }
       ],
       "enabled_slots": 1,
