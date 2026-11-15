@@ -12,7 +12,8 @@ import research_interval as ri  # noqa: E402
 
 SCRIPTS = ["elder_patterns_research", "elder_trend_context_research", "macd_divergence_research",
            "elder_macd_dirgap_research", "elder_indicators_research", "elder_batch3_research",
-           "douglas_trade_mgmt_research", "elder_ge11_validate"]
+           "douglas_trade_mgmt_research", "elder_ge11_validate",
+           "elder_indicators_research_ext"]  # B-1531 2026-11-14: ext batch was the one Elder harness left on raw fetch_ohlc
 
 
 def _hourly(days=3):

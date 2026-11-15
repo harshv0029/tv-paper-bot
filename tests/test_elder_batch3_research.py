@@ -121,3 +121,12 @@ def test_sim2_drops_glitch_bar_trades_b864():
     g2.iloc[33, g2.columns.get_loc("Close")] = 100000.0
     g2.iloc[33, g2.columns.get_loc("High")] = 100000.0
     assert b.sim2(g2, entry, "long", 3.0, max_hold=5) == []
+
+
+def test_orb_range_bars_follow_candle_size():
+    # B-736: the opening range is in minutes, so the bar count scales with the candle size.
+    def mins(tf):
+        return [p["min"] for _, p, _ in b.variant_specs("orb", tf)]
+    assert mins("5m") == [5, 10, 15, 30]
+    assert mins("15m") == [15, 30]
+    assert mins("1m") == [5, 10, 15, 30]

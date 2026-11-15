@@ -38,7 +38,7 @@ def test_management_options_run():
     df = synth(900, 3)
     sig = g.b_dip(df)
     for opt in ({"be_r": 1.0}, {"scale": "atr"}, {"scale": "struct", "buf": 0.1}, {"pyramid": 0.025},
-                {"limit": 3}, {"chase": 0.25}, {"min_rr": 2.0}, {"max_hold": 5}, {"cooldown": 6}):
+                {"widen": 1.0}, {"limit": 3}, {"chase": 0.25}, {"min_rr": 2.0}, {"max_hold": 5}, {"cooldown": 6}):
         tr = g.sim_r(df, sig, "long", 2.0, opt)
         assert all(t["hold"] >= 1 for t in tr)
 
@@ -52,3 +52,16 @@ def test_family_runs_both_directions(fam):
     assert any("__long__" in t for t in aggs) and any("__short__" in t for t in aggs)
     s = g.summarize(next(iter(aggs.values())))
     assert "losers_reached_1r_pct" in s and "pf_gross" in s
+
+
+def test_widen_stop_negative_control_loosens_once():
+    """B-530: the widen cell is the ONLY place a stop moves away from price; a trade that reaches 0.5R
+    adverse must never be stopped tighter than the baseline (its loss can only grow or the trade survive)."""
+    df = synth(900, 4)
+    sig = g.b_dip(df)
+    base = {t["i0"]: t for t in g.sim_r(df, sig, "long", 2.0, {})}
+    wide = {t["i0"]: t for t in g.sim_r(df, sig, "long", 2.0, {"widen": 1.0})}
+    assert wide and any(v for v in g.variant_specs("exits") if v[0].endswith("_widen_stop"))
+    for i0, t in wide.items():
+        if i0 in base and base[i0]["reason"] == "stop_loss":
+            assert t["hold"] >= base[i0]["hold"]

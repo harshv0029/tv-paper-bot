@@ -173,7 +173,7 @@ def nonovl_trades(*a, **k):
 
 def new_agg():
     return {"n": 0, "wins": 0, "gain": 0.0, "loss": 0.0, "gain_g": 0.0, "loss_g": 0.0, "held": 0, "gt100": 0,
-            "reasons": {}, "top": []}
+            "reasons": {}, "top": [], "years": {}}
 
 
 def add_trades(agg, trades, sym="", idx=None):
@@ -189,6 +189,10 @@ def add_trades(agg, trades, sym="", idx=None):
         r[0] += 1
         r[1] += net
         d = str(idx[min(t["entry_i"], len(idx) - 1)])[:10] if idx is not None else ""
+        if d:  # B-832: per-entry-year split, to tell a rising-market artefact from a regime-robust edge
+            y = agg.setdefault("years", {}).setdefault(d[:4], [0, 0.0, 0.0])
+            y[0] += 1
+            y[1 if net > 0 else 2] += abs(net)
         agg["top"].append([round(net, 4), sym, d, t["reason"], t["hold"]])
     agg["top"] = sorted(agg["top"], key=lambda x: -x[0])[:TOPK]
 
@@ -200,6 +204,11 @@ def merge_agg(dst, src):
         r = dst["reasons"].setdefault(rk, [0, 0.0])
         r[0] += rn
         r[1] += rs
+    for yk, (yn, yg, yl) in src.get("years", {}).items():
+        y = dst.setdefault("years", {}).setdefault(yk, [0, 0.0, 0.0])
+        y[0] += yn
+        y[1] += yg
+        y[2] += yl
     dst["top"] = sorted(dst["top"] + src["top"], key=lambda x: -x[0])[:TOPK]
 
 
@@ -219,6 +228,10 @@ def summarize(a):
         "n_trades_gt100pct": a["gt100"],
         "top5_trades": a["top"][:5],
         "exit_reasons": {k: {"n": r[0], "avg_net_pct": round(100.0 * r[1] / r[0], 3)} for k, r in a["reasons"].items()},
+        # B-832 (2026-11-14 IST): PFnet per entry year; a down-market year (e.g. 2022, 2026 YTD) failing while the
+        # pooled number clears the floor marks a rising-market artefact.
+        "by_year": {yk: {"n": y[0], "pfnet": round(y[1] / y[2], 3) if y[2] > 0 else None}
+                    for yk, y in sorted(a.get("years", {}).items())},
     }
 
 

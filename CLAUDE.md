@@ -21,6 +21,10 @@ full file wins.
   repo and hit the 5-hour usage limit (2026-11-14: two agents died on it).
 - Replies follow the footer below. No step narration, no repeated context, no long pasted output.
 - Near 150k context, save state to git and the backlog, then remind the user to /compact.
+- Weekly context review (user 2026-11-15, B-1595): every Tuesday 05:00 IST (scheduled task).
+  Lower context automatically where you can (trim always-loaded text, helper scripts, shorter
+  outputs). List suggestions that need the user under "Input required" in every reply until
+  the user responds to them.
 
 ## Branch, commit, deploy
 - Work only on `claude/confident-fermi-mlqbka`. No PRs. Before any reset or force-push,

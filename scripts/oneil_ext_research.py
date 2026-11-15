@@ -269,8 +269,11 @@ def bull_signals(o, h, l, c, v, idx, rs, cfg, ex):
             idd = idx / rmax(idx, cl) - 1
             sdd = c / rmax(c, cl) - 1
             idd_min, sdd_min = pd.Series(idd).rolling(cl, min_periods=1).min().to_numpy(), pd.Series(sdd).rolling(cl, min_periods=1).min().to_numpy()
-            corr_ok = (idd_min > -0.08) | (sdd_min >= 1.75 * idd_min)
-            F[("oneil_corrratio", "leader", "k1d75")] = corr_ok
+            # B-486 (2026-11-14): correction-ratio threshold sweep. k1d75 is the
+            # original run-38207070547 cell (key unchanged); 1.25/1.5/2.0 are new
+            # tags (stock drawdown no worse than k x the index drawdown).
+            for _k, _kt in ((1.25, "k1d25"), (1.5, "k1d5"), (1.75, "k1d75"), (2.0, "k2d0")):
+                F[("oneil_corrratio", "leader", _kt)] = (idd_min > -0.08) | (sdd_min >= _k * idd_min)
         # ---- state-independent exit arrays (flags at close of j; exit at next open unless gap*)
         ma200 = ma
         rising = ma200 > shift(ma200, 5)

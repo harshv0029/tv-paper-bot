@@ -83,3 +83,24 @@ def test_tags_match_registry_style():
     assert stag == "oneil_shakeout__plus3__short__1w__atr2_h8_pm2__v1" and sh == 8
     xtag, xh = on.cell_tag(on.CELL_SETS["exit_six"][0], "1d", "long", ox.EX["1d"], orx.CFG["1d"]["holds"])
     assert xtag == "oneil_pivot__exit__long__1d__atr3_chase10_h130_xmsix125__v1" and xh == 130
+
+
+def test_by_year_split_b832():
+    """B-832: summarize() carries PFnet per entry year, and merge_agg sums the years across shards."""
+    import pandas as pd
+    import oneil_nonoverlap as onv
+    idx = pd.DatetimeIndex(["2022-03-01", "2022-06-01", "2023-01-02", "2023-05-02"])
+
+    def mk(i, net):
+        return {"net": net, "gross": net + 0.008, "hold": 5, "reason": "timeout", "entry_i": i}
+
+    a, b = onv.new_agg(), onv.new_agg()
+    onv.add_trades(a, [mk(0, 0.10), mk(1, -0.05)], "X.NS", idx)
+    onv.add_trades(b, [mk(2, -0.02), mk(3, -0.04)], "Y.NS", idx)
+    onv.merge_agg(a, b)
+    by = onv.summarize(a)["by_year"]
+    assert by["2022"] == {"n": 2, "pfnet": 2.0}
+    assert by["2023"] == {"n": 2, "pfnet": 0.0}
+    old = {k: v for k, v in onv.new_agg().items() if k != "years"}  # pre-B-832 shard JSON still merges
+    onv.merge_agg(old, a)
+    assert onv.summarize(old)["by_year"]["2022"]["n"] == 2

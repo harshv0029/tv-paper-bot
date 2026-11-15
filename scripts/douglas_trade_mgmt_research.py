@@ -15,7 +15,8 @@ Families (one workflow job each):
          offset) | B-532/B-605 scale-out thirds at 1R and 2R, BE after 2nd third, runner on ATR
          trail | B-535 runner on a structure trail (5-bar low/high) with buffer 0/0.1/0.25 ATR
          | B-533 min reward:risk room filter 1/1.5/2/2.5/3/4 (room to the 60-bar extreme)
-         | B-537 time stop 3/5/10/20/30 bars | B-501 O'Neil pyramid add (0.5 unit at +2.5%, stop
+         | B-537 time stop 3/5/10/20/30 bars | B-530 widen_stop negative control (stop moved 0.5/1.0
+         ATR further away once at 0.5R adverse; the live guard forbids it) | B-501 O'Neil pyramid add (0.5 unit at +2.5%, stop
          to first entry) | B-534/B-574 every trade records MFE/MAE in R: share of LOSERS that first
          reached >=0.5R / >=1R is reported per tag
   entry  B-545 chase cap 0.1/0.25/0.5/1.0 ATR | B-546 cooldown after a stop-out 0/3/6/12 bars
@@ -112,7 +113,7 @@ def sim_r(df, sig, direction, am, opt, max_hold=er.MAX_HOLD_BARS, cost=er.COST_R
         w_open, pnl, w_inv = 1.0, 0.0, 1.0
         extreme = adverse = px
         mfe = mae = 0.0
-        t1 = t2 = be = added = False
+        t1 = t2 = be = added = widened = False
         reason, exit_j, j = None, start, start
         scale = opt.get("scale")
         for j in range(start, min(n, start + mh + 1)):
@@ -127,6 +128,12 @@ def sim_r(df, sig, direction, am, opt, max_hold=er.MAX_HOLD_BARS, cost=er.COST_R
             adverse = min(adverse, l[j]) if d == 1 else max(adverse, h[j])
             mfe = max(mfe, d * (extreme - px) / risk)
             mae = max(mae, d * (px - adverse) / risk)
+            if opt.get("widen") and not widened and mae >= 0.5:
+                # B-530 NEGATIVE CONTROL (Mark Douglas monotonic-stop rule): once the trade is 0.5R against
+                # the entry, move the stop FURTHER away by `widen` x ATR (one time). The live engine forbids
+                # this (main._sl_would_loosen); the cell exists only to measure what loosening costs.
+                widened = True
+                stop = stop - d * opt["widen"] * a[s]
             if opt.get("pyramid") and not added and d * (extreme - px) / px >= opt["pyramid"]:
                 added = True
                 px2 = px * (1 + d * opt["pyramid"])
@@ -238,6 +245,8 @@ def variant_specs(family):
         for hb in (3, 5, 10, 20, 30):
             add("time_stop", {"h": hb}, {"max_hold": hb})
         add("pyramid", {"add": 0.025}, {"pyramid": 0.025})
+        for w in (0.5, 1.0):  # B-530 negative control: stop widened once at 0.5R adverse (never live)
+            add("widen_stop", {"w": w}, {"widen": w})
     elif family == "entry":
         for k in (0.1, 0.25, 0.5, 1.0):
             add("chase_cap", {"k": k}, {"chase": k})

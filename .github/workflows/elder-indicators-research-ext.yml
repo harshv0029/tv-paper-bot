@@ -7,14 +7,14 @@ name: Elder indicators research batch 2 (B-625 B-647 B-650 B-658 B-663 B-668 B-6
 # main._load_nse_universe_from_file(), daily bars by default, BOTH directions, ATR stop
 # sweep 1.5/2/3 with a stop on every trade, 0.8% round-trip cost. Every
 # (variant, direction, ATR) cell is its own tag per the naming grammar.
-# Candle-size sweep: re-dispatch with interval=1h (730d) / 15m / 5m (60d). Bar-count
-# constants change meaning with the interval; 4h needs a 1h resample (owed, not built).
+# Candle-size sweep: re-dispatch with interval=1h (730d) / 4h / 15m / 5m (60d). Bar-count
+# constants change meaning with the interval; 4h = 1h resampled (research_interval, B-1531).
 # Research only: no live wiring. A new workflow file cannot be dispatched until on main.
 on:
   workflow_dispatch:
     inputs:
       interval:
-        description: "Candle size (1d, 1h, 15m, 5m)"
+        description: "Candle size (1d, 4h, 1h, 15m, 5m)"
         required: false
         default: "1d"
       period:

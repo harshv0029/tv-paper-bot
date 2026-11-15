@@ -37,7 +37,9 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import research_interval as ri  # noqa: E402  (B-873/B-1531: interval=4h = 1h resampled per NSE session)
 import universe_pin as up  # noqa: E402
+import research_interval as ri  # noqa: E402  (interval=4h = 1h resampled per NSE session; period capped per interval)
 
 FAMILIES = ("williams_r", "stoch_slow", "rsi", "volume", "ad_line", "force_index",
             "macdh", "channel", "parabolic", "profit_protect")
@@ -370,7 +372,7 @@ def _main_shard(args):
     aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, args.interval)
+            raw = ri.fetch_interval(m, s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             df = er.prep(raw)

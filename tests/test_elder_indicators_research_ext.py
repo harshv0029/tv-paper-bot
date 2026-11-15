@@ -50,3 +50,12 @@ def test_family_runs(fam):
             assert len(sig[k]) == len(df)
     assert aggs, fam
     assert any("__long__" in t for t in aggs) or any("__short__" in t for t in aggs)
+
+
+def test_shard_fetch_uses_research_interval_for_4h():
+    """B-647..B-652 candle sweep: the ext harness must fetch through research_interval (4h = 1h resample,
+    period capped per interval), exactly like elder_indicators_research.py."""
+    import inspect
+    src = inspect.getsource(ex._main_shard)
+    assert "ri.fetch_interval(m, s, args.period, args.interval)" in src
+    assert "m.fetch_ohlc(s, args.period, args.interval)" not in src

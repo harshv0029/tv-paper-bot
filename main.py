@@ -9790,6 +9790,10 @@ GAP_AND_GO_EXITFAMILY_CELLS = {
         {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "volclimax", "hold": 30},
     "gap_and_go__exitinval__long__1d__atr2d5_hold30_sigelder__v2":
         {"kind": "inval", "atr": 2.5, "sig": "elder", "hold": 30},
+    # B-951 (2026-11-14 IST): exittime = 2.5 x ATR stop + pure time exit (research kind "time"), UNWIRED, replay owed.
+    "gap_and_go__exittime__long__1d__atr2d5_hold5__v2": {"kind": "time", "atr": 2.5, "hold": 5},
+    "gap_and_go__exittime__long__1d__atr2d5_hold10__v2": {"kind": "time", "atr": 2.5, "hold": 10},
+    "gap_and_go__exittime__long__1d__atr2d5_hold20__v2": {"kind": "time", "atr": 2.5, "hold": 20},
 }
 
 
@@ -9854,7 +9858,7 @@ def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at
         roc = np.full(len(c), np.nan)
         roc[k:] = (c[k:] - c[:-k]) / np.abs(c[:-k])
         vavg = pd.Series(v).rolling(EXITFAMILY_VOL_AVG_N).mean().shift(1).to_numpy()
-    else:
+    elif kind != "time":  # time: frozen stop + hold-bar close only (B-951)
         raise ValueError(f"unported exit kind {kind!r}")
     held = 0
     ed = str(entry_day)[:10]
@@ -9886,10 +9890,10 @@ def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at
                     raise ValueError(f"unported exhaust x {cell['x']!r}")
                 if hit:
                     return _done("exhaustion_exit", c[j])
-        elif j >= 1 and flag[j] and not flag[j - 1]:
+        elif kind == "inval" and j >= 1 and flag[j] and not flag[j - 1]:
             return _done("signal_invalidation", c[j])
         if held >= cell["hold"]:
-            return _done("max_hold_timeout", c[j])
+            return _done("time_stop" if kind == "time" else "max_hold_timeout", c[j])
     out.update(held=held, stop=stop, running_max=runmax)
     return out
 
@@ -17389,6 +17393,9 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
+_SHORT_EXIT_NO_ROW_LOGGED: set = set()  # B-1580 (symbol, IST day) already logged
+
+
 def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     """Short mirror of _maybe_place_real_exit - covers a real short
     position when the paper short (_short_signal_core) has already
@@ -17398,6 +17405,14 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
+        # B-1580: a reasoned log, like the long side's refusals, once per symbol per IST day (the flatten
+        # branch can call this every tick; a paper-only short has no real row by design). No order is sent.
+        _key = (symbol, time.strftime("%Y-%m-%d", time.gmtime(time.time() + 19800)))
+        if _key not in _SHORT_EXIT_NO_ROW_LOGGED:
+            _SHORT_EXIT_NO_ROW_LOGGED.add(_key)
+            print(f"[REAL SHORT] cover skipped for {symbol}: no real_positions_short row ({reason or _REASON_UNSTATED})")
+            _why_log(conn, symbol, "short_cover", "skipped_no_real_row",
+                     new_state="no real short row in this app; no order sent")
         return
 
     # B-313 (Kotak-first): never send a buy-to-cover for a position Kotak does not show as short
@@ -38583,6 +38598,15 @@ def _note_sl_loosen_attempt(symbol: str, is_short: bool, new_stop, current_sl) -
     _SL_LOOSEN_ATTEMPTS[key] = _SL_LOOSEN_ATTEMPTS.get(key, 0) + 1
     print(f"[SL-GUARD] {symbol}: refused to loosen {key} stop {current_sl} -> {new_stop} (monotonic stop guard)")
     return True
+
+
+@app.get("/sl-loosen-attempts")
+def sl_loosen_attempts_endpoint():
+    """B-530: read-only view of the monotonic-stop-guard counter (refused loosen attempts since this process
+    started, per side). No token: counts only, no symbols, prices or order ids. In-memory by design
+    (recomputed-fresh telemetry, never read back for a decision), so it restarts at 0 on a Render restart."""
+    return {"long": _SL_LOOSEN_ATTEMPTS.get("long", 0), "short": _SL_LOOSEN_ATTEMPTS.get("short", 0),
+            "since": "process start", "in_memory": True}
 
 
 # Calendar-day ceiling per swing strategy before a still-open position is flagged overdue (B-550 time limit).

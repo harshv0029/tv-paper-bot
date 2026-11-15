@@ -616,6 +616,9 @@ def v_orb(df, kbars=2):
 
 
 # ---------------------------------------------------------------- variant tables
+ORB_BAR_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30}
+
+
 def variant_specs(family, tf="1d"):
     S = []
     if family == "osc":
@@ -672,7 +675,13 @@ def variant_specs(family, tf="1d"):
         for w in (3, 5):
             S.append(("pivot_tl_break", {"w": w}, lambda d, w=w: v_pivot_trendline(d, w)))
     elif family == "orb":
-        for k, mins in ((1, 5), (2, 10), (3, 15), (6, 30)):
+        # B-736 candle sweep: the range is in MINUTES, so the bar count is mins / bar size; a range shorter
+        # than one bar, or not a whole number of bars, is not definable at that candle size and is skipped.
+        bar_min = ORB_BAR_MINUTES.get(tf, 5)
+        for mins in (5, 10, 15, 30):
+            if mins < bar_min or mins % bar_min:
+                continue
+            k = mins // bar_min
             S.append(("opening_range", {"min": mins}, lambda d, k=k: v_orb(d, k)))
     else:
         raise ValueError(family)
