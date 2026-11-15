@@ -29923,6 +29923,11 @@ def _chan_kalman_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0
 # the close of bar 30 after the fill. Appended after chan_kalman in the 1h chain; no new switch.
 BRK20_1H_LONG_TAG = "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1"
 BRK20_1H_LONG_CELLS = {BRK20_1H_LONG_TAG: (4.0, 4.0, BRK20_MAX_HOLD_BARS)}  # tag -> (ATR stop multiple, min R:R, hold bars)
+# B-1596 (user 2026-11-15 "PFnet >1 ... all variants will be wired"): atr3_rr4 is its own entry (3xATR stop, >= 4R room),
+# main.py replay 1.393 (n 2129) and re-run 43696686802 1.379; checked after atr4_rr4 (1.700). Its be1 twin (1.395/1.382)
+# shares the entry, so it cannot take a symbol the plain cell has not already taken: not wired (B-1471 precedent).
+# atr3_rr3 (1.020 then 0.983 on the re-run) and every atr2 / rr2d5 cell fail on the re-run: not wired.
+BRK20_1H_LONG_CELLS["brk20_min_rr__main_replay__long__1h__atr3_rr4__v1"] = (3.0, 4.0, BRK20_MAX_HOLD_BARS)
 for _t in BRK20_1H_LONG_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
 
