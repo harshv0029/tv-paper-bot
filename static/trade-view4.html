@@ -267,14 +267,16 @@
       if (h.order_log_git_push_age_s != null && h.order_log_git_push_age_s > 600) probs.push(`order log not pushed to git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
       const c = (ok, t) => `<span class="${ok ? "up" : "down"}">${t}</span>`;
       const upLim = (upstash && upstash.month_limit_bytes) || 10e9;
-      const upUsed = upstash && upstash.month_used_bytes != null ? upstash.month_used_bytes : null;
+      // B-1613: Upstash's own month-to-date bandwidth (Developer API) wins over the bot's self-metered sum
+      const upOff = upstash && upstash.upstash_official && upstash.upstash_official.month_bandwidth_bytes != null ? upstash.upstash_official.month_bandwidth_bytes : null;
+      const upUsed = upOff != null ? upOff : (upstash && upstash.month_used_bytes != null ? upstash.month_used_bytes : null);
       const upPct = upUsed != null ? Math.round(upUsed / upLim * 1000) / 10 : null;
       const upAllow = upstash && upstash.month_allowed_to_date_bytes != null ? upstash.month_allowed_to_date_bytes : null;
       const gb = b => b == null ? "-" : (b / 1e9).toFixed(b < 1e9 ? 2 : 1) + " GB";
       // user format: "3.4 GB (3.6 GB) / 10 GB" = used this month (cumulative allowance till date) / monthly limit
       // B-1612 (user 2026-11-16): label each number; the first is the month's CUMULATIVE usage, not today's
       const upSince = upstash && upstash.month_tracked_since ? upstash.month_tracked_since : null;
-      const upSinceTxt = upSince && upSince.slice(8) !== "01" ? ` · counted from ${upSince.slice(8)}-${new Date(upSince + "T00:00:00").toLocaleString("en-IN", {month: "short"})}` : "";
+      const upSinceTxt = upOff != null ? " · from Upstash" : upSince && upSince.slice(8) !== "01" ? ` · counted from ${upSince.slice(8)}-${new Date(upSince + "T00:00:00").toLocaleString("en-IN", {month: "short"})}` : "";
       const upTxt = `Upstash cumulative ${gb(upUsed)} (cumulative limit ${gb(upAllow)}) / ${(upLim / 1e9).toFixed(0)} GB monthly quota${upSinceTxt}`;
       const upOver = upUsed != null && upAllow != null && upUsed > upAllow;
       if (upPct >= 90) probs.push(upTxt);

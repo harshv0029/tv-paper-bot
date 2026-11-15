@@ -24769,6 +24769,52 @@ _UPSTASH_MONTHLY_OPS = 500_000
 _upstash_month_prior: dict = {}  # "YYYY-MM-DD" -> [bytes, ops] for earlier days of the current month
 
 
+# B-1613 (user 2026-11-16: "Fetch cumulative usage from upstash directly"): Upstash's own month-to-date figures via
+# its Developer API (GET api.upstash.com/v2/redis/stats/<database_id>, Basic auth email:management-key). Needs Render
+# secrets UPSTASH_MGMT_EMAIL + UPSTASH_MGMT_API_KEY (console > Account > Management API). Read-only, not a Redis
+# command, so it costs no Redis quota. Cached 15 min; any failure -> None and View 4 keeps the self-metered figure.
+_UPSTASH_OFFICIAL_CACHE: dict = {"at": 0.0, "url": "", "data": None, "error": None}
+_UPSTASH_OFFICIAL_TTL = 900
+
+
+def _upstash_official_month(http_get=None, now=None):
+    email, key = os.environ.get("UPSTASH_MGMT_EMAIL"), os.environ.get("UPSTASH_MGMT_API_KEY")
+    if not (email and key and UPSTASH_REDIS_REST_URL):
+        _UPSTASH_OFFICIAL_CACHE["error"] = "UPSTASH_MGMT_EMAIL / UPSTASH_MGMT_API_KEY not set"
+        return None
+    now = time.time() if now is None else now
+    c = _UPSTASH_OFFICIAL_CACHE
+    if c["url"] == UPSTASH_REDIS_REST_URL and now - c["at"] < _UPSTASH_OFFICIAL_TTL:
+        return c["data"]
+    http_get = http_get or (lambda u: requests.get(u, auth=(email, key), timeout=10))
+    c.update(at=now, url=UPSTASH_REDIS_REST_URL)
+    try:
+        from urllib.parse import urlparse
+        host = (urlparse(UPSTASH_REDIS_REST_URL).hostname or "").lower()
+        r = http_get("https://api.upstash.com/v2/redis/databases")
+        r.raise_for_status()
+        db = next((d for d in (r.json() or []) if str(d.get("endpoint", "")).lower() == host), None)
+        if not db:
+            raise ValueError("active Upstash database not found under this management key")
+        r = http_get(f"https://api.upstash.com/v2/redis/stats/{db['database_id']}")
+        r.raise_for_status()
+        st = r.json() or {}
+        def _num(*names):
+            for n in names:
+                if isinstance(st.get(n), (int, float)):
+                    return st[n]
+            return None
+        c["data"] = {"database_name": db.get("database_name"),
+                     "month_bandwidth_bytes": _num("total_monthly_bandwidth"),
+                     "month_requests": _num("total_monthly_requests"),
+                     "month_billing_usd": _num("total_monthly_billing"),
+                     "fetched_at_ist": _ist_str(now)}
+        c["error"] = None
+    except Exception as e:  # never break the endpoint; keep the last good figure
+        c["error"] = f"{type(e).__name__}: {str(e)[:120]}"
+    return c["data"]
+
+
 def _upstash_today_budget() -> tuple:
     """(bytes_budget, ops_budget) for today, cumulative over the month so far (B-1577). Never below 0."""
     used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
@@ -35066,6 +35112,9 @@ def upstash_usage():
             # (daily records start 2026-11-14, B-1577; earlier days of the month were not metered).
             "month_tracked_since": min(list(_upstash_month_prior) + [_upstash_usage_day or ist_now().strftime("%Y-%m-%d")]),
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1613: Upstash's own month-to-date figure (None until the management key is set on Render)
+            "upstash_official": _upstash_official_month(),
+            "upstash_official_error": _UPSTASH_OFFICIAL_CACHE["error"],
             # B-1609: View 4 shows month usage vs the free-tier 10 GB / 500k-command monthly limit
             "month_limit_bytes": _UPSTASH_MONTHLY_BYTES,
             "month_used_pct": round(100 * (sum(v[0] for v in _upstash_month_prior.values()) + tot) / _UPSTASH_MONTHLY_BYTES, 2),
