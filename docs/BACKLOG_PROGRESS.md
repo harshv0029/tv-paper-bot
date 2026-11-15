@@ -146,7 +146,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-798 | P1 | DONE-PENDING-VERIFY | Wire/replay brk20_min_rr (20-bar breakout entry with ATR stop and minimum reward:risk target) long+short, a... | owed, pending, needs, owner |
 | B-812 | P1 | DONE-PENDING-VERIFY | Strict-FIFO (one position per symbol per cell) non-overlap re-run of the 4 macddiv 1h long cells >=1.1 (lin... | owed, pending, verify, needs |
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
-| B-1578 | P1 | BUILT-ON-BRANCH | 2026-11-14 IST | owed, pending, owner |
+| B-1578 | P1 | BUILT-ON-BRANCH | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify, owner |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
 | B-357 | P2 | BLOCKED | User 2026-10-11 "yes": short-selling engine on futures | owed, blocked, needs |
 | B-366 | P2 | BLOCKED | Spun out of B-365: order-book imbalance (Level 2 depth at best bid/ask, 5-level quote depth from Kotak) as ... | owed, blocked, needs |
@@ -306,10 +306,10 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
 | B-1485 | P1 | B-1484 | 2026-11-05 | owed, needs |
 | B-1547 | P1 | OPEN | 2026-11-11 IST | follow-up, awaiting, waiting |
-| B-1557 | P1 | OPEN | 2026-11-11 IST | pending |
+| B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | pending, verify |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1566 | P1 | OPEN | 2026-11-12 IST | owed, needs |
-| B-1581 | P1 | OPEN | 2026-11-14 IST | owed |
+| B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
 | B-1591 | P1 | OPEN | 2026-11-15 IST |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
