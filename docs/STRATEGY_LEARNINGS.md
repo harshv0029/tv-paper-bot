@@ -2267,5 +2267,5 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 ### 2026-11-15 IST: Elder gap-fade / MACD at 4h, dirsys13 at 1h
 - Elder >=1.1 cells at 4h (run 43735471593, 2377 symbols, 1h bars resampled to NSE-session 4h, 0.8% cost): every pooled cell fails, best 0.99 (gaps common_fade long atr3 nb4, n10389). In-sample segments reach 1.34 but out-of-sample falls to 0.67, so the daily edge (1.25) does not carry to 4h, the same as at 1h.
 - Elder Directional System DI13 at 1h (run 43735474064, 2513 symbols): all 192 cells fail, pooled best 0.60. The daily dirsys cells already failed OOS; at 1h they lose more to cost.
-- At 15m (runs 43736692561 / 43736695008, 2681 symbols) both families fail outright: Elder ge11 pooled best 0.235, dirsys13 best 0.444.
+- At 15m (runs 43736692561 / 43736695008, 2681 symbols) and 5m (runs 43738631635 / 43738634380, 2684) both families fail outright: Elder ge11 pooled best 0.235 / 0.132, dirsys13 best 0.444 / 0.245. PFnet roughly halves with each step down in bar size.
 - Profit-booking / exit takeaway: a gap fade on 4h bars holds about 3.5 bars (two sessions), and over that window the 0.8% round trip takes the whole fade. Only the daily version, which holds days, has room for the exit to book a move bigger than cost.

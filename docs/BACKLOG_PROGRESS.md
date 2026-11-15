@@ -380,8 +380,8 @@ Total rows: 1360 | closed: 980 | not closed: 380
 | B-831 | P1 | TODO | Overlapping-signal inflation guard for the O'Neil extension cells: every cell >=1.1 (80 new, n up to 50,615... | owed, todo |
 | B-832 | P1 | TODO | Regime check for the weekly long grid: 137/141 weekly long cells >=1.1 while shorts fail is a rising-market... | needs, todo |
 | B-850 | P1 | PARTIAL-1H-FAILED-TO-CONFIRM | Elder gap/MACD cells >=1.1 (run 38208431466, 1d, 0.8% cost, n>=250): gaps exhaust_fade long atr3_nb5 1.252 ... | owed, blocked, pending, needs |
-| B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) | needs |
-| B-852 | P1 | PARTIAL-1H-FAILED-TO-CONFIRM | Bidirectional gap finding: gaps exhaust_fade/common_fade long clear 1.1 at 3.4-3.7d hold but the short mirr... | owed, blocked, pending, needs |
+| B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) | owed, needs |
+| B-852 | P1 | PARTIAL-1H-FAILED-TO-CONFIRM | Bidirectional gap finding: gaps exhaust_fade/common_fade long clear 1.1 at 3.4-3.7d hold but the short mirr... | owed, blocked, needs |
 | B-860 | P1 | OPEN | Trustworthy option-premium backtest path (design: STRATEGY_LEARNINGS 'Option premium backtest') | owed |
 | B-866 | P1 | IN | 2026-10-12 B-861 index option trigger research collected (run 38214076382, 4 intervals x 40 cells, ^NSEI/^N... | owed, needs |
 | B-871 | P1 | OPENED | Short-swing engine path with BUY protective SL (1d shorts): brk20_min_rr 1d SHORT cells hold out-of-sample ... | owed, needs, owner |
