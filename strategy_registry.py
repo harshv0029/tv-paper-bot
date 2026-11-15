@@ -3136,6 +3136,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ep1h.build())
         import strategy_registry_ep15m as _ep15  # elder-patterns 15m run 43677914631
         REGISTRY.extend(_ep15.build())
+        import strategy_registry_ep5m as _ep5  # elder-patterns 5m run 43683612920
+        REGISTRY.extend(_ep5.build())
         import strategy_registry_etc1h as _etc1h  # elder-trend-context 1h run 43681690093
         REGISTRY.extend(_etc1h.build())
         import strategy_registry_etc15m as _etc15  # elder-trend-context 15m run 43684505388
