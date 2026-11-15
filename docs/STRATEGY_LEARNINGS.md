@@ -2273,5 +2273,5 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 ### 2026-11-15 IST: Elder gap-fade 1d, strict-FIFO validation (B-850, run 43739717415)
 - One position per symbol per cell, 2361 symbols, 5 years, 0.8% cost. 12 long gap-fade cells keep pooled PFnet > 1.00: exhaust_fade nb5 1.16-1.18 (n4406), common_fade nb5 1.09-1.12 (n5424), nb3 1.04-1.09 (n6949), nb4 1.01-1.05. MACD hist_exhaust and every short fail.
 - Out of sample the split widens: exhaust_fade drops to 0.78, while common_fade nb5 holds at 1.05. The common (low-volume) gap is the steadier fade; the high-volume exhaustion gap did its best work in the early years.
-- Elder dirsys13 at 4h (run 43739720015) fails too: best 0.747.
+- Elder dirsys13 at 4h (run 43739720015) fails too: best 0.747. At 1m (run 43740746026, 7 days only) best 0.199. B-588 is closed: no interval clears 1.00 (1d best 0.807).
 - Profit-booking / exit takeaway: the gap fade books its move in about 3.4 days through the rule exit (high below the prior high). Waiting longer for the gap to fill (nb5 vs nb3) raises PFnet, and a wider stop (3 ATR) beats a tight one in every cell.
