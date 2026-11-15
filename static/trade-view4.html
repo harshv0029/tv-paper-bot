@@ -267,18 +267,23 @@
       if (h.order_log_git_push_age_s != null && h.order_log_git_push_age_s > 600) probs.push(`order log not pushed to git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
       const c = (ok, t) => `<span class="${ok ? "up" : "down"}">${t}</span>`;
       const upLim = (upstash && upstash.month_limit_bytes) || 10e9;
-      const upUsed = upstash && upstash.month_used_bytes != null ? upstash.month_used_bytes : null;
+      // B-1613: Upstash's own month-to-date bandwidth (Developer API) wins over the bot's self-metered sum
+      const upOff = upstash && upstash.upstash_official && upstash.upstash_official.month_bandwidth_bytes != null ? upstash.upstash_official.month_bandwidth_bytes : null;
+      const upUsed = upOff != null ? upOff : (upstash && upstash.month_used_bytes != null ? upstash.month_used_bytes : null);
       const upPct = upUsed != null ? Math.round(upUsed / upLim * 1000) / 10 : null;
       const upAllow = upstash && upstash.month_allowed_to_date_bytes != null ? upstash.month_allowed_to_date_bytes : null;
       const gb = b => b == null ? "-" : (b / 1e9).toFixed(b < 1e9 ? 2 : 1) + " GB";
       // user format: "3.4 GB (3.6 GB) / 10 GB" = used this month (cumulative allowance till date) / monthly limit
-      const upTxt = `Upstash ${gb(upUsed)} (${gb(upAllow)}) / ${(upLim / 1e9).toFixed(0)} GB`;
+      // B-1612 (user 2026-11-16): label each number; the first is the month's CUMULATIVE usage, not today's
+      const upSince = upstash && upstash.month_tracked_since ? upstash.month_tracked_since : null;
+      const upSinceTxt = upOff != null ? " · from Upstash" : upSince && upSince.slice(8) !== "01" ? ` · counted from ${upSince.slice(8)}-${new Date(upSince + "T00:00:00").toLocaleString("en-IN", {month: "short"})}` : "";
+      const upTxt = `Upstash cumulative ${gb(upUsed)} (cumulative limit ${gb(upAllow)}) / ${(upLim / 1e9).toFixed(0)} GB monthly quota${upSinceTxt}`;
       const upOver = upUsed != null && upAllow != null && upUsed > upAllow;
       if (upPct >= 90) probs.push(upTxt);
       items.push(c(true, "Render up"),
         c(h.upstash_ok !== false, h.upstash_ok == null ? "Upstash: not checked yet" : h.upstash_ok ? "Upstash ok" : "Upstash DOWN"),
         c(!(h.loop_lag_s >= 15), `loop lag ${h.loop_lag_s ?? "-"}s`),
-        c(!(upPct >= 80) && !upOver, `<span title="Used: bytes sent to and read from Upstash this IST calendar month (earlier days plus today). In brackets: the cumulative allowance till date (10 GB x day of month / days in month). Then the free-tier 10 GB/month limit. Red when usage is ahead of the allowance or at 80% of 10 GB, a problem at 90%. The daily guard slows and then pauses non-critical backups well before this.">${upTxt}</span>`),
+        c(!(upPct >= 80) && !upOver, `<span title="Cumulative: bytes sent to and read from Upstash this IST calendar month (all earlier days plus today, not today alone). Days before the 'counted from' date were not metered (daily records began 14-Nov). In brackets: the cumulative allowance till date (10 GB x day of month / days in month). Then the free-tier 10 GB/month limit. Red when usage is ahead of the allowance or at 80% of 10 GB, a problem at 90%. The daily guard slows and then pauses non-critical backups well before this.">${upTxt}</span>`),
         c(!(memPct >= 75), `<span title="RAM the bot is using right now (current resident memory, ${h.rss_now_mb ?? "-"} MB) as a share of the ${memCap} memory cap of the Render instance. It is not a daily or monthly quota: it rises and falls live, and only hitting 100% (out of memory) restarts the bot.">RAM in use now: ${memPct ?? "-"}% of ${memCap} instance cap (not a daily/monthly quota)</span>`),
         c(!(h.threadpool_total && h.threadpool_used >= h.threadpool_total), `workers ${h.threadpool_used ?? "-"}/${h.threadpool_total ?? "-"}`),
         c(!((h.watchdog_alarms_today ?? h.watchdog_alarms) > 0), `watchdog alarms today ${h.watchdog_alarms_today ?? h.watchdog_alarms ?? "-"}` + (() => {

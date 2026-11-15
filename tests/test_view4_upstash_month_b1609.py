@@ -21,3 +21,13 @@ def test_view4_polls_and_shows_monthly_upstash_usage():
     s = HTML.read_text()
     assert 'getJSON("/upstash-usage")' in s and "setInterval(pollUpstash, 60000)" in s
     assert "month_allowed_to_date_bytes" in s and "month_used_bytes" in s and "10e9" in s
+
+
+def test_b1612_labels_cumulative_and_tracking_start(monkeypatch):
+    """B-1612 (user 2026-11-16): the first number is the month's cumulative usage, labelled as such, with the date
+    metering began (days before it were not recorded)."""
+    monkeypatch.setattr(main, "_upstash_month_prior", {"2026-11-14": [46_000_000, 1], "2026-11-15": [165_000_000, 2]})
+    assert main.upstash_usage()["month_tracked_since"] == "2026-11-14"
+    s = HTML.read_text()
+    assert "Upstash cumulative ${gb(upUsed)} (cumulative limit ${gb(upAllow)}) / " in s
+    assert "monthly quota" in s and "month_tracked_since" in s and "counted from" in s

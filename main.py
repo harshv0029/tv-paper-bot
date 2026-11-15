@@ -24769,6 +24769,52 @@ _UPSTASH_MONTHLY_OPS = 500_000
 _upstash_month_prior: dict = {}  # "YYYY-MM-DD" -> [bytes, ops] for earlier days of the current month
 
 
+# B-1613 (user 2026-11-16: "Fetch cumulative usage from upstash directly"): Upstash's own month-to-date figures via
+# its Developer API (GET api.upstash.com/v2/redis/stats/<database_id>, Basic auth email:management-key). Needs Render
+# secrets UPSTASH_MGMT_EMAIL + UPSTASH_MGMT_API_KEY (console > Account > Management API). Read-only, not a Redis
+# command, so it costs no Redis quota. Cached 15 min; any failure -> None and View 4 keeps the self-metered figure.
+_UPSTASH_OFFICIAL_CACHE: dict = {"at": 0.0, "url": "", "data": None, "error": None}
+_UPSTASH_OFFICIAL_TTL = 900
+
+
+def _upstash_official_month(http_get=None, now=None):
+    email, key = os.environ.get("UPSTASH_MGMT_EMAIL"), os.environ.get("UPSTASH_MGMT_API_KEY")
+    if not (email and key and UPSTASH_REDIS_REST_URL):
+        _UPSTASH_OFFICIAL_CACHE["error"] = "UPSTASH_MGMT_EMAIL / UPSTASH_MGMT_API_KEY not set"
+        return None
+    now = time.time() if now is None else now
+    c = _UPSTASH_OFFICIAL_CACHE
+    if c["url"] == UPSTASH_REDIS_REST_URL and now - c["at"] < _UPSTASH_OFFICIAL_TTL:
+        return c["data"]
+    http_get = http_get or (lambda u: requests.get(u, auth=(email, key), timeout=10))
+    c.update(at=now, url=UPSTASH_REDIS_REST_URL)
+    try:
+        from urllib.parse import urlparse
+        host = (urlparse(UPSTASH_REDIS_REST_URL).hostname or "").lower()
+        r = http_get("https://api.upstash.com/v2/redis/databases")
+        r.raise_for_status()
+        db = next((d for d in (r.json() or []) if str(d.get("endpoint", "")).lower() == host), None)
+        if not db:
+            raise ValueError("active Upstash database not found under this management key")
+        r = http_get(f"https://api.upstash.com/v2/redis/stats/{db['database_id']}")
+        r.raise_for_status()
+        st = r.json() or {}
+        def _num(*names):
+            for n in names:
+                if isinstance(st.get(n), (int, float)):
+                    return st[n]
+            return None
+        c["data"] = {"database_name": db.get("database_name"),
+                     "month_bandwidth_bytes": _num("total_monthly_bandwidth"),
+                     "month_requests": _num("total_monthly_requests"),
+                     "month_billing_usd": _num("total_monthly_billing"),
+                     "fetched_at_ist": _ist_str(now)}
+        c["error"] = None
+    except Exception as e:  # never break the endpoint; keep the last good figure
+        c["error"] = f"{type(e).__name__}: {str(e)[:120]}"
+    return c["data"]
+
+
 def _upstash_today_budget() -> tuple:
     """(bytes_budget, ops_budget) for today, cumulative over the month so far (B-1577). Never below 0."""
     used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
@@ -34535,6 +34581,31 @@ def _viable_stack_git_rows() -> list:
     return max(cands, key=lambda c: c[-1].get("created_at") or 0) if cands else []
 
 
+def _stack_label_clip(label) -> str:
+    """B-1611: a slots label IS the definition (JSON), so it is never clipped; other labels keep the 120-char cap."""
+    lab = str(label or "")
+    return lab if lab.startswith(VIABLE_SLOTS_PREFIX) else lab[:120]
+
+
+def _stack_label_truncated(created_at, label, rows) -> bool:
+    """B-1611: True when `label` is a slots definition that no longer parses (cut by the old clip) and another copy of
+    the same save (same created_at) carries the longer label it was cut from. Never raises."""
+    lab = str(label or "")
+    if not lab.startswith(VIABLE_SLOTS_PREFIX):
+        return False
+    try:
+        json.loads(lab[len(VIABLE_SLOTS_PREFIX):])
+        return False
+    except (TypeError, ValueError):
+        pass
+    try:
+        ca = round(float(created_at or 0), 3)
+        return any(round(float(a or 0), 3) == ca and len(str(b or "")) > len(lab) and str(b or "").startswith(lab)
+                   for a, b, _ in rows)
+    except (TypeError, ValueError):
+        return False
+
+
 def _restore_viable_stack_from_git_file() -> int:
     """Last-resort restore (user 2026-10-20: the stack must never be empty after a restart): re-insert the newest git
     copy (side branch written on every save, or the docs/viable_stack.json shipped with the deploy) when the Upstash
@@ -34548,7 +34619,7 @@ def _restore_viable_stack_from_git_file() -> int:
                 return 0
             for r in rows:
                 c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
-                          (r.get("created_at") or time.time(), str(r.get("label") or "restored from git")[:120],
+                          (r.get("created_at") or time.time(), _stack_label_clip(r.get("label") or "restored from git"),
                            json.dumps(r.get("names") or [])))
             c.commit()
         return len(rows)
@@ -34588,17 +34659,24 @@ def _viable_stack_merge_remote() -> int:
         with closing(get_db()) as c:
             local = [(r[0], r[1], r[2]) for r in
                      c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
+            # B-1611: drop local copies whose slot definition was cut by the old 120-char clip (they parse to zero
+            # slots, and as the newest row they switched real entry off: View 4 "definition NOT loaded").
+            healed = [r for r in local if not _stack_label_truncated(r[0], r[1], local + remote)]
+            dropped = len(local) - len(healed)
+            local = healed
             seen = {(round(float(a or 0), 3), str(b or "")) for a, b, _ in local}
             added = []
             for ca, label, names in remote:
                 if not ca or names is None:
                     continue
                 k = (round(float(ca), 3), str(label or ""))
-                if k in seen:
+                if k in seen or _stack_label_truncated(ca, label, local + remote):
                     continue
                 seen.add(k)
-                added.append((float(ca), str(label or "restored")[:120], names if isinstance(names, str) else json.dumps(names)))
-            if not added:
+                added.append((float(ca), _stack_label_clip(label or "restored"), names if isinstance(names, str) else json.dumps(names)))
+            if dropped:
+                print(f"[VIABLE-STACK] B-1611: dropped {dropped} truncated-definition row(s)")
+            if not added and not dropped:
                 return 0
             rows = sorted(local + added, key=lambda r: float(r[0] or 0))[-VIABLE_STACK_SIZE:]
             c.execute("DELETE FROM strategy_viable_stack")
@@ -34611,7 +34689,7 @@ def _viable_stack_merge_remote() -> int:
             sync_generic_tables_external(only=("strategy_viable_stack",))
         except Exception:
             pass
-        return len(added)
+        return len(added) + dropped
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] merge failed (non-fatal): {e}")
         return 0
@@ -35030,7 +35108,13 @@ def upstash_usage():
             "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
             "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
             "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
+            # B-1612 (user 2026-11-16: View 4 must say cumulative usage): first IST day of this month with a record
+            # (daily records start 2026-11-14, B-1577; earlier days of the month were not metered).
+            "month_tracked_since": min(list(_upstash_month_prior) + [_upstash_usage_day or ist_now().strftime("%Y-%m-%d")]),
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1613: Upstash's own month-to-date figure (None until the management key is set on Render)
+            "upstash_official": _upstash_official_month(),
+            "upstash_official_error": _UPSTASH_OFFICIAL_CACHE["error"],
             # B-1609: View 4 shows month usage vs the free-tier 10 GB / 500k-command monthly limit
             "month_limit_bytes": _UPSTASH_MONTHLY_BYTES,
             "month_used_pct": round(100 * (sum(v[0] for v in _upstash_month_prior.values()) + tot) / _UPSTASH_MONTHLY_BYTES, 2),
@@ -38037,7 +38121,10 @@ def _tracked_union_git_push() -> bool:
 
 # B-1407: strategy_scan_counts joins the side-branch push. GitHub fired table-git-sync.yml hours apart (main's copy was
 # from the previous evening at the 2026-10-28 14:12 IST restart), so a restart zeroed the day's scan counts.
-_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts")
+# B-1564: kotak_fill_ledger (the real-fill history View 4's ROC/CAGR/XIRR read) also keeps a git copy on the side branch:
+# Upstash stays its primary restore, git is the second copy so one lost store can never shorten the history again.
+_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts", "kotak_fill_ledger")
+_FILL_LEDGER_KEY = ("day", "trdsym", "prod", "source")
 _git_tier_push_last_hash: dict = {}
 _SCAN_COUNTS_GIT_KEEP_DAYS = 14  # bounds the side-branch file (~300 rows/day)
 
@@ -38058,10 +38145,60 @@ def _git_tier_merge_rows(name: str, remote: list, local: list) -> list:
                 merged[k] = {"day": r.get("day"), "tag": r.get("tag"), "n": int(r.get("n") or 0)}
         cutoff = (ist_now() - dt.timedelta(days=_SCAN_COUNTS_GIT_KEEP_DAYS)).strftime("%Y-%m-%d")
         return sorted((r for r in merged.values() if (r["day"] or "") >= cutoff), key=lambda r: (r["day"], r["tag"]))
+    if name == "kotak_fill_ledger":
+        return _fill_ledger_merge_rows(remote, local)
     out = {_order_event_key(r): r for r in remote}
     for r in local:
         out.setdefault(_order_event_key(r), r)
     return sorted(out.values(), key=lambda r: (r.get("ts") or 0))
+
+
+def _fill_ledger_fills(r: dict) -> float:
+    return float(r.get("buy_qty") or 0) + float(r.get("sell_qty") or 0)
+
+
+def _fill_ledger_merge_rows(remote: list, local: list) -> list:
+    """B-1564: union on the primary key; for a key both hold, the row with more filled qty wins (a day's fills only grow),
+    ties go to the later updated_at. Local 'opening' rows are dropped when the remote already has history (the same rule
+    as _GENERIC_MIRROR_MERGE_DROP_LOCAL: a pre-restore 'first ever capture' would double-count). Never drops a remote row."""
+    out = {tuple(r.get(k) or "" for k in _FILL_LEDGER_KEY): dict(r) for r in remote}
+    for r in local:
+        if remote and r.get("source") == "opening":
+            continue
+        k = tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY)
+        o = out.get(k)
+        if o is None or (_fill_ledger_fills(r), float(r.get("updated_at") or 0)) > \
+                (_fill_ledger_fills(o), float(o.get("updated_at") or 0)):
+            out[k] = dict(r)
+    return sorted(out.values(), key=lambda r: tuple(str(r.get(c) or "") for c in _FILL_LEDGER_KEY))
+
+
+def _fill_ledger_git_restore(repo: str) -> bool:
+    """B-1564: merges the side-branch git copy of kotak_fill_ledger into SQLite (rows missing locally are added, a git row
+    with more fills replaces the local one). Marks the table restored so its push may start. A 404 counts as restored."""
+    resp = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/kotak_fill_ledger.json",
+                        timeout=6)
+    if resp.status_code != 404:
+        resp.raise_for_status()
+        remote = (resp.json() or {}).get("rows") or []
+        with closing(get_db()) as conn:
+            local = [dict(r) for r in conn.execute("SELECT * FROM kotak_fill_ledger").fetchall()]
+            have = {tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY): r for r in local}
+            cols = _generic_mirror_table_columns(conn, "kotak_fill_ledger")
+            n = 0
+            for r in _fill_ledger_merge_rows(remote, local):
+                k = tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY)
+                if have.get(k) == r:
+                    continue
+                keep = {c: v for c, v in r.items() if c in cols}
+                conn.execute(f"INSERT OR REPLACE INTO kotak_fill_ledger ({','.join(keep)}) VALUES "
+                             f"({','.join('?' for _ in keep)})", tuple(keep.values()))
+                n += 1
+            conn.commit()
+        if n:
+            print(f"[table_mirror] B-1564: merged {n} kotak_fill_ledger row(s) from the git copy")
+    _git_tier_hydrated.add("kotak_fill_ledger")
+    return True
 
 
 def _git_tier_push_side_branch(name: str) -> bool:
@@ -38072,6 +38209,12 @@ def _git_tier_push_side_branch(name: str) -> bool:
     token = os.environ.get("GITHUB_SYNC_TOKEN")
     if not token:
         return False
+    if name == "kotak_fill_ledger" and name not in _git_tier_hydrated:
+        try:
+            _fill_ledger_git_restore(os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[table_mirror] B-1564 kotak_fill_ledger git restore failed (non-fatal, will retry): {e}")
+            return False
     if name not in _git_tier_hydrated:
         since = _git_tier_unhydrated_since.get(name)
         # B-1516: the order log never waits forever for a restore - an append-only union push cannot drop git rows
