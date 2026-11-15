@@ -2,7 +2,7 @@
 B-551..B-554 B-561 B-572 B-574 B-605): 480 trade-management entry/exit cells, every row pass or fail.
 Harness = scripts/douglas_trade_mgmt_research.py (research re-implementation, NOT the real main.py functions), so a
 PFnet>1 row here is corroboration only; wiring goes through the brk20_min_rr main_replay tags (B-798, B-1596).
-Raw rows: docs/backtest_data/douglas_trademgmt_<tf>_run_<id>.json (1h run 43593152439; 15m/60d run 43728822855 added
+Raw rows: docs/backtest_data/douglas_trademgmt_<tf>_run_<id>.json (1h run 43593152439; 15m/60d run 43728822855 and 5m/60d run 43730823714 added
 2026-11-15 IST, every cell fails). Each tag is its own; tags already registered are skipped (1h file read first).
 Viability derived at read time; nothing wired. avg_hold in bars of the tag's own tf."""
 import glob

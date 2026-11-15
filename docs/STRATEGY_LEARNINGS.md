@@ -2255,6 +2255,7 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 
 ### 2026-11-15 IST: Douglas / Elder trade management at 15m (run 43728822855)
 - 504 entry and exit cells (scale-out, breakeven ratchet, min R:R, time stop, chase cap, cooldown, trend/regime gates, scale-in), both directions, full NSE universe (5362 with data), 60 days of 15m bars, 0.8% cost. Every cell fails; the best is 0.388 (brk20_min_rr short atr3 rr4, n825).
+- 5m (run 43730823714, 5368 with data): every cell fails again, best 0.189 (brk20_scale_atr long, n160k). PFnet halves again from 15m to 5m: the result scales with bar size, as a cost effect would.
 - The same cells at 1h (run 43593152439) reach 2.28 (brk20_min_rr long atr3 rr4). The rules are not the problem: a 15m bar's move is too small to cover a 0.8% round trip, so cost swamps every exit design.
 - Profit-booking / exit takeaway: no scale-out, ratchet or trailing design rescues an entry whose average move is under the round-trip cost. Pick the candle size by move per trade vs cost first, then tune the exit.
 
