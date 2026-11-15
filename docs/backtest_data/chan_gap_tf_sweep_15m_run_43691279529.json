@@ -1,0 +1,141 @@
+{
+ "run": "chan-gap-tf-sweep.yml run 43691279529",
+ "interval": "15m",
+ "period": "60d",
+ "cost_round_trip_pct": 0.8,
+ "source": "merge job log (artifact download 403)",
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__15m__atr1d5_top10__v1",
+   "metrics": {
+    "n": 65,
+    "pfnet": 0.8774,
+    "pfgross": 2.155,
+    "win_pct": 27.69,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 64,
+      "pfnet": 0.9872396608050562,
+      "win_pct": 28.12,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__15m__atr2d5_top10__v1",
+   "metrics": {
+    "n": 65,
+    "pfnet": 0.916,
+    "pfgross": 2.3446,
+    "win_pct": 27.69,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 65,
+      "pfnet": 0.9159539609415852,
+      "win_pct": 27.69,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__15m__atr4d0_top10__v1",
+   "metrics": {
+    "n": 65,
+    "pfnet": 0.916,
+    "pfgross": 2.3446,
+    "win_pct": 27.69,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 65,
+      "pfnet": 0.9159539609415852,
+      "win_pct": 27.69,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__15m__atr1d5_top10__v1",
+   "metrics": {
+    "n": 157,
+    "pfnet": 0.7792,
+    "pfgross": 1.7255,
+    "win_pct": 46.5,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 142,
+      "pfnet": 1.4946230293041467,
+      "win_pct": 51.41,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 15,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__15m__atr2d5_top10__v1",
+   "metrics": {
+    "n": 157,
+    "pfnet": 0.7628,
+    "pfgross": 1.6704,
+    "win_pct": 46.5,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 150,
+      "pfnet": 1.0941647429399932,
+      "win_pct": 48.67,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 7,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__15m__atr4d0_top10__v1",
+   "metrics": {
+    "n": 157,
+    "pfnet": 0.782,
+    "pfgross": 1.6987,
+    "win_pct": 47.13,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 155,
+      "pfnet": 0.8776060559897143,
+      "win_pct": 47.74,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  }
+ ]
+}

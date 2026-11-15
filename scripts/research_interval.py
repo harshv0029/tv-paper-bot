@@ -8,6 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pandas as pd  # noqa: E402
 from resample_4h import resample_1h_to_4h  # noqa: E402
 
 INTERVALS = ("1d", "4h", "1h", "15m", "5m", "1m")
@@ -48,5 +49,11 @@ def fetch_interval(m, sym, period, interval):
     period = cap_period(interval, period)
     raw = m.fetch_ohlc(sym, period, FETCH.get(interval, interval))
     if interval == "4h" and raw is not None and len(raw):
-        raw = resample_1h_to_4h(raw)
+        # main.fetch_ohlc returns a RangeIndex plus a "Date" column (data_fetch.py reset_index); resampling that
+        # RangeIndex collapsed every bar into one 1970 row, so every symbol was silently skipped (B-1598).
+        if "Date" in raw.columns and not isinstance(raw.index, pd.DatetimeIndex):
+            out = resample_1h_to_4h(raw.set_index(pd.DatetimeIndex(raw["Date"])).drop(columns=["Date"]))
+            raw = out.rename_axis("Date").reset_index()
+        else:
+            raw = resample_1h_to_4h(raw)
     return raw

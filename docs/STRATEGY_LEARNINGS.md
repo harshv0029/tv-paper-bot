@@ -2074,3 +2074,97 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - Side benefit: an MIS long is auto-squared-off by Kotak near 15:20 IST, a broker-side backstop if the bot's own 15:15 flatten fails (B-1567 (b)).
 - Coverage: buy (real_positions) done; swing stays CNC by design; short/swing-short already MIS/CNC respectively; futures/options/options_multi/commodity/currency use NRML, n/a.
 - Profit-booking / exit takeaway: an exit leg must carry the same product as the entry, or the broker rejects the profit-booking order exactly when it matters; record the product on the position row and derive every exit from it.
+
+### B-1581 (2026-11-15 IST): no new SL on a position already sold or exiting
+- NMDC 13-Nov: the rule exit filled at 09:18:57 IST, then a fresh SL went in at 09:19:05 IST and Kotak rejected it ("Check T1 holdings"). Before any SL, `place_real_stop_loss` now nets today's buys and sells from the Kotak order book against holdings, and returns `skipped_position_closed` when nothing is left to protect. `ensure_resting_sl` runs the same check once per pass.
+- Profit-booking / exit takeaway: once an exit fills, the position is closed. Protection logic must read Kotak's fills first, so a closing sale is never followed by an orphan SL that a later buy could trigger.
+
+## 2026-11-15 IST: Elder stop-offset (B-606, 1d) and elder-batch3 osc/struct at 1h: all fail
+- elder-stop-offset-research.yml run 43666082279 (1d, 5y, 4764 symbols with data, 0.8% cost): 84 tags, none above PFnet 1.00. Best was brk20 structural stop with a 0.5 ATR offset, long at 0.871 (gross 1.069). Every offset from 0.25 to 1.0 ATR gave 0.870-0.871, so where the stop sits past the structure does not matter. The edge is not there before costs either. Shorts were about 0.50. Snapping the stop to a round number was the worst variant.
+- elder-batch3-research.yml run 43593142428 (osc and struct families at 1h, 730d): 270 tags, best PFnet 0.867 (struct cycle_gate long, ATR 3). Gross PF reached 1.86 on some cells, but about 6,300 trades at 8 bars each turn that into a net loss after the 0.8% round-trip cost.
+- Profit-booking / exit takeaway: fine-tuning the stop offset does not rescue a weak entry. On 1h bars, the cost per round trip uses up the gross edge, so short-hold intraday exits need a gross PF well above 2 to survive. Prefer longer holds or fewer, higher-quality trades.
+
+### 2026-11-15 IST: Douglas trade-management 1h (run 43593152439), 480 cells
+- 1h 730d, full NSE universe (5508, 5072 with data), 0.8% cost. 228 entry cells, 252 exit cells. 4 of 480 pass PFnet>1.00,
+  all in `trademgmt_exit__brk20_min_rr__long__1h`: atr3_rr4 2.283 (n=2194), atr3_rr3 1.383, atr2_rr4 1.138, atr3_rr2d5 1.051.
+- Edge rises with the reward:risk floor (rr4 > rr3 > rr2.5) and with ATR width 3 over 2: the min-RR filter that skips
+  breakouts with no room to the 60-bar high carries the edge, the same finding as B-798.
+- Harness is a research re-implementation, not the real main.py functions. The main.py replay of atr3_rr4 long 1h gave
+  1.393 pooled but OOS 0.687, so the 2.283 here is optimistic. B-1596 replays the 3 non-live neighbours with main.py
+  functions before any wiring.
+- Profit-booking / exit takeaway: a far fixed target (4R) with a wide 3-ATR stop beats tighter targets on 1h breakouts;
+  most exits are rule exits (1603 of 2194), so the trailing/rule exit, not the target, books most of the profit.
+
+### 2026-11-15 IST: Elder patterns 1h (run 43668652845), 249 cells
+- 1h 730d, full NSE universe, 0.8% cost; families consol 81, trendline 60, reversal 60, bars 48. 7 pass, all
+  `consol__tri_desc`: long atr2_vol0 1.422 (n=150), atr3_vol0 1.412, atr1d5_vol0 1.370, vol1 cells 1.12-1.15 (n=88);
+  short atr3_vol0 1.017 (n=85). Every reversal, trendline and bar-pattern cell fails.
+- The descending-triangle long passes on BOTH 1d (1.22-1.27, n=313) and 1h, across all ATR multiples: a robust
+  family, not one lucky cell. The volume filter (vol1) cuts trades ~40% and lowers PFnet, so it hurts.
+- Thin samples (n<=150 at 1h). B-1597 ports it to main.py for a real-function replay before wiring.
+- Profit-booking / exit takeaway: most tri_desc exits are rule exits (96 of 150), and a wider 3-ATR stop cuts stop-outs
+  38 -> 9 with almost no PFnet loss, so let the rule exit book the profit and keep the stop wide.
+
+### 2026-11-15 IST — Elder patterns 15m/60d (run 43677914631, B-600..B-624, B-1597)
+- 246 cells (consol 78, trendline 60, reversal 60, bars 48) on the full NSE universe (10,832 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.474 (trendline channel short atr3).
+- consol__tri_desc, the 1h and 1d winner (1h long 1.37-1.42, 1d long 1.22-1.27), collapses on 15m: long 0.03-0.07, short 0.12-0.21, n=14-45. The 60-day window gives too few triangles, and 15m costs eat the edge. Treat tri_desc as a 1h+ pattern; B-1597's main.py replay should focus on 1d/1h and include 15m only for completeness.
+- Profit-booking / exit takeaway: on 15m most exits are rule_exit with tiny average moves, so the 0.8% round trip dominates. Pattern exits need a 1h+ hold to clear costs.
+
+### 2026-11-15 IST — Elder trend-context 1h/730d (run 43681690093)
+- 210 regime / MA / oscillator cells, full NSE universe file (7,608 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.728 (regime__wk_align_counter long atr3_wk13, n=86k). The 1d run 38209280422 also had 0 passes (best 0.984).
+- Gross PF 1.2+ on the best cells, but the cost drag is huge at n=86k over 2 years: these rules trade too often on 1h. The weekly-alignment filter is the only family near break-even, on both timeframes.
+- Profit-booking / exit takeaway: rule_exit dominates (about 87% of exits), so these context rules cut winners early. A context filter belongs as a gate on a separate entry engine with its own wider exit, not as a standalone trade rule.
+
+### 2026-11-15 IST — B-422 slippage stress replay (run 43666079363)
+- 7 top viable tags, replayed with main.py drivers on the full NSE universe at cost 0.8/1.2/1.6% x min daily turnover 0/1/5 Cr (63 cells). **61/63 hold PFnet>1.00.** Every tag survives double cost (1.6%) when no turnover floor is set.
+- Weakest: gap_and_go exitexhaust (1.22 control, 1.04 at 1.6%, and 0.93/0.95 once a 1 or 5 Cr turnover floor is added). The turnover floor removes many of its winners, so its edge sits partly in thin names, which is where real slippage is worst. Treat it as the first tag to throttle if live slippage runs high.
+- Strongest: the O'Neil weekly cells (newhigh_first 2.01-2.26, pivot 1.69-1.88), almost flat across cost and turnover. The flatbase control reproduced at 3.06, against 3.92 in the registry (n=71), so read that tag's headline number with caution.
+- minervini_vcp falls from 1.47 to 1.23-1.25 with a turnover floor. It still passes, but much of its edge is in illiquid names.
+- Profit-booking / exit takeaway: the long-hold, trailing-exit weekly families absorb extra cost best; short-hold exits (exitexhaust, about 11 bars) are the most cost-sensitive. Prefer wider or longer exits where slippage is uncertain.
+
+### 2026-11-15 IST — Elder trend-context 15m/60d (run 43684505388)
+- 210 cells, full NSE universe file (8,124 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.418 (osc__open_gap_fade long atr3). This is far below the 1h best (0.728) and the 1d best (0.984): the context rules get steadily worse on shorter candles.
+- Profit-booking / exit takeaway: on 15m the average move per trade is smaller than the 0.8% round trip, so no exit design can rescue these rules. Context and regime rules belong on 1d candles, used as a gate in front of an entry engine.
+
+### 2026-11-15 IST — Elder patterns 5m/60d (run 43683612920)
+- 246 cells, full NSE universe (10,852 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.46 (trendline tl_break long, n=80). consol__tri_desc 5m long 0.14-0.23 (n=20-39). Across timeframes the pattern holds on 1d (1.22-1.27) and 1h (1.37-1.42) and fails on 15m and 5m.
+- Profit-booking / exit takeaway: chart-pattern exits need room. On 5m the measured target is a fraction of the 0.8% round trip, so intraday pattern trading is not viable under this cost model.
+
+### 2026-11-15 IST — Silent 4h-fetch bug (B-1598)
+- Every research_interval 4h run fetched 0 symbols, because the resample ran on fetch_ohlc's RangeIndex instead of its "Date" column. Both elder-trend-context 4h runs came back empty and were not registered. Lesson: a merge that reports "fetched with data: 0" is a harness failure, never a strategy result. Check the fetched count before parsing any run.
+- Profit-booking / exit takeaway: none yet. Exits at 4h are still untested for these families until the re-runs land.
+
+### 2026-11-15 IST — Elder trend-context 4h/730d (run 43689022041, the first good 4h run after B-1598)
+- 210 cells, 7,131 symbols with data, 0.8% cost. **0 pass PFnet>1.00**; best 0.923 (osc__gap_timestop long atr3_nb2, n=26.8k). By timeframe, the best cell scores 0.984 on 1d, 0.923 on 4h, 0.728 on 1h and 0.418 on 15m. Fewer, longer trades lose less to costs, but no timeframe clears the cost line. The family is now closed across every timeframe.
+- Profit-booking / exit takeaway: gap_timestop (time exit after a gap) is the closest to break-even at 4h. A short fixed time-stop after a gap does better than the trend-context rule exits, though still not enough to wire.
+
+### 2026-11-15 IST: Elder patterns 4h (run 43689024308, 730d, first good 4h fetch after B-1598)
+252 cells registered (strategy_registry_ep4h.py), 23 clear PFnet>1.00 on the research harness (not main.py functions):
+reversal__island long 4h 1.63-1.67 on n~9.9k (strongest and largest sample of the whole Elder patterns family at any
+candle size; 1d long was 1.57); consol__tri_desc 4h short 1.11-1.16 (n=97) and long 1.05-1.14 (n=100-148), the only
+candle size where tri_desc clears 1.00 (15m 0.03-0.21, 5m and 1h below 1). tri_sym long 3.9 is n=8: noise, not a finding.
+Nothing wired: island goes through the main.py sweep (B-1090, workflow plan-job fixed this commit), tri_desc through the
+B-1597 replay (blocked on merge to main). 4h island beating 1h/15m/5m says the reversal needs multi-session bars to form.
+Profit-booking / exit takeaway: island at 4h held ~a few sessions; keep the ATR stop plus max-hold exit and test the
+trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wiring, since a fixed max-hold may give back the gap.
+
+### 2026-11-15 IST: chan_gap 15m candle sweep (B-1020, run 43691279529) and Elder indicators 1h (run 43691359056)
+- chan_gap at 15m (real main.py chan_gap_entry_signal / select_top / exit_reason, full universe, 60d, 0.8% cost): 6 tags, 0 pass. Long buy_on_gap 0.877-0.916 (n 65), short short_on_gap 0.763-0.782 (n 157). The 1d baseline (main.py replay PFnet 1.32-1.39) does not carry to a 15m stop check: same-day close exits stay positive for the short (close bucket 1.09-1.49) but the 15m-bar stop hits eat it. n is small (60-day yfinance cap): read as "no edge shown", not "proven negative".
+- Elder indicators at 1h (730d, full universe, 8 families, 300 tags): 0 pass. Best adx_bell ring_bell long atr3 0.714 (n 81k), obv 0.658, ema_gate 0.503; every other family under 0.45. At 1h the 0.8% round-trip cost is several times the average move per trade: these 1d swing indicators do not survive at hourly bars.
+- Profit-booking / exit takeaway: on chan_gap the money is in the same-day close exit; a tight 1.5 ATR intraday stop cuts the short from 1.49 (close exits) to 0.78 overall, so keep the wider 4 ATR or the 1d-style stop if this is ever re-tried intraday. For Elder 1h, most exits are rule_exit/max_hold before costs are earned back: hold longer (1d bars) rather than tightening exits.
+
+### 2026-11-15 IST: Elder patterns candle sweep complete (1d/1h/15m/5m/4h), 22 source rows closed; flag detector bug (B-617)
+- All 42 pattern/direction families now have results at every candle size. Intraday (15m/5m) fails across the board (best 0.47). The only broad, high-n passes are reversal__island long 4h (1.63-1.67, n~9.9k, B-1090) and 1d (1.57), consol__tri_desc long 1h/1d/4h (B-1597), consol__tri_asc long 1d/4h (~1.03-1.09, n~1.5-1.8k) and two marginal 1d cells (quiet_wild 1.014, channel 1.007, n~50k). The tri_sym / tl_break passes have n 5-20: noise until a replay says otherwise. B-1599 tracks the main.py ports.
+- The flag detector could never fire (its drift and breakout conditions contradicted each other on the same bar), so "flag has no edge" was never measured. Lesson: a cell with 0 trades at every candle size is a detector bug until proven otherwise; report n=0 families instead of dropping them silently.
+- Profit-booking / exit takeaway: the patterns that pass hold for days (1d/4h). The same detectors on 5m/15m bars lose to the 0.8% cost every time, because each trade's move is too small. Book profit on these patterns on swing exits, not intraday targets.
+
+### 2026-11-15 IST: island reversal candle/direction sweep on main.py functions (B-1090, run 43692422951) and chan_gap 1h (B-1020, run 43693114328)
+- Island LONG holds up through the real main.py functions: 1d 1.61-2.79, 4h 1.34-1.99, with thousands of trades per cell. It fades at 1h (0.34-1.01) and is dead at 15m/5m (<0.25): within8 and the 30-bar hold measured in intraday bars describe a different, much shorter pattern.
+- Island SHORT on the main.py exit (brk20_min_rr_exit_reason) clears 1.00 at 1d for gap05 (1.18-1.19) and px20 (1.08-1.12). The older research harness had all short cells at 0.64-0.71, so the exit and fill rules, not the detector, made the short side look dead. Every other short tf fails.
+- chan_gap buy_on_gap LONG at 1h passes (1.08-1.15, n 587), while 15m failed (0.88-0.92): the 1h stop check is coarse enough to survive the open's noise. The short mirror fails at every intraday size (0.52-0.78).
+- Profit-booking / exit takeaway: for island the wider stops (2.5-4 ATR) beat 1.5 ATR at every passing cell, by 0.01-0.11 PFnet. The stop should give the reversal room, and the EMA13 rule exit should book the profit. For chan_gap, book same-day: the close exit carries the edge, and 1h bars avoid the whipsaw stops that kill 15m.
+
+## 2026-11-15 IST: Elder indicators 15m and chan_gap 5m (B-579 family, B-1020)
+- Elder indicators 15m (run 43693213969, 300 tags, main.py functions, full universe, 60d, 0.8% cost): 0 pass. Family bests: adx_bell long 0.379, obv long 0.339, adx_bell short 0.285. Every family is far weaker at 15m than at 1h (0.714 best). Cost per trade swamps the smaller 15m moves.
+- chan_gap 5m (run 43694587564): 0 pass, and the numbers match 15m exactly (long n 65, short n 157). The gap is a daily-open condition, so the candle size changes only the stop granularity, not the entries. chan_gap is now done at every intraday size; only 1h long (1.08-1.15) passes (B-1600 d).
+- Profit-booking / exit takeaway: on intraday Elder indicators most exits are rule exits or stops that close before the move covers the 0.8% cost. Shorter candles add trades, not edge, so any exit tuning should start from 1h, not 15m.

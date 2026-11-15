@@ -1,0 +1,72 @@
+name: Descending-triangle main.py-function replay (B-1597)
+
+# Backlog B-1597. Replays EVERY tag in main.TRIDESC_ALL_TAGS whose tf == interval (consol__tri_desc, long AND short,
+# ATR 1.5/2/3 stop attached, volume confirm off/on) plus the trail set (trailltp0d5r / trailltp1r / trailchand1r) by
+# IMPORTING and CALLING the real main.tri_desc_entry_signal + main.brk20_min_rr_exit_reason (+ main.swing_trail_level
+# for the trail rows) on the FULL universe (main._load_nse_universe_from_file(), not main.NSE_FULL_UNIVERSE),
+# cost = main.ROUND_TRIP_COST_PCT (0.8%). Overlapping fills (v1 style). Compare to the research registry rows
+# (elder_patterns_research consol tri_desc). Validation only; wires nothing, no kill switch.
+# Output: tri-desc-main-replay-results artifact -> tridesc_all.json + tridesc_table.txt (SUMMARY table).
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d | 1h | 15m; must be in main.TRIDESC_TFS)"
+        default: "1d"
+      period:
+        description: "History period (research_interval caps intraday periods)"
+        default: "5y"
+      fill:
+        description: "close (live convention) | next_open (research harness)"
+        default: "close"
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "8"
+          INTERVAL: ${{ inputs.interval }}
+          PERIOD: ${{ inputs.period }}
+          FILL: ${{ inputs.fill }}
+        run: python3 scripts/tri_desc_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tri-desc-main-replay-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: tri-desc-main-replay-s*
+          merge-multiple: true
+      - run: python3 scripts/tri_desc_main_replay.py merge shards tridesc_all.json | tee tridesc_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tri-desc-main-replay-results
+          path: |
+            tridesc_all.json
+            tridesc_table.txt
