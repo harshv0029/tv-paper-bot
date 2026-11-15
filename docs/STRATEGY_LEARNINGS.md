@@ -2104,3 +2104,8 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - Thin samples (n<=150 at 1h). B-1597 ports it to main.py for a real-function replay before wiring.
 - Profit-booking / exit takeaway: most tri_desc exits are rule exits (96 of 150), and a wider 3-ATR stop cuts stop-outs
   38 -> 9 with almost no PFnet loss, so let the rule exit book the profit and keep the stop wide.
+
+### 2026-11-15 IST — Elder patterns 15m/60d (run 43677914631, B-600..B-624, B-1597)
+- 246 cells (consol 78, trendline 60, reversal 60, bars 48) on the full NSE universe (10,832 symbols with data), 0.8% cost. **0 pass PFnet>1.00**; best 0.474 (trendline channel short atr3).
+- consol__tri_desc, the 1h and 1d winner (1h long 1.37-1.42, 1d long 1.22-1.27), collapses on 15m: long 0.03-0.07, short 0.12-0.21, n=14-45. The 60-day window gives too few triangles, and 15m costs eat the edge. Treat tri_desc as a 1h+ pattern; B-1597's main.py replay should focus on 1d/1h and include 15m only for completeness.
+- Profit-booking / exit takeaway: on 15m most exits are rule_exit with tiny average moves, so the 0.8% round trip dominates. Pattern exits need a 1h+ hold to clear costs.
