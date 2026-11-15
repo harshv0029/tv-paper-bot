@@ -3130,6 +3130,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ckm.build())
         import strategy_registry_b606_eb3h as _b606  # B-606 run 43666082279 + elder-batch3 1h run 43593142428
         REGISTRY.extend(_b606.build())
+        import strategy_registry_douglas_tm as _dtm  # Douglas trade-mgmt 1h run 43593152439
+        REGISTRY.extend(_dtm.build())
         import strategy_registry_minervini_lab_main_replay as _mlm
         REGISTRY.extend(_mlm.build())
         import strategy_registry_swingminrr as _sm

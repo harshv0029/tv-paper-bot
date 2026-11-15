@@ -2083,3 +2083,14 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - elder-stop-offset-research.yml run 43666082279 (1d, 5y, 4764 symbols with data, 0.8% cost): 84 tags, none above PFnet 1.00. Best was brk20 structural stop with a 0.5 ATR offset, long at 0.871 (gross 1.069). Every offset from 0.25 to 1.0 ATR gave 0.870-0.871, so where the stop sits past the structure does not matter. The edge is not there before costs either. Shorts were about 0.50. Snapping the stop to a round number was the worst variant.
 - elder-batch3-research.yml run 43593142428 (osc and struct families at 1h, 730d): 270 tags, best PFnet 0.867 (struct cycle_gate long, ATR 3). Gross PF reached 1.86 on some cells, but about 6,300 trades at 8 bars each turn that into a net loss after the 0.8% round-trip cost.
 - Profit-booking / exit takeaway: fine-tuning the stop offset does not rescue a weak entry. On 1h bars, the cost per round trip uses up the gross edge, so short-hold intraday exits need a gross PF well above 2 to survive. Prefer longer holds or fewer, higher-quality trades.
+
+### 2026-11-15 IST: Douglas trade-management 1h (run 43593152439), 480 cells
+- 1h 730d, full NSE universe (5508, 5072 with data), 0.8% cost. 228 entry cells, 252 exit cells. 4 of 480 pass PFnet>1.00,
+  all in `trademgmt_exit__brk20_min_rr__long__1h`: atr3_rr4 2.283 (n=2194), atr3_rr3 1.383, atr2_rr4 1.138, atr3_rr2d5 1.051.
+- Edge rises with the reward:risk floor (rr4 > rr3 > rr2.5) and with ATR width 3 over 2: the min-RR filter that skips
+  breakouts with no room to the 60-bar high carries the edge, the same finding as B-798.
+- Harness is a research re-implementation, not the real main.py functions. The main.py replay of atr3_rr4 long 1h gave
+  1.393 pooled but OOS 0.687, so the 2.283 here is optimistic. B-1596 replays the 3 non-live neighbours with main.py
+  functions before any wiring.
+- Profit-booking / exit takeaway: a far fixed target (4R) with a wide 3-ATR stop beats tighter targets on 1h breakouts;
+  most exits are rule exits (1603 of 2194), so the trailing/rule exit, not the target, books most of the profit.
