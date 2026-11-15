@@ -11,9 +11,9 @@ Total rows: 1349 | closed: 930 | not closed: 419
 | DONE | 550 |
 | CLOSED | 171 |
 | CLOSED-AS-EXPLAINED | 168 |
-| PARTIAL | 129 |
+| PARTIAL | 130 |
 | BLOCKED | 58 |
-| OPEN | 50 |
+| OPEN | 49 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -313,7 +313,7 @@ Total rows: 1349 | closed: 930 | not closed: 419
 | B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
 | B-1591 | P1 | OPEN | 2026-11-15 IST |  |
 | B-1596 | P1 | OPEN | 2026-11-15 IST |  |
-| B-1597 | P1 | OPEN | 2026-11-15 IST |  |
+| B-1597 | P1 | PARTIAL | 2026-11-15 IST | owed |
 | B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |

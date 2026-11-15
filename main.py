@@ -6251,6 +6251,93 @@ def _island_short_exit_adapter(df, entry_day, initial_stop, atr_at_entry, runnin
     return None, new_running_min
 
 
+# ---- Elder descending-triangle breakout (consol__tri_desc, B-1597): PORT ONLY, NOT WIRED into any scan or entry chain ----
+# Verbatim port of scripts/elder_patterns_research.d_triangle(kind="desc", look=20, tol=0.02): slope(s) = the
+# rolling(look) np.polyfit slope x look / window mean; shape = |slope(Low)| < tol & slope(High) < -tol (flat bottom,
+# falling top); entry = shape & Close > max(High of the look bars BEFORE the signal bar); vol=1 adds Volume >= 1.5 x the
+# mean Volume of the 5 bars before. LONG = the detector on df; SHORT = the same detector on the reciprocal-price mirror
+# (research flip(): High'=1/Low, Low'=1/High, Close'=1/Close, Volume unchanged). Stop = entry -/+ atr_mult x ATR(Wilder
+# 14) in price space, ALWAYS attached. Exit = brk20_min_rr_exit_reason(direction) (gap-aware stop -> EMA13 rule exit,
+# reciprocal close for a short == research _exit_ema on flip -> 30-bar max hold). Validation: scripts/tri_desc_main_replay.py.
+TRIDESC_LOOK = 20
+TRIDESC_TOL = 0.02
+TRIDESC_VOL_MULT = 1.5
+TRIDESC_VOL_WINDOW = 5
+TRIDESC_CALC_WINDOW = 400
+TRIDESC_TFS = ("1d", "4h", "1h", "15m")
+_TRIDESC_ATRS = (("1d5", 1.5), ("2", 2.0), ("3", 3.0))
+_TRIDESC_PARAMS_OF_TAG = {  # tag -> (direction, tf, atr_mult, vol)
+    f"consol__tri_desc__{d_}__{tf_}__atr{an_}_vol{v_}__v2": (d_, tf_, am_, bool(v_))
+    for d_ in ("long", "short") for tf_ in TRIDESC_TFS for an_, am_ in _TRIDESC_ATRS for v_ in (0, 1)}
+TRIDESC_ALL_TAGS = tuple(_TRIDESC_PARAMS_OF_TAG)
+
+
+def tridesc_params_of_tag(tag: str):
+    """(direction, tf, atr_mult, vol) of a TRIDESC_ALL_TAGS tag, or None."""
+    return _TRIDESC_PARAMS_OF_TAG.get(tag)
+
+
+def _tridesc_norm_slope(y: np.ndarray, look: int) -> float:
+    x = np.arange(look, dtype=float)
+    return float(np.polyfit(x, y, 1)[0] * look / y.mean())
+
+
+def tri_desc_signal_on_last_bar(df: pd.DataFrame, direction: str = "long", vol: bool = False,
+                                look: int = TRIDESC_LOOK, tol: float = TRIDESC_TOL) -> bool:
+    """True iff the LAST row is a research d_triangle(kind='desc') entry (short = on the reciprocal mirror)."""
+    if direction not in ("long", "short"):
+        return False
+    d = df.iloc[-TRIDESC_CALC_WINDOW:]
+    n = len(d)
+    if n < look + 1 or (vol and n < TRIDESC_VOL_WINDOW + 1):
+        return False
+    h0, l0 = d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float)
+    c0, v = d["Close"].to_numpy(dtype=float), d["Volume"].to_numpy(dtype=float)
+    if direction == "long":
+        h, l, c = h0, l0, c0
+    else:
+        h, l, c = 1 / l0, 1 / h0, 1 / c0
+    wh, wl = h[n - look:], l[n - look:]
+    if not (np.all(np.isfinite(wh)) and np.all(np.isfinite(wl))):
+        return False
+    sh, sl = _tridesc_norm_slope(wh, look), _tridesc_norm_slope(wl, look)
+    if not (abs(sl) < tol and sh < -tol):
+        return False
+    prior = h[n - 1 - look:n - 1]
+    if not (np.all(np.isfinite(prior)) and c[-1] > prior.max()):
+        return False
+    if vol:
+        pv = v[n - 1 - TRIDESC_VOL_WINDOW:n - 1]
+        if not (np.all(np.isfinite(pv)) and v[-1] >= TRIDESC_VOL_MULT * pv.mean()):
+            return False
+    return True
+
+
+def tri_desc_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row for a TRIDESC_ALL_TAGS tag. Returns {entry_price, stop_loss, atr_at_entry, risk,
+    signal_close, direction, atr_mult, vol, tf} or None. The stop is always set (long below, short above the entry)."""
+    p = _TRIDESC_PARAMS_OF_TAG.get(tag)
+    if p is None:
+        return None
+    direction, tf, atr_mult, vol = p
+    if not tri_desc_signal_on_last_bar(df, direction, vol):
+        return None
+    d = df.iloc[-TRIDESC_CALC_WINDOW:]
+    atr = float(_brk20_atr_series(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float),
+                                  d["Close"].to_numpy(dtype=float))[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(d["Close"].iloc[-1]) if entry_price is None else float(entry_price)
+    if not px > 0:
+        return None
+    stop = brk20_stop_price(px, atr, atr_mult, direction)
+    if not ((0 < stop < px) if direction == "long" else (stop > px)):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": abs(px - stop),
+            "signal_close": float(d["Close"].iloc[-1]), "direction": direction, "atr_mult": atr_mult,
+            "vol": vol, "tf": tf}
+
+
 def _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
     """Opens at most one island position for `symbol` (first tag in ISLAND_SWING_TAGS that fires). The paper row,
     trades row and real mirror (swing engine: SL placed with entry, PFnet gate inside) follow the brk20 pattern."""
