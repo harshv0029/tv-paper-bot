@@ -2239,3 +2239,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
   - The old 1.31 (run 38502123279) was a longer history; on the same 730-day window the daily replay is about 1.20.
 - Open question, B-1608: which opening price does the live bot actually get, the daily Open or the first-intraday-bar Open? Answering it from the bot's own fills decides which replay is honest.
 - Profit-booking / exit takeaway: holding the short from 15:15 to 15:30 adds nothing, so the live 15:10 cover gives up no edge. The loss comes from the entry price, so any fix belongs at entry (fill at the real open), not at the exit.
+
+### 2026-11-15 IST: B-1608 chan_gap SHORT, which open does the live bot get?
+- The only live chan_gap fill (DABUR short, 2026-10-30) filled at Rs365.50 at 09:24:45 IST, a market fill about 9 minutes after the open. The 1h replay entered at 369.05 (a stale first bar equal to the prior 15:15 bar) and the adjusted daily open was 366.6, so the real fill was worse for a short than both replays.
+- So the 1h replay (PFnet 0.71) is the closer of the two and is still optimistic, and the daily-open replay (1.22) overstates the edge. The short gate stays closed. n=1, and no more fills can come while the short is unwired.
+- Profit-booking / exit takeaway: for open-gap fades, judge a cell on the price a market order actually gets a few minutes after the open, not the bar Open; a gap that half-fills before the fill erases most of a fade's edge.

@@ -15,6 +15,7 @@ Endpoints:
                          workspace does not, so this is the automatic data path)
 """
 
+import calendar
 import asyncio
 
 
@@ -34924,6 +34925,15 @@ def upstash_usage():
             "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
             "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1609: View 4 shows month usage vs the free-tier 10 GB / 500k-command monthly limit
+            "month_limit_bytes": _UPSTASH_MONTHLY_BYTES,
+            "month_used_pct": round(100 * (sum(v[0] for v in _upstash_month_prior.values()) + tot) / _UPSTASH_MONTHLY_BYTES, 2),
+            "month_used_ops": sum(v[1] for v in _upstash_month_prior.values()) + ops,
+            "month_limit_ops": _UPSTASH_MONTHLY_OPS,
+            # B-1609 (user: "X used (<cumulative limit till date>)/10 gb"): pro-rata share of the monthly limit
+            # allowed up to and including today (IST): 10 GB x day-of-month / days-in-month.
+            "month_allowed_to_date_bytes": int(_UPSTASH_MONTHLY_BYTES * ist_now().day
+                                               / calendar.monthrange(ist_now().year, ist_now().month)[1]),
             # B-1576: daily limit crossed -> non-exempt writes refused until the IST day rolls over
             "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
             "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
