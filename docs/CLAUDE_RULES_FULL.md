@@ -666,3 +666,9 @@ User, verbatim intent: "Add one weekly activity, Tuesday 5am, that you will chec
 - Step 1: apply what you can yourself. Trim CLAUDE.md, skills and other always-loaded text. Add helper scripts that replace large reads. Shorten tool output. Save state to git so the session can /compact.
 - Step 2: list the suggestions that only the user can act on (for example: when to /compact, starting a fresh session, disabling unused connectors or MCP servers, removing unused skills) under footer item 4, "Input required".
 - Carry those suggestions in "Input required" in every reply until the user answers them. Then log the outcome in the B-1595 row and in learnings.
+
+## Subagent cap (thumb rule, 2026-11-15)
+- User, verbatim: "Use at max 3 sub agents / Make it part of thumb rule". Replaces the earlier cap of 2 ("Keep 2 agent cap").
+- Never run more than 3 subagents at once. Each still gets a tight brief (file:line pointers) and returns a patch path plus a
+  report of 15 lines or less. Subagents never push, dispatch, deploy, call Kotak or Render, or post to GitHub; the coordinator
+  merges by patch, runs the full suite, and pushes once. Watch the 5-hour usage limit: 3 agents re-reading the repo burn it faster.
