@@ -2263,3 +2263,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Of the three turn1cr 1h cells in run 43692422951, atr4 (1.012) and atr2d5 (1.004) pass the strict PFnet > 1.00 rule and are wired last on the 1h swing leg; atr1d5 (0.962) is not. n3264.
 - The margin is thin: about 1% over cost. Unlike the 4h cells (1.34-1.99), these sit near the line where a small fill-price slip (B-1608: a market fill a few minutes after the signal) can turn them below 1.00.
 - Profit-booking / exit takeaway: on 1h island longs the wider stop (4 ATR) beats the tight one (1.5 ATR); the tight stop takes too many noise stop-outs before the EMA13 rule exit can book the move.
+
+### 2026-11-15 IST: Elder gap-fade / MACD at 4h, dirsys13 at 1h
+- Elder >=1.1 cells at 4h (run 43735471593, 2377 symbols, 1h bars resampled to NSE-session 4h, 0.8% cost): every pooled cell fails, best 0.99 (gaps common_fade long atr3 nb4, n10389). In-sample segments reach 1.34 but out-of-sample falls to 0.67, so the daily edge (1.25) does not carry to 4h, the same as at 1h.
+- Elder Directional System DI13 at 1h (run 43735474064, 2513 symbols): all 192 cells fail, pooled best 0.60. The daily dirsys cells already failed OOS; at 1h they lose more to cost.
+- Profit-booking / exit takeaway: a gap fade on 4h bars holds about 3.5 bars (two sessions), and over that window the 0.8% round trip takes the whole fade. Only the daily version, which holds days, has room for the exit to book a move bigger than cost.
