@@ -27,6 +27,10 @@ on:
         description: "B-1604: 1 = unadjusted (auto_adjust=False) daily + intraday bars (_rawd tags)"
         required: false
         default: ""
+      intraday_close_1530:
+        description: "chan_gap breakdown: 1 = also book each candidate at the 15:30 INTRADAY close (_ic1530 twin tags)"
+        required: false
+        default: ""
 
 jobs:
   replay:
@@ -50,6 +54,7 @@ jobs:
           WINDOW_DAYS: ${{ inputs.window_days }}
           PAIRED_DAILY_CLOSE: ${{ inputs.paired_daily_close }}
           RAW_DAILY: ${{ inputs.raw_daily }}
+          INTRADAY_CLOSE_1530: ${{ inputs.intraday_close_1530 }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "12"
         run: python3 scripts/chan_gap_tf_sweep.py run
