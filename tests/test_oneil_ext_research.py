@@ -147,3 +147,17 @@ def test_pivot_atr_sweep_tags_filter_and_exit_cells():
     fb, fs = orx.finalize(base, min_n=1), orx.finalize(swept, min_n=1)
     for tag, m in fb.items():
         assert fs[tag]["n"] == m["n"] and fs[tag]["pfnet"] == m["pfnet"]
+
+
+def test_corrratio_threshold_sweep_keys_and_monotone():
+    """B-486: correction-ratio leader filter swept at k = 1.25/1.5/1.75/2.0; original
+    k1d75 key kept; a looser k (larger multiple of the index drawdown) never admits fewer bars."""
+    o, h, l, c, v = _pattern_df()
+    idx = np.linspace(120, 100, len(c))  # falling index so the ratio test is exercised
+    rs = np.full(len(c), 90.0)
+    _E, _brk, F, _X = ox.bull_signals(o, h, l, c, v, idx, rs, orx.CFG["1d"], ox.EX["1d"])
+    keys = ["k1d25", "k1d5", "k1d75", "k2d0"]
+    for k in keys:
+        assert ("oneil_corrratio", "leader", k) in F
+    counts = [int(np.sum(F[("oneil_corrratio", "leader", k)])) for k in keys]
+    assert counts == sorted(counts)

@@ -19,7 +19,16 @@ import tempfile
 from contextlib import closing
 from unittest.mock import patch
 
+import pytest
+
 import main
+
+
+@pytest.fixture(autouse=True)
+def _nse_session_open(monkeypatch):
+    # B-313: emergency escalation now runs only inside the NSE session; these tests model an open market.
+    monkeypatch.setattr(main, "category_market_open", lambda cat, now=None: True)
+
 
 _LIVE_SL_TRIGGER_PENDING = {
     "stat": "Ok", "data": [{"nOrdNo": "SL-OLD", "ordSt": "trigger pending", "rejRsn": "--"}], "stCode": 200,

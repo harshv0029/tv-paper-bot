@@ -1,0 +1,40 @@
+name: Pattern lab run (B-870, research only)
+
+# Research-only, read-only. Runs scripts/pattern_lab.py at one candle size (TF) and universe (UNI) and uploads the
+# results JSON (docs/pattern_lab_results_<tf>[_<uni>].json) as an artifact; the coordinator commits it and registers
+# the tags. Owed first by B-870: TF=4h (1h x 730d resampled by scripts/resample_4h.py, NSE session-anchored, 2 bars per
+# day). Full universe = main._load_nse_universe_from_file() (uni=full). Single job (the script does not shard): use
+# maxsym for a pilot first. Dispatch order per CLAUDE.md: research, only when no gate/safety run is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      tf:
+        description: 'candle size: 1d | 4h | 1h | 15m | 5m'
+        default: '4h'
+      uni:
+        description: 'universe: full | n200 | etf'
+        default: 'full'
+      maxsym:
+        description: 'cap symbols for a pilot (0 = full universe)'
+        default: '0'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run pattern lab
+        env:
+          TF: ${{ inputs.tf }}
+          UNI: ${{ inputs.uni == 'full' && '' || inputs.uni }}
+          MAXSYM: ${{ inputs.maxsym }}
+        run: python3 scripts/pattern_lab.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pattern-lab-results-${{ inputs.tf }}-${{ inputs.uni }}
+          path: docs/pattern_lab_results*.json

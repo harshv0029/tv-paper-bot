@@ -2,7 +2,7 @@ name: Elder batch 3 research (osc, struct, chan, sizing, breadth, orb)
 
 # Elder, "Trading for a Living": rows B-641..B-776 not reached by batch 1/2 or breadth_lab.
 # Families osc, struct, chan, sizing, breadth x 4 shards (20 jobs) at the chosen candle size, plus an
-# opening-range job (family orb, 5m only, 4 shards). Dispatch only when no Deploy Gate / safety run is
+# opening-range job (family orb, orb_interval input 5m/15m/1m, 4 shards). Dispatch only when no Deploy Gate / safety run is
 # queued. FULL universe via main._load_nse_universe_from_file(), BOTH directions, ATR stop sweep
 # 1.5/2/3 with a stop on every trade, 0.8% round-trip cost. Every (variant, direction, ATR) cell is
 # its own tag per the naming grammar. Candle-size sweep: re-dispatch with interval=1h (730d) / 15m / 5m (60d).
@@ -29,9 +29,17 @@ on:
         required: false
         default: "elder-batch3-results"
       run_orb:
-        description: "Also run the 5m opening-range job (true/false)"
+        description: "Also run the opening-range job (true/false)"
         required: false
         default: "true"
+      orb_interval:
+        description: "B-736 candle sweep for the ORB job: 5m (60d), 15m (60d) or 1m (7d); range bars = minutes / bar size"
+        required: false
+        default: "5m"
+      orb_period:
+        description: "yfinance period for the ORB job (5m/15m: 60d; 1m: 7d)"
+        required: false
+        default: "60d"
       families:
         description: 'JSON list of families for the research matrix (B-864 rerun: ["osc","chan"] = 8 jobs)'
         required: false
@@ -85,11 +93,11 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
-      - name: Run ORB shard (5m, 60d)
+      - name: Run ORB shard
         run: |
           set -o pipefail
           python3 scripts/elder_batch3_research.py --family orb --shard ${{ matrix.shard }} --nshards 4 \
-            --interval 5m --period 60d --out out/
+            --interval "${{ inputs.orb_interval }}" --period "${{ inputs.orb_period }}" --out out/
       - uses: actions/upload-artifact@v4
         with:
           name: elderc-orb-${{ matrix.shard }}

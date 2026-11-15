@@ -24,6 +24,14 @@ def test_sl_loosen_detection():
     assert main._SL_LOOSEN_ATTEMPTS == {"short": 1}
 
 
+def test_sl_loosen_attempts_endpoint():
+    main._SL_LOOSEN_ATTEMPTS.clear()
+    main._note_sl_loosen_attempt("X", False, 95, 100)
+    main._note_sl_loosen_attempt("Y", False, 101, 100)  # tighten: not counted
+    out = main.sl_loosen_attempts_endpoint()
+    assert out["long"] == 1 and out["short"] == 0 and out["in_memory"] is True
+
+
 def test_swing_time_limit():
     now = time.time()
     rows = [{"symbol": "A", "strategy": "gap_and_go", "opened_at": now - 80 * 86400},

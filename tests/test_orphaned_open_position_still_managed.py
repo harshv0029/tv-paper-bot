@@ -106,7 +106,8 @@ def test_scheduler_tick_actually_checks_an_orphaned_open_position():
     ])
 
     main._scheduler_last_results.pop(orphan, None)
-    with patch("main._run_swing_scan"), \
+    with patch("main._scheduler_sleep_after_tick", return_value=0.0), \
+         patch("main._run_swing_scan"), \
          patch("main._fo_chain_monitoring_snapshot"), \
          patch("main._run_fo_options_scan"), \
          patch("main.fetch_ohlc", return_value=fixture), \

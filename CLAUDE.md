@@ -16,11 +16,15 @@ full file wins.
   tests while working; the full suite (~20 min) runs once, in the background, before a commit.
 - Edit the backlog and learnings with append, sed or Edit on the exact rows. Never rewrite
   them whole.
-- Subagents: at most 2 at once. Each gets a tight brief with file:line pointers and must
+- Subagents: at most 3 at once (user 2026-11-15; was 2). Each gets a tight brief with file:line pointers and must
   return a patch path plus a report of 15 lines or less. Parallel agents each re-read the
   repo and hit the 5-hour usage limit (2026-11-14: two agents died on it).
 - Replies follow the footer below. No step narration, no repeated context, no long pasted output.
 - Near 150k context, save state to git and the backlog, then remind the user to /compact.
+- Weekly context review (user 2026-11-15, B-1595): every Tuesday 05:00 IST (scheduled task).
+  Lower context automatically where you can (trim always-loaded text, helper scripts, shorter
+  outputs). List suggestions that need the user under "Input required" in every reply until
+  the user responds to them.
 
 ## Branch, commit, deploy
 - Work only on `claude/confident-fermi-mlqbka`. No PRs. Before any reset or force-push,

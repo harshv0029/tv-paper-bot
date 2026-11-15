@@ -310,13 +310,13 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json, protection_degraded_since) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
                      pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
-                     pos.get("protection_degraded_since")),
+                     pos.get("protection_degraded_since"), pos.get("product")),  # B-1578
                 )
                 restored += 1
             if restored:
@@ -1285,9 +1285,16 @@ def init_db():
                                      -- so /real-trades-today-bot-only can show real per-trade
                                      -- attribution instead of a generic constant. NULL for a
                                      -- position adopted/backfilled without a known paper origin.
+                ,product TEXT       -- B-1578 (2026-11-15): Kotak product of this intraday long, 'MIS' for
+                                     -- every new buy-engine entry; NULL = legacy CNC row. Every SL/target/
+                                     -- exit leg uses it (_rp_product) so the sell matches what is held.
             )
             """
         )
+        try:  # B-1578: a DB file that survived a restart predates the product column
+            conn.execute("ALTER TABLE real_positions ADD COLUMN product TEXT")
+        except Exception:
+            pass  # already there (fresh CREATE above, or an earlier migration)
         # Real position mirror for the swing (Gap and Go) engine - SEPARATE
         # from real_positions (2026-09-22, real-order mirroring build).
         # real_positions is keyed by symbol alone (PRIMARY KEY), and the
@@ -9790,6 +9797,10 @@ GAP_AND_GO_EXITFAMILY_CELLS = {
         {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "volclimax", "hold": 30},
     "gap_and_go__exitinval__long__1d__atr2d5_hold30_sigelder__v2":
         {"kind": "inval", "atr": 2.5, "sig": "elder", "hold": 30},
+    # B-951 (2026-11-14 IST): exittime = 2.5 x ATR stop + pure time exit (research kind "time"), UNWIRED, replay owed.
+    "gap_and_go__exittime__long__1d__atr2d5_hold5__v2": {"kind": "time", "atr": 2.5, "hold": 5},
+    "gap_and_go__exittime__long__1d__atr2d5_hold10__v2": {"kind": "time", "atr": 2.5, "hold": 10},
+    "gap_and_go__exittime__long__1d__atr2d5_hold20__v2": {"kind": "time", "atr": 2.5, "hold": 20},
 }
 
 
@@ -9854,7 +9865,7 @@ def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at
         roc = np.full(len(c), np.nan)
         roc[k:] = (c[k:] - c[:-k]) / np.abs(c[:-k])
         vavg = pd.Series(v).rolling(EXITFAMILY_VOL_AVG_N).mean().shift(1).to_numpy()
-    else:
+    elif kind != "time":  # time: frozen stop + hold-bar close only (B-951)
         raise ValueError(f"unported exit kind {kind!r}")
     held = 0
     ed = str(entry_day)[:10]
@@ -9886,10 +9897,10 @@ def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at
                     raise ValueError(f"unported exhaust x {cell['x']!r}")
                 if hit:
                     return _done("exhaustion_exit", c[j])
-        elif j >= 1 and flag[j] and not flag[j - 1]:
+        elif kind == "inval" and j >= 1 and flag[j] and not flag[j - 1]:
             return _done("signal_invalidation", c[j])
         if held >= cell["hold"]:
-            return _done("max_hold_timeout", c[j])
+            return _done("time_stop" if kind == "time" else "max_hold_timeout", c[j])
     out.update(held=held, stop=stop, running_max=runmax)
     return out
 
@@ -11050,8 +11061,34 @@ _SL_RETRY_ATTEMPTS = 3  # 2026-09-10, found in review: a single placement
 # tick check doesn't already give.
 
 
+INTRADAY_REAL_PRODUCT = "MIS"  # B-1578: product of every new real_positions (intraday buy-engine) entry
+
+
+def _pkw(product) -> dict:
+    """B-1578: forward a long-side product only when it is not CNC, so swing/legacy calls are unchanged."""
+    p = str(product or "CNC").upper()
+    return {"product": "MIS"} if p == "MIS" else {}
+
+
+def _rp_product(row) -> str:
+    """B-1578: Kotak product of a real_positions row. A row from before B-1578 (or adopted without a
+    product) has NULL and was bought CNC, so its sells must stay CNC; a new entry is MIS."""
+    try:
+        p = row["product"] if row is not None else None
+    except (KeyError, IndexError, TypeError):
+        p = None
+    p = str(p or "CNC").upper()
+    return p if p in ("CNC", "MIS") else "CNC"
+
+
+def _kotak_row_product(raw) -> str | None:
+    """B-1578: the product Kotak reports for a position/order row ('MIS' or 'CNC'), else None (unknown)."""
+    p = str((raw or {}).get("prod") or "").upper() if isinstance(raw, dict) else ""
+    return p if p in ("CNC", "MIS") else None
+
+
 def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trigger_price: float,
-                                      attempts: int = _SL_RETRY_ATTEMPTS) -> dict:
+                                      attempts: int = _SL_RETRY_ATTEMPTS, product: str = "CNC") -> dict:
     """Fail-closed retry wrapper around kotak_real_orders.place_real_stop_loss.
     A protective SL order is safety-critical - a single placement failure
     right after a successful cancel used to leave a real position naked
@@ -11073,7 +11110,7 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
     import kotak_real_orders
     result = {"ok": False, "detail": "no attempt made"}
     for attempt in range(1, attempts + 1):
-        result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
+        result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price, **_pkw(product))
         if result.get("ok"):
             return result
         # B-1305: a Kotak rejection is never resent unchanged; only transient failures retry.
@@ -17389,6 +17426,18 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
+_SHORT_EXIT_NO_ROW_LOGGED: set = set()  # B-1580 (symbol, IST day) already logged
+_SHORT_COVER_CLOSED_LOGGED: set = set()  # B-313: (symbol, IST date) already logged as skipped_market_closed
+
+
+def _nse_closed_for_short_cover() -> bool:
+    """B-313: True only when the NSE session is confidently closed; any error reads as open (old behaviour)."""
+    try:
+        return not category_market_open("short")
+    except Exception:
+        return False
+
+
 def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     """Short mirror of _maybe_place_real_exit - covers a real short
     position when the paper short (_short_signal_core) has already
@@ -17398,6 +17447,14 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
+        # B-1580: a reasoned log, like the long side's refusals, once per symbol per IST day (the flatten
+        # branch can call this every tick; a paper-only short has no real row by design). No order is sent.
+        _key = (symbol, time.strftime("%Y-%m-%d", time.gmtime(time.time() + 19800)))
+        if _key not in _SHORT_EXIT_NO_ROW_LOGGED:
+            _SHORT_EXIT_NO_ROW_LOGGED.add(_key)
+            print(f"[REAL SHORT] cover skipped for {symbol}: no real_positions_short row ({reason or _REASON_UNSTATED})")
+            _why_log(conn, symbol, "short_cover", "skipped_no_real_row",
+                     new_state="no real short row in this app; no order sent")
         return
 
     # B-313 (Kotak-first): never send a buy-to-cover for a position Kotak does not show as short
@@ -17409,6 +17466,19 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
         _sync_real_positions_short_external(conn)
         _why_log(conn, symbol, "short_cover", "stale_row_cleared", kotak_trading_symbol=real_row["kotak_trading_symbol"],
                  prev_state=f"short {real_row['qty']} (app row)", new_state="no short at Kotak; row removed, no order sent")
+        return
+
+    # B-313 second half (2026-11-14 IST, journal real_order_log): with the Kotak adapter logged off at night the
+    # Kotak-first read above returns None, so 10-13/10-16/10-23/10-28 01:00-01:30 IST each fired 2-9 market
+    # BUY-to-covers (ESILVER, IVZINGOLD, YESBANK, COALINDIA), all rejected for no LTP. A real short is NSE-only
+    # (MIS); outside the NSE session no cover can fill, so none is sent. Protection resumes at the 09:15 IST open.
+    if _nse_closed_for_short_cover():
+        _key = (symbol, ist_now().strftime("%Y-%m-%d"))
+        if _key not in _SHORT_COVER_CLOSED_LOGGED:
+            _SHORT_COVER_CLOSED_LOGGED.add(_key)
+            _why_log(conn, symbol, "short_cover", "skipped_market_closed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                     prev_state=f"short {real_row['qty']} (app row)",
+                     new_state="NSE market closed; no cover sent (Kotak cannot fill). Re-checked at the open")
         return
 
     import kotak_real_orders
@@ -17645,7 +17715,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             _lra_tag(conn, symbol, "B", "skipped_stop_outside_price_band", kotak_trading_symbol=kotak_symbol,
                      price_est=ltp, detail=_sl_why)
             return
-    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
+    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp, **_pkw(INTRADAY_REAL_PRODUCT))
     if result.get("ok"):
         now = time.time()
         # Resync to Kotak's OWN confirmed fill data when available, not
@@ -17704,9 +17774,10 @@ def _maybe_place_real_entry(conn, symbol: str):
         real_strategy = paper_row["strategy"] if paper_row else None
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-            "entry_order_id, opened_at, day, exit_legs_json, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "entry_order_id, opened_at, day, exit_legs_json, strategy, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
-             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
+             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy,
+             INTRADAY_REAL_PRODUCT),
         )
         if basis_why == "paper qty":
             qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
@@ -17753,7 +17824,8 @@ def _maybe_place_real_entry(conn, symbol: str):
         sl_confirmed = False
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
-                kotak_symbol, real_qty, _cap_real_intraday_stop(real_entry_price, paper_row["stop_loss"])
+                kotak_symbol, real_qty, _cap_real_intraday_stop(real_entry_price, paper_row["stop_loss"]),
+                **_pkw(INTRADAY_REAL_PRODUCT),
             )
             if sl_result.get("ok"):
                 sl_confirmed = True
@@ -17839,7 +17911,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             )
         if sl_confirmed and target_leg_qty and target_leg_price:
             target_result = kotak_real_orders.place_real_target(
-                kotak_symbol, target_leg_qty, round(target_leg_price, 2)
+                kotak_symbol, target_leg_qty, round(target_leg_price, 2), **_pkw(INTRADAY_REAL_PRODUCT)
             )
             if target_result.get("ok"):
                 conn.execute(
@@ -18256,7 +18328,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
             new_state=f"long {remaining_qty} (leg already filled at Kotak, qty reconciled, no new order placed)",
         )
     else:
-        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty)
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty, **_pkw(_rp_product(row)))
         if not result.get("ok"):
             _log_real_attempt(
                 conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -18277,7 +18349,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 # (same qty, same trigger) rather than leaving the
                 # position naked over an unrelated sell failure.
                 restore = _place_real_stop_loss_with_retry(
-                    row["kotak_trading_symbol"], row["qty"], row["sl_trigger_price"]
+                    row["kotak_trading_symbol"], row["qty"], row["sl_trigger_price"], **_pkw(_rp_product(row))
                 )
                 if restore.get("ok"):
                     conn.execute(
@@ -18374,7 +18446,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     sl_confirmed = False
     if remaining_qty > 0 and row["sl_trigger_price"]:
         sl_result = _place_real_stop_loss_with_retry(
-            row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
+            row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"], **_pkw(_rp_product(row))
         )
         if sl_result.get("ok"):
             sl_confirmed = True
@@ -18434,7 +18506,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
     if sl_confirmed and next_leg and next_leg.get("target_price"):
         target_result = kotak_real_orders.place_real_target(
-            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
+            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2), **_pkw(_rp_product(row))
         )
         if target_result.get("ok"):
             conn.execute(
@@ -18576,7 +18648,7 @@ def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
             )
 
-    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"], **_pkw(_rp_product(row)))
     if result.get("ok"):
         conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
         # Resync to Kotak's own confirmed fill data for the audit log, same
@@ -19302,7 +19374,8 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # exact race recurs.
         kotak_real_orders.cancel_existing_resting_sl(real_row["kotak_trading_symbol"])
 
-    sl_result = _place_real_stop_loss_with_retry(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
+    sl_result = _place_real_stop_loss_with_retry(real_row["kotak_trading_symbol"], real_row["qty"], new_stop,
+                                                 **_pkw(_rp_product(real_row)))
     if sl_result.get("ok"):
         conn.execute(
             "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
@@ -19451,7 +19524,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
         else:
             elapsed = time.time() - real_row["protection_degraded_since"]
             timeout = _protection_degraded_timeout_seconds(get_scheduler_capital_inr())
-            if elapsed > timeout:
+            if elapsed > timeout and not _nse_closed_for_short_cover():  # B-313: no emergency cover outside the NSE session
                 print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} has had NO resting stop "
                       f"for {elapsed:.0f}s (tolerance {timeout:.0f}s at current capital) - "
                       f"forcing an emergency cover")
@@ -21514,7 +21587,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
                 prev_state=f"resting @ Rs{row['target_price']}", new_state="cancelled (kill switch)",
                 detail=reason,
             )
-        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"], **_pkw(_rp_product(row)))
         if result.get("ok"):
             conn.execute("DELETE FROM real_positions WHERE symbol = ?", (row["symbol"],))
             _log_real_attempt(
@@ -23643,14 +23716,20 @@ def real_protection_status():
         row = conn.execute(
             "SELECT checked_at, unprotected_json FROM real_protection_snapshot WHERE id = 1"
         ).fetchone()
+    try:
+        import kotak_real_orders as _kro
+        _outage = _kro.broker_outage_status()  # B-1557: broker-wide outage banner
+    except Exception:
+        _outage = None
     if not row:
         return {"checked_at": None, "unprotected_positions": [], "stale": True,
-                "exchange_purge_window": _exchange_purge_window()}
+                "exchange_purge_window": _exchange_purge_window(), "broker_outage": _outage}
     return {
         "checked_at": row["checked_at"],
         "unprotected_positions": json.loads(row["unprotected_json"]),
         "stale": (time.time() - row["checked_at"]) > 900,
         "exchange_purge_window": _exchange_purge_window(),
+        "broker_outage": _outage,
     }
 
 
@@ -23985,11 +24064,11 @@ def reconcile_real_positions_from_journal():
             conn.execute(
                 "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                 "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "target_order_id, target_price, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                  pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                  pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                 pos.get("target_order_id"), pos.get("target_price")),
+                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product")),  # B-1578
             )
             restored += 1
         conn.commit()
@@ -38293,6 +38372,8 @@ def _open_protect_place(plan: dict) -> dict:
                                             "09:15 IST open protect-first pass: overnight holding had no resting "
                                             "stop-loss (the exchange cancels every resting order at 15:15 IST)")
                 _swing_exit_if_stop_through_market(conn, it["symbol"], res)  # B-1520
+            elif res.get("action") == "skipped_position_closed":
+                pass  # B-1581: Kotak shows the holding already sold today; nothing to protect
             else:
                 failed.append(it["kotak_trading_symbol"])
                 _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
@@ -38585,6 +38666,15 @@ def _note_sl_loosen_attempt(symbol: str, is_short: bool, new_stop, current_sl) -
     return True
 
 
+@app.get("/sl-loosen-attempts")
+def sl_loosen_attempts_endpoint():
+    """B-530: read-only view of the monotonic-stop-guard counter (refused loosen attempts since this process
+    started, per side). No token: counts only, no symbols, prices or order ids. In-memory by design
+    (recomputed-fresh telemetry, never read back for a decision), so it restarts at 0 on a Render restart."""
+    return {"long": _SL_LOOSEN_ATTEMPTS.get("long", 0), "short": _SL_LOOSEN_ATTEMPTS.get("short", 0),
+            "since": "process start", "in_memory": True}
+
+
 # Calendar-day ceiling per swing strategy before a still-open position is flagged overdue (B-550 time limit).
 # Max-hold constants are in TRADING days; x1.5 + 3 converts conservatively to calendar days.
 def _swing_time_limit_calendar_days(strategy) -> int:
@@ -38848,6 +38938,14 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                              (int(kotak_match["qty"]), r["symbol"]))
                 qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                        "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
+            if kotak_match is not None and not kotak_match["is_short"]:
+                # B-1578: Kotak is ground truth for the product too - the SL/target/exit legs use the row's product,
+                # so a row whose product disagrees with what Kotak holds would send sells Kotak rejects.
+                _kp = _kotak_row_product(kotak_match.get("raw"))
+                if _kp and _kp != _rp_product(r):
+                    conn.execute("UPDATE real_positions SET product = ? WHERE symbol = ?", (_kp, r["symbol"]))
+                    print(f"[reconcile] B-1578 product corrected {r['kotak_trading_symbol']}: "
+                          f"{_rp_product(r)} -> {_kp} (Kotak)")
 
         # Short mirror of the long reconciliation just above (2026-09-29) -
         # SEPARATE table (real_positions_short), same "sign must match"
@@ -39134,12 +39232,12 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                         conn.execute(
                             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                             "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                            "target_order_id, target_price) "
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                            "target_order_id, target_price, product) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                             "ON CONFLICT(symbol) DO NOTHING",
                             (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
                              ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price,
-                             target_order_id, target_price),
+                             target_order_id, target_price, _kotak_row_product(raw)),  # B-1578: Kotak is truth
                         )
                         adopted.append({
                             "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
@@ -39208,7 +39306,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             if not r["sl_order_id"]:
                 import kotak_real_orders
                 sl_result = kotak_real_orders.place_real_stop_loss(
-                    r["kotak_trading_symbol"], r["qty"], stop_loss
+                    r["kotak_trading_symbol"], r["qty"], stop_loss, **_pkw(_rp_product(r))
                 )
                 if sl_result.get("ok"):
                     conn.execute(
@@ -39253,7 +39351,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 backfill_entry["target_failure_detail"] = "B-1329 skipped: Kotak rejected this target today (T1, SL holds the qty)"
             elif not r["target_order_id"]:
                 import kotak_real_orders
-                target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target)
+                target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target,
+                                                                    **_pkw(_rp_product(r)))
                 if not target_result.get("ok") and _T1_HOLDINGS_MARKER in str(target_result.get("detail") or ""):
                     # B-1329: the resting SL already holds the full qty, so Kotak rejects the target on every
                     # 5-min pass (ITC x4 on 2026-10-21). Try once per symbol per day; the tick poll books profit.
@@ -39436,6 +39535,11 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 _swing_exit_if_stop_through_market(conn, r["symbol"], sl_result)  # B-1520
                 backfill_entry["sl_order_id"] = sl_result["order_id"]
                 backfill_entry["sl_placed"] = True
+            elif sl_result.get("action") == "skipped_position_closed":
+                # B-1581 (NMDC 13-Nov): Kotak shows the shares already sold/exiting today; the exit path or the
+                # holdings-netted ghost cleanup closes this row. Not a failed SL, so no failure log and no T1 flag.
+                backfill_entry["sl_placed"] = False
+                backfill_entry["sl_skipped"] = sl_result.get("detail")
             else:
                 _log_real_order_event(
                     conn, r["symbol"], "sl", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
@@ -39679,7 +39783,7 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
         if row and row["target_order_id"]:
             kotak_real_orders.cancel_real_order(row["target_order_id"])
 
-        result = kotak_real_orders.place_real_exit(kotak_trading_symbol, qty)
+        result = kotak_real_orders.place_real_exit(kotak_trading_symbol, qty, **_pkw(_rp_product(row)))
         if result.get("ok"):
             if row:
                 conn.execute("DELETE FROM real_positions WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,))

@@ -18,7 +18,8 @@ import gap_and_go_exitfamily_replay as gx  # noqa: E402
 import main as m  # noqa: E402
 
 PORTED = [{"kind": "inval", "atr": a, "sig": s, "hold": 30} for s in ("elder", "ema13w") for a in (2.5, 6.0)] + \
-    [{"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": x, "hold": 30} for x in ("roc", "volclimax")]
+    [{"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": x, "hold": 30} for x in ("roc", "volclimax")] + \
+    [{"kind": "time", "atr": 2.5, "hold": h} for h in (5, 10, 20)]  # B-951 exittime
 
 
 def _frame(seed, n=600, vol=0.03):
@@ -43,9 +44,9 @@ def _sim_vs_main(df, i0, cell, S):
 
 
 def test_cells_match_requested_tags_and_sim_grammar():
-    assert len(m.GAP_AND_GO_EXITFAMILY_CELLS) == 5
+    assert len(m.GAP_AND_GO_EXITFAMILY_CELLS) == 8
     for tag, cell in m.GAP_AND_GO_EXITFAMILY_CELLS.items():
-        variant = {"inval": "exitinval", "exhaust": "exitexhaust"}[cell["kind"]]
+        variant = {"inval": "exitinval", "exhaust": "exitexhaust", "time": "exittime"}[cell["kind"]]
         assert er.cell_tag("gg_long", {**cell, "variant": variant}, version=2) == tag
     assert m.EXITFAMILY_ATR_N == 14 and m.EXITFAMILY_ROC_MIN == 0.15 and m.EXITFAMILY_VOL_CLIMAX_MULT == 3
 
@@ -77,6 +78,7 @@ def test_parity_with_research_sim(seed):
     assert {"stop_hit", "max_hold_timeout"} <= reasons
     assert ("inval", "elder", "signal_invalidation") in seen
     assert ("inval", "ema13w", "signal_invalidation") in seen
+    assert ("time", None, "time_stop") in seen  # B-951 exittime parity
 
 
 def test_exhaustion_exits_fire_and_match():
@@ -130,7 +132,7 @@ def test_exit_reason_wrapper_and_stop_level():
                                            float(S["atr"][i0]), float(df["Close"].iloc[i0]), cell)
     assert rmc >= float(df["Close"].iloc[i0])
     assert m.exitfamily_stop_level(cell, 90.0, 2.0, 120.0) == 90.0
-    ex = PORTED[-1]
+    ex = [c for c in PORTED if c["kind"] == "exhaust"][-1]
     assert m.exitfamily_stop_level(ex, 90.0, 2.0, 120.0) == pytest.approx(108.0)
     assert m.exitfamily_stop_level(ex, 90.0, 2.0, 95.0) == 90.0
 
@@ -182,7 +184,7 @@ def test_synthetic_smoke_run_and_merge(tmp_path):
                        capture_output=True, text=True)
     assert "RESULTS_JSON: " in p.stdout and "(CONTROL)" in p.stdout
     res = json.loads(p.stdout.split("RESULTS_JSON: ", 1)[1].strip())
-    assert len(res["rows"]) == 6 and res["rows"][0]["control"]
+    assert len(res["rows"]) == 1 + len(m.GAP_AND_GO_EXITFAMILY_CELLS) and res["rows"][0]["control"]
     assert res["rows"][1]["band_tag"].endswith("rsbandfloor_sigelder__v2")
 
 
@@ -199,3 +201,11 @@ def test_ports_not_wired():
     for name in ("exitfamily_walk(", "GAP_AND_GO_EXITFAMILY_CELLS", "exitfamily_exit_reason("):
         # only the definition block references them (no scan / real-order call site)
         assert src.count(name) <= 3, name
+
+
+def test_b951_exittime_cells_are_unwired():
+    """B-951: exittime cells exist for the main.py replay only; the live cell map stays the xroc cell alone."""
+    assert set(m.GAP_AND_GO_EXITFAMILY_LIVE_CELLS) == {m.GAP_AND_GO_XROC_LIVE_TAG}
+    for t, c in m.GAP_AND_GO_EXITFAMILY_CELLS.items():
+        if c["kind"] == "time":
+            assert t not in m._STRATEGY_TAG_TO_REGISTRY_NAME

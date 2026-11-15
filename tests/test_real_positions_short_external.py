@@ -200,7 +200,8 @@ def test_hydrate_failure_is_swallowed_not_raised():
 
 # ---- Wiring: mutation call sites actually invoke the sync ------------------
 
-def test_short_exit_syncs_to_upstash():
+def test_short_exit_syncs_to_upstash(monkeypatch):
+    monkeypatch.setattr(main, "category_market_open", lambda cat, now=None: True)  # B-313: covers only in NSE session
     # Simpler, more direct wiring check than mocking the full entry
     # pipeline: _maybe_place_real_short_exit's DELETE must sync too, so a
     # covered position doesn't get resurrected from a stale Upstash
