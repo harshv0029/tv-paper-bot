@@ -13,12 +13,12 @@ Total rows: 1361 | closed: 986 | not closed: 375
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 48 |
+| OPEN | 47 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 18 |
-| DONE-PENDING-VERIFY | 14 |
+| DONE-PENDING-VERIFY | 15 |
 | P3 | 9 |
 | HARNESS-BUILT-RUN-PENDING | 8 |
 | OPEN-PARKED | 6 |
@@ -72,7 +72,7 @@ Total rows: 1361 | closed: 986 | not closed: 375
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (179)
+## waiting-on-workflow/deploy (180)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -140,6 +140,7 @@ Total rows: 1361 | closed: 986 | not closed: 375
 | B-798 | P1 | DONE-PENDING-VERIFY | Wire/replay brk20_min_rr (20-bar breakout entry with ATR stop and minimum reward:risk target) long+short, a... | owed, pending, needs, owner |
 | B-812 | P1 | DONE-PENDING-VERIFY | Strict-FIFO (one position per symbol per cell) non-overlap re-run of the 4 macddiv 1h long cells >=1.1 (lin... | owed, pending, verify, needs |
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
+| B-1547 | P1 | DONE-PENDING-VERIFY | 2026-11-11 IST | pending, verify, follow-up, awaiting, waiting |
 | B-1578 | P1 | BUILT-ON-BRANCH | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify, owner |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
 | B-357 | P2 | BLOCKED | User 2026-10-11 "yes": short-selling engine on futures | owed, blocked, needs |
@@ -173,7 +174,7 @@ Total rows: 1361 | closed: 986 | not closed: 375
 | B-574 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-604 | P2 | PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
 | B-605 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, awaiting, waiting |
-| B-606 | P2 | P2 | RAN_1D_FAIL_INTRADAY_PENDING [2026-11-15 IST: 1d/5y ran (run 43666082279): 84 stopoffset__ tags registered ... | owed, pending, verify, needs |
+| B-606 | P2 | P2 | RAN_1D_FAIL_INTRADAY_PENDING [2026-11-16 04:05 IST: 1h/730d dispatched (elder-stop-offset-research.yml, bra... | owed, pending, verify, needs |
 | B-627 | P2 | BLOCKED | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, verify, needs, owner |
 | B-742 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, pending, verify, needs |
 | B-756 | P2 | BLOCKED | 2026-10-11 IST, B-749 research (agent report; NSE URLs UNVERIFIED, sandbox gets 403 from NSE, test from an ... | owed, blocked, needs, unverified |
@@ -256,19 +257,18 @@ Total rows: 1361 | closed: 986 | not closed: 375
 | B-789 | P? | DONE-PENDING-VERIFY | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (79)
+## ready-to-build (78)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-865 | P0 | IN-PROGRESS | 2026-10-12 user report: /fo-entry-diagnosis says no F&O candles, so no option strike can ever fire | owed, verify, needs |
-| B-1567 | P0 | PARTIAL | 2026-11-12 IST | owner |
+| B-1567 | P0 | PARTIAL | 2026-11-12 IST | verify, owner |
 | B-1582 | P0 | OPEN | 2026-11-14 IST | verify |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... | owed, follow-up |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
 | B-1485 | P1 | B-1484 | 2026-11-05 | owed, needs |
-| B-1547 | P1 | OPEN | 2026-11-11 IST | follow-up, awaiting, waiting |
 | B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | pending, verify |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
