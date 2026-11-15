@@ -1,0 +1,32 @@
+{
+ "run_id": "43710558361",
+ "cost_round_trip_pct": 0.8,
+ "source": "docs/backtest_data/chan_gap_tf_sweep_1h_run_43710558361.json",
+ "note": "B-1604 live-basis re-measure: raw (auto_adjust=False) daily+intraday bars, same ATR stop as the live cell, exit at the last 1h bar ending <= 15:15 IST (live flattens 15:10-15:15). cap5/fit5 long cells not re-measured (no such sweep cells).",
+ "rows": [
+  {
+   "tag": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+   "measured_tag": "chan_gap__short_on_gap__short__1h__atr1d5_top10_rawd__v1",
+   "n": 746,
+   "pfnet": 0.71
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
+   "measured_tag": "chan_gap__buy_on_gap__long__1h__atr4d0_top10_rawd__v1",
+   "n": 751,
+   "pfnet": 1.0422
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1",
+   "measured_tag": "chan_gap__buy_on_gap__long__1h__atr2d5_top10_rawd__v1",
+   "n": 751,
+   "pfnet": 1.0447
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1",
+   "measured_tag": "chan_gap__buy_on_gap__long__1h__atr1d5_top10_rawd__v1",
+   "n": 751,
+   "pfnet": 0.9951
+  }
+ ]
+}

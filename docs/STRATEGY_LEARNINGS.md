@@ -2220,3 +2220,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Exiting at the 15:30 daily close still scores about 2.0 for shorts even on raw prices. Yahoo's NSE daily Open differs from the first 1h open by more than 0.5% on 40-46% of days, so daily and intraday Yahoo bars are not one price basis. Never mix them inside a single trade.
 - The live chan_gap SHORT gate rests on a 1d replay that used adjusted daily bars. That replay needs re-checking on raw prices.
 - Profit-booking / exit takeaway: the 15:30-close "edge" is a data artifact. Book chan_gap exits at the live flatten time (15:10-15:15) on one price source. Short gap fades do not survive an honest exit.
+
+### 2026-11-15 IST: B-1604 gate decision, chan_gap cells re-measured on the live basis
+- On the user's rule (PFnet > 1.00 strict, "follow the rules set by me till now"), live cells are now re-measured on raw prices with the real flatten-time exit, and the result decides the entry gate: chan_gap SHORT 0.71 closed, long atr1d5 0.995 closed, long atr2d5 1.045 / atr4d0 1.042 kept.
+- A replay on dividend-adjusted daily bars can pass a cell that fails on the prices the bot actually trades. The live-basis re-measure supersedes it, and the newest run decides.
+- Profit-booking / exit takeaway: judge a same-day cell only by the exit the bot really books (15:10-15:15 market flatten on raw prices). The wider 4x ATR stop keeps the long gap-buy edge because it lets the flatten, not the stop, book the trade.
