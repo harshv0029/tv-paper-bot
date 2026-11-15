@@ -3140,6 +3140,10 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ep5.build())
         import strategy_registry_ep4h as _ep4h  # elder-patterns 4h run 43689024308
         REGISTRY.extend(_ep4h.build())
+        import strategy_registry_chan_gap_tf as _cgtf  # B-1020 chan-gap candle sweep
+        REGISTRY.extend(_cgtf.build())
+        import strategy_registry_ei_tf as _eitf  # elder-indicators intraday/4h runs
+        REGISTRY.extend(_eitf.build())
         import strategy_registry_etc1h as _etc1h  # elder-trend-context 1h run 43681690093
         REGISTRY.extend(_etc1h.build())
         import strategy_registry_etc15m as _etc15  # elder-trend-context 15m run 43684505388

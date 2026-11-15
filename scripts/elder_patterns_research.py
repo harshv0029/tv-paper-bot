@@ -260,7 +260,9 @@ def d_flag(df, k=6, pole_atr=4.0):
     c, h = df["Close"], df["High"]
     a = er.atr(df)
     pole = (c.shift(k) - c.shift(k + 10)) >= pole_atr * a
-    drift = c <= c.shift(k)                     # flag drifts against the pole
+    # flag drifts against the pole up to the bar BEFORE the breakout (B-617: comparing bar i itself made pole & drift & brk
+    # impossible, since c[i] > max(high[i-k..i-1]) >= c[i-k], so the flag cell emitted 0 trades at every candle size)
+    drift = c.shift(1) <= c.shift(k)
     brk = c > h.shift(1).rolling(k).max()
     return pole & drift & brk, _exit_ema(df)
 
