@@ -2133,3 +2133,17 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 ### 2026-11-15 IST — Silent 4h-fetch bug (B-1598)
 - Every research_interval 4h run fetched 0 symbols, because the resample ran on fetch_ohlc's RangeIndex instead of its "Date" column. Both elder-trend-context 4h runs came back empty and were not registered. Lesson: a merge that reports "fetched with data: 0" is a harness failure, never a strategy result. Check the fetched count before parsing any run.
 - Profit-booking / exit takeaway: none yet. Exits at 4h are still untested for these families until the re-runs land.
+
+### 2026-11-15 IST — Elder trend-context 4h/730d (run 43689022041, the first good 4h run after B-1598)
+- 210 cells, 7,131 symbols with data, 0.8% cost. **0 pass PFnet>1.00**; best 0.923 (osc__gap_timestop long atr3_nb2, n=26.8k). By timeframe, the best cell scores 0.984 on 1d, 0.923 on 4h, 0.728 on 1h and 0.418 on 15m. Fewer, longer trades lose less to costs, but no timeframe clears the cost line. The family is now closed across every timeframe.
+- Profit-booking / exit takeaway: gap_timestop (time exit after a gap) is the closest to break-even at 4h. A short fixed time-stop after a gap does better than the trend-context rule exits, though still not enough to wire.
+
+### 2026-11-15 IST: Elder patterns 4h (run 43689024308, 730d, first good 4h fetch after B-1598)
+252 cells registered (strategy_registry_ep4h.py), 23 clear PFnet>1.00 on the research harness (not main.py functions):
+reversal__island long 4h 1.63-1.67 on n~9.9k (strongest and largest sample of the whole Elder patterns family at any
+candle size; 1d long was 1.57); consol__tri_desc 4h short 1.11-1.16 (n=97) and long 1.05-1.14 (n=100-148), the only
+candle size where tri_desc clears 1.00 (15m 0.03-0.21, 5m and 1h below 1). tri_sym long 3.9 is n=8: noise, not a finding.
+Nothing wired: island goes through the main.py sweep (B-1090, workflow plan-job fixed this commit), tri_desc through the
+B-1597 replay (blocked on merge to main). 4h island beating 1h/15m/5m says the reversal needs multi-session bars to form.
+Profit-booking / exit takeaway: island at 4h held ~a few sessions; keep the ATR stop plus max-hold exit and test the
+trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wiring, since a fixed max-hold may give back the gap.

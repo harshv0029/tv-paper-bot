@@ -37,6 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: pip install -q numpy pandas  # plan imports pandas (same bug as B-1090)
       - id: p
         env:
           NSHARDS_4H: ${{ inputs.nshards_4h }}
