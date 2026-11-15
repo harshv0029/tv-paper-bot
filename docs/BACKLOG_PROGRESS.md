@@ -15,13 +15,13 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | BLOCKED | 58 |
 | OPEN | 48 |
 | P1 | 39 |
-| P2 | 37 |
+| P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 14 |
 | BUILT-DISPATCH-OWED | 10 |
-| HARNESS-BUILT-RUN-PENDING | 9 |
 | P3 | 9 |
+| HARNESS-BUILT-RUN-PENDING | 8 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
 | BUILT-ON-BRANCH | 4 |
@@ -190,7 +190,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-603 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs, awaiting, waiting |
 | B-604 | P2 | PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
 | B-605 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, awaiting, waiting |
-| B-606 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
+| B-606 | P2 | P2 | RAN_1D_FAIL_INTRADAY_PENDING [2026-11-15 IST: 1d/5y ran (run 43666082279): 84 stopoffset__ tags registered ... | owed, pending, verify, needs |
 | B-608 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs, awaiting, waiting |
 | B-609 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs, awaiting, waiting |
 | B-611 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs, awaiting, waiting |
