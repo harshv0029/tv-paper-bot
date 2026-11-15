@@ -1,0 +1,7452 @@
+{
+"universe_symbols": 1957,
+"fetched_symbols": [
+"20MICRONS.NS",
+"21STCENMGM.NS",
+"360ONE.NS",
+"3MINDIA.NS",
+"3PLAND.NS",
+"5PAISA.NS",
+"63MOONS.NS",
+"A2ZINFRA.NS",
+"AAATECH.NS",
+"AADHARHFC.NS",
+"AAKASH.NS",
+"AAREYDRUGS.NS",
+"AARON.NS",
+"AARTECH.NS",
+"AARTIDRUGS.NS",
+"AARTIIND.NS",
+"AARTIPHARM.NS",
+"AARVI.NS",
+"AAVAS.NS",
+"ABB.NS",
+"ABBOTINDIA.NS",
+"ABCAPITAL.NS",
+"ABCIND.NS",
+"ABDL.NS",
+"ABFRL.NS",
+"ABREL.NS",
+"ABSLAMC.NS",
+"ABSLBANETF.NS",
+"ABSLLIQUID.NS",
+"ABSLNN50ET.NS",
+"ABSLPSE.NS",
+"ACC.NS",
+"ACCELYA.NS",
+"ACCURACY.NS",
+"ACE.NS",
+"ACEINTEG.NS",
+"ACI.NS",
+"ACL.NS",
+"ACUTAAS.NS",
+"ADANIENSOL.NS",
+"ADANIENT.NS",
+"ADANIGREEN.NS",
+"ADANIPORTS.NS",
+"ADANIPOWER.NS",
+"ADFFOODS.NS",
+"ADL.NS",
+"ADOR.NS",
+"ADSL.NS",
+"ADVANIHOTR.NS",
+"ADVENZYMES.NS",
+"AEGISLOG.NS",
+"AEROENTER.NS",
+"AEROFLEX.NS",
+"AERONEU.NS",
+"AETHER.NS",
+"AFFLE.NS",
+"AFIL.NS",
+"AFSL.NS",
+"AGARIND.NS",
+"AGI.NS",
+"AGIIL.NS",
+"AGRITECH.NS",
+"AGROPHOS.NS",
+"AHLADA.NS",
+"AHLEAST.NS",
+"AHLUCONT.NS",
+"AIAENG.NS",
+"AIIL.NS",
+"AIRAN.NS",
+"AIROLAM.NS",
+"AJANTPHARM.NS",
+"AJMERA.NS",
+"AJOONI.NS",
+"AKASH.NS",
+"AKG.NS",
+"AKSHAR.NS",
+"ALANKIT.NS",
+"ALBERTDAVD.NS",
+"ALEMBICLTD.NS",
+"ALICON.NS",
+"ALIVUS.NS",
+"ALKEM.NS",
+"ALKYLAMINE.NS",
+"ALLCARGO.NS",
+"ALLDIGI.NS",
+"ALOKINDS.NS",
+"ALPA.NS",
+"ALPHA.NS",
+"ALPL30IETF.NS",
+"AMBER.NS",
+"AMBICAAGAR.NS",
+"AMBIKCO.NS",
+"AMBUJACEM.NS",
+"AMJLAND.NS",
+"AMNPLST.NS",
+"AMRUTANJAN.NS",
+"ANANDRATHI.NS",
+"ANANTRAJ.NS",
+"ANDHRAPAP.NS",
+"ANDHRSUGAR.NS",
+"ANGELONE.NS",
+"ANIKINDS.NS",
+"ANNAPURNA.NS",
+"ANTELOPUS.NS",
+"ANTGRAPHIC.NS",
+"ANUP.NS",
+"ANURAS.NS",
+"APARINDS.NS",
+"APCL.NS",
+"APCOTEXIND.NS",
+"APEX.NS",
+"APLAPOLLO.NS",
+"APLLTD.NS",
+"APOLLO.NS",
+"APOLLOHOSP.NS",
+"APOLLOPIPE.NS",
+"APOLLOTYRE.NS",
+"APOLSINHOT.NS",
+"APTECHT.NS",
+"APTUS.NS",
+"AQYLON.NS",
+"ARCHIDPLY.NS",
+"ARCHIES.NS",
+"ARE&M.NS",
+"ARHAM.NS",
+"ARIHANT.NS",
+"ARIHANTCAP.NS",
+"ARIHANTSUP.NS",
+"ARMANFIN.NS",
+"AROGRANITE.NS",
+"ARROWGREEN.NS",
+"ARTEMISMED.NS",
+"ARTNIRMAN.NS",
+"ARVEE.NS",
+"ARVIND.NS",
+"ARVINDFASN.NS",
+"ARVSMART.NS",
+"ASAHIINDIA.NS",
+"ASAL.NS",
+"ASALCBR.NS",
+"ASHAPURMIN.NS",
+"ASHIANA.NS",
+"ASHIMASYN.NS",
+"ASHOKA.NS",
+"ASHOKAMET.NS",
+"ASHOKLEY.NS",
+"ASIANENE.NS",
+"ASIANHOTNR.NS",
+"ASIANPAINT.NS",
+"ASIANTILES.NS",
+"ASKAUTOLTD.NS",
+"ASMS.NS",
+"ASPINWALL.NS",
+"ASTEC.NS",
+"ASTERDM.NS",
+"ASTRAL.NS",
+"ASTRAMICRO.NS",
+"ASTRAZEN.NS",
+"ATALREAL.NS",
+"ATAM.NS",
+"ATGL.NS",
+"ATL.NS",
+"ATLANTAA.NS",
+"ATLASCYCLE.NS",
+"ATUL.NS",
+"ATULAUTO.NS",
+"AUBANK.NS",
+"AURIONPRO.NS",
+"AUROPHARMA.NS",
+"AURUM.NS",
+"AURUS.NS",
+"AUSOMENT.NS",
+"AUTOAXLES.NS",
+"AUTOBEES.NS",
+"AUTOIND.NS",
+"AVADHSUGAR.NS",
+"AVALON.NS",
+"AVANTEL.NS",
+"AVANTIFEED.NS",
+"AVG.NS",
+"AVONMORE.NS",
+"AVROIND.NS",
+"AVTNPL.NS",
+"AWFIS.NS",
+"AWHCL.NS",
+"AWL.NS",
+"AXISBANK.NS",
+"AXISCADES.NS",
+"AXITA.NS",
+"AYMSYNTEX.NS",
+"AZAD.NS",
+"BAGFILMS.NS",
+"BAIDFIN.NS",
+"BAJAJ-AUTO.NS",
+"BAJAJCON.NS",
+"BAJAJELEC.NS",
+"BAJAJFINSV.NS",
+"BAJAJHCARE.NS",
+"BAJAJHIND.NS",
+"BAJAJHLDNG.NS",
+"BAJEL.NS",
+"BAJFINANCE.NS",
+"BALAJITELE.NS",
+"BALAMINES.NS",
+"BALAXI.NS",
+"BALKRISHNA.NS",
+"BALKRISIND.NS",
+"BALMLAWRIE.NS",
+"BALRAMCHIN.NS",
+"BALUFORGE.NS",
+"BANARBEADS.NS",
+"BANARISUG.NS",
+"BANCOINDIA.NS",
+"BANDHANBNK.NS",
+"BANG.NS",
+"BANKA.NS",
+"BANKADD.NS",
+"BANKBARODA.NS",
+"BANKBEES.NS",
+"BANKBETF.NS",
+"BANKETF.NS",
+"BANKIETF.NS",
+"BANKINDIA.NS",
+"BANKNIFTY1.NS",
+"BANSALWIRE.NS",
+"BANSWRAS.NS",
+"BASF.NS",
+"BASML.NS",
+"BATAINDIA.NS",
+"BAYERCROP.NS",
+"BBETF0432.NS",
+"BBL.NS",
+"BBOX.NS",
+"BBTC.NS",
+"BBTCL.NS",
+"BCG.NS",
+"BCLIND.NS",
+"BCONCEPTS.NS",
+"BDL.NS",
+"BEARDSELL.NS",
+"BECTORFOOD.NS",
+"BEDMUTHA.NS",
+"BEL.NS",
+"BEML.NS",
+"BEPL.NS",
+"BERGEPAINT.NS",
+"BESTAGRO.NS",
+"BETA.NS",
+"BFINVEST.NS",
+"BFSI.NS",
+"BFUTILITIE.NS",
+"BHAGCHEM.NS",
+"BHAGERIA.NS",
+"BHANDARI.NS",
+"BHARATFORG.NS",
+"BHARATGEAR.NS",
+"BHARATRAS.NS",
+"BHARATWIRE.NS",
+"BHARTIARTL.NS",
+"BHARTIHEXA.NS",
+"BHEL.NS",
+"BIGBLOC.NS",
+"BIKAJI.NS",
+"BIL.NS",
+"BIOCON.NS",
+"BIOFILCHEM.NS",
+"BIRLACABLE.NS",
+"BIRLACORPN.NS",
+"BIRLAMONEY.NS",
+"BIRLANU.NS",
+"BLAL.NS",
+"BLBLIMITED.NS",
+"BLKASHYAP.NS",
+"BLS.NS",
+"BLSE.NS",
+"BLUECOAST.NS",
+"BLUEDART.NS",
+"BLUEJET.NS",
+"BLUESTARCO.NS",
+"BNKETFAXIS.NS",
+"BOHRAIND.NS",
+"BOMDYEING.NS",
+"BOROLTD.NS",
+"BORORENEW.NS",
+"BOROSCI.NS",
+"BOSCH-HCIL.NS",
+"BOSCHLTD.NS",
+"BPCL.NS",
+"BPL.NS",
+"BRIGADE.NS",
+"BRITANNIA.NS",
+"BRNL.NS",
+"BROOKS.NS",
+"BSE.NS",
+"BSE500IETF.NS",
+"BSHSL.NS",
+"BSL.NS",
+"BSLGOLDETF.NS",
+"BSLNIFTY.NS",
+"BSOFT.NS",
+"BTML.NS",
+"BUTTERFLY.NS",
+"BVCL.NS",
+"BYKE.NS",
+"CAMLINFINE.NS",
+"CAMPUS.NS",
+"CAMS.NS",
+"CANBK.NS",
+"CANFINHOME.NS",
+"CANTABIL.NS",
+"CAPACITE.NS",
+"CAPITALSFB.NS",
+"CAPLIPOINT.NS",
+"CARBORUNIV.NS",
+"CARERATING.NS",
+"CARTRADE.NS",
+"CARYSIL.NS",
+"CASTROLIND.NS",
+"CCAVENUE.NS",
+"CCCL.NS",
+"CCHHL.NS",
+"CCL.NS",
+"CDSL.NS",
+"CEATLTD.NS",
+"CELEBRITY.NS",
+"CELLO.NS",
+"CEMPRO.NS",
+"CENTENKA.NS",
+"CENTEXT.NS",
+"CENTRALBK.NS",
+"CENTRUM.NS",
+"CENTUM.NS",
+"CENTURYPLY.NS",
+"CERA.NS",
+"CESC.NS",
+"CGCL.NS",
+"CGPOWER.NS",
+"CHALET.NS",
+"CHAMBLFERT.NS",
+"CHEMBOND.NS",
+"CHEMCON.NS",
+"CHEMFAB.NS",
+"CHEMPLASTS.NS",
+"CHENNPETRO.NS",
+"CHEVIOT.NS",
+"CHOICEIN.NS",
+"CHOLAFIN.NS",
+"CHOLAHLDNG.NS",
+"CIEINDIA.NS",
+"CINELINE.NS",
+"CINEVISTA.NS",
+"CIPLA.NS",
+"CLEAN.NS",
+"CLEDUCATE.NS",
+"CLSEL.NS",
+"CMSINFO.NS",
+"CNL.NS",
+"COALINDIA.NS",
+"COASTCORP.NS",
+"COCHINSHIP.NS",
+"COFFEEDAY.NS",
+"COFORGE.NS",
+"COHANCE.NS",
+"COLPAL.NS",
+"COMMOIETF.NS",
+"COMPUSOFT.NS",
+"COMSYN.NS",
+"CONCOR.NS",
+"CONCORDBIO.NS",
+"CONFIPET.NS",
+"CONS.NS",
+"CONSUMAXIS.NS",
+"CONSUMBEES.NS",
+"CONTROLPR.NS",
+"CORALFINAC.NS",
+"COROMANDEL.NS",
+"COSMOFIRST.NS",
+"CPSEETF.NS",
+"CRAFTSMAN.NS",
+"CREATIVEYE.NS",
+"CREDITACC.NS",
+"CREST.NS",
+"CRISIL.NS",
+"CROMPTON.NS",
+"CROWN.NS",
+"CSBBANK.NS",
+"CSLFINANCE.NS",
+"CUB.NS",
+"CUMMINSIND.NS",
+"CUPID.NS",
+"CYBERTECH.NS",
+"CYIENT.NS",
+"CYIENTDLM.NS",
+"DABUR.NS",
+"DALBHARAT.NS",
+"DALMIASUG.NS",
+"DAMODARIND.NS",
+"DANGEE.NS",
+"DATAMATICS.NS",
+"DATAPATTNS.NS",
+"DAVANGERE.NS",
+"DBCORP.NS",
+"DBL.NS",
+"DBOL.NS",
+"DBREALTY.NS",
+"DBSTOCKBRO.NS",
+"DCAL.NS",
+"DCBBANK.NS",
+"DCI.NS",
+"DCM.NS",
+"DCMFINSERV.NS",
+"DCMSHRIRAM.NS",
+"DCMSRIND.NS",
+"DCW.NS",
+"DCXINDIA.NS",
+"DECCANCE.NS",
+"DEEDEV.NS",
+"DEEPAKFERT.NS",
+"DEEPAKNTR.NS",
+"DEEPINDS.NS",
+"DELHIVERY.NS",
+"DELTACORP.NS",
+"DELTAMAGNT.NS",
+"DEN.NS",
+"DENORA.NS",
+"DEVIT.NS",
+"DEVYANI.NS",
+"DGCONTENT.NS",
+"DHAMPURSUG.NS",
+"DHANBANK.NS",
+"DHANUKA.NS",
+"DHARMAJ.NS",
+"DHRUV.NS",
+"DHUNINV.NS",
+"DIAMINESQ.NS",
+"DIAMONDYD.NS",
+"DICIND.NS",
+"DIGIDRIVE.NS",
+"DIGISPICE.NS",
+"DISHTV.NS",
+"DIVGIITTS.NS",
+"DIVISLAB.NS",
+"DIVOPPBEES.NS",
+"DIXON.NS",
+"DJML.NS",
+"DLF.NS",
+"DLINKINDIA.NS",
+"DMART.NS",
+"DMCC.NS",
+"DNAMEDIA.NS",
+"DODLA.NS",
+"DOLATALGO.NS",
+"DOLLAR.NS",
+"DOLLEX.NS",
+"DOLPHIN.NS",
+"DOMS.NS",
+"DONEAR.NS",
+"DPABHUSHAN.NS",
+"DPWIRES.NS",
+"DRCSYSTEMS.NS",
+"DREAMFOLKS.NS",
+"DREDGECORP.NS",
+"DRREDDY.NS",
+"DSSL.NS",
+"DUCON.NS",
+"DVL.NS",
+"DWARKESH.NS",
+"DYCL.NS",
+"DYNAMATECH.NS",
+"DYNPRO.NS",
+"EASEMYTRIP.NS",
+"EBBETF0430.NS",
+"EBBETF0431.NS",
+"ECLERX.NS",
+"EDELWEISS.NS",
+"EGOLD.NS",
+"EICHERMOT.NS",
+"EIDPARRY.NS",
+"EIFFL.NS",
+"EIHAHOTELS.NS",
+"EIHOTEL.NS",
+"EIMCOELECO.NS",
+"EKC.NS",
+"ELDEHSG.NS",
+"ELECON.NS",
+"ELECTCAST.NS",
+"ELECTHERM.NS",
+"ELGIEQUIP.NS",
+"ELGIRUBCO.NS",
+"ELIN.NS",
+"EMAMILTD.NS",
+"EMAMIREAL.NS",
+"EMBDL.NS",
+"EMCURE.NS",
+"EMIL.NS",
+"EMKAY.NS",
+"EMMBI.NS",
+"EMSLIMITED.NS",
+"EMUDHRA.NS",
+"ENDURANCE.NS",
+"ENERGYDEV.NS",
+"ENGINERSIN.NS",
+"ENIL.NS",
+"ENTERO.NS",
+"EPACK.NS",
+"EPIGRAL.NS",
+"EPL.NS",
+"EQUITASBNK.NS",
+"ERIS.NS",
+"ESABINDIA.NS",
+"ESCORTS.NS",
+"ESG.NS",
+"ESILVER.NS",
+"ESSARSHPNG.NS",
+"ESSENTIA.NS",
+"ESTER.NS",
+"ETERNAL.NS",
+"ETHOSLTD.NS",
+"EUROBOND.NS",
+"EVEREADY.NS",
+"EVERESTIND.NS",
+"EVINDIA.NS",
+"EXCELINDUS.NS",
+"EXICOM.NS",
+"EXIDEIND.NS",
+"EXPLEOSOL.NS",
+"EXXARO.NS",
+"FACT.NS",
+"FAIRCHEMOR.NS",
+"FAZE3Q.NS",
+"FCL.NS",
+"FCSSOFT.NS",
+"FDC.NS",
+"FEDERALBNK.NS",
+"FEDFINA.NS",
+"FIBERWEB.NS",
+"FIEMIND.NS",
+"FILATEX.NS",
+"FILATFASH.NS",
+"FINCABLES.NS",
+"FINEORG.NS",
+"FINOPB.NS",
+"FINPIPE.NS",
+"FIVESTAR.NS",
+"FLAIR.NS",
+"FLUOROCHEM.NS",
+"FMCGIETF.NS",
+"FMGOETZE.NS",
+"FMNL.NS",
+"FOCUS.NS",
+"FOODSIN.NS",
+"FORCEMOT.NS",
+"FORTIS.NS",
+"FOSECOIND.NS",
+"FSL.NS",
+"FUSION.NS",
+"GABRIEL.NS",
+"GAEL.NS",
+"GAIL.NS",
+"GALAXYSURF.NS",
+"GALLANTT.NS",
+"GANDHAR.NS",
+"GANDHITUBE.NS",
+"GANECOS.NS",
+"GANESHBE.NS",
+"GANESHHOU.NS",
+"GANGAFORGE.NS",
+"GANGESSECU.NS",
+"GARFIBRES.NS",
+"GATEWAY.NS",
+"GAYAHWS.NS",
+"GAYAPROJ.NS",
+"GEECEE.NS",
+"GEEKAYWIRE.NS",
+"GENCON.NS",
+"GENESYS.NS",
+"GENUSPAPER.NS",
+"GENUSPOWER.NS",
+"GEOJITFSL.NS",
+"GESHIP.NS",
+"GHCL.NS",
+"GHCLTEXTIL.NS",
+"GICHSGFIN.NS",
+"GICRE.NS",
+"GILLANDERS.NS",
+"GILLETTE.NS",
+"GILT10BETA.NS",
+"GILT5BETA.NS",
+"GILT5YBEES.NS",
+"GINNIFILA.NS",
+"GIPCL.NS",
+"GKWLIMITED.NS",
+"GLAND.NS",
+"GLAXO.NS",
+"GLENMARK.NS",
+"GLFL.NS",
+"GLOBAL.NS",
+"GLOBALVECT.NS",
+"GLOBE.NS",
+"GLOBUSSPR.NS",
+"GLOSTERLTD.NS",
+"GMBREW.NS",
+"GMDCLTD.NS",
+"GMMPFAUDLR.NS",
+"GMRAIRPORT.NS",
+"GMRP&UI.NS",
+"GNA.NS",
+"GNFC.NS",
+"GOACARBON.NS",
+"GOCLCORP.NS",
+"GOCOLORS.NS",
+"GODFRYPHLP.NS",
+"GODIGIT.NS",
+"GODREJAGRO.NS",
+"GODREJCP.NS",
+"GODREJIND.NS",
+"GODREJPROP.NS",
+"GOKEX.NS",
+"GOKUL.NS",
+"GOKULAGRO.NS",
+"GOLD1.NS",
+"GOLDADD.NS",
+"GOLDAXIS.NS",
+"GOLDBEES.NS",
+"GOLDBETA.NS",
+"GOLDCASE.NS",
+"GOLDETF.NS",
+"GOLDIAM.NS",
+"GOLDIETF.NS",
+"GOODLUCK.NS",
+"GOODYEAR.NS",
+"GOPAL.NS",
+"GOYALALUM.NS",
+"GPIL.NS",
+"GPPL.NS",
+"GPTHEALTH.NS",
+"GPTINFRA.NS",
+"GRANULES.NS",
+"GRAPHITE.NS",
+"GRASIM.NS",
+"GRAUWEIL.NS",
+"GRAVITA.NS",
+"GREAVESCOT.NS",
+"GREENLAM.NS",
+"GREENPANEL.NS",
+"GREENPLY.NS",
+"GREENPOWER.NS",
+"GRINDWELL.NS",
+"GRINFRA.NS",
+"GRMOVER.NS",
+"GROBTEA.NS",
+"GRPLTD.NS",
+"GRSE.NS",
+"GRWRHITECH.NS",
+"GSEC10YEAR.NS",
+"GSFC.NS",
+"GSS.NS",
+"GTL.NS",
+"GTLINFRA.NS",
+"GTPL.NS",
+"GUFICBIO.NS",
+"GUJALKALI.NS",
+"GUJAPOLLO.NS",
+"GUJENERGY.NS",
+"GULFOILLUB.NS",
+"GULPOLY.NS",
+"GVPIL.NS",
+"GVT&D.NS",
+"HAL.NS",
+"HALEOSLABS.NS",
+"HAPPSTMNDS.NS",
+"HAPPYFORGE.NS",
+"HARDWYN.NS",
+"HARIOMPIPE.NS",
+"HARRMALAYA.NS",
+"HARSHA.NS",
+"HATHWAY.NS",
+"HATSUN.NS",
+"HAVELLS.NS",
+"HAVISHA.NS",
+"HBLENGINE.NS",
+"HBSL.NS",
+"HCC.NS",
+"HCG.NS",
+"HCL-INSYS.NS",
+"HCLTECH.NS",
+"HDFCAMC.NS",
+"HDFCBANK.NS",
+"HDFCBSE500.NS",
+"HDFCGOLD.NS",
+"HDFCLIFE.NS",
+"HDFCLIQUID.NS",
+"HDFCLOWVOL.NS",
+"HDFCMOMENT.NS",
+"HDFCNEXT50.NS",
+"HDFCNIF100.NS",
+"HDFCNIFIT.NS",
+"HDFCNIFTY.NS",
+"HDFCPSUBK.NS",
+"HDFCPVTBAN.NS",
+"HDFCSENSEX.NS",
+"HDFCSML250.NS",
+"HEADSUP.NS",
+"HEALTHAXIS.NS",
+"HEALTHIETF.NS",
+"HEALTHX.NS",
+"HEALTHY.NS",
+"HECPROJECT.NS",
+"HEGAM.NS",
+"HEIDELBERG.NS",
+"HEMIPROP.NS",
+"HERANBA.NS",
+"HERITGFOOD.NS",
+"HEROMOTOCO.NS",
+"HESTERBIO.NS",
+"HEXATRADEX.NS",
+"HGINFRA.NS",
+"HGM.NS",
+"HGS.NS",
+"HIKAL.NS",
+"HILTON.NS",
+"HIMATSEIDE.NS",
+"HINDALCO.NS",
+"HINDCOMPOS.NS",
+"HINDCOPPER.NS",
+"HINDOILEXP.NS",
+"HINDPETRO.NS",
+"HINDUNILVR.NS",
+"HINDWAREAP.NS",
+"HINDZINC.NS",
+"HIRECT.NS",
+"HISARMETAL.NS",
+"HITECH.NS",
+"HLEGLAS.NS",
+"HLVLTD.NS",
+"HMAAGRO.NS",
+"HNDFDS.NS",
+"HNGSNGBEES.NS",
+"HOMEFIRST.NS",
+"HONASA.NS",
+"HONAUT.NS",
+"HONDAPOWER.NS",
+"HPAL.NS",
+"HPIL.NS",
+"HPL.NS",
+"HSCL.NS",
+"HTMEDIA.NS",
+"HUBTOWN.NS",
+"HUDCO.NS",
+"HUHTAMAKI.NS",
+"HYBRIDFIN.NS",
+"IBULLSLTD.NS",
+"ICEMAKE.NS",
+"ICICIB22.NS",
+"ICICIBANK.NS",
+"ICICIGI.NS",
+"ICICILIFE.NS",
+"ICIL.NS",
+"ICRA.NS",
+"IDBI.NS",
+"IDEA.NS",
+"IDEAFORGE.NS",
+"IDFCFIRSTB.NS",
+"IDFNIFTYET.NS",
+"IEX.NS",
+"IFBAGRO.NS",
+"IFBIND.NS",
+"IFCI.NS",
+"IFGLEXPOR.NS",
+"IGARASHI.NS",
+"IGL.NS",
+"IGPL.NS",
+"IIFL.NS",
+"IIFLCAPS.NS",
+"IITL.NS",
+"IKIO.NS",
+"IMAGICAA.NS",
+"IMFA.NS",
+"IMPAL.NS",
+"INCREDIBLE.NS",
+"INDBANK.NS",
+"INDGN.NS",
+"INDHOTEL.NS",
+"INDIACEM.NS",
+"INDIAGLYCO.NS",
+"INDIAMART.NS",
+"INDIANB.NS",
+"INDIANCARD.NS",
+"INDIANHUME.NS",
+"INDIASHLTR.NS",
+"INDIGO.NS",
+"INDIGOPNTS.NS",
+"INDNIPPON.NS",
+"INDOAMIN.NS",
+"INDOBORAX.NS",
+"INDOCO.NS",
+"INDORAMA.NS",
+"INDOSTAR.NS",
+"INDOTECH.NS",
+"INDOTHAI.NS",
+"INDOWIND.NS",
+"INDRAMEDCO.NS",
+"INDSWFTLAB.NS",
+"INDTERRAIN.NS",
+"INDUSINDBK.NS",
+"INDUSTOWER.NS",
+"INFOBEAN.NS",
+"INFOMEDIA.NS",
+"INFRABEES.NS",
+"INFRAIETF.NS",
+"INFY.NS",
+"INGERRAND.NS",
+"INNOVACAP.NS",
+"INNOVANA.NS",
+"INOXGREEN.NS",
+"INOXINDIA.NS",
+"INOXWIND.NS",
+"INSECTICID.NS",
+"INSPIRISYS.NS",
+"INTELLECT.NS",
+"INTENTECH.NS",
+"INTLCONV.NS",
+"INVENTURE.NS",
+"IOB.NS",
+"IOC.NS",
+"IOLCP.NS",
+"IONEXCHANG.NS",
+"IPCALAB.NS",
+"IPL.NS",
+"IRB.NS",
+"IRCON.NS",
+"IRCTC.NS",
+"IREDA.NS",
+"IRFC.NS",
+"IRIS.NS",
+"IRISDOREME.NS",
+"IRMENERGY.NS",
+"ISGEC.NS",
+"IT.NS",
+"ITADD.NS",
+"ITAXIS.NS",
+"ITBEES.NS",
+"ITBETA.NS",
+"ITC.NS",
+"ITDC.NS",
+"ITI.NS",
+"ITIETF.NS",
+"IVC.NS",
+"IVP.NS",
+"IVZINGOLD.NS",
+"IVZINNIFTY.NS",
+"IXIGO.NS",
+"IZMO.NS",
+"J&KBANK.NS",
+"JAGRAN.NS",
+"JAGSNPHARM.NS",
+"JAIBALAJI.NS",
+"JAICORPLTD.NS",
+"JAIPURKURT.NS",
+"JAMNAAUTO.NS",
+"JASH.NS",
+"JAYAGROGN.NS",
+"JAYBARMARU.NS",
+"JAYNECOIND.NS",
+"JAYSREETEA.NS",
+"JBMA.NS",
+"JETFREIGHT.NS",
+"JGCHEM.NS",
+"JINDALPHOT.NS",
+"JINDALPOLY.NS",
+"JINDALSAW.NS",
+"JINDALSTEL.NS",
+"JINDRILL.NS",
+"JINDWORLD.NS",
+"JIOFIN.NS",
+"JISLDVREQS.NS",
+"JISLJALEQS.NS",
+"JITFINFRA.NS",
+"JKCEMENT.NS",
+"JKIL.NS",
+"JKLAKSHMI.NS",
+"JKPAPER.NS",
+"JKTYRE.NS",
+"JLHL.NS",
+"JMA.NS",
+"JMFINANCIL.NS",
+"JNKINDIA.NS",
+"JOCIL.NS",
+"JPOLYINVST.NS",
+"JPPOWER.NS",
+"JSFB.NS",
+"JSL.NS",
+"JSLL.NS",
+"JSWDULUX.NS",
+"JSWENERGY.NS",
+"JSWHL.NS",
+"JSWINFRA.NS",
+"JSWSTEEL.NS",
+"JTEKTINDIA.NS",
+"JTLIND.NS",
+"JUBLFOOD.NS",
+"JUBLINGREA.NS",
+"JUBLPHARMA.NS",
+"JUNIORBEES.NS",
+"JUNIPER.NS",
+"JUSTDIAL.NS",
+"JWL.NS",
+"JYOTHYLAB.NS",
+"JYOTICNC.NS",
+"JYOTISTRUC.NS",
+"KAJARIACER.NS",
+"KAKATCEM.NS",
+"KALAMANDIR.NS",
+"KALYANKJIL.NS",
+"KAMATHOTEL.NS",
+"KAMDHENU.NS",
+"KAMOPAINTS.NS",
+"KANANIIND.NS",
+"KANPRPLA.NS",
+"KANSAINER.NS",
+"KAPSTON.NS",
+"KARMAENG.NS",
+"KARURVYSYA.NS",
+"KAUSHALYA.NS",
+"KAYNES.NS",
+"KCP.NS",
+"KDDL.NS",
+"KEC.NS",
+"KECL.NS",
+"KEEPLEARN.NS",
+"KEI.NS",
+"KELLTONTEC.NS",
+"KENNAMET.NS",
+"KERNEX.NS",
+"KESORAMIND.NS",
+"KEYFINSERV.NS",
+"KFINTECH.NS",
+"KHADIM.NS",
+"KHAICHEM.NS",
+"KHAITANLTD.NS",
+"KHANDSE.NS",
+"KILITCH.NS",
+"KIMS.NS",
+"KINGFA.NS",
+"KIOCL.NS",
+"KIRIINDUS.NS",
+"KIRLFER.NS",
+"KIRLOSBROS.NS",
+"KIRLOSENG.NS",
+"KIRLOSIND.NS",
+"KIRLPNU.NS",
+"KITEX.NS",
+"KKCL.NS",
+"KMSUGAR.NS",
+"KNAGRI.NS",
+"KNRCON.NS",
+"KOHINOOR.NS",
+"KOKUYOCMLN.NS",
+"KOLTEPATIL.NS",
+"KOPRAN.NS",
+"KOTAKBANK.NS",
+"KOTHARIPET.NS",
+"KOTHARIPRO.NS",
+"KOTYARK.NS",
+"KOVAI.NS",
+"KPIGREEN.NS",
+"KPIL.NS",
+"KPITTECH.NS",
+"KPRMILL.NS",
+"KRBL.NS",
+"KREBSBIO.NS",
+"KRIDHANINF.NS",
+"KRISHANA.NS",
+"KRISHIVAL.NS",
+"KRISHNADEF.NS",
+"KRITI.NS",
+"KRITIKA.NS",
+"KRITINUT.NS",
+"KRSNAA.NS",
+"KRYSTAL.NS",
+"KSB.NS",
+"KSCL.NS",
+"KSL.NS",
+"KSOLVES.NS",
+"KTKBANK.NS",
+"KUANTUM.NS",
+"LAGNAM.NS",
+"LAL.NS",
+"LALPATHLAB.NS",
+"LAMBODHARA.NS",
+"LANDMARK.NS",
+"LAOPALA.NS",
+"LATENTVIEW.NS",
+"LATTEYS.NS",
+"LAURUSLABS.NS",
+"LAXMICOT.NS",
+"LEMERITE.NS",
+"LEMONTREE.NS",
+"LEXUS.NS",
+"LFIC.NS",
+"LGBBROSLTD.NS",
+"LGHL.NS",
+"LIBAS.NS",
+"LIBERTSHOE.NS",
+"LICHSGFIN.NS",
+"LICI.NS",
+"LICMFGOLD.NS",
+"LICNETFGSC.NS",
+"LICNETFN50.NS",
+"LICNETFSEN.NS",
+"LICNFNHGP.NS",
+"LICNMID100.NS",
+"LIKHITHA.NS",
+"LINC.NS",
+"LINCOLN.NS",
+"LINDEINDIA.NS",
+"LIQUID.NS",
+"LIQUIDBEES.NS",
+"LIQUIDBETF.NS",
+"LIQUIDCASE.NS",
+"LIQUIDETF.NS",
+"LIQUIDIETF.NS",
+"LIQUIDSHRI.NS",
+"LLOYDSENGG.NS",
+"LLOYDSME.NS",
+"LMW.NS",
+"LODHA.NS",
+"LOKESHMACH.NS",
+"LORDSCHLO.NS",
+"LOTUSEYE.NS",
+"LOVABLE.NS",
+"LOWVOL.NS",
+"LOWVOL1.NS",
+"LOWVOLIETF.NS",
+"LOYALTEX.NS",
+"LPDC.NS",
+"LT.NS",
+"LTF.NS",
+"LTFOODS.NS",
+"LTGILTBEES.NS",
+"LTM.NS",
+"LTTS.NS",
+"LUMAXIND.NS",
+"LUMAXTECH.NS",
+"LUPIN.NS",
+"LUXIND.NS",
+"LXCHEM.NS",
+"M&M.NS",
+"M&MFIN.NS",
+"MAANALU.NS",
+"MACPOWER.NS",
+"MADHAV.NS",
+"MADHUCON.NS",
+"MADRASFERT.NS",
+"MAFANG.NS",
+"MAGADSUGAR.NS",
+"MAGNUM.NS",
+"MAHABANK.NS",
+"MAHAPEXLTD.NS",
+"MAHEPC.NS",
+"MAHESHWARI.NS",
+"MAHKTECH.NS",
+"MAHLIFE.NS",
+"MAHLOG.NS",
+"MAHSEAMLES.NS",
+"MAITHANALL.NS",
+"MAKEINDIA.NS",
+"MALLCOM.NS",
+"MALUPAPER.NS",
+"MANAKALUCO.NS",
+"MANAKCOAT.NS",
+"MANAKSIA.NS",
+"MANALIPETC.NS",
+"MANAPPURAM.NS",
+"MANGALAM.NS",
+"MANGLMCEM.NS",
+"MANINDS.NS",
+"MANINFRA.NS",
+"MANKIND.NS",
+"MANOMAY.NS",
+"MANORAMA.NS",
+"MANORG.NS",
+"MANYAVAR.NS",
+"MAPMYINDIA.NS",
+"MARALOVER.NS",
+"MARATHON.NS",
+"MARICO.NS",
+"MARINE.NS",
+"MARKSANS.NS",
+"MARUTI.NS",
+"MASFIN.NS",
+"MASKINVEST.NS",
+"MASPTOP50.NS",
+"MASTEK.NS",
+"MATRIMONY.NS",
+"MAXESTATES.NS",
+"MAXHEALTH.NS",
+"MAXIND.NS",
+"MAYURUNIQ.NS",
+"MAZDA.NS",
+"MAZDOCK.NS",
+"MBAPL.NS",
+"MBLINFRA.NS",
+"MCL.NS",
+"MCLEODRUSS.NS",
+"MCX.NS",
+"MEDANTA.NS",
+"MEDIASSIST.NS",
+"MEDICO.NS",
+"MEDPLUS.NS",
+"MEGASTAR.NS",
+"MENONBE.NS",
+"METROBRAND.NS",
+"METROPOLIS.NS",
+"MFSL.NS",
+"MGEL.NS",
+"MGL.NS",
+"MHRIL.NS",
+"MICEL.NS",
+"MID150CASE.NS",
+"MIDCAP.NS",
+"MIDCAPETF.NS",
+"MIDCAPIETF.NS",
+"MIDHANI.NS",
+"MIDSELIETF.NS",
+"MINDACORP.NS",
+"MINDTECK.NS",
+"MIRZAINT.NS",
+"MITCON.NS",
+"MITTAL.NS",
+"MKPL.NS",
+"MMFL.NS",
+"MMP.NS",
+"MMTC.NS",
+"MNC.NS",
+"MODIRUBBER.NS",
+"MODTHREAD.NS",
+"MOHEALTH.NS",
+"MOHITIND.NS",
+"MOIL.NS",
+"MOKSH.NS",
+"MOL.NS",
+"MOLDTKPAC.NS",
+"MOLOWVOL.NS",
+"MOM100.NS",
+"MOM30IETF.NS",
+"MOM50.NS",
+"MOMENTUM.NS",
+"MON100.NS",
+"MONARCH.NS",
+"MONIFTY500.NS",
+"MONQ50.NS",
+"MONTECARLO.NS",
+"MOQUALITY.NS",
+"MOREALTY.NS",
+"MOSMALL250.NS",
+"MOTHERSON.NS",
+"MOTILALOFS.NS",
+"MOTISONS.NS",
+"MOTOGENFIN.NS",
+"MOVALUE.NS",
+"MPHASIS.NS",
+"MPSLTD.NS",
+"MRF.NS",
+"MRPL.NS",
+"MSPL.NS",
+"MSTCLTD.NS",
+"MSUMI.NS",
+"MTARTECH.NS",
+"MTNL.NS",
+"MUFIN.NS",
+"MUFTI.NS",
+"MUKANDLTD.NS",
+"MUKTAARTS.NS",
+"MUNJALAU.NS",
+"MUNJALSHOW.NS",
+"MURUDCERA.NS",
+"MUTHOOTCAP.NS",
+"MUTHOOTFIN.NS",
+"MUTHOOTMF.NS",
+"MVGJL.NS",
+"MWL.NS",
+"NACLIND.NS",
+"NAGREEKCAP.NS",
+"NAGREEKEXP.NS",
+"NAHARCAP.NS",
+"NAHARINDUS.NS",
+"NAHARPOLY.NS",
+"NAHARSPING.NS",
+"NAM-INDIA.NS",
+"NARMADA.NS",
+"NATCOPHARM.NS",
+"NATHBIOGEN.NS",
+"NATIONALUM.NS",
+"NAUKRI.NS",
+"NAVA.NS",
+"NAVINFLUOR.NS",
+"NAVKARCORP.NS",
+"NAVNETEDUL.NS",
+"NAZARA.NS",
+"NBCC.NS",
+"NBIFIN.NS",
+"NCC.NS",
+"NCLIND.NS",
+"NDGL.NS",
+"NDL.NS",
+"NDLVENTURE.NS",
+"NDRAUTO.NS",
+"NDTV.NS",
+"NECCLTD.NS",
+"NECLIFE.NS",
+"NELCAST.NS",
+"NELCO.NS",
+"NEOGEN.NS",
+"NESCO.NS",
+"NESTLEIND.NS",
+"NETF.NS",
+"NETWEB.NS",
+"NETWORK18.NS",
+"NEULANDLAB.NS",
+"NEWGEN.NS",
+"NEXT50.NS",
+"NEXT50IETF.NS",
+"NEXTMEDIA.NS",
+"NFL.NS",
+"NGIL.NS",
+"NGLFINE.NS",
+"NH.NS",
+"NHPC.NS",
+"NIACL.NS",
+"NIBL.NS",
+"NIF100IETF.NS",
+"NIFTY1.NS",
+"NIFTYADD.NS",
+"NIFTYAXIS.NS",
+"NIFTYBEES.NS",
+"NIFTYETF.NS",
+"NIFTYQLITY.NS",
+"NIITLTD.NS",
+"NIITMTS.NS",
+"NILAINFRA.NS",
+"NILASPACES.NS",
+"NILKAMAL.NS",
+"NINSYS.NS",
+"NIPPOBATRY.NS",
+"NIRAJ.NS",
+"NITCO.NS",
+"NITINSPIN.NS",
+"NITIRAJ.NS",
+"NKIND.NS",
+"NLCINDIA.NS",
+"NMDC.NS",
+"NOCIL.NS",
+"NOIDATOLL.NS",
+"NORBTEAEXP.NS",
+"NOVAAGRI.NS",
+"NPBET.NS",
+"NPST.NS",
+"NRAIL.NS",
+"NRBBEARING.NS",
+"NSLNISP.NS",
+"NTPC.NS",
+"NUCLEUS.NS",
+"NUVAMA.NS",
+"NUVOCO.NS",
+"NV20.NS",
+"NV20BEES.NS",
+"NV20IETF.NS",
+"NYKAA.NS",
+"OAL.NS",
+"OBCL.NS",
+"OBEROIRLTY.NS",
+"OFSS.NS",
+"OIL.NS",
+"OLECTRA.NS",
+"OMAXAUTO.NS",
+"OMAXE.NS",
+"OMINFRAL.NS",
+"ONEPOINT.NS",
+"ONGC.NS",
+"ONIDA.NS",
+"ONMOBILE.NS",
+"OPTIEMUS.NS",
+"ORBTEXP.NS",
+"ORCHPHARMA.NS",
+"ORICONENT.NS",
+"ORIENTALTL.NS",
+"ORIENTBELL.NS",
+"ORIENTCEM.NS",
+"ORIENTCER.NS",
+"ORIENTELEC.NS",
+"ORIENTHOT.NS",
+"ORIENTLTD.NS",
+"ORIENTPPR.NS",
+"ORISSAMINE.NS",
+"ORTINGLOBE.NS",
+"OSWALAGRO.NS",
+"OSWALGREEN.NS",
+"OSWALSEEDS.NS",
+"PAGEIND.NS",
+"PAISALO.NS",
+"PAKKA.NS",
+"PALASHSECU.NS",
+"PALREDTEC.NS",
+"PANACEABIO.NS",
+"PANAMAPET.NS",
+"PANSARI.NS",
+"PARACABLES.NS",
+"PARADEEP.NS",
+"PARAGMILK.NS",
+"PARAS.NS",
+"PARASPETRO.NS",
+"PARIN.NS",
+"PARKHOTELS.NS",
+"PASHUPATI.NS",
+"PASUPTAC.NS",
+"PATANJALI.NS",
+"PATELENG.NS",
+"PATINTLOG.NS",
+"PAVNAIND.NS",
+"PAYTM.NS",
+"PCBL.NS",
+"PCJEWELLER.NS",
+"PDMJEPAPER.NS",
+"PDSL.NS",
+"PEARLPOLY.NS",
+"PENIND.NS",
+"PENINLAND.NS",
+"PERSISTENT.NS",
+"PETRONET.NS",
+"PFC.NS",
+"PFIZER.NS",
+"PFOCUS.NS",
+"PFS.NS",
+"PGEL.NS",
+"PGHH.NS",
+"PGHL.NS",
+"PGIL.NS",
+"PHARMABEES.NS",
+"PHOENIXLTD.NS",
+"PIDILITIND.NS",
+"PIGL.NS",
+"PIIND.NS",
+"PILITA.NS",
+"PIONEEREMB.NS",
+"PITTIENG.NS",
+"PIXTRANS.NS",
+"PLASTIBLEN.NS",
+"PLATIND.NS",
+"PLAZACABLE.NS",
+"PNB.NS",
+"PNBGILTS.NS",
+"PNBHOUSING.NS",
+"PNC.NS",
+"PNCINFRA.NS",
+"POCL.NS",
+"PODDARMENT.NS",
+"POKARNA.NS",
+"POLICYBZR.NS",
+"POLYCAB.NS",
+"POLYMED.NS",
+"POLYPLEX.NS",
+"PONNIERODE.NS",
+"POONAWALLA.NS",
+"POWERGRID.NS",
+"POWERINDIA.NS",
+"POWERMECH.NS",
+"PPAP.NS",
+"PPL.NS",
+"PPLPHARMA.NS",
+"PRAENG.NS",
+"PRAJIND.NS",
+"PRAKASH.NS",
+"PRAKASHSTL.NS",
+"PRAXIS.NS",
+"PRECAM.NS",
+"PRECOT.NS",
+"PRECWIRE.NS",
+"PREMEXPLN.NS",
+"PREMIERPOL.NS",
+"PRESTIGE.NS",
+"PRICOLLTD.NS",
+"PRIMESECU.NS",
+"PRINCEPIPE.NS",
+"PRITI.NS",
+"PRITIKAUTO.NS",
+"PRIVISCL.NS",
+"PROZONER.NS",
+"PRSMJOHNSN.NS",
+"PRUDENT.NS",
+"PRUDMOULI.NS",
+"PSB.NS",
+"PSPPROJECT.NS",
+"PSUBANK.NS",
+"PSUBANKADD.NS",
+"PSUBNKBEES.NS",
+"PSUBNKIETF.NS",
+"PTC.NS",
+"PTCIL.NS",
+"PTL.NS",
+"PUNJABCHEM.NS",
+"PURVA.NS",
+"PVP.NS",
+"PVRINOX.NS",
+"PVSL.NS",
+"PVTBANIETF.NS",
+"PVTBANKADD.NS",
+"PYRAMID.NS",
+"QGOLDHALF.NS",
+"QNIFTY.NS",
+"QUAL30IETF.NS",
+"QUESS.NS",
+"QUICKHEAL.NS",
+"RACE.NS",
+"RADAAN.NS",
+"RADIANTCMS.NS",
+"RADICO.NS",
+"RADIOCITY.NS",
+"RAILTEL.NS",
+"RAIN.NS",
+"RAINBOW.NS",
+"RAJMET.NS",
+"RAJRATAN.NS",
+"RAJSREESUG.NS",
+"RALLIS.NS",
+"RAMANEWS.NS",
+"RAMAPHO.NS",
+"RAMCOCEM.NS",
+"RAMCOIND.NS",
+"RAMCOSYS.NS",
+"RAMKY.NS",
+"RAMRAT.NS",
+"RANASUG.NS",
+"RANEHOLDIN.NS",
+"RATEGAIN.NS",
+"RATNAMANI.NS",
+"RATNAVEER.NS",
+"RAYMOND.NS",
+"RBA.NS",
+"RBLBANK.NS",
+"RCF.NS",
+"RECLTD.NS",
+"REDINGTON.NS",
+"REDTAPE.NS",
+"REFEX.NS",
+"REGENCERAM.NS",
+"RELAXO.NS",
+"RELCHEMQ.NS",
+"RELIABLE.NS",
+"RELIANCE.NS",
+"RELIGARE.NS",
+"REMSONSIND.NS",
+"RENUKA.NS",
+"REPCOHOME.NS",
+"REPL.NS",
+"REPRO.NS",
+"RESPONIND.NS",
+"RGL.NS",
+"RHIM.NS",
+"RHL.NS",
+"RICOAUTO.NS",
+"RIIL.NS",
+"RISHABH.NS",
+"RITCO.NS",
+"RITES.NS",
+"RKDL.NS",
+"RKFORGE.NS",
+"RKSWAMY.NS",
+"RMDRIP.NS",
+"RML.NS",
+"ROHLTD.NS",
+"ROLEXRINGS.NS",
+"ROML.NS",
+"ROSSARI.NS",
+"ROSSELLIND.NS",
+"ROTO.NS",
+"ROUTE.NS",
+"RPGLIFE.NS",
+"RPOWER.NS",
+"RPPINFRA.NS",
+"RPSGVENT.NS",
+"RPTECH.NS",
+"RRKABEL.NS",
+"RSSOFTWARE.NS",
+"RSWM.NS",
+"RSYSTEMS.NS",
+"RTNINDIA.NS",
+"RTNPOWER.NS",
+"RUBYMILLS.NS",
+"RUCHINFRA.NS",
+"RUCHIRA.NS",
+"RUPA.NS",
+"RUSHIL.NS",
+"RUSTOMJEE.NS",
+"RVHL.NS",
+"RVNL.NS",
+"S&SPOWER.NS",
+"SADBHAV.NS",
+"SADBHIN.NS",
+"SADHNANIQ.NS",
+"SAFARI.NS",
+"SAGARDEEP.NS",
+"SAGCEM.NS",
+"SAHYADRI.NS",
+"SAIL.NS",
+"SAKAR.NS",
+"SAKHTISUG.NS",
+"SAKSOFT.NS",
+"SAKUMA.NS",
+"SALASAR.NS",
+"SALONA.NS",
+"SALSTEEL.NS",
+"SALZERELEC.NS",
+"SAMBHAAV.NS",
+"SAMHI.NS",
+"SAMMAANCAP.NS",
+"SAMPANN.NS",
+"SANDESH.NS",
+"SANDHAR.NS",
+"SANDUMA.NS",
+"SANGAMIND.NS",
+"SANGHVIMOV.NS",
+"SANOFI.NS",
+"SANSERA.NS",
+"SANSTAR.NS",
+"SAPPHIRE.NS",
+"SARDAEN.NS",
+"SAREGAMA.NS",
+"SARLAPOLY.NS",
+"SARVESHWAR.NS",
+"SASKEN.NS",
+"SATIA.NS",
+"SATIN.NS",
+"SAURASHCEM.NS",
+"SBC.NS",
+"SBCL.NS",
+"SBFC.NS",
+"SBGLP.NS",
+"SBICARD.NS",
+"SBILIFE.NS",
+"SBIN.NS",
+"SBISILVER.NS",
+"SCHAEFFLER.NS",
+"SCHAND.NS",
+"SCHNEIDER.NS",
+"SCI.NS",
+"SCILAL.NS",
+"SDBL.NS",
+"SEAMECLTD.NS",
+"SECMARK.NS",
+"SECURKLOUD.NS",
+"SEJALLTD.NS",
+"SEMAC.NS",
+"SENCO.NS",
+"SENSEXADD.NS",
+"SENSEXAXIS.NS",
+"SENSEXETF.NS",
+"SENSEXIETF.NS",
+"SEPC.NS",
+"SERVOTECH.NS",
+"SESHAPAPER.NS",
+"SETCO.NS",
+"SFL.NS",
+"SGIL.NS",
+"SGL.NS",
+"SHAH.NS",
+"SHAILY.NS",
+"SHAKTIPUMP.NS",
+"SHALBY.NS",
+"SHANKARA.NS",
+"SHANTI.NS",
+"SHANTIGEAR.NS",
+"SHARDACROP.NS",
+"SHARDAMOTR.NS",
+"SHAREINDIA.NS",
+"SHARIABEES.NS",
+"SHEMAROO.NS",
+"SHILPAMED.NS",
+"SHIVALIK.NS",
+"SHIVAMAUTO.NS",
+"SHIVAMILLS.NS",
+"SHIVATEX.NS",
+"SHIVAUM.NS",
+"SHK.NS",
+"SHOPERSTOP.NS",
+"SHRADHA.NS",
+"SHREDIGCEM.NS",
+"SHREECEM.NS",
+"SHREEPUSHK.NS",
+"SHREYANIND.NS",
+"SHRIPISTON.NS",
+"SHRIRAMFIN.NS",
+"SHRIRAMPPS.NS",
+"SHYAMCENT.NS",
+"SHYAMMETL.NS",
+"SHYAMTEL.NS",
+"SICAGEN.NS",
+"SICALLOG.NS",
+"SIEMENS.NS",
+"SIGACHI.NS",
+"SIGMA.NS",
+"SIGNATURE.NS",
+"SIGNPOST.NS",
+"SIL.NS",
+"SILGO.NS",
+"SILVER.NS",
+"SILVER1.NS",
+"SILVERADD.NS",
+"SILVERAG.NS",
+"SILVERAXIS.NS",
+"SILVERBEES.NS",
+"SILVERBETA.NS",
+"SILVERTUC.NS",
+"SIMPLEXINF.NS",
+"SINCLAIR.NS",
+"SINDHUTRAD.NS",
+"SINTERCOM.NS",
+"SIRCA.NS",
+"SIS.NS",
+"SIYSIL.NS",
+"SJS.NS",
+"SJVN.NS",
+"SKFINDIA.NS",
+"SKIPPER.NS",
+"SKMEGGPROD.NS",
+"SKYGOLD.NS",
+"SMALLCAP.NS",
+"SMARTLINK.NS",
+"SMCGLOBAL.NS",
+"SMLMAH.NS",
+"SMLT.NS",
+"SMSPHARMA.NS",
+"SNOWMAN.NS",
+"SOBHA.NS",
+"SOFTTECH.NS",
+"SOLARA.NS",
+"SOLARINDS.NS",
+"SOLEX.NS",
+"SOMANYCERA.NS",
+"SOMATEX.NS",
+"SOMICONVEY.NS",
+"SONACOMS.NS",
+"SONATSOFTW.NS",
+"SOTL.NS",
+"SOUTHBANK.NS",
+"SOUTHWEST.NS",
+"SPAL.NS",
+"SPANDANA.NS",
+"SPARC.NS",
+"SPCENET.NS",
+"SPENCERS.NS",
+"SPIC.NS",
+"SPLIL.NS",
+"SPLPETRO.NS",
+"SPMLINFRA.NS",
+"SPORTKING.NS",
+"SRF.NS",
+"SRGHFL.NS",
+"SRHHYPOLTD.NS",
+"SRM.NS",
+"SSWL.NS",
+"STANLEY.NS",
+"STAR.NS",
+"STARCEMENT.NS",
+"STARHEALTH.NS",
+"STARPAPER.NS",
+"STARTECK.NS",
+"STCINDIA.NS",
+"STEELCAS.NS",
+"STEELCITY.NS",
+"STEELXIND.NS",
+"STEL.NS",
+"STERTOOLS.NS",
+"STOVEKRAFT.NS",
+"STYLAMIND.NS",
+"STYRENIX.NS",
+"SUBEXLTD.NS",
+"SUBROS.NS",
+"SUDARCOLOR.NS",
+"SUDARSCHEM.NS",
+"SUKHJITS.NS",
+"SULA.NS",
+"SUMEETINDS.NS",
+"SUMICHEM.NS",
+"SUMIT.NS",
+"SUMMITSEC.NS",
+"SUNCLAY.NS",
+"SUNDARAM.NS",
+"SUNDARMFIN.NS",
+"SUNDRMBRAK.NS",
+"SUNDRMFAST.NS",
+"SUNDROP.NS",
+"SUNFLAG.NS",
+"SUNPHARMA.NS",
+"SUNTECK.NS",
+"SUNTV.NS",
+"SUPERHOUSE.NS",
+"SUPRAJIT.NS",
+"SUPREMEIND.NS",
+"SUPREMEINF.NS",
+"SUPRIYA.NS",
+"SURAJEST.NS",
+"SURANASOL.NS",
+"SURANAT&P.NS",
+"SURYALAXMI.NS",
+"SURYAROSNI.NS",
+"SURYODAY.NS",
+"SUTLEJTEX.NS",
+"SUVEN.NS",
+"SUVIDHAA.NS",
+"SUZLON.NS",
+"SVLL.NS",
+"SVPGLOB.NS",
+"SWANCORP.NS",
+"SWARAJENG.NS",
+"SWELECTES.NS",
+"SWSOLAR.NS",
+"SYMPHONY.NS",
+"SYNCOMF.NS",
+"SYNGENE.NS",
+"SYRMA.NS",
+"TAINWALCHM.NS",
+"TAJGVK.NS",
+"TAKE.NS",
+"TALBROAUTO.NS",
+"TANLA.NS",
+"TARACHAND.NS",
+"TARC.NS",
+"TARIL.NS",
+"TARMAT.NS",
+"TARSONS.NS",
+"TASTYBITE.NS",
+"TATACHEM.NS",
+"TATACOMM.NS",
+"TATACONSUM.NS",
+"TATAELXSI.NS",
+"TATAGOLD.NS",
+"TATAINVEST.NS",
+"TATAPOWER.NS",
+"TATASTEEL.NS",
+"TATATECH.NS",
+"TATSILV.NS",
+"TATVA.NS",
+"TBOTEK.NS",
+"TCI.NS",
+"TCIEXP.NS",
+"TCIFINANCE.NS",
+"TCPLPACK.NS",
+"TCS.NS",
+"TDPOWERSYS.NS",
+"TEAMGTY.NS",
+"TEAMLEASE.NS",
+"TECHM.NS",
+"TECHNOE.NS",
+"TECILCHEM.NS",
+"TEGA.NS",
+"TEJASNET.NS",
+"TEMBO.NS",
+"TERASOFT.NS",
+"TEXINFRA.NS",
+"TEXMOPIPES.NS",
+"TEXRAIL.NS",
+"TFCILTD.NS",
+"TFL.NS",
+"TGBHOTELS.NS",
+"THANGAMAYL.NS",
+"THEINVEST.NS",
+"THEJO.NS",
+"THEMISMED.NS",
+"THERMAX.NS",
+"THOMASCOOK.NS",
+"THOMASCOTT.NS",
+"THYROCARE.NS",
+"TI.NS",
+"TICL.NS",
+"TIIL.NS",
+"TIINDIA.NS",
+"TIMETECHNO.NS",
+"TIMKEN.NS",
+"TIPSFILMS.NS",
+"TIPSMUSIC.NS",
+"TIRUMALCHM.NS",
+"TITAGARH.NS",
+"TITAN.NS",
+"TMB.NS",
+"TMPV.NS",
+"TNIDETF.NS",
+"TNPETRO.NS",
+"TNPL.NS",
+"TOKYOPLAST.NS",
+"TOP100CASE.NS",
+"TORNTPHARM.NS",
+"TORNTPOWER.NS",
+"TOUCHWOOD.NS",
+"TPLPLASTEH.NS",
+"TRACXN.NS",
+"TRANSWORLD.NS",
+"TREEHOUSE.NS",
+"TREJHARA.NS",
+"TREL.NS",
+"TRENT.NS",
+"TRF.NS",
+"TRIDENT.NS",
+"TRIGYN.NS",
+"TRITURBINE.NS",
+"TRIVENI.NS",
+"TRU.NS",
+"TSFINV.NS",
+"TTKHLTCARE.NS",
+"TTKPRESTIG.NS",
+"TTL.NS",
+"TTML.NS",
+"TVSELECT.NS",
+"TVSMOTOR.NS",
+"TVSSCS.NS",
+"TVSSRICHAK.NS",
+"TVTODAY.NS",
+"UBL.NS",
+"UCOBANK.NS",
+"UDS.NS",
+"UEL.NS",
+"UFLEX.NS",
+"UFO.NS",
+"UGROCAP.NS",
+"UJJIVANSFB.NS",
+"ULTRACEMCO.NS",
+"UMAEXPORTS.NS",
+"UMESLTD.NS",
+"UMIYA-MRO.NS",
+"UNICHEMLAB.NS",
+"UNIDT.NS",
+"UNIENTER.NS",
+"UNIINFO.NS",
+"UNIONBANK.NS",
+"UNIPARTS.NS",
+"UNITDSPR.NS",
+"UNITECH.NS",
+"UNITEDPOLY.NS",
+"UNITEDTEA.NS",
+"UNIVCABLES.NS",
+"UNOMINDA.NS",
+"UPL.NS",
+"URAVIDEF.NS",
+"URJA.NS",
+"USHAMART.NS",
+"USK.NS",
+"UTIAMC.NS",
+"UTKARSHBNK.NS",
+"UTTAMSUGAR.NS",
+"V2RETAIL.NS",
+"VADILALIND.NS",
+"VAIBHAVGBL.NS",
+"VAISHALI.NS",
+"VAKRANGEE.NS",
+"VALIANTORG.NS",
+"VARDHACRLC.NS",
+"VARDMNPOLY.NS",
+"VARROC.NS",
+"VASCONEQ.NS",
+"VASWANI.NS",
+"VBL.NS",
+"VEDL.NS",
+"VEEDOL.NS",
+"VENKEYS.NS",
+"VENUSPIPES.NS",
+"VENUSREM.NS",
+"VERTOZ.NS",
+"VESUVIUS.NS",
+"VETO.NS",
+"VGL.NS",
+"VGUARD.NS",
+"VHL.NS",
+"VIDHIING.NS",
+"VIJAYA.NS",
+"VIKASECO.NS",
+"VIKASLIFE.NS",
+"VIMTALABS.NS",
+"VINATIORGA.NS",
+"VINDHYATEL.NS",
+"VINEETLAB.NS",
+"VINNY.NS",
+"VINYLINDIA.NS",
+"VIPCLOTHNG.NS",
+"VIPIND.NS",
+"VIPULLTD.NS",
+"VIRINCHI.NS",
+"VISACHROME.NS",
+"VISHNU.NS",
+"VISHWARAJ.NS",
+"VITAL.NS",
+"VIVIANA.NS",
+"VIVIDHA.NS",
+"VIYASH.NS",
+"VLEGOV.NS",
+"VLSFINANCE.NS",
+"VMART.NS",
+"VOLTAMP.NS",
+"VOLTAS.NS",
+"VPRPL.NS",
+"VRAJ.NS",
+"VRLLOG.NS",
+"VSSL.NS",
+"VSTIND.NS",
+"VSTL.NS",
+"VSTTILLERS.NS",
+"VTL.NS",
+"WAAREEINDO.NS",
+"WABAG.NS",
+"WALCHANNAG.NS",
+"WANBURY.NS",
+"WEALTH.NS",
+"WEBELSOLAR.NS",
+"WEIZMANIND.NS",
+"WEL.NS",
+"WELCORP.NS",
+"WELENT.NS",
+"WELINV.NS",
+"WELSPUNLIV.NS",
+"WENDT.NS",
+"WESTLIFE.NS",
+"WEWIN.NS",
+"WHEELS.NS",
+"WHIRLPOOL.NS",
+"WINDLAS.NS",
+"WINDMACHIN.NS",
+"WIPL.NS",
+"WIPRO.NS",
+"WOCKPHARMA.NS",
+"WONDERLA.NS",
+"WORTHPERI.NS",
+"WSI.NS",
+"WSTCSTPAPR.NS",
+"XCHANGING.NS",
+"XELPMOC.NS",
+"XPROINDIA.NS",
+"YASHO.NS",
+"YATHARTH.NS",
+"YATRA.NS",
+"YESBANK.NS",
+"YUKEN.NS",
+"ZAGGLE.NS",
+"ZEEL.NS",
+"ZEELEARN.NS",
+"ZEEMEDIA.NS",
+"ZENITHEXPO.NS",
+"ZENITHSTL.NS",
+"ZENSARTECH.NS",
+"ZENTEC.NS",
+"ZFCVINDIA.NS",
+"ZIMLAB.NS",
+"ZODIAC.NS",
+"ZODIACLOTH.NS",
+"ZOTA.NS",
+"ZUARI.NS",
+"ZUARIIND.NS",
+"ZYDUSLIFE.NS",
+"ZYDUSWELL.NS"
+],
+"owed": [
+"role-swapped filter-as-trigger ordering",
+"B-481 IPO base (no listing dates)",
+"B-482 group stocks (no industry map)",
+"4h/1h not applicable (daily/weekly rules)"
+],
+"results": {
+"oneil_shakeout__plus3__long__1w__atr2_h8_pm1__v1": {
+"pfnet": 0.98,
+"pfgross": 1.1,
+"win_pct": 41.4,
+"n": 10485,
+"avg_held_bars": 7.26,
+"avg_net_pct": -0.141,
+"max_trade_net_pct": 287.7,
+"exit_reasons": {
+"timeout": {
+"n": 7964,
+"avg_net_pct": 5.507
+},
+"stop": {
+"n": 2521,
+"avg_net_pct": -17.986
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h8_pm1__v1": {
+"pfnet": 1.011,
+"pfgross": 1.135,
+"win_pct": 42.5,
+"n": 10344,
+"avg_held_bars": 7.8,
+"avg_net_pct": 0.077,
+"max_trade_net_pct": 287.7,
+"exit_reasons": {
+"timeout": {
+"n": 9497,
+"avg_net_pct": 2.186
+},
+"stop": {
+"n": 847,
+"avg_net_pct": -23.577
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr2_h12_pm1__v1": {
+"pfnet": 1.176,
+"pfgross": 1.29,
+"win_pct": 42.9,
+"n": 10165,
+"avg_held_bars": 10.15,
+"avg_net_pct": 1.43,
+"max_trade_net_pct": 783.8,
+"exit_reasons": {
+"timeout": {
+"n": 6741,
+"avg_net_pct": 11.558
+},
+"stop": {
+"n": 3424,
+"avg_net_pct": -18.509
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h12_pm1__v1": {
+"pfnet": 1.187,
+"pfgross": 1.299,
+"win_pct": 45.2,
+"n": 9884,
+"avg_held_bars": 11.36,
+"avg_net_pct": 1.557,
+"max_trade_net_pct": 783.8,
+"exit_reasons": {
+"timeout": {
+"n": 8358,
+"avg_net_pct": 6.422
+},
+"stop": {
+"n": 1526,
+"avg_net_pct": -25.087
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr2_h26_pm1__v1": {
+"pfnet": 1.416,
+"pfgross": 1.517,
+"win_pct": 38.2,
+"n": 9348,
+"avg_held_bars": 18.41,
+"avg_net_pct": 4.356,
+"max_trade_net_pct": 2955.3,
+"exit_reasons": {
+"stop": {
+"n": 4538,
+"avg_net_pct": -19.14
+},
+"timeout": {
+"n": 4810,
+"avg_net_pct": 26.522
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h26_pm1__v1": {
+"pfnet": 1.479,
+"pfgross": 1.574,
+"win_pct": 44.8,
+"n": 8786,
+"avg_held_bars": 22.29,
+"avg_net_pct": 5.307,
+"max_trade_net_pct": 2955.3,
+"exit_reasons": {
+"timeout": {
+"n": 6242,
+"avg_net_pct": 18.398
+},
+"stop": {
+"n": 2544,
+"avg_net_pct": -26.813
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr2_h8_pm2__v1": {
+"pfnet": 0.964,
+"pfgross": 1.067,
+"win_pct": 36.5,
+"n": 1672,
+"avg_held_bars": 6.75,
+"avg_net_pct": -0.291,
+"max_trade_net_pct": 331.0,
+"exit_reasons": {
+"timeout": {
+"n": 1083,
+"avg_net_pct": 8.806
+},
+"stop": {
+"n": 589,
+"avg_net_pct": -17.016
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h8_pm2__v1": {
+"pfnet": 1.008,
+"pfgross": 1.113,
+"win_pct": 38.5,
+"n": 1669,
+"avg_held_bars": 7.6,
+"avg_net_pct": 0.061,
+"max_trade_net_pct": 331.0,
+"exit_reasons": {
+"timeout": {
+"n": 1436,
+"avg_net_pct": 3.705
+},
+"stop": {
+"n": 233,
+"avg_net_pct": -22.394
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr2_h12_pm2__v1": {
+"pfnet": 1.135,
+"pfgross": 1.24,
+"win_pct": 38.2,
+"n": 1662,
+"avg_held_bars": 9.21,
+"avg_net_pct": 1.186,
+"max_trade_net_pct": 783.8,
+"exit_reasons": {
+"timeout": {
+"n": 942,
+"avg_net_pct": 15.206
+},
+"stop": {
+"n": 720,
+"avg_net_pct": -17.157
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h12_pm2__v1": {
+"pfnet": 1.176,
+"pfgross": 1.279,
+"win_pct": 41.9,
+"n": 1656,
+"avg_held_bars": 10.9,
+"avg_net_pct": 1.583,
+"max_trade_net_pct": 783.8,
+"exit_reasons": {
+"timeout": {
+"n": 1295,
+"avg_net_pct": 8.535
+},
+"stop": {
+"n": 361,
+"avg_net_pct": -23.358
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr2_h26_pm2__v1": {
+"pfnet": 1.331,
+"pfgross": 1.425,
+"win_pct": 32.6,
+"n": 1606,
+"avg_held_bars": 16.13,
+"avg_net_pct": 3.612,
+"max_trade_net_pct": 463.7,
+"exit_reasons": {
+"timeout": {
+"n": 665,
+"avg_net_pct": 33.398
+},
+"stop": {
+"n": 941,
+"avg_net_pct": -17.438
+}
+}
+},
+"oneil_shakeout__plus3__long__1w__atr3_h26_pm2__v1": {
+"pfnet": 1.462,
+"pfgross": 1.553,
+"win_pct": 40.8,
+"n": 1587,
+"avg_held_bars": 20.79,
+"avg_net_pct": 5.412,
+"max_trade_net_pct": 481.2,
+"exit_reasons": {
+"timeout": {
+"n": 993,
+"avg_net_pct": 23.325
+},
+"stop": {
+"n": 594,
+"avg_net_pct": -24.534
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr2_h8__v1": {
+"pfnet": 1.289,
+"pfgross": 1.441,
+"win_pct": 46.1,
+"n": 6959,
+"avg_held_bars": 6.93,
+"avg_net_pct": 1.882,
+"max_trade_net_pct": 426.4,
+"exit_reasons": {
+"timeout": {
+"n": 4896,
+"avg_net_pct": 9.639
+},
+"stop": {
+"n": 2063,
+"avg_net_pct": -16.527
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr3_h8__v1": {
+"pfnet": 1.396,
+"pfgross": 1.559,
+"win_pct": 48.7,
+"n": 6877,
+"avg_held_bars": 7.7,
+"avg_net_pct": 2.476,
+"max_trade_net_pct": 426.4,
+"exit_reasons": {
+"timeout": {
+"n": 6134,
+"avg_net_pct": 5.534
+},
+"stop": {
+"n": 743,
+"avg_net_pct": -22.77
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr2_h12__v1": {
+"pfnet": 1.465,
+"pfgross": 1.609,
+"win_pct": 45.4,
+"n": 6444,
+"avg_held_bars": 9.62,
+"avg_net_pct": 3.437,
+"max_trade_net_pct": 841.2,
+"exit_reasons": {
+"timeout": {
+"n": 4015,
+"avg_net_pct": 15.645
+},
+"stop": {
+"n": 2429,
+"avg_net_pct": -16.742
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr3_h12__v1": {
+"pfnet": 1.591,
+"pfgross": 1.744,
+"win_pct": 49.7,
+"n": 6283,
+"avg_held_bars": 11.18,
+"avg_net_pct": 4.236,
+"max_trade_net_pct": 841.2,
+"exit_reasons": {
+"timeout": {
+"n": 5234,
+"avg_net_pct": 9.807
+},
+"stop": {
+"n": 1049,
+"avg_net_pct": -23.56
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr2_h26__v1": {
+"pfnet": 2.114,
+"pfgross": 2.268,
+"win_pct": 42.9,
+"n": 5440,
+"avg_held_bars": 17.22,
+"avg_net_pct": 9.996,
+"max_trade_net_pct": 609.8,
+"exit_reasons": {
+"stop": {
+"n": 2793,
+"avg_net_pct": -16.793
+},
+"timeout": {
+"n": 2647,
+"avg_net_pct": 38.263
+}
+}
+},
+"oneil_baseonbase__breakout__long__1w__atr3_h26__v1": {
+"pfnet": 2.354,
+"pfgross": 2.502,
+"win_pct": 52.7,
+"n": 5101,
+"avg_held_bars": 21.81,
+"avg_net_pct": 12.487,
+"max_trade_net_pct": 609.8,
+"exit_reasons": {
+"stop": {
+"n": 1589,
+"avg_net_pct": -24.468
+},
+"timeout": {
+"n": 3512,
+"avg_net_pct": 29.207
+}
+}
+},
+"oneil_trendline__break__long__1w__atr2_h8__v1": {
+"pfnet": 1.187,
+"pfgross": 1.33,
+"win_pct": 44.6,
+"n": 27012,
+"avg_held_bars": 7.31,
+"avg_net_pct": 1.234,
+"max_trade_net_pct": 410.7,
+"exit_reasons": {
+"timeout": {
+"n": 20845,
+"avg_net_pct": 6.905
+},
+"stop": {
+"n": 6167,
+"avg_net_pct": -17.935
+}
+}
+},
+"oneil_trendline__break__long__1w__atr3_h8__v1": {
+"pfnet": 1.231,
+"pfgross": 1.379,
+"win_pct": 45.9,
+"n": 26713,
+"avg_held_bars": 7.83,
+"avg_net_pct": 1.498,
+"max_trade_net_pct": 410.7,
+"exit_reasons": {
+"timeout": {
+"n": 24717,
+"avg_net_pct": 3.602
+},
+"stop": {
+"n": 1996,
+"avg_net_pct": -24.566
+}
+}
+},
+"oneil_trendline__break__long__1w__atr2_h12__v1": {
+"pfnet": 1.353,
+"pfgross": 1.484,
+"win_pct": 45.0,
+"n": 25196,
+"avg_held_bars": 10.28,
+"avg_net_pct": 2.715,
+"max_trade_net_pct": 823.8,
+"exit_reasons": {
+"timeout": {
+"n": 17269,
+"avg_net_pct": 12.418
+},
+"stop": {
+"n": 7927,
+"avg_net_pct": -18.423
+}
+}
+},
+"oneil_trendline__break__long__1w__atr3_h12__v1": {
+"pfnet": 1.397,
+"pfgross": 1.53,
+"win_pct": 47.7,
+"n": 24395,
+"avg_held_bars": 11.44,
+"avg_net_pct": 3.055,
+"max_trade_net_pct": 823.8,
+"exit_reasons": {
+"timeout": {
+"n": 21076,
+"avg_net_pct": 7.551
+},
+"stop": {
+"n": 3319,
+"avg_net_pct": -25.498
+}
+}
+},
+"oneil_trendline__break__long__1w__atr2_h26__v1": {
+"pfnet": 1.63,
+"pfgross": 1.745,
+"win_pct": 41.7,
+"n": 19988,
+"avg_held_bars": 18.85,
+"avg_net_pct": 6.276,
+"max_trade_net_pct": 2626.2,
+"exit_reasons": {
+"timeout": {
+"n": 10737,
+"avg_net_pct": 28.232
+},
+"stop": {
+"n": 9251,
+"avg_net_pct": -19.207
+}
+}
+},
+"oneil_trendline__break__long__1w__atr3_h26__v1": {
+"pfnet": 1.72,
+"pfgross": 1.828,
+"win_pct": 48.3,
+"n": 18182,
+"avg_held_bars": 22.64,
+"avg_net_pct": 7.55,
+"max_trade_net_pct": 2626.2,
+"exit_reasons": {
+"timeout": {
+"n": 13158,
+"avg_net_pct": 20.72
+},
+"stop": {
+"n": 5024,
+"avg_net_pct": -26.943
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h8_pr3__v1": {
+"pfnet": 1.522,
+"pfgross": 1.71,
+"win_pct": 45.7,
+"n": 8054,
+"avg_held_bars": 7.03,
+"avg_net_pct": 3.058,
+"max_trade_net_pct": 2625.7,
+"exit_reasons": {
+"timeout": {
+"n": 5856,
+"avg_net_pct": 9.896
+},
+"stop": {
+"n": 2198,
+"avg_net_pct": -15.158
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h8_pr3__v1": {
+"pfnet": 1.612,
+"pfgross": 1.81,
+"win_pct": 47.8,
+"n": 8020,
+"avg_held_bars": 7.72,
+"avg_net_pct": 3.489,
+"max_trade_net_pct": 2625.7,
+"exit_reasons": {
+"timeout": {
+"n": 7233,
+"avg_net_pct": 6.117
+},
+"stop": {
+"n": 787,
+"avg_net_pct": -20.666
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h12_pr3__v1": {
+"pfnet": 1.673,
+"pfgross": 1.845,
+"win_pct": 44.9,
+"n": 7691,
+"avg_held_bars": 9.8,
+"avg_net_pct": 4.582,
+"max_trade_net_pct": 2724.2,
+"exit_reasons": {
+"timeout": {
+"n": 4896,
+"avg_net_pct": 16.048
+},
+"stop": {
+"n": 2795,
+"avg_net_pct": -15.503
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h12_pr3__v1": {
+"pfnet": 1.791,
+"pfgross": 1.97,
+"win_pct": 48.8,
+"n": 7602,
+"avg_held_bars": 11.23,
+"avg_net_pct": 5.254,
+"max_trade_net_pct": 2724.2,
+"exit_reasons": {
+"timeout": {
+"n": 6386,
+"avg_net_pct": 10.31
+},
+"stop": {
+"n": 1216,
+"avg_net_pct": -21.302
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h26_pr3__v1": {
+"pfnet": 2.289,
+"pfgross": 2.464,
+"win_pct": 42.9,
+"n": 6590,
+"avg_held_bars": 17.69,
+"avg_net_pct": 10.758,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"timeout": {
+"n": 3271,
+"avg_net_pct": 37.675
+},
+"stop": {
+"n": 3319,
+"avg_net_pct": -15.77
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h26_pr3__v1": {
+"pfnet": 2.446,
+"pfgross": 2.61,
+"win_pct": 51.3,
+"n": 6317,
+"avg_held_bars": 21.91,
+"avg_net_pct": 12.533,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"timeout": {
+"n": 4347,
+"avg_net_pct": 28.378
+},
+"stop": {
+"n": 1970,
+"avg_net_pct": -22.432
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr2_h8__v1": {
+"pfnet": 1.461,
+"pfgross": 1.668,
+"win_pct": 49.3,
+"n": 3760,
+"avg_held_bars": 7.2,
+"avg_net_pct": 2.355,
+"max_trade_net_pct": 129.1,
+"exit_reasons": {
+"timeout": {
+"n": 2873,
+"avg_net_pct": 7.849
+},
+"stop": {
+"n": 887,
+"avg_net_pct": -15.439
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr3_h8__v1": {
+"pfnet": 1.626,
+"pfgross": 1.863,
+"win_pct": 51.5,
+"n": 3740,
+"avg_held_bars": 7.81,
+"avg_net_pct": 2.964,
+"max_trade_net_pct": 129.1,
+"exit_reasons": {
+"timeout": {
+"n": 3465,
+"avg_net_pct": 4.898
+},
+"stop": {
+"n": 275,
+"avg_net_pct": -21.399
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr2_h12__v1": {
+"pfnet": 1.661,
+"pfgross": 1.852,
+"win_pct": 50.0,
+"n": 3499,
+"avg_held_bars": 10.15,
+"avg_net_pct": 3.918,
+"max_trade_net_pct": 178.3,
+"exit_reasons": {
+"timeout": {
+"n": 2394,
+"avg_net_pct": 12.868
+},
+"stop": {
+"n": 1105,
+"avg_net_pct": -15.472
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr3_h12__v1": {
+"pfnet": 1.884,
+"pfgross": 2.103,
+"win_pct": 53.8,
+"n": 3473,
+"avg_held_bars": 11.44,
+"avg_net_pct": 4.816,
+"max_trade_net_pct": 178.3,
+"exit_reasons": {
+"timeout": {
+"n": 3045,
+"avg_net_pct": 8.552
+},
+"stop": {
+"n": 428,
+"avg_net_pct": -21.764
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr2_h26__v1": {
+"pfnet": 2.388,
+"pfgross": 2.58,
+"win_pct": 47.3,
+"n": 2942,
+"avg_held_bars": 18.58,
+"avg_net_pct": 10.532,
+"max_trade_net_pct": 340.3,
+"exit_reasons": {
+"timeout": {
+"n": 1590,
+"avg_net_pct": 32.814
+},
+"stop": {
+"n": 1352,
+"avg_net_pct": -15.672
+}
+}
+},
+"oneil_pullback__buy__long__1w__atr3_h26__v1": {
+"pfnet": 2.64,
+"pfgross": 2.83,
+"win_pct": 56.1,
+"n": 2876,
+"avg_held_bars": 22.72,
+"avg_net_pct": 12.349,
+"max_trade_net_pct": 340.3,
+"exit_reasons": {
+"timeout": {
+"n": 2117,
+"avg_net_pct": 24.936
+},
+"stop": {
+"n": 759,
+"avg_net_pct": -22.759
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h8_px2__v1": {
+"pfnet": 1.354,
+"pfgross": 1.507,
+"win_pct": 46.8,
+"n": 36768,
+"avg_held_bars": 7.23,
+"avg_net_pct": 2.357,
+"max_trade_net_pct": 557.9,
+"exit_reasons": {
+"stop": {
+"n": 8498,
+"avg_net_pct": -18.38
+},
+"timeout": {
+"n": 28270,
+"avg_net_pct": 8.59
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h8_px2__v1": {
+"pfnet": 1.406,
+"pfgross": 1.563,
+"win_pct": 48.2,
+"n": 35922,
+"avg_held_bars": 7.78,
+"avg_net_pct": 2.657,
+"max_trade_net_pct": 557.9,
+"exit_reasons": {
+"timeout": {
+"n": 32950,
+"avg_net_pct": 5.151
+},
+"stop": {
+"n": 2972,
+"avg_net_pct": -24.992
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h12_px2__v1": {
+"pfnet": 1.546,
+"pfgross": 1.69,
+"win_pct": 46.4,
+"n": 31560,
+"avg_held_bars": 10.2,
+"avg_net_pct": 4.155,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"stop": {
+"n": 9634,
+"avg_net_pct": -18.676
+},
+"timeout": {
+"n": 21926,
+"avg_net_pct": 14.186
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h12_px2__v1": {
+"pfnet": 1.627,
+"pfgross": 1.776,
+"win_pct": 48.9,
+"n": 30136,
+"avg_held_bars": 11.37,
+"avg_net_pct": 4.672,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"timeout": {
+"n": 26266,
+"avg_net_pct": 9.115
+},
+"stop": {
+"n": 3870,
+"avg_net_pct": -25.478
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h26_px2__v1": {
+"pfnet": 2.106,
+"pfgross": 2.248,
+"win_pct": 45.1,
+"n": 22691,
+"avg_held_bars": 19.04,
+"avg_net_pct": 10.463,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 9804,
+"avg_net_pct": -19.366
+},
+"timeout": {
+"n": 12887,
+"avg_net_pct": 33.156
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h26_px2__v1": {
+"pfnet": 2.291,
+"pfgross": 2.432,
+"win_pct": 51.9,
+"n": 20447,
+"avg_held_bars": 22.73,
+"avg_net_pct": 12.301,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 5034,
+"avg_net_pct": -26.702
+},
+"timeout": {
+"n": 15413,
+"avg_net_pct": 25.04
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h8_px3__v1": {
+"pfnet": 1.368,
+"pfgross": 1.517,
+"win_pct": 46.5,
+"n": 30894,
+"avg_held_bars": 7.2,
+"avg_net_pct": 2.516,
+"max_trade_net_pct": 557.9,
+"exit_reasons": {
+"stop": {
+"n": 7300,
+"avg_net_pct": -18.64
+},
+"timeout": {
+"n": 23594,
+"avg_net_pct": 9.061
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h8_px3__v1": {
+"pfnet": 1.411,
+"pfgross": 1.563,
+"win_pct": 48.1,
+"n": 30292,
+"avg_held_bars": 7.77,
+"avg_net_pct": 2.778,
+"max_trade_net_pct": 557.9,
+"exit_reasons": {
+"timeout": {
+"n": 27709,
+"avg_net_pct": 5.407
+},
+"stop": {
+"n": 2583,
+"avg_net_pct": -25.433
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h12_px3__v1": {
+"pfnet": 1.561,
+"pfgross": 1.701,
+"win_pct": 46.3,
+"n": 27043,
+"avg_held_bars": 10.13,
+"avg_net_pct": 4.376,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"stop": {
+"n": 8445,
+"avg_net_pct": -18.897
+},
+"timeout": {
+"n": 18598,
+"avg_net_pct": 14.943
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h12_px3__v1": {
+"pfnet": 1.645,
+"pfgross": 1.791,
+"win_pct": 48.9,
+"n": 25962,
+"avg_held_bars": 11.35,
+"avg_net_pct": 4.933,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"timeout": {
+"n": 22517,
+"avg_net_pct": 9.64
+},
+"stop": {
+"n": 3445,
+"avg_net_pct": -25.829
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h26_px3__v1": {
+"pfnet": 2.11,
+"pfgross": 2.25,
+"win_pct": 44.6,
+"n": 20126,
+"avg_held_bars": 18.92,
+"avg_net_pct": 10.729,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 8788,
+"avg_net_pct": -19.585
+},
+"timeout": {
+"n": 11338,
+"avg_net_pct": 34.225
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h26_px3__v1": {
+"pfnet": 2.317,
+"pfgross": 2.457,
+"win_pct": 51.7,
+"n": 18317,
+"avg_held_bars": 22.71,
+"avg_net_pct": 12.742,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 4513,
+"avg_net_pct": -27.061
+},
+"timeout": {
+"n": 13804,
+"avg_net_pct": 25.755
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h8_px5__v1": {
+"pfnet": 1.332,
+"pfgross": 1.469,
+"win_pct": 45.2,
+"n": 21789,
+"avg_held_bars": 7.12,
+"avg_net_pct": 2.431,
+"max_trade_net_pct": 509.5,
+"exit_reasons": {
+"stop": {
+"n": 5534,
+"avg_net_pct": -19.102
+},
+"timeout": {
+"n": 16255,
+"avg_net_pct": 9.761
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h8_px5__v1": {
+"pfnet": 1.377,
+"pfgross": 1.517,
+"win_pct": 47.0,
+"n": 21468,
+"avg_held_bars": 7.76,
+"avg_net_pct": 2.725,
+"max_trade_net_pct": 509.5,
+"exit_reasons": {
+"timeout": {
+"n": 19517,
+"avg_net_pct": 5.605
+},
+"stop": {
+"n": 1951,
+"avg_net_pct": -26.081
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h12_px5__v1": {
+"pfnet": 1.562,
+"pfgross": 1.695,
+"win_pct": 45.4,
+"n": 19562,
+"avg_held_bars": 10.0,
+"avg_net_pct": 4.63,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"stop": {
+"n": 6411,
+"avg_net_pct": -19.349
+},
+"timeout": {
+"n": 13151,
+"avg_net_pct": 16.319
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h12_px5__v1": {
+"pfnet": 1.661,
+"pfgross": 1.8,
+"win_pct": 48.5,
+"n": 18933,
+"avg_held_bars": 11.31,
+"avg_net_pct": 5.318,
+"max_trade_net_pct": 1344.0,
+"exit_reasons": {
+"timeout": {
+"n": 16313,
+"avg_net_pct": 10.42
+},
+"stop": {
+"n": 2620,
+"avg_net_pct": -26.446
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr2_h26_px5__v1": {
+"pfnet": 2.057,
+"pfgross": 2.188,
+"win_pct": 43.1,
+"n": 15440,
+"avg_held_bars": 18.51,
+"avg_net_pct": 10.814,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 7054,
+"avg_net_pct": -19.98
+},
+"timeout": {
+"n": 8386,
+"avg_net_pct": 36.716
+}
+}
+},
+"oneil_abnormal__strength__long__1w__atr3_h26_px5__v1": {
+"pfnet": 2.255,
+"pfgross": 2.386,
+"win_pct": 50.3,
+"n": 14275,
+"avg_held_bars": 22.58,
+"avg_net_pct": 12.91,
+"max_trade_net_pct": 2367.3,
+"exit_reasons": {
+"stop": {
+"n": 3690,
+"avg_net_pct": -27.737
+},
+"timeout": {
+"n": 10585,
+"avg_net_pct": 27.08
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr2_h8__v1": {
+"pfnet": 1.679,
+"pfgross": 1.873,
+"win_pct": 51.8,
+"n": 2574,
+"avg_held_bars": 7.14,
+"avg_net_pct": 3.943,
+"max_trade_net_pct": 468.5,
+"exit_reasons": {
+"timeout": {
+"n": 1963,
+"avg_net_pct": 10.728
+},
+"stop": {
+"n": 611,
+"avg_net_pct": -17.854
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr3_h8__v1": {
+"pfnet": 1.774,
+"pfgross": 1.977,
+"win_pct": 53.9,
+"n": 2574,
+"avg_held_bars": 7.76,
+"avg_net_pct": 4.388,
+"max_trade_net_pct": 468.5,
+"exit_reasons": {
+"timeout": {
+"n": 2362,
+"avg_net_pct": 6.979
+},
+"stop": {
+"n": 212,
+"avg_net_pct": -24.489
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr2_h12__v1": {
+"pfnet": 1.924,
+"pfgross": 2.107,
+"win_pct": 52.8,
+"n": 2562,
+"avg_held_bars": 10.06,
+"avg_net_pct": 6.095,
+"max_trade_net_pct": 1211.6,
+"exit_reasons": {
+"stop": {
+"n": 799,
+"avg_net_pct": -17.891
+},
+"timeout": {
+"n": 1763,
+"avg_net_pct": 16.966
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr3_h12__v1": {
+"pfnet": 2.005,
+"pfgross": 2.188,
+"win_pct": 56.1,
+"n": 2560,
+"avg_held_bars": 11.32,
+"avg_net_pct": 6.648,
+"max_trade_net_pct": 1211.6,
+"exit_reasons": {
+"timeout": {
+"n": 2205,
+"avg_net_pct": 11.818
+},
+"stop": {
+"n": 355,
+"avg_net_pct": -25.465
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr2_h26__v1": {
+"pfnet": 2.557,
+"pfgross": 2.738,
+"win_pct": 48.7,
+"n": 2438,
+"avg_held_bars": 18.76,
+"avg_net_pct": 12.909,
+"max_trade_net_pct": 835.8,
+"exit_reasons": {
+"stop": {
+"n": 1080,
+"avg_net_pct": -17.679
+},
+"timeout": {
+"n": 1358,
+"avg_net_pct": 37.234
+}
+}
+},
+"oneil_leaders__firsthigh__long__1w__atr3_h26__v1": {
+"pfnet": 2.694,
+"pfgross": 2.862,
+"win_pct": 56.0,
+"n": 2401,
+"avg_held_bars": 22.53,
+"avg_net_pct": 14.679,
+"max_trade_net_pct": 835.8,
+"exit_reasons": {
+"timeout": {
+"n": 1753,
+"avg_net_pct": 29.391
+},
+"stop": {
+"n": 648,
+"avg_net_pct": -25.123
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr2_h8__v1": {
+"pfnet": 1.342,
+"pfgross": 1.514,
+"win_pct": 48.6,
+"n": 5066,
+"avg_held_bars": 7.02,
+"avg_net_pct": 2.01,
+"max_trade_net_pct": 410.7,
+"exit_reasons": {
+"stop": {
+"n": 1325,
+"avg_net_pct": -16.353
+},
+"timeout": {
+"n": 3741,
+"avg_net_pct": 8.513
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr3_h8__v1": {
+"pfnet": 1.382,
+"pfgross": 1.555,
+"win_pct": 50.5,
+"n": 5012,
+"avg_held_bars": 7.64,
+"avg_net_pct": 2.232,
+"max_trade_net_pct": 410.7,
+"exit_reasons": {
+"timeout": {
+"n": 4448,
+"avg_net_pct": 5.379
+},
+"stop": {
+"n": 564,
+"avg_net_pct": -22.588
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr2_h12__v1": {
+"pfnet": 1.624,
+"pfgross": 1.796,
+"win_pct": 48.3,
+"n": 4577,
+"avg_held_bars": 9.93,
+"avg_net_pct": 4.075,
+"max_trade_net_pct": 633.8,
+"exit_reasons": {
+"stop": {
+"n": 1472,
+"avg_net_pct": -16.592
+},
+"timeout": {
+"n": 3105,
+"avg_net_pct": 13.872
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr3_h12__v1": {
+"pfnet": 1.766,
+"pfgross": 1.947,
+"win_pct": 52.1,
+"n": 4488,
+"avg_held_bars": 11.14,
+"avg_net_pct": 4.887,
+"max_trade_net_pct": 994.1,
+"exit_reasons": {
+"timeout": {
+"n": 3798,
+"avg_net_pct": 9.977
+},
+"stop": {
+"n": 690,
+"avg_net_pct": -23.135
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr2_h26__v1": {
+"pfnet": 2.266,
+"pfgross": 2.435,
+"win_pct": 46.7,
+"n": 3871,
+"avg_held_bars": 18.54,
+"avg_net_pct": 10.607,
+"max_trade_net_pct": 1358.2,
+"exit_reasons": {
+"stop": {
+"n": 1731,
+"avg_net_pct": -17.463
+},
+"timeout": {
+"n": 2140,
+"avg_net_pct": 33.313
+}
+}
+},
+"oneil_rsline__newhigh__long__1w__atr3_h26__v1": {
+"pfnet": 2.374,
+"pfgross": 2.53,
+"win_pct": 53.8,
+"n": 3732,
+"avg_held_bars": 22.18,
+"avg_net_pct": 11.986,
+"max_trade_net_pct": 623.3,
+"exit_reasons": {
+"stop": {
+"n": 1034,
+"avg_net_pct": -24.872
+},
+"timeout": {
+"n": 2698,
+"avg_net_pct": 26.111
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h8_pv3__v1": {
+"pfnet": 1.175,
+"pfgross": 1.299,
+"win_pct": 41.6,
+"n": 16156,
+"avg_held_bars": 6.96,
+"avg_net_pct": 1.32,
+"max_trade_net_pct": 1983.8,
+"exit_reasons": {
+"stop": {
+"n": 4716,
+"avg_net_pct": -17.953
+},
+"timeout": {
+"n": 11440,
+"avg_net_pct": 9.266
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h8_pv3__v1": {
+"pfnet": 1.223,
+"pfgross": 1.35,
+"win_pct": 43.8,
+"n": 16008,
+"avg_held_bars": 7.69,
+"avg_net_pct": 1.674,
+"max_trade_net_pct": 1983.8,
+"exit_reasons": {
+"timeout": {
+"n": 14261,
+"avg_net_pct": 4.867
+},
+"stop": {
+"n": 1747,
+"avg_net_pct": -24.391
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h12_pv3__v1": {
+"pfnet": 1.359,
+"pfgross": 1.479,
+"win_pct": 41.8,
+"n": 15307,
+"avg_held_bars": 9.67,
+"avg_net_pct": 3.056,
+"max_trade_net_pct": 1981.7,
+"exit_reasons": {
+"stop": {
+"n": 5793,
+"avg_net_pct": -18.205
+},
+"timeout": {
+"n": 9514,
+"avg_net_pct": 16.002
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h12_pv3__v1": {
+"pfnet": 1.427,
+"pfgross": 1.548,
+"win_pct": 45.7,
+"n": 15013,
+"avg_held_bars": 11.15,
+"avg_net_pct": 3.658,
+"max_trade_net_pct": 1981.7,
+"exit_reasons": {
+"timeout": {
+"n": 12378,
+"avg_net_pct": 9.814
+},
+"stop": {
+"n": 2635,
+"avg_net_pct": -25.259
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h26_pv3__v1": {
+"pfnet": 1.759,
+"pfgross": 1.875,
+"win_pct": 38.4,
+"n": 12720,
+"avg_held_bars": 17.28,
+"avg_net_pct": 8.044,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"stop": {
+"n": 6705,
+"avg_net_pct": -18.723
+},
+"timeout": {
+"n": 6015,
+"avg_net_pct": 37.882
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h26_pv3__v1": {
+"pfnet": 1.866,
+"pfgross": 1.974,
+"win_pct": 46.0,
+"n": 11846,
+"avg_held_bars": 21.68,
+"avg_net_pct": 9.794,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"stop": {
+"n": 3879,
+"avg_net_pct": -26.452
+},
+"timeout": {
+"n": 7967,
+"avg_net_pct": 27.441
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h8_pv5__v1": {
+"pfnet": 1.077,
+"pfgross": 1.189,
+"win_pct": 39.4,
+"n": 9368,
+"avg_held_bars": 6.86,
+"avg_net_pct": 0.605,
+"max_trade_net_pct": 1983.8,
+"exit_reasons": {
+"timeout": {
+"n": 6475,
+"avg_net_pct": 8.843
+},
+"stop": {
+"n": 2893,
+"avg_net_pct": -17.833
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h8_pv5__v1": {
+"pfnet": 1.127,
+"pfgross": 1.243,
+"win_pct": 41.7,
+"n": 9320,
+"avg_held_bars": 7.65,
+"avg_net_pct": 0.993,
+"max_trade_net_pct": 1983.8,
+"exit_reasons": {
+"timeout": {
+"n": 8227,
+"avg_net_pct": 4.305
+},
+"stop": {
+"n": 1093,
+"avg_net_pct": -23.933
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h12_pv5__v1": {
+"pfnet": 1.24,
+"pfgross": 1.349,
+"win_pct": 39.2,
+"n": 9068,
+"avg_held_bars": 9.49,
+"avg_net_pct": 2.138,
+"max_trade_net_pct": 1981.7,
+"exit_reasons": {
+"timeout": {
+"n": 5449,
+"avg_net_pct": 15.63
+},
+"stop": {
+"n": 3619,
+"avg_net_pct": -18.177
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h12_pv5__v1": {
+"pfnet": 1.3,
+"pfgross": 1.409,
+"win_pct": 43.0,
+"n": 8958,
+"avg_held_bars": 11.07,
+"avg_net_pct": 2.705,
+"max_trade_net_pct": 1981.7,
+"exit_reasons": {
+"timeout": {
+"n": 7282,
+"avg_net_pct": 9.08
+},
+"stop": {
+"n": 1676,
+"avg_net_pct": -24.995
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr2_h26_pv5__v1": {
+"pfnet": 1.651,
+"pfgross": 1.76,
+"win_pct": 36.2,
+"n": 7880,
+"avg_held_bars": 16.79,
+"avg_net_pct": 7.109,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"timeout": {
+"n": 3546,
+"avg_net_pct": 38.458
+},
+"stop": {
+"n": 4334,
+"avg_net_pct": -18.54
+}
+}
+},
+"oneil_volpct__surge__long__1w__atr3_h26_pv5__v1": {
+"pfnet": 1.765,
+"pfgross": 1.866,
+"win_pct": 44.0,
+"n": 7472,
+"avg_held_bars": 21.32,
+"avg_net_pct": 8.937,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"timeout": {
+"n": 4885,
+"avg_net_pct": 27.541
+},
+"stop": {
+"n": 2587,
+"avg_net_pct": -26.192
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_dryup__volume__long__1w____v1": {
+"pfnet": 1.633,
+"pfgross": 1.79,
+"win_pct": 50.2,
+"n": 4072,
+"avg_held_bars": 11.28,
+"avg_net_pct": 4.482,
+"max_trade_net_pct": 841.2,
+"exit_reasons": {
+"timeout": {
+"n": 3420,
+"avg_net_pct": 9.744
+},
+"stop": {
+"n": 652,
+"avg_net_pct": -23.118
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__long__1w__pr5__v1": {
+"pfnet": 1.933,
+"pfgross": 2.207,
+"win_pct": 52.5,
+"n": 2329,
+"avg_held_bars": 11.0,
+"avg_net_pct": 4.229,
+"max_trade_net_pct": 841.2,
+"exit_reasons": {
+"timeout": {
+"n": 1867,
+"avg_net_pct": 8.905
+},
+"stop": {
+"n": 462,
+"avg_net_pct": -14.664
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__long__1w__pr8__v1": {
+"pfnet": 1.711,
+"pfgross": 1.908,
+"win_pct": 51.5,
+"n": 7796,
+"avg_held_bars": 11.22,
+"avg_net_pct": 4.123,
+"max_trade_net_pct": 740.6,
+"exit_reasons": {
+"timeout": {
+"n": 6477,
+"avg_net_pct": 8.923
+},
+"stop": {
+"n": 1319,
+"avg_net_pct": -19.45
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_priorup__advance__long__1w__pa30__v1": {
+"pfnet": 1.805,
+"pfgross": 1.953,
+"win_pct": 50.2,
+"n": 1616,
+"avg_held_bars": 11.41,
+"avg_net_pct": 6.384,
+"max_trade_net_pct": 823.8,
+"exit_reasons": {
+"timeout": {
+"n": 1396,
+"avg_net_pct": 11.774
+},
+"stop": {
+"n": 220,
+"avg_net_pct": -27.822
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_overhead__supply__long__1w__ps30__v1": {
+"pfnet": 1.769,
+"pfgross": 1.94,
+"win_pct": 51.6,
+"n": 12194,
+"avg_held_bars": 11.29,
+"avg_net_pct": 5.207,
+"max_trade_net_pct": 1634.3,
+"exit_reasons": {
+"timeout": {
+"n": 10288,
+"avg_net_pct": 10.467
+},
+"stop": {
+"n": 1906,
+"avg_net_pct": -23.187
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__long__1w__pk1d25__v1": {
+"pfnet": 1.791,
+"pfgross": 1.97,
+"win_pct": 51.6,
+"n": 12767,
+"avg_held_bars": 11.29,
+"avg_net_pct": 5.17,
+"max_trade_net_pct": 1634.3,
+"exit_reasons": {
+"timeout": {
+"n": 10768,
+"avg_net_pct": 10.285
+},
+"stop": {
+"n": 1999,
+"avg_net_pct": -22.384
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__long__1w__pk1d5__v1": {
+"pfnet": 1.797,
+"pfgross": 1.976,
+"win_pct": 51.5,
+"n": 13120,
+"avg_held_bars": 11.3,
+"avg_net_pct": 5.214,
+"max_trade_net_pct": 1634.3,
+"exit_reasons": {
+"timeout": {
+"n": 11084,
+"avg_net_pct": 10.295
+},
+"stop": {
+"n": 2036,
+"avg_net_pct": -22.448
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__long__1w__pk1d75__v1": {
+"pfnet": 1.785,
+"pfgross": 1.963,
+"win_pct": 51.5,
+"n": 13443,
+"avg_held_bars": 11.29,
+"avg_net_pct": 5.161,
+"max_trade_net_pct": 1634.3,
+"exit_reasons": {
+"timeout": {
+"n": 11353,
+"avg_net_pct": 10.252
+},
+"stop": {
+"n": 2090,
+"avg_net_pct": -22.495
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__long__1w__pk2d0__v1": {
+"pfnet": 1.754,
+"pfgross": 1.928,
+"win_pct": 51.3,
+"n": 13713,
+"avg_held_bars": 11.29,
+"avg_net_pct": 5.012,
+"max_trade_net_pct": 1634.3,
+"exit_reasons": {
+"timeout": {
+"n": 11571,
+"avg_net_pct": 10.124
+},
+"stop": {
+"n": 2142,
+"avg_net_pct": -22.601
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmbase__v1": {
+"pfnet": 2.144,
+"pfgross": 2.285,
+"win_pct": 50.7,
+"n": 10954,
+"avg_held_bars": 22.12,
+"avg_net_pct": 10.591,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 3371,
+"avg_net_pct": -23.994
+},
+"timeout": {
+"n": 7583,
+"avg_net_pct": 25.965
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmsc__v1": {
+"pfnet": 1.793,
+"pfgross": 2.032,
+"win_pct": 28.7,
+"n": 13051,
+"avg_held_bars": 12.78,
+"avg_net_pct": 4.589,
+"max_trade_net_pct": 892.6,
+"exit_reasons": {
+"stop+half5": {
+"n": 8717,
+"avg_net_pct": -8.45
+},
+"timeout+half5": {
+"n": 2126,
+"avg_net_pct": 13.029
+},
+"timeout": {
+"n": 2208,
+"avg_net_pct": 47.941
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmbelock15__v1": {
+"pfnet": 2.163,
+"pfgross": 2.381,
+"win_pct": 33.0,
+"n": 11695,
+"avg_held_bars": 17.63,
+"avg_net_pct": 8.189,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 2813,
+"avg_net_pct": -23.794
+},
+"trail_stop": {
+"n": 4064,
+"avg_net_pct": -1.154
+},
+"timeout": {
+"n": 4818,
+"avg_net_pct": 34.743
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmbelock20__v1": {
+"pfnet": 2.152,
+"pfgross": 2.338,
+"win_pct": 38.4,
+"n": 11358,
+"avg_held_bars": 19.39,
+"avg_net_pct": 9.017,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 3016,
+"avg_net_pct": -23.93
+},
+"trail_stop": {
+"n": 2727,
+"avg_net_pct": -1.092
+},
+"timeout": {
+"n": 5615,
+"avg_net_pct": 31.623
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmma10w__v1": {
+"pfnet": 2.111,
+"pfgross": 2.293,
+"win_pct": 43.9,
+"n": 12206,
+"avg_held_bars": 16.41,
+"avg_net_pct": 8.353,
+"max_trade_net_pct": 1502.8,
+"exit_reasons": {
+"ma10w": {
+"n": 7633,
+"avg_net_pct": 0.361
+},
+"timeout": {
+"n": 2946,
+"avg_net_pct": 46.856
+},
+"stop": {
+"n": 1627,
+"avg_net_pct": -23.866
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmma200trend__v1": {
+"pfnet": 2.227,
+"pfgross": 2.4,
+"win_pct": 44.6,
+"n": 11534,
+"avg_held_bars": 19.0,
+"avg_net_pct": 10.051,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"ma200trend": {
+"n": 3186,
+"avg_net_pct": -11.635
+},
+"timeout": {
+"n": 6285,
+"avg_net_pct": 31.881
+},
+"stop": {
+"n": 2063,
+"avg_net_pct": -22.963
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmma200ext70__v1": {
+"pfnet": 1.91,
+"pfgross": 2.043,
+"win_pct": 51.7,
+"n": 11207,
+"avg_held_bars": 20.14,
+"avg_net_pct": 8.246,
+"max_trade_net_pct": 1865.3,
+"exit_reasons": {
+"stop": {
+"n": 3375,
+"avg_net_pct": -24.029
+},
+"timeout": {
+"n": 6324,
+"avg_net_pct": 13.925
+},
+"ma200ext": {
+"n": 1508,
+"avg_net_pct": 56.667
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmma200ext100__v1": {
+"pfnet": 2.049,
+"pfgross": 2.186,
+"win_pct": 50.9,
+"n": 11008,
+"avg_held_bars": 21.48,
+"avg_net_pct": 9.669,
+"max_trade_net_pct": 1865.3,
+"exit_reasons": {
+"stop": {
+"n": 3371,
+"avg_net_pct": -24.012
+},
+"timeout": {
+"n": 7118,
+"avg_net_pct": 19.09
+},
+"ma200ext": {
+"n": 519,
+"avg_net_pct": 99.234
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmclimaxrun__v1": {
+"pfnet": 1.858,
+"pfgross": 1.997,
+"win_pct": 57.1,
+"n": 11782,
+"avg_held_bars": 16.78,
+"avg_net_pct": 7.021,
+"max_trade_net_pct": 1865.3,
+"exit_reasons": {
+"stop": {
+"n": 3310,
+"avg_net_pct": -23.949
+},
+"climaxrun": {
+"n": 4096,
+"avg_net_pct": 30.051
+},
+"timeout": {
+"n": 4376,
+"avg_net_pct": 8.89
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmclimaxvol__v1": {
+"pfnet": 2.069,
+"pfgross": 2.211,
+"win_pct": 55.4,
+"n": 11513,
+"avg_held_bars": 19.49,
+"avg_net_pct": 9.237,
+"max_trade_net_pct": 1584.5,
+"exit_reasons": {
+"stop": {
+"n": 3402,
+"avg_net_pct": -24.004
+},
+"climaxvol": {
+"n": 3570,
+"avg_net_pct": 28.904
+},
+"timeout": {
+"n": 4541,
+"avg_net_pct": 18.677
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmexhaust__v1": {
+"pfnet": 2.029,
+"pfgross": 2.17,
+"win_pct": 57.0,
+"n": 11707,
+"avg_held_bars": 18.84,
+"avg_net_pct": 8.723,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 3427,
+"avg_net_pct": -24.073
+},
+"exhaust": {
+"n": 4354,
+"avg_net_pct": 25.949
+},
+"timeout": {
+"n": 3926,
+"avg_net_pct": 18.246
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmgapup__v1": {
+"pfnet": 1.975,
+"pfgross": 2.13,
+"win_pct": 53.6,
+"n": 11900,
+"avg_held_bars": 17.25,
+"avg_net_pct": 7.623,
+"max_trade_net_pct": 1767.7,
+"exit_reasons": {
+"stop": {
+"n": 2983,
+"avg_net_pct": -23.407
+},
+"timeout": {
+"n": 4886,
+"avg_net_pct": 17.852
+},
+"gapup": {
+"n": 4031,
+"avg_net_pct": 18.186
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmchurn__v1": {
+"pfnet": 1.969,
+"pfgross": 2.139,
+"win_pct": 52.6,
+"n": 12616,
+"avg_held_bars": 15.39,
+"avg_net_pct": 6.971,
+"max_trade_net_pct": 1531.0,
+"exit_reasons": {
+"stop": {
+"n": 2719,
+"avg_net_pct": -23.742
+},
+"churn": {
+"n": 6780,
+"avg_net_pct": 10.388
+},
+"timeout": {
+"n": 3117,
+"avg_net_pct": 26.331
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmlowclose__v1": {
+"pfnet": 2.17,
+"pfgross": 2.37,
+"win_pct": 45.3,
+"n": 12570,
+"avg_held_bars": 14.67,
+"avg_net_pct": 8.154,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"lowclose": {
+"n": 8356,
+"avg_net_pct": 2.321
+},
+"timeout": {
+"n": 2742,
+"avg_net_pct": 42.399
+},
+"stop": {
+"n": 1472,
+"avg_net_pct": -22.519
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmfailrally__v1": {
+"pfnet": 1.938,
+"pfgross": 2.127,
+"win_pct": 48.9,
+"n": 13302,
+"avg_held_bars": 13.05,
+"avg_net_pct": 6.213,
+"max_trade_net_pct": 1531.0,
+"exit_reasons": {
+"failrally": {
+"n": 9436,
+"avg_net_pct": 7.639
+},
+"timeout": {
+"n": 1715,
+"avg_net_pct": 35.849
+},
+"stop": {
+"n": 2151,
+"avg_net_pct": -23.674
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmbigbreak__v1": {
+"pfnet": 2.14,
+"pfgross": 2.285,
+"win_pct": 51.0,
+"n": 11093,
+"avg_held_bars": 21.16,
+"avg_net_pct": 10.199,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 3220,
+"avg_net_pct": -24.07
+},
+"bigbreak": {
+"n": 929,
+"avg_net_pct": 11.524
+},
+"timeout": {
+"n": 6944,
+"avg_net_pct": 25.913
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmddpk12__v1": {
+"pfnet": 1.832,
+"pfgross": 2.061,
+"win_pct": 43.4,
+"n": 13806,
+"avg_held_bars": 9.56,
+"avg_net_pct": 4.628,
+"max_trade_net_pct": 930.0,
+"exit_reasons": {
+"ddpk": {
+"n": 12431,
+"avg_net_pct": 4.08
+},
+"timeout": {
+"n": 819,
+"avg_net_pct": 29.369
+},
+"stop": {
+"n": 556,
+"avg_net_pct": -19.558
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmddpk15__v1": {
+"pfnet": 2.017,
+"pfgross": 2.228,
+"win_pct": 44.9,
+"n": 12871,
+"avg_held_bars": 12.39,
+"avg_net_pct": 6.46,
+"max_trade_net_pct": 930.0,
+"exit_reasons": {
+"ddpk": {
+"n": 10361,
+"avg_net_pct": 4.077
+},
+"timeout": {
+"n": 1694,
+"avg_net_pct": 33.43
+},
+"stop": {
+"n": 816,
+"avg_net_pct": -19.275
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmgiveback__v1": {
+"pfnet": 2.17,
+"pfgross": 2.33,
+"win_pct": 54.8,
+"n": 11389,
+"avg_held_bars": 19.33,
+"avg_net_pct": 9.291,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 3057,
+"avg_net_pct": -23.958
+},
+"timeout": {
+"n": 5301,
+"avg_net_pct": 32.388
+},
+"giveback": {
+"n": 3031,
+"avg_net_pct": 2.433
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmnobounce__v1": {
+"pfnet": 2.133,
+"pfgross": 2.303,
+"win_pct": 46.7,
+"n": 11792,
+"avg_held_bars": 17.8,
+"avg_net_pct": 9.015,
+"max_trade_net_pct": 1796.0,
+"exit_reasons": {
+"nobounce": {
+"n": 5596,
+"avg_net_pct": -0.055
+},
+"timeout": {
+"n": 4266,
+"avg_net_pct": 35.294
+},
+"stop": {
+"n": 1930,
+"avg_net_pct": -22.775
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmrswarn70__v1": {
+"pfnet": 2.007,
+"pfgross": 2.192,
+"win_pct": 47.0,
+"n": 12772,
+"avg_held_bars": 14.72,
+"avg_net_pct": 7.029,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"rswarn": {
+"n": 7419,
+"avg_net_pct": -0.279
+},
+"timeout": {
+"n": 3439,
+"avg_net_pct": 40.092
+},
+"stop": {
+"n": 1914,
+"avg_net_pct": -24.049
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmrs50__v1": {
+"pfnet": 1.934,
+"pfgross": 2.146,
+"win_pct": 42.6,
+"n": 13670,
+"avg_held_bars": 12.03,
+"avg_net_pct": 5.784,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"rs50": {
+"n": 8717,
+"avg_net_pct": -2.595
+},
+"timeout": {
+"n": 3495,
+"avg_net_pct": 38.703
+},
+"stop": {
+"n": 1458,
+"avg_net_pct": -23.027
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmrs30__v1": {
+"pfnet": 2.016,
+"pfgross": 2.188,
+"win_pct": 44.8,
+"n": 12372,
+"avg_held_bars": 16.48,
+"avg_net_pct": 7.772,
+"max_trade_net_pct": 1682.1,
+"exit_reasons": {
+"stop": {
+"n": 2230,
+"avg_net_pct": -23.493
+},
+"rs30": {
+"n": 4836,
+"avg_net_pct": -4.517
+},
+"timeout": {
+"n": 5306,
+"avg_net_pct": 32.114
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h18_xmdull65__v1": {
+"pfnet": 1.905,
+"pfgross": 2.07,
+"win_pct": 49.7,
+"n": 12937,
+"avg_held_bars": 15.24,
+"avg_net_pct": 6.709,
+"max_trade_net_pct": 2175.6,
+"exit_reasons": {
+"timeout": {
+"n": 7645,
+"avg_net_pct": 20.347
+},
+"dull": {
+"n": 2503,
+"avg_net_pct": -0.993
+},
+"stop": {
+"n": 2789,
+"avg_net_pct": -23.761
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h31_xmsix125__v1": {
+"pfnet": 2.409,
+"pfgross": 2.565,
+"win_pct": 45.2,
+"n": 10175,
+"avg_held_bars": 24.47,
+"avg_net_pct": 13.394,
+"max_trade_net_pct": 1851.4,
+"exit_reasons": {
+"stop": {
+"n": 3167,
+"avg_net_pct": -23.949
+},
+"timeout": {
+"n": 4625,
+"avg_net_pct": 50.381
+},
+"six_month_loser": {
+"n": 2383,
+"avg_net_pct": -8.762
+}
+}
+},
+"oneil_pivot__exit__long__1w__atr3_chase10_h26_xmnoearly40__v1": {
+"pfnet": 1.708,
+"pfgross": 1.838,
+"win_pct": 58.9,
+"n": 12571,
+"avg_held_bars": 15.21,
+"avg_net_pct": 5.865,
+"max_trade_net_pct": 1683.3,
+"exit_reasons": {
+"stop": {
+"n": 3589,
+"avg_net_pct": -24.227
+},
+"target": {
+"n": 6663,
+"avg_net_pct": 25.989
+},
+"timeout": {
+"n": 2319,
+"avg_net_pct": -5.383
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h8_pm1__v1": {
+"pfnet": 0.752,
+"pfgross": 0.856,
+"win_pct": 48.2,
+"n": 9091,
+"avg_held_bars": 6.93,
+"avg_net_pct": -1.765,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"timeout": {
+"n": 6357,
+"avg_net_pct": 5.94
+},
+"stop": {
+"n": 2734,
+"avg_net_pct": -19.68
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h8_pm1__v1": {
+"pfnet": 0.732,
+"pfgross": 0.829,
+"win_pct": 50.1,
+"n": 8941,
+"avg_held_bars": 7.51,
+"avg_net_pct": -2.022,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"timeout": {
+"n": 7443,
+"avg_net_pct": 3.513
+},
+"stop": {
+"n": 1498,
+"avg_net_pct": -29.521
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h12_pm1__v1": {
+"pfnet": 0.651,
+"pfgross": 0.729,
+"win_pct": 44.1,
+"n": 8849,
+"avg_held_bars": 9.55,
+"avg_net_pct": -3.06,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"timeout": {
+"n": 5288,
+"avg_net_pct": 8.106
+},
+"stop": {
+"n": 3561,
+"avg_net_pct": -19.642
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h12_pm1__v1": {
+"pfnet": 0.619,
+"pfgross": 0.689,
+"win_pct": 47.4,
+"n": 8634,
+"avg_held_bars": 10.68,
+"avg_net_pct": -3.685,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"timeout": {
+"n": 6421,
+"avg_net_pct": 5.135
+},
+"stop": {
+"n": 2213,
+"avg_net_pct": -29.274
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h26_pm1__v1": {
+"pfnet": 0.62,
+"pfgross": 0.674,
+"win_pct": 36.0,
+"n": 8041,
+"avg_held_bars": 16.5,
+"avg_net_pct": -4.484,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 4649,
+"avg_net_pct": -19.838
+},
+"timeout": {
+"n": 3392,
+"avg_net_pct": 16.56
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h26_pm1__v1": {
+"pfnet": 0.578,
+"pfgross": 0.622,
+"win_pct": 41.9,
+"n": 7701,
+"avg_held_bars": 19.62,
+"avg_net_pct": -5.997,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 3441,
+"avg_net_pct": -29.251
+},
+"timeout": {
+"n": 4260,
+"avg_net_pct": 12.786
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h8_pm2__v1": {
+"pfnet": 1.205,
+"pfgross": 1.386,
+"win_pct": 50.9,
+"n": 888,
+"avg_held_bars": 7.19,
+"avg_net_pct": 1.082,
+"max_trade_net_pct": 85.4,
+"exit_reasons": {
+"timeout": {
+"n": 693,
+"avg_net_pct": 6.088
+},
+"stop": {
+"n": 195,
+"avg_net_pct": -16.71
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h8_pm2__v1": {
+"pfnet": 1.194,
+"pfgross": 1.368,
+"win_pct": 52.5,
+"n": 888,
+"avg_held_bars": 7.65,
+"avg_net_pct": 1.043,
+"max_trade_net_pct": 85.4,
+"exit_reasons": {
+"timeout": {
+"n": 783,
+"avg_net_pct": 4.424
+},
+"stop": {
+"n": 105,
+"avg_net_pct": -24.168
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h12_pm2__v1": {
+"pfnet": 1.014,
+"pfgross": 1.141,
+"win_pct": 49.0,
+"n": 879,
+"avg_held_bars": 10.17,
+"avg_net_pct": 0.096,
+"max_trade_net_pct": 90.2,
+"exit_reasons": {
+"timeout": {
+"n": 598,
+"avg_net_pct": 8.314
+},
+"stop": {
+"n": 281,
+"avg_net_pct": -17.394
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h12_pm2__v1": {
+"pfnet": 0.994,
+"pfgross": 1.114,
+"win_pct": 51.7,
+"n": 877,
+"avg_held_bars": 11.08,
+"avg_net_pct": -0.044,
+"max_trade_net_pct": 90.2,
+"exit_reasons": {
+"timeout": {
+"n": 720,
+"avg_net_pct": 5.358
+},
+"stop": {
+"n": 157,
+"avg_net_pct": -24.818
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr2_h26_pm2__v1": {
+"pfnet": 0.765,
+"pfgross": 0.837,
+"win_pct": 37.9,
+"n": 855,
+"avg_held_bars": 18.16,
+"avg_net_pct": -2.342,
+"max_trade_net_pct": 88.1,
+"exit_reasons": {
+"stop": {
+"n": 444,
+"avg_net_pct": -17.908
+},
+"timeout": {
+"n": 411,
+"avg_net_pct": 14.473
+}
+}
+},
+"oneil_shakeout__plus3__short__1w__atr3_h26_pm2__v1": {
+"pfnet": 0.741,
+"pfgross": 0.804,
+"win_pct": 44.7,
+"n": 848,
+"avg_held_bars": 21.13,
+"avg_net_pct": -2.921,
+"max_trade_net_pct": 88.1,
+"exit_reasons": {
+"timeout": {
+"n": 532,
+"avg_net_pct": 10.81
+},
+"stop": {
+"n": 316,
+"avg_net_pct": -26.037
+}
+}
+},
+"oneil_trendline__break__short__1w__atr2_h8__v1": {
+"pfnet": 0.61,
+"pfgross": 0.695,
+"win_pct": 44.9,
+"n": 27458,
+"avg_held_bars": 6.93,
+"avg_net_pct": -3.076,
+"max_trade_net_pct": 98.1,
+"exit_reasons": {
+"stop": {
+"n": 8534,
+"avg_net_pct": -20.686
+},
+"timeout": {
+"n": 18924,
+"avg_net_pct": 4.866
+}
+}
+},
+"oneil_trendline__break__short__1w__atr3_h8__v1": {
+"pfnet": 0.6,
+"pfgross": 0.68,
+"win_pct": 46.6,
+"n": 26865,
+"avg_held_bars": 7.52,
+"avg_net_pct": -3.302,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"timeout": {
+"n": 22367,
+"avg_net_pct": 2.137
+},
+"stop": {
+"n": 4498,
+"avg_net_pct": -30.352
+}
+}
+},
+"oneil_trendline__break__short__1w__atr2_h12__v1": {
+"pfnet": 0.565,
+"pfgross": 0.631,
+"win_pct": 42.0,
+"n": 25674,
+"avg_held_bars": 9.5,
+"avg_net_pct": -4.194,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 10616,
+"avg_net_pct": -20.836
+},
+"timeout": {
+"n": 15058,
+"avg_net_pct": 7.539
+}
+}
+},
+"oneil_trendline__break__short__1w__atr3_h12__v1": {
+"pfnet": 0.55,
+"pfgross": 0.611,
+"win_pct": 45.4,
+"n": 24601,
+"avg_held_bars": 10.7,
+"avg_net_pct": -4.68,
+"max_trade_net_pct": 90.5,
+"exit_reasons": {
+"stop": {
+"n": 6269,
+"avg_net_pct": -30.41
+},
+"timeout": {
+"n": 18332,
+"avg_net_pct": 4.119
+}
+}
+},
+"oneil_trendline__break__short__1w__atr2_h26__v1": {
+"pfnet": 0.515,
+"pfgross": 0.558,
+"win_pct": 33.8,
+"n": 21013,
+"avg_held_bars": 16.22,
+"avg_net_pct": -6.399,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 12536,
+"avg_net_pct": -21.439
+},
+"timeout": {
+"n": 8477,
+"avg_net_pct": 15.841
+}
+}
+},
+"oneil_trendline__break__short__1w__atr3_h26__v1": {
+"pfnet": 0.484,
+"pfgross": 0.52,
+"win_pct": 39.7,
+"n": 19116,
+"avg_held_bars": 19.58,
+"avg_net_pct": -8.12,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 8766,
+"avg_net_pct": -31.325
+},
+"timeout": {
+"n": 10350,
+"avg_net_pct": 11.533
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr2_h8__v1": {
+"pfnet": 0.76,
+"pfgross": 0.857,
+"win_pct": 49.1,
+"n": 3816,
+"avg_held_bars": 7.1,
+"avg_net_pct": -1.846,
+"max_trade_net_pct": 56.6,
+"exit_reasons": {
+"timeout": {
+"n": 2809,
+"avg_net_pct": 5.576
+},
+"stop": {
+"n": 1007,
+"avg_net_pct": -22.548
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr3_h8__v1": {
+"pfnet": 0.843,
+"pfgross": 0.953,
+"win_pct": 51.1,
+"n": 3799,
+"avg_held_bars": 7.7,
+"avg_net_pct": -1.117,
+"max_trade_net_pct": 56.6,
+"exit_reasons": {
+"timeout": {
+"n": 3384,
+"avg_net_pct": 2.532
+},
+"stop": {
+"n": 415,
+"avg_net_pct": -30.866
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr2_h12__v1": {
+"pfnet": 0.753,
+"pfgross": 0.829,
+"win_pct": 47.8,
+"n": 3559,
+"avg_held_bars": 9.9,
+"avg_net_pct": -2.362,
+"max_trade_net_pct": 91.5,
+"exit_reasons": {
+"timeout": {
+"n": 2297,
+"avg_net_pct": 9.237
+},
+"stop": {
+"n": 1262,
+"avg_net_pct": -23.475
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr3_h12__v1": {
+"pfnet": 0.831,
+"pfgross": 0.915,
+"win_pct": 51.8,
+"n": 3516,
+"avg_held_bars": 11.17,
+"avg_net_pct": -1.551,
+"max_trade_net_pct": 91.5,
+"exit_reasons": {
+"timeout": {
+"n": 2890,
+"avg_net_pct": 5.194
+},
+"stop": {
+"n": 626,
+"avg_net_pct": -32.691
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr2_h26__v1": {
+"pfnet": 0.677,
+"pfgross": 0.73,
+"win_pct": 41.5,
+"n": 3097,
+"avg_held_bars": 17.85,
+"avg_net_pct": -4.125,
+"max_trade_net_pct": 79.9,
+"exit_reasons": {
+"timeout": {
+"n": 1513,
+"avg_net_pct": 16.631
+},
+"stop": {
+"n": 1584,
+"avg_net_pct": -23.952
+}
+}
+},
+"oneil_pullback__buy__short__1w__atr3_h26__v1": {
+"pfnet": 0.751,
+"pfgross": 0.805,
+"win_pct": 49.3,
+"n": 2991,
+"avg_held_bars": 21.61,
+"avg_net_pct": -3.312,
+"max_trade_net_pct": 89.0,
+"exit_reasons": {
+"timeout": {
+"n": 2000,
+"avg_net_pct": 11.978
+},
+"stop": {
+"n": 991,
+"avg_net_pct": -34.171
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h8_px2__v1": {
+"pfnet": 0.658,
+"pfgross": 0.742,
+"win_pct": 46.9,
+"n": 50433,
+"avg_held_bars": 6.92,
+"avg_net_pct": -2.792,
+"max_trade_net_pct": 91.1,
+"exit_reasons": {
+"stop": {
+"n": 15559,
+"avg_net_pct": -21.701
+},
+"timeout": {
+"n": 34874,
+"avg_net_pct": 5.644
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h8_px2__v1": {
+"pfnet": 0.635,
+"pfgross": 0.715,
+"win_pct": 48.5,
+"n": 48369,
+"avg_held_bars": 7.5,
+"avg_net_pct": -3.121,
+"max_trade_net_pct": 91.1,
+"exit_reasons": {
+"timeout": {
+"n": 40152,
+"avg_net_pct": 2.683
+},
+"stop": {
+"n": 8217,
+"avg_net_pct": -31.48
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h12_px2__v1": {
+"pfnet": 0.63,
+"pfgross": 0.698,
+"win_pct": 44.2,
+"n": 43081,
+"avg_held_bars": 9.49,
+"avg_net_pct": -3.638,
+"max_trade_net_pct": 90.0,
+"exit_reasons": {
+"stop": {
+"n": 17616,
+"avg_net_pct": -21.735
+},
+"timeout": {
+"n": 25465,
+"avg_net_pct": 8.881
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h12_px2__v1": {
+"pfnet": 0.608,
+"pfgross": 0.67,
+"win_pct": 47.6,
+"n": 40163,
+"avg_held_bars": 10.64,
+"avg_net_pct": -4.201,
+"max_trade_net_pct": 92.2,
+"exit_reasons": {
+"timeout": {
+"n": 29671,
+"avg_net_pct": 5.488
+},
+"stop": {
+"n": 10492,
+"avg_net_pct": -31.603
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h26_px2__v1": {
+"pfnet": 0.572,
+"pfgross": 0.617,
+"win_pct": 34.7,
+"n": 30706,
+"avg_held_bars": 16.16,
+"avg_net_pct": -5.744,
+"max_trade_net_pct": 93.0,
+"exit_reasons": {
+"stop": {
+"n": 18408,
+"avg_net_pct": -21.796
+},
+"timeout": {
+"n": 12298,
+"avg_net_pct": 18.284
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h26_px2__v1": {
+"pfnet": 0.55,
+"pfgross": 0.588,
+"win_pct": 41.4,
+"n": 27045,
+"avg_held_bars": 19.45,
+"avg_net_pct": -7.144,
+"max_trade_net_pct": 92.7,
+"exit_reasons": {
+"timeout": {
+"n": 14622,
+"avg_net_pct": 13.748
+},
+"stop": {
+"n": 12423,
+"avg_net_pct": -31.735
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h8_px3__v1": {
+"pfnet": 0.673,
+"pfgross": 0.758,
+"win_pct": 47.5,
+"n": 41589,
+"avg_held_bars": 6.96,
+"avg_net_pct": -2.695,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"stop": {
+"n": 12413,
+"avg_net_pct": -22.499
+},
+"timeout": {
+"n": 29176,
+"avg_net_pct": 5.731
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h8_px3__v1": {
+"pfnet": 0.656,
+"pfgross": 0.737,
+"win_pct": 49.0,
+"n": 40093,
+"avg_held_bars": 7.52,
+"avg_net_pct": -2.955,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"timeout": {
+"n": 33554,
+"avg_net_pct": 2.808
+},
+"stop": {
+"n": 6539,
+"avg_net_pct": -32.528
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h12_px3__v1": {
+"pfnet": 0.644,
+"pfgross": 0.712,
+"win_pct": 44.9,
+"n": 36293,
+"avg_held_bars": 9.57,
+"avg_net_pct": -3.526,
+"max_trade_net_pct": 90.0,
+"exit_reasons": {
+"stop": {
+"n": 14456,
+"avg_net_pct": -22.408
+},
+"timeout": {
+"n": 21837,
+"avg_net_pct": 8.974
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h12_px3__v1": {
+"pfnet": 0.623,
+"pfgross": 0.686,
+"win_pct": 48.3,
+"n": 34145,
+"avg_held_bars": 10.7,
+"avg_net_pct": -4.039,
+"max_trade_net_pct": 90.0,
+"exit_reasons": {
+"timeout": {
+"n": 25576,
+"avg_net_pct": 5.528
+},
+"stop": {
+"n": 8569,
+"avg_net_pct": -32.595
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h26_px3__v1": {
+"pfnet": 0.591,
+"pfgross": 0.636,
+"win_pct": 35.9,
+"n": 26704,
+"avg_held_bars": 16.44,
+"avg_net_pct": -5.56,
+"max_trade_net_pct": 93.0,
+"exit_reasons": {
+"stop": {
+"n": 15683,
+"avg_net_pct": -22.538
+},
+"timeout": {
+"n": 11021,
+"avg_net_pct": 18.6
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h26_px3__v1": {
+"pfnet": 0.559,
+"pfgross": 0.597,
+"win_pct": 42.1,
+"n": 23927,
+"avg_held_bars": 19.63,
+"avg_net_pct": -7.113,
+"max_trade_net_pct": 92.7,
+"exit_reasons": {
+"timeout": {
+"n": 13117,
+"avg_net_pct": 14.022
+},
+"stop": {
+"n": 10810,
+"avg_net_pct": -32.759
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h8_px5__v1": {
+"pfnet": 0.688,
+"pfgross": 0.77,
+"win_pct": 47.8,
+"n": 26056,
+"avg_held_bars": 7.01,
+"avg_net_pct": -2.692,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"stop": {
+"n": 7391,
+"avg_net_pct": -24.305
+},
+"timeout": {
+"n": 18665,
+"avg_net_pct": 5.866
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h8_px5__v1": {
+"pfnet": 0.678,
+"pfgross": 0.757,
+"win_pct": 49.4,
+"n": 25422,
+"avg_held_bars": 7.55,
+"avg_net_pct": -2.862,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"timeout": {
+"n": 21548,
+"avg_net_pct": 2.925
+},
+"stop": {
+"n": 3874,
+"avg_net_pct": -35.051
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h12_px5__v1": {
+"pfnet": 0.656,
+"pfgross": 0.721,
+"win_pct": 46.0,
+"n": 23643,
+"avg_held_bars": 9.7,
+"avg_net_pct": -3.563,
+"max_trade_net_pct": 89.4,
+"exit_reasons": {
+"stop": {
+"n": 9024,
+"avg_net_pct": -24.203
+},
+"timeout": {
+"n": 14619,
+"avg_net_pct": 9.178
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h12_px5__v1": {
+"pfnet": 0.642,
+"pfgross": 0.704,
+"win_pct": 49.2,
+"n": 22633,
+"avg_held_bars": 10.79,
+"avg_net_pct": -3.935,
+"max_trade_net_pct": 89.4,
+"exit_reasons": {
+"stop": {
+"n": 5324,
+"avg_net_pct": -35.043
+},
+"timeout": {
+"n": 17309,
+"avg_net_pct": 5.634
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr2_h26_px5__v1": {
+"pfnet": 0.607,
+"pfgross": 0.651,
+"win_pct": 37.2,
+"n": 18615,
+"avg_held_bars": 16.84,
+"avg_net_pct": -5.593,
+"max_trade_net_pct": 93.0,
+"exit_reasons": {
+"stop": {
+"n": 10656,
+"avg_net_pct": -24.143
+},
+"timeout": {
+"n": 7959,
+"avg_net_pct": 19.243
+}
+}
+},
+"oneil_abnormal__strength__short__1w__atr3_h26_px5__v1": {
+"pfnet": 0.571,
+"pfgross": 0.608,
+"win_pct": 42.9,
+"n": 17185,
+"avg_held_bars": 19.97,
+"avg_net_pct": -7.194,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 7512,
+"avg_net_pct": -34.921
+},
+"timeout": {
+"n": 9673,
+"avg_net_pct": 14.338
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr2_h8__v1": {
+"pfnet": 0.594,
+"pfgross": 0.666,
+"win_pct": 45.3,
+"n": 3051,
+"avg_held_bars": 7.06,
+"avg_net_pct": -3.714,
+"max_trade_net_pct": 75.3,
+"exit_reasons": {
+"stop": {
+"n": 841,
+"avg_net_pct": -24.749
+},
+"timeout": {
+"n": 2210,
+"avg_net_pct": 4.29
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr3_h8__v1": {
+"pfnet": 0.651,
+"pfgross": 0.731,
+"win_pct": 47.3,
+"n": 3051,
+"avg_held_bars": 7.7,
+"avg_net_pct": -2.991,
+"max_trade_net_pct": 75.3,
+"exit_reasons": {
+"timeout": {
+"n": 2713,
+"avg_net_pct": 0.896
+},
+"stop": {
+"n": 338,
+"avg_net_pct": -34.189
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr2_h12__v1": {
+"pfnet": 0.477,
+"pfgross": 0.523,
+"win_pct": 40.3,
+"n": 2959,
+"avg_held_bars": 9.83,
+"avg_net_pct": -6.495,
+"max_trade_net_pct": 65.5,
+"exit_reasons": {
+"stop": {
+"n": 1077,
+"avg_net_pct": -27.889
+},
+"timeout": {
+"n": 1882,
+"avg_net_pct": 5.747
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr3_h12__v1": {
+"pfnet": 0.49,
+"pfgross": 0.537,
+"win_pct": 42.9,
+"n": 2959,
+"avg_held_bars": 11.17,
+"avg_net_pct": -6.395,
+"max_trade_net_pct": 89.9,
+"exit_reasons": {
+"timeout": {
+"n": 2446,
+"avg_net_pct": 0.289
+},
+"stop": {
+"n": 513,
+"avg_net_pct": -38.266
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr2_h26__v1": {
+"pfnet": 0.319,
+"pfgross": 0.344,
+"win_pct": 31.5,
+"n": 2946,
+"avg_held_bars": 17.07,
+"avg_net_pct": -12.051,
+"max_trade_net_pct": 75.7,
+"exit_reasons": {
+"stop": {
+"n": 1729,
+"avg_net_pct": -28.755
+},
+"timeout": {
+"n": 1217,
+"avg_net_pct": 11.679
+}
+}
+},
+"oneil_leaders__firsthigh__short__1w__atr3_h26__v1": {
+"pfnet": 0.312,
+"pfgross": 0.336,
+"win_pct": 37.2,
+"n": 2943,
+"avg_held_bars": 21.2,
+"avg_net_pct": -13.902,
+"max_trade_net_pct": 90.7,
+"exit_reasons": {
+"timeout": {
+"n": 1778,
+"avg_net_pct": 5.371
+},
+"stop": {
+"n": 1165,
+"avg_net_pct": -43.316
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr2_h8__v1": {
+"pfnet": 0.695,
+"pfgross": 0.788,
+"win_pct": 47.7,
+"n": 12390,
+"avg_held_bars": 7.02,
+"avg_net_pct": -2.328,
+"max_trade_net_pct": 82.9,
+"exit_reasons": {
+"stop": {
+"n": 3439,
+"avg_net_pct": -21.33
+},
+"timeout": {
+"n": 8951,
+"avg_net_pct": 4.972
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr3_h8__v1": {
+"pfnet": 0.713,
+"pfgross": 0.809,
+"win_pct": 49.5,
+"n": 12242,
+"avg_held_bars": 7.6,
+"avg_net_pct": -2.168,
+"max_trade_net_pct": 82.9,
+"exit_reasons": {
+"stop": {
+"n": 1634,
+"avg_net_pct": -30.205
+},
+"timeout": {
+"n": 10608,
+"avg_net_pct": 2.15
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr2_h12__v1": {
+"pfnet": 0.689,
+"pfgross": 0.765,
+"win_pct": 46.2,
+"n": 11039,
+"avg_held_bars": 9.77,
+"avg_net_pct": -2.868,
+"max_trade_net_pct": 74.8,
+"exit_reasons": {
+"stop": {
+"n": 4039,
+"avg_net_pct": -21.899
+},
+"timeout": {
+"n": 7000,
+"avg_net_pct": 8.114
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr3_h12__v1": {
+"pfnet": 0.702,
+"pfgross": 0.777,
+"win_pct": 49.6,
+"n": 10798,
+"avg_held_bars": 10.95,
+"avg_net_pct": -2.821,
+"max_trade_net_pct": 98.2,
+"exit_reasons": {
+"stop": {
+"n": 2235,
+"avg_net_pct": -31.163
+},
+"timeout": {
+"n": 8563,
+"avg_net_pct": 4.577
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr2_h26__v1": {
+"pfnet": 0.732,
+"pfgross": 0.791,
+"win_pct": 41.1,
+"n": 8725,
+"avg_held_bars": 17.61,
+"avg_net_pct": -3.196,
+"max_trade_net_pct": 91.8,
+"exit_reasons": {
+"stop": {
+"n": 4486,
+"avg_net_pct": -22.266
+},
+"timeout": {
+"n": 4239,
+"avg_net_pct": 16.986
+}
+}
+},
+"oneil_rsline__newhigh__short__1w__atr3_h26__v1": {
+"pfnet": 0.74,
+"pfgross": 0.794,
+"win_pct": 47.9,
+"n": 8240,
+"avg_held_bars": 21.03,
+"avg_net_pct": -3.425,
+"max_trade_net_pct": 98.1,
+"exit_reasons": {
+"stop": {
+"n": 2940,
+"avg_net_pct": -32.123
+},
+"timeout": {
+"n": 5300,
+"avg_net_pct": 12.495
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h8_pv3__v1": {
+"pfnet": 0.677,
+"pfgross": 0.758,
+"win_pct": 44.2,
+"n": 3796,
+"avg_held_bars": 6.75,
+"avg_net_pct": -2.766,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"stop": {
+"n": 1203,
+"avg_net_pct": -21.59
+},
+"timeout": {
+"n": 2593,
+"avg_net_pct": 5.967
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h8_pv3__v1": {
+"pfnet": 0.67,
+"pfgross": 0.748,
+"win_pct": 46.3,
+"n": 3783,
+"avg_held_bars": 7.33,
+"avg_net_pct": -2.928,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"stop": {
+"n": 707,
+"avg_net_pct": -29.029
+},
+"timeout": {
+"n": 3076,
+"avg_net_pct": 3.071
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h12_pv3__v1": {
+"pfnet": 0.652,
+"pfgross": 0.718,
+"win_pct": 41.9,
+"n": 3694,
+"avg_held_bars": 9.32,
+"avg_net_pct": -3.523,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"stop": {
+"n": 1490,
+"avg_net_pct": -21.777
+},
+"timeout": {
+"n": 2204,
+"avg_net_pct": 8.817
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h12_pv3__v1": {
+"pfnet": 0.644,
+"pfgross": 0.707,
+"win_pct": 45.1,
+"n": 3673,
+"avg_held_bars": 10.46,
+"avg_net_pct": -3.82,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"stop": {
+"n": 955,
+"avg_net_pct": -29.819
+},
+"timeout": {
+"n": 2718,
+"avg_net_pct": 5.315
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h26_pv3__v1": {
+"pfnet": 0.583,
+"pfgross": 0.627,
+"win_pct": 35.0,
+"n": 3386,
+"avg_held_bars": 16.24,
+"avg_net_pct": -5.675,
+"max_trade_net_pct": 90.5,
+"exit_reasons": {
+"stop": {
+"n": 1952,
+"avg_net_pct": -22.537
+},
+"timeout": {
+"n": 1434,
+"avg_net_pct": 17.278
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h26_pv3__v1": {
+"pfnet": 0.547,
+"pfgross": 0.585,
+"win_pct": 40.7,
+"n": 3334,
+"avg_held_bars": 19.51,
+"avg_net_pct": -7.168,
+"max_trade_net_pct": 90.5,
+"exit_reasons": {
+"stop": {
+"n": 1462,
+"avg_net_pct": -31.973
+},
+"timeout": {
+"n": 1872,
+"avg_net_pct": 12.204
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_dryup__volume__short__1w____v1": {
+"pfnet": 0.698,
+"pfgross": 0.776,
+"win_pct": 47.1,
+"n": 1389,
+"avg_held_bars": 10.78,
+"avg_net_pct": -2.742,
+"max_trade_net_pct": 70.4,
+"exit_reasons": {
+"timeout": {
+"n": 1081,
+"avg_net_pct": 4.536
+},
+"stop": {
+"n": 308,
+"avg_net_pct": -28.286
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_priorup__advance__short__1w__pa30__v1": {
+"pfnet": 0.433,
+"pfgross": 0.468,
+"win_pct": 39.1,
+"n": 404,
+"avg_held_bars": 10.53,
+"avg_net_pct": -8.893,
+"max_trade_net_pct": 72.2,
+"exit_reasons": {
+"timeout": {
+"n": 300,
+"avg_net_pct": 2.446
+},
+"stop": {
+"n": 104,
+"avg_net_pct": -41.602
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_overhead__supply__short__1w__ps30__v1": {
+"pfnet": 0.553,
+"pfgross": 0.614,
+"win_pct": 44.1,
+"n": 4992,
+"avg_held_bars": 10.71,
+"avg_net_pct": -4.613,
+"max_trade_net_pct": 72.2,
+"exit_reasons": {
+"timeout": {
+"n": 3796,
+"avg_net_pct": 3.49
+},
+"stop": {
+"n": 1196,
+"avg_net_pct": -30.332
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__short__1w__pk1d25__v1": {
+"pfnet": 0.491,
+"pfgross": 0.549,
+"win_pct": 41.5,
+"n": 4446,
+"avg_held_bars": 10.67,
+"avg_net_pct": -5.21,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 3341,
+"avg_net_pct": 2.658
+},
+"stop": {
+"n": 1105,
+"avg_net_pct": -28.999
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__short__1w__pk1d5__v1": {
+"pfnet": 0.499,
+"pfgross": 0.557,
+"win_pct": 41.9,
+"n": 4707,
+"avg_held_bars": 10.68,
+"avg_net_pct": -5.14,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 3540,
+"avg_net_pct": 2.786
+},
+"stop": {
+"n": 1167,
+"avg_net_pct": -29.184
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__short__1w__pk1d75__v1": {
+"pfnet": 0.502,
+"pfgross": 0.561,
+"win_pct": 42.3,
+"n": 4904,
+"avg_held_bars": 10.68,
+"avg_net_pct": -5.105,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 3694,
+"avg_net_pct": 2.822
+},
+"stop": {
+"n": 1210,
+"avg_net_pct": -29.304
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_corrratio__leader__short__1w__pk2d0__v1": {
+"pfnet": 0.513,
+"pfgross": 0.572,
+"win_pct": 42.6,
+"n": 5061,
+"avg_held_bars": 10.7,
+"avg_net_pct": -4.986,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 3823,
+"avg_net_pct": 2.941
+},
+"stop": {
+"n": 1238,
+"avg_net_pct": -29.464
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmbase__v1": {
+"pfnet": 0.523,
+"pfgross": 0.564,
+"win_pct": 39.7,
+"n": 4786,
+"avg_held_bars": 20.04,
+"avg_net_pct": -6.788,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"timeout": {
+"n": 2748,
+"avg_net_pct": 9.957
+},
+"stop": {
+"n": 2038,
+"avg_net_pct": -29.367
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmsc__v1": {
+"pfnet": 0.478,
+"pfgross": 0.553,
+"win_pct": 19.2,
+"n": 5173,
+"avg_held_bars": 11.08,
+"avg_net_pct": -3.58,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop+half5": {
+"n": 3955,
+"avg_net_pct": -8.803
+},
+"timeout": {
+"n": 617,
+"avg_net_pct": 22.142
+},
+"timeout+half5": {
+"n": 601,
+"avg_net_pct": 4.379
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmbelock15__v1": {
+"pfnet": 0.453,
+"pfgross": 0.496,
+"win_pct": 25.2,
+"n": 4885,
+"avg_held_bars": 16.54,
+"avg_net_pct": -6.334,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"trail_stop": {
+"n": 1495,
+"avg_net_pct": -2.09
+},
+"stop": {
+"n": 1700,
+"avg_net_pct": -28.694
+},
+"timeout": {
+"n": 1690,
+"avg_net_pct": 12.404
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmbelock20__v1": {
+"pfnet": 0.464,
+"pfgross": 0.505,
+"win_pct": 30.0,
+"n": 4827,
+"avg_held_bars": 18.13,
+"avg_net_pct": -6.855,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"trail_stop": {
+"n": 903,
+"avg_net_pct": -2.16
+},
+"stop": {
+"n": 1860,
+"avg_net_pct": -28.985
+},
+"timeout": {
+"n": 2064,
+"avg_net_pct": 11.034
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmma10w__v1": {
+"pfnet": 0.487,
+"pfgross": 0.545,
+"win_pct": 31.0,
+"n": 5184,
+"avg_held_bars": 10.75,
+"avg_net_pct": -4.826,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"ma10w": {
+"n": 4432,
+"avg_net_pct": -4.292
+},
+"stop": {
+"n": 502,
+"avg_net_pct": -26.657
+},
+"timeout": {
+"n": 250,
+"avg_net_pct": 29.541
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmma200trend__v1": {
+"pfnet": 0.53,
+"pfgross": 0.575,
+"win_pct": 35.8,
+"n": 4888,
+"avg_held_bars": 17.95,
+"avg_net_pct": -6.164,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"timeout": {
+"n": 2353,
+"avg_net_pct": 12.067
+},
+"stop": {
+"n": 1514,
+"avg_net_pct": -29.86
+},
+"ma200trend": {
+"n": 1021,
+"avg_net_pct": -13.04
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmma200ext70__v1": {
+"pfnet": 0.566,
+"pfgross": 0.611,
+"win_pct": 40.8,
+"n": 4808,
+"avg_held_bars": 18.67,
+"avg_net_pct": -6.004,
+"max_trade_net_pct": 89.5,
+"exit_reasons": {
+"timeout": {
+"n": 2356,
+"avg_net_pct": 6.342
+},
+"stop": {
+"n": 2010,
+"avg_net_pct": -29.177
+},
+"ma200ext": {
+"n": 442,
+"avg_net_pct": 33.564
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmma200ext100__v1": {
+"pfnet": 0.547,
+"pfgross": 0.59,
+"win_pct": 40.1,
+"n": 4791,
+"avg_held_bars": 19.59,
+"avg_net_pct": -6.371,
+"max_trade_net_pct": 89.5,
+"exit_reasons": {
+"timeout": {
+"n": 2596,
+"avg_net_pct": 8.173
+},
+"stop": {
+"n": 2030,
+"avg_net_pct": -29.245
+},
+"ma200ext": {
+"n": 165,
+"avg_net_pct": 46.208
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmclimaxrun__v1": {
+"pfnet": 0.596,
+"pfgross": 0.644,
+"win_pct": 44.1,
+"n": 4866,
+"avg_held_bars": 16.91,
+"avg_net_pct": -5.349,
+"max_trade_net_pct": 89.5,
+"exit_reasons": {
+"timeout": {
+"n": 1903,
+"avg_net_pct": 4.673
+},
+"stop": {
+"n": 1970,
+"avg_net_pct": -29.106
+},
+"climaxrun": {
+"n": 993,
+"avg_net_pct": 22.576
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmclimaxvol__v1": {
+"pfnet": 0.543,
+"pfgross": 0.588,
+"win_pct": 42.1,
+"n": 4866,
+"avg_held_bars": 18.72,
+"avg_net_pct": -6.321,
+"max_trade_net_pct": 89.6,
+"exit_reasons": {
+"timeout": {
+"n": 2113,
+"avg_net_pct": 7.697
+},
+"stop": {
+"n": 2019,
+"avg_net_pct": -29.583
+},
+"climaxvol": {
+"n": 734,
+"avg_net_pct": 17.312
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmexhaust__v1": {
+"pfnet": 0.519,
+"pfgross": 0.565,
+"win_pct": 45.0,
+"n": 4975,
+"avg_held_bars": 17.19,
+"avg_net_pct": -6.427,
+"max_trade_net_pct": 89.5,
+"exit_reasons": {
+"exhaust": {
+"n": 1534,
+"avg_net_pct": 13.993
+},
+"stop": {
+"n": 2024,
+"avg_net_pct": -29.482
+},
+"timeout": {
+"n": 1417,
+"avg_net_pct": 4.398
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmgapup__v1": {
+"pfnet": 0.727,
+"pfgross": 0.789,
+"win_pct": 47.9,
+"n": 4940,
+"avg_held_bars": 15.87,
+"avg_net_pct": -3.132,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"timeout": {
+"n": 1678,
+"avg_net_pct": 8.167
+},
+"gapup": {
+"n": 1530,
+"avg_net_pct": 13.104
+},
+"stop": {
+"n": 1732,
+"avg_net_pct": -28.421
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmchurn__v1": {
+"pfnet": 0.552,
+"pfgross": 0.61,
+"win_pct": 41.5,
+"n": 5117,
+"avg_held_bars": 13.5,
+"avg_net_pct": -4.844,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"churn": {
+"n": 2899,
+"avg_net_pct": 1.853
+},
+"stop": {
+"n": 1360,
+"avg_net_pct": -28.838
+},
+"timeout": {
+"n": 858,
+"avg_net_pct": 10.563
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmlowclose__v1": {
+"pfnet": 0.548,
+"pfgross": 0.597,
+"win_pct": 38.2,
+"n": 4914,
+"avg_held_bars": 16.48,
+"avg_net_pct": -5.558,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"timeout": {
+"n": 1666,
+"avg_net_pct": 12.738
+},
+"stop": {
+"n": 1351,
+"avg_net_pct": -29.978
+},
+"lowclose": {
+"n": 1897,
+"avg_net_pct": -4.235
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmfailrally__v1": {
+"pfnet": 0.54,
+"pfgross": 0.597,
+"win_pct": 40.4,
+"n": 5175,
+"avg_held_bars": 12.88,
+"avg_net_pct": -4.889,
+"max_trade_net_pct": 91.1,
+"exit_reasons": {
+"failrally": {
+"n": 3060,
+"avg_net_pct": 1.556
+},
+"timeout": {
+"n": 752,
+"avg_net_pct": 13.061
+},
+"stop": {
+"n": 1363,
+"avg_net_pct": -29.262
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmbigbreak__v1": {
+"pfnet": 0.527,
+"pfgross": 0.572,
+"win_pct": 38.8,
+"n": 4842,
+"avg_held_bars": 18.06,
+"avg_net_pct": -6.27,
+"max_trade_net_pct": 92.6,
+"exit_reasons": {
+"timeout": {
+"n": 2051,
+"avg_net_pct": 10.67
+},
+"stop": {
+"n": 1737,
+"avg_net_pct": -29.107
+},
+"bigbreak": {
+"n": 1054,
+"avg_net_pct": -1.599
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmddpk12__v1": {
+"pfnet": 0.547,
+"pfgross": 0.617,
+"win_pct": 31.8,
+"n": 5142,
+"avg_held_bars": 10.49,
+"avg_net_pct": -3.821,
+"max_trade_net_pct": 92.6,
+"exit_reasons": {
+"ddpk": {
+"n": 4198,
+"avg_net_pct": -4.915
+},
+"stop": {
+"n": 428,
+"avg_net_pct": -23.985
+},
+"timeout": {
+"n": 516,
+"avg_net_pct": 21.802
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmddpk15__v1": {
+"pfnet": 0.519,
+"pfgross": 0.577,
+"win_pct": 31.0,
+"n": 4996,
+"avg_held_bars": 12.87,
+"avg_net_pct": -4.681,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"ddpk": {
+"n": 3546,
+"avg_net_pct": -7.558
+},
+"stop": {
+"n": 576,
+"avg_net_pct": -23.476
+},
+"timeout": {
+"n": 874,
+"avg_net_pct": 19.378
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmgiveback__v1": {
+"pfnet": 0.487,
+"pfgross": 0.531,
+"win_pct": 39.9,
+"n": 4822,
+"avg_held_bars": 18.3,
+"avg_net_pct": -6.695,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"giveback": {
+"n": 898,
+"avg_net_pct": -1.204
+},
+"stop": {
+"n": 1875,
+"avg_net_pct": -28.959
+},
+"timeout": {
+"n": 2049,
+"avg_net_pct": 11.272
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmnobounce__v1": {
+"pfnet": 0.508,
+"pfgross": 0.553,
+"win_pct": 36.3,
+"n": 4893,
+"avg_held_bars": 17.28,
+"avg_net_pct": -6.336,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"timeout": {
+"n": 1759,
+"avg_net_pct": 13.488
+},
+"stop": {
+"n": 1487,
+"avg_net_pct": -29.429
+},
+"nobounce": {
+"n": 1647,
+"avg_net_pct": -6.656
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmrswarn70__v1": {
+"pfnet": 0.551,
+"pfgross": 0.611,
+"win_pct": 36.1,
+"n": 5197,
+"avg_held_bars": 12.1,
+"avg_net_pct": -4.516,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"rswarn": {
+"n": 3252,
+"avg_net_pct": -4.619
+},
+"stop": {
+"n": 906,
+"avg_net_pct": -30.247
+},
+"timeout": {
+"n": 1039,
+"avg_net_pct": 18.243
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmrs50__v1": {
+"pfnet": 0.561,
+"pfgross": 0.62,
+"win_pct": 39.2,
+"n": 5192,
+"avg_held_bars": 12.92,
+"avg_net_pct": -4.596,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"rs50": {
+"n": 2594,
+"avg_net_pct": -4.144
+},
+"stop": {
+"n": 1173,
+"avg_net_pct": -30.287
+},
+"timeout": {
+"n": 1425,
+"avg_net_pct": 15.728
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmrs30__v1": {
+"pfnet": 0.546,
+"pfgross": 0.594,
+"win_pct": 39.2,
+"n": 4938,
+"avg_held_bars": 17.01,
+"avg_net_pct": -5.719,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"rs30": {
+"n": 1134,
+"avg_net_pct": -6.4
+},
+"stop": {
+"n": 1623,
+"avg_net_pct": -29.632
+},
+"timeout": {
+"n": 2181,
+"avg_net_pct": 12.429
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h18_xmdull65__v1": {
+"pfnet": 0.54,
+"pfgross": 0.594,
+"win_pct": 41.2,
+"n": 5160,
+"avg_held_bars": 13.95,
+"avg_net_pct": -5.229,
+"max_trade_net_pct": 89.9,
+"exit_reasons": {
+"timeout": {
+"n": 2407,
+"avg_net_pct": 9.123
+},
+"stop": {
+"n": 1627,
+"avg_net_pct": -29.627
+},
+"dull": {
+"n": 1126,
+"avg_net_pct": -0.655
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h31_xmsix125__v1": {
+"pfnet": 0.513,
+"pfgross": 0.551,
+"win_pct": 33.3,
+"n": 4673,
+"avg_held_bars": 21.91,
+"avg_net_pct": -7.112,
+"max_trade_net_pct": 93.0,
+"exit_reasons": {
+"six_month_loser": {
+"n": 1110,
+"avg_net_pct": -8.534
+},
+"stop": {
+"n": 1997,
+"avg_net_pct": -29.433
+},
+"timeout": {
+"n": 1566,
+"avg_net_pct": 22.36
+}
+}
+},
+"oneil_pivot__exit__short__1w__atr3_chase10_h26_xmnoearly40__v1": {
+"pfnet": 0.614,
+"pfgross": 0.663,
+"win_pct": 45.2,
+"n": 5009,
+"avg_held_bars": 15.7,
+"avg_net_pct": -5.17,
+"max_trade_net_pct": 89.9,
+"exit_reasons": {
+"target": {
+"n": 1756,
+"avg_net_pct": 21.505
+},
+"stop": {
+"n": 2035,
+"avg_net_pct": -29.559
+},
+"timeout": {
+"n": 1218,
+"avg_net_pct": -2.879
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h8_pr2__v1": {
+"pfnet": 1.718,
+"pfgross": 1.93,
+"win_pct": 46.3,
+"n": 4622,
+"avg_held_bars": 7.01,
+"avg_net_pct": 4.009,
+"max_trade_net_pct": 2625.7,
+"exit_reasons": {
+"timeout": {
+"n": 3378,
+"avg_net_pct": 10.913
+},
+"stop": {
+"n": 1244,
+"avg_net_pct": -14.739
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h8_pr2__v1": {
+"pfnet": 1.82,
+"pfgross": 2.042,
+"win_pct": 48.5,
+"n": 4605,
+"avg_held_bars": 7.69,
+"avg_net_pct": 4.461,
+"max_trade_net_pct": 2625.7,
+"exit_reasons": {
+"timeout": {
+"n": 4144,
+"avg_net_pct": 7.141
+},
+"stop": {
+"n": 461,
+"avg_net_pct": -19.631
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h12_pr2__v1": {
+"pfnet": 1.863,
+"pfgross": 2.055,
+"win_pct": 45.3,
+"n": 4488,
+"avg_held_bars": 9.81,
+"avg_net_pct": 5.626,
+"max_trade_net_pct": 2724.2,
+"exit_reasons": {
+"stop": {
+"n": 1599,
+"avg_net_pct": -15.116
+},
+"timeout": {
+"n": 2889,
+"avg_net_pct": 17.107
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h12_pr2__v1": {
+"pfnet": 1.978,
+"pfgross": 2.176,
+"win_pct": 49.1,
+"n": 4453,
+"avg_held_bars": 11.2,
+"avg_net_pct": 6.28,
+"max_trade_net_pct": 2724.2,
+"exit_reasons": {
+"stop": {
+"n": 722,
+"avg_net_pct": -20.672
+},
+"timeout": {
+"n": 3731,
+"avg_net_pct": 11.496
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr2_h26_pr2__v1": {
+"pfnet": 2.515,
+"pfgross": 2.709,
+"win_pct": 43.6,
+"n": 4025,
+"avg_held_bars": 17.74,
+"avg_net_pct": 12.271,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"stop": {
+"n": 2011,
+"avg_net_pct": -15.465
+},
+"timeout": {
+"n": 2014,
+"avg_net_pct": 39.966
+}
+}
+},
+"oneil_tightarea__breakout__long__1w__atr3_h26_pr2__v1": {
+"pfnet": 2.709,
+"pfgross": 2.892,
+"win_pct": 52.1,
+"n": 3910,
+"avg_held_bars": 21.9,
+"avg_net_pct": 14.18,
+"max_trade_net_pct": 5297.5,
+"exit_reasons": {
+"stop": {
+"n": 1203,
+"avg_net_pct": -21.76
+},
+"timeout": {
+"n": 2707,
+"avg_net_pct": 30.151
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h8_pr3__v1": {
+"pfnet": 0.655,
+"pfgross": 0.751,
+"win_pct": 45.2,
+"n": 2492,
+"avg_held_bars": 6.81,
+"avg_net_pct": -2.474,
+"max_trade_net_pct": 90.1,
+"exit_reasons": {
+"timeout": {
+"n": 1710,
+"avg_net_pct": 4.59
+},
+"stop": {
+"n": 782,
+"avg_net_pct": -17.922
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h8_pr3__v1": {
+"pfnet": 0.664,
+"pfgross": 0.76,
+"win_pct": 47.2,
+"n": 2481,
+"avg_held_bars": 7.42,
+"avg_net_pct": -2.439,
+"max_trade_net_pct": 90.1,
+"exit_reasons": {
+"timeout": {
+"n": 2067,
+"avg_net_pct": 1.876
+},
+"stop": {
+"n": 414,
+"avg_net_pct": -23.985
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h12_pr3__v1": {
+"pfnet": 0.601,
+"pfgross": 0.674,
+"win_pct": 42.8,
+"n": 2408,
+"avg_held_bars": 9.43,
+"avg_net_pct": -3.574,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"stop": {
+"n": 975,
+"avg_net_pct": -19.962
+},
+"timeout": {
+"n": 1433,
+"avg_net_pct": 7.576
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h12_pr3__v1": {
+"pfnet": 0.61,
+"pfgross": 0.681,
+"win_pct": 46.4,
+"n": 2391,
+"avg_held_bars": 10.65,
+"avg_net_pct": -3.632,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 1816,
+"avg_net_pct": 3.213
+},
+"stop": {
+"n": 575,
+"avg_net_pct": -25.249
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h26_pr3__v1": {
+"pfnet": 0.552,
+"pfgross": 0.602,
+"win_pct": 33.7,
+"n": 2179,
+"avg_held_bars": 16.43,
+"avg_net_pct": -5.314,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 1266,
+"avg_net_pct": -19.57
+},
+"timeout": {
+"n": 913,
+"avg_net_pct": 14.453
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h26_pr3__v1": {
+"pfnet": 0.544,
+"pfgross": 0.588,
+"win_pct": 40.1,
+"n": 2130,
+"avg_held_bars": 19.92,
+"avg_net_pct": -6.195,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"stop": {
+"n": 909,
+"avg_net_pct": -28.562
+},
+"timeout": {
+"n": 1221,
+"avg_net_pct": 10.457
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h8_pv5__v1": {
+"pfnet": 0.737,
+"pfgross": 0.829,
+"win_pct": 44.4,
+"n": 1795,
+"avg_held_bars": 6.78,
+"avg_net_pct": -2.078,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"timeout": {
+"n": 1246,
+"avg_net_pct": 5.815
+},
+"stop": {
+"n": 549,
+"avg_net_pct": -19.991
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h8_pv5__v1": {
+"pfnet": 0.719,
+"pfgross": 0.806,
+"win_pct": 46.3,
+"n": 1792,
+"avg_held_bars": 7.28,
+"avg_net_pct": -2.324,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"timeout": {
+"n": 1452,
+"avg_net_pct": 3.25
+},
+"stop": {
+"n": 340,
+"avg_net_pct": -26.129
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h12_pv5__v1": {
+"pfnet": 0.686,
+"pfgross": 0.758,
+"win_pct": 41.5,
+"n": 1754,
+"avg_held_bars": 9.4,
+"avg_net_pct": -3.009,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"timeout": {
+"n": 1057,
+"avg_net_pct": 8.591
+},
+"stop": {
+"n": 697,
+"avg_net_pct": -20.601
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h12_pv5__v1": {
+"pfnet": 0.671,
+"pfgross": 0.737,
+"win_pct": 44.4,
+"n": 1749,
+"avg_held_bars": 10.41,
+"avg_net_pct": -3.393,
+"max_trade_net_pct": 89.2,
+"exit_reasons": {
+"timeout": {
+"n": 1290,
+"avg_net_pct": 5.382
+},
+"stop": {
+"n": 459,
+"avg_net_pct": -28.055
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr2_h26_pv5__v1": {
+"pfnet": 0.651,
+"pfgross": 0.701,
+"win_pct": 35.5,
+"n": 1634,
+"avg_held_bars": 16.52,
+"avg_net_pct": -4.485,
+"max_trade_net_pct": 90.5,
+"exit_reasons": {
+"stop": {
+"n": 928,
+"avg_net_pct": -21.446
+},
+"timeout": {
+"n": 706,
+"avg_net_pct": 17.81
+}
+}
+},
+"oneil_volpct__surge__short__1w__atr3_h26_pv5__v1": {
+"pfnet": 0.602,
+"pfgross": 0.644,
+"win_pct": 40.3,
+"n": 1620,
+"avg_held_bars": 19.51,
+"avg_net_pct": -5.9,
+"max_trade_net_pct": 90.5,
+"exit_reasons": {
+"stop": {
+"n": 702,
+"avg_net_pct": -29.728
+},
+"timeout": {
+"n": 918,
+"avg_net_pct": 12.32
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__short__1w__pr5__v1": {
+"pfnet": 0.779,
+"pfgross": 0.899,
+"win_pct": 45.0,
+"n": 1261,
+"avg_held_bars": 10.45,
+"avg_net_pct": -1.396,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 929,
+"avg_net_pct": 4.293
+},
+"stop": {
+"n": 332,
+"avg_net_pct": -17.316
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__short__1w__pr8__v1": {
+"pfnet": 0.613,
+"pfgross": 0.693,
+"win_pct": 44.0,
+"n": 3476,
+"avg_held_bars": 10.61,
+"avg_net_pct": -3.213,
+"max_trade_net_pct": 89.7,
+"exit_reasons": {
+"timeout": {
+"n": 2594,
+"avg_net_pct": 3.802
+},
+"stop": {
+"n": 882,
+"avg_net_pct": -23.847
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr2_h8__v1": {
+"pfnet": 1.193,
+"pfgross": 1.35,
+"win_pct": 45.2,
+"n": 930,
+"avg_held_bars": 6.88,
+"avg_net_pct": 1.168,
+"max_trade_net_pct": 329.7,
+"exit_reasons": {
+"stop": {
+"n": 281,
+"avg_net_pct": -15.14
+},
+"timeout": {
+"n": 649,
+"avg_net_pct": 8.228
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr3_h8__v1": {
+"pfnet": 1.243,
+"pfgross": 1.403,
+"win_pct": 47.8,
+"n": 921,
+"avg_held_bars": 7.6,
+"avg_net_pct": 1.468,
+"max_trade_net_pct": 329.7,
+"exit_reasons": {
+"stop": {
+"n": 116,
+"avg_net_pct": -20.327
+},
+"timeout": {
+"n": 805,
+"avg_net_pct": 4.608
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr2_h12__v1": {
+"pfnet": 1.457,
+"pfgross": 1.618,
+"win_pct": 45.0,
+"n": 913,
+"avg_held_bars": 9.58,
+"avg_net_pct": 3.037,
+"max_trade_net_pct": 493.5,
+"exit_reasons": {
+"stop": {
+"n": 340,
+"avg_net_pct": -15.163
+},
+"timeout": {
+"n": 573,
+"avg_net_pct": 13.835
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr3_h12__v1": {
+"pfnet": 1.532,
+"pfgross": 1.693,
+"win_pct": 49.0,
+"n": 902,
+"avg_held_bars": 11.02,
+"avg_net_pct": 3.561,
+"max_trade_net_pct": 493.5,
+"exit_reasons": {
+"stop": {
+"n": 162,
+"avg_net_pct": -20.72
+},
+"timeout": {
+"n": 740,
+"avg_net_pct": 8.877
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr2_h26__v1": {
+"pfnet": 1.776,
+"pfgross": 1.926,
+"win_pct": 42.6,
+"n": 869,
+"avg_held_bars": 17.43,
+"avg_net_pct": 6.348,
+"max_trade_net_pct": 495.2,
+"exit_reasons": {
+"stop": {
+"n": 441,
+"avg_net_pct": -15.356
+},
+"timeout": {
+"n": 428,
+"avg_net_pct": 28.711
+}
+}
+},
+"oneil_triple__neckline__long__1w__atr3_h26__v1": {
+"pfnet": 1.75,
+"pfgross": 1.877,
+"win_pct": 49.5,
+"n": 857,
+"avg_held_bars": 21.28,
+"avg_net_pct": 6.793,
+"max_trade_net_pct": 495.2,
+"exit_reasons": {
+"stop": {
+"n": 297,
+"avg_net_pct": -21.883
+},
+"timeout": {
+"n": 560,
+"avg_net_pct": 22.001
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr2_h8__v1": {
+"pfnet": 0.775,
+"pfgross": 0.876,
+"win_pct": 47.2,
+"n": 316,
+"avg_held_bars": 7.29,
+"avg_net_pct": -1.672,
+"max_trade_net_pct": 56.4,
+"exit_reasons": {
+"timeout": {
+"n": 246,
+"avg_net_pct": 4.45
+},
+"stop": {
+"n": 70,
+"avg_net_pct": -23.185
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr3_h8__v1": {
+"pfnet": 0.781,
+"pfgross": 0.878,
+"win_pct": 48.9,
+"n": 315,
+"avg_held_bars": 7.65,
+"avg_net_pct": -1.684,
+"max_trade_net_pct": 56.4,
+"exit_reasons": {
+"timeout": {
+"n": 278,
+"avg_net_pct": 2.349
+},
+"stop": {
+"n": 37,
+"avg_net_pct": -31.982
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr2_h12__v1": {
+"pfnet": 0.735,
+"pfgross": 0.812,
+"win_pct": 46.5,
+"n": 314,
+"avg_held_bars": 10.27,
+"avg_net_pct": -2.47,
+"max_trade_net_pct": 65.5,
+"exit_reasons": {
+"timeout": {
+"n": 210,
+"avg_net_pct": 8.305
+},
+"stop": {
+"n": 104,
+"avg_net_pct": -24.228
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr3_h12__v1": {
+"pfnet": 0.667,
+"pfgross": 0.733,
+"win_pct": 48.2,
+"n": 313,
+"avg_held_bars": 11.02,
+"avg_net_pct": -3.488,
+"max_trade_net_pct": 65.5,
+"exit_reasons": {
+"timeout": {
+"n": 251,
+"avg_net_pct": 4.579
+},
+"stop": {
+"n": 62,
+"avg_net_pct": -36.147
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr2_h26__v1": {
+"pfnet": 0.635,
+"pfgross": 0.684,
+"win_pct": 41.0,
+"n": 307,
+"avg_held_bars": 18.21,
+"avg_net_pct": -4.911,
+"max_trade_net_pct": 63.7,
+"exit_reasons": {
+"timeout": {
+"n": 149,
+"avg_net_pct": 16.605
+},
+"stop": {
+"n": 158,
+"avg_net_pct": -25.201
+}
+}
+},
+"oneil_hns__neckline__short__1w__atr3_h26__v1": {
+"pfnet": 0.656,
+"pfgross": 0.704,
+"win_pct": 47.1,
+"n": 306,
+"avg_held_bars": 21.17,
+"avg_net_pct": -4.859,
+"max_trade_net_pct": 63.7,
+"exit_reasons": {
+"timeout": {
+"n": 199,
+"avg_net_pct": 11.652
+},
+"stop": {
+"n": 107,
+"avg_net_pct": -35.567
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h8_pr2__v1": {
+"pfnet": 0.616,
+"pfgross": 0.708,
+"win_pct": 43.8,
+"n": 1492,
+"avg_held_bars": 6.72,
+"avg_net_pct": -2.789,
+"max_trade_net_pct": 50.8,
+"exit_reasons": {
+"stop": {
+"n": 482,
+"avg_net_pct": -17.477
+},
+"timeout": {
+"n": 1010,
+"avg_net_pct": 4.22
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h8_pr2__v1": {
+"pfnet": 0.618,
+"pfgross": 0.71,
+"win_pct": 45.7,
+"n": 1491,
+"avg_held_bars": 7.31,
+"avg_net_pct": -2.828,
+"max_trade_net_pct": 50.8,
+"exit_reasons": {
+"stop": {
+"n": 281,
+"avg_net_pct": -22.49
+},
+"timeout": {
+"n": 1210,
+"avg_net_pct": 1.738
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h12_pr2__v1": {
+"pfnet": 0.579,
+"pfgross": 0.648,
+"win_pct": 42.4,
+"n": 1441,
+"avg_held_bars": 9.28,
+"avg_net_pct": -3.903,
+"max_trade_net_pct": 64.5,
+"exit_reasons": {
+"stop": {
+"n": 602,
+"avg_net_pct": -20.425
+},
+"timeout": {
+"n": 839,
+"avg_net_pct": 7.952
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h12_pr2__v1": {
+"pfnet": 0.576,
+"pfgross": 0.642,
+"win_pct": 46.3,
+"n": 1437,
+"avg_held_bars": 10.45,
+"avg_net_pct": -4.153,
+"max_trade_net_pct": 64.5,
+"exit_reasons": {
+"stop": {
+"n": 379,
+"avg_net_pct": -24.142
+},
+"timeout": {
+"n": 1058,
+"avg_net_pct": 3.007
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr2_h26_pr2__v1": {
+"pfnet": 0.535,
+"pfgross": 0.583,
+"win_pct": 32.3,
+"n": 1332,
+"avg_held_bars": 16.15,
+"avg_net_pct": -5.612,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 789,
+"avg_net_pct": -19.545
+},
+"timeout": {
+"n": 543,
+"avg_net_pct": 14.632
+}
+}
+},
+"oneil_tightarea__breakout__short__1w__atr3_h26_pr2__v1": {
+"pfnet": 0.517,
+"pfgross": 0.558,
+"win_pct": 38.4,
+"n": 1310,
+"avg_held_bars": 19.43,
+"avg_net_pct": -6.819,
+"max_trade_net_pct": 89.8,
+"exit_reasons": {
+"stop": {
+"n": 585,
+"avg_net_pct": -28.673
+},
+"timeout": {
+"n": 725,
+"avg_net_pct": 10.815
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr2_h8__v1": {
+"pfnet": 1.403,
+"pfgross": 1.556,
+"win_pct": 47.4,
+"n": 925,
+"avg_held_bars": 7.08,
+"avg_net_pct": 2.717,
+"max_trade_net_pct": 229.7,
+"exit_reasons": {
+"stop": {
+"n": 248,
+"avg_net_pct": -17.945
+},
+"timeout": {
+"n": 677,
+"avg_net_pct": 10.286
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr3_h8__v1": {
+"pfnet": 1.416,
+"pfgross": 1.566,
+"win_pct": 49.3,
+"n": 919,
+"avg_held_bars": 7.8,
+"avg_net_pct": 2.834,
+"max_trade_net_pct": 229.7,
+"exit_reasons": {
+"timeout": {
+"n": 833,
+"avg_net_pct": 5.819
+},
+"stop": {
+"n": 86,
+"avg_net_pct": -26.077
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr2_h12__v1": {
+"pfnet": 1.602,
+"pfgross": 1.746,
+"win_pct": 46.9,
+"n": 923,
+"avg_held_bars": 9.89,
+"avg_net_pct": 4.659,
+"max_trade_net_pct": 253.7,
+"exit_reasons": {
+"stop": {
+"n": 321,
+"avg_net_pct": -18.279
+},
+"timeout": {
+"n": 602,
+"avg_net_pct": 16.891
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr3_h12__v1": {
+"pfnet": 1.693,
+"pfgross": 1.84,
+"win_pct": 50.5,
+"n": 917,
+"avg_held_bars": 11.35,
+"avg_net_pct": 5.297,
+"max_trade_net_pct": 253.7,
+"exit_reasons": {
+"stop": {
+"n": 131,
+"avg_net_pct": -26.672
+},
+"timeout": {
+"n": 786,
+"avg_net_pct": 10.626
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr2_h26__v1": {
+"pfnet": 2.281,
+"pfgross": 2.431,
+"win_pct": 42.2,
+"n": 873,
+"avg_held_bars": 17.95,
+"avg_net_pct": 12.424,
+"max_trade_net_pct": 1683.7,
+"exit_reasons": {
+"stop": {
+"n": 431,
+"avg_net_pct": -18.448
+},
+"timeout": {
+"n": 442,
+"avg_net_pct": 42.528
+}
+}
+},
+"oneil_hns__neckline__long__1w__atr3_h26__v1": {
+"pfnet": 2.36,
+"pfgross": 2.497,
+"win_pct": 49.7,
+"n": 864,
+"avg_held_bars": 22.22,
+"avg_net_pct": 13.918,
+"max_trade_net_pct": 1683.7,
+"exit_reasons": {
+"stop": {
+"n": 260,
+"avg_net_pct": -26.811
+},
+"timeout": {
+"n": 604,
+"avg_net_pct": 31.45
+}
+}
+},
+"oneil_hft__breakout__short__1w__atr2_h8__v1": {
+"pfnet": 0.099,
+"pfgross": 0.109,
+"win_pct": 19.4,
+"n": 31,
+"avg_held_bars": 7.39,
+"avg_net_pct": -19.411,
+"max_trade_net_pct": 29.6,
+"exit_reasons": {
+"timeout": {
+"n": 26,
+"avg_net_pct": -12.815
+},
+"stop": {
+"n": 5,
+"avg_net_pct": -53.71
+}
+}
+},
+"oneil_hft__breakout__short__1w__atr3_h8__v1": {
+"pfnet": 0.101,
+"pfgross": 0.112,
+"win_pct": 19.4,
+"n": 31,
+"avg_held_bars": 7.87,
+"avg_net_pct": -18.981,
+"max_trade_net_pct": 29.6,
+"exit_reasons": {
+"timeout": {
+"n": 29,
+"avg_net_pct": -15.726
+},
+"stop": {
+"n": 2,
+"avg_net_pct": -66.173
+}
+}
+},
+"oneil_hft__breakout__short__1w__atr2_h12__v1": {
+"pfnet": 0.11,
+"pfgross": 0.121,
+"win_pct": 25.8,
+"n": 31,
+"avg_held_bars": 10.42,
+"avg_net_pct": -22.451,
+"max_trade_net_pct": 48.0,
+"exit_reasons": {
+"timeout": {
+"n": 21,
+"avg_net_pct": -9.611
+},
+"stop": {
+"n": 10,
+"avg_net_pct": -49.415
+}
+}
+},
+"oneil_hft__breakout__short__1w__atr3_h12__v1": {
+"pfnet": 0.101,
+"pfgross": 0.111,
+"win_pct": 25.8,
+"n": 31,
+"avg_held_bars": 11.55,
+"avg_net_pct": -24.617,
+"max_trade_net_pct": 48.0,
+"exit_reasons": {
+"timeout": {
+"n": 28,
+"avg_net_pct": -20.041
+},
+"stop": {
+"n": 3,
+"avg_net_pct": -67.323
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr2_h8__v1": {
+"pfnet": 0.555,
+"pfgross": 0.628,
+"win_pct": 38.5,
+"n": 1044,
+"avg_held_bars": 6.71,
+"avg_net_pct": -3.795,
+"max_trade_net_pct": 80.1,
+"exit_reasons": {
+"stop": {
+"n": 359,
+"avg_net_pct": -19.61
+},
+"timeout": {
+"n": 685,
+"avg_net_pct": 4.494
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr3_h8__v1": {
+"pfnet": 0.538,
+"pfgross": 0.607,
+"win_pct": 39.6,
+"n": 1042,
+"avg_held_bars": 7.43,
+"avg_net_pct": -4.119,
+"max_trade_net_pct": 80.1,
+"exit_reasons": {
+"timeout": {
+"n": 850,
+"avg_net_pct": 1.148
+},
+"stop": {
+"n": 192,
+"avg_net_pct": -27.436
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr2_h12__v1": {
+"pfnet": 0.541,
+"pfgross": 0.6,
+"win_pct": 36.2,
+"n": 998,
+"avg_held_bars": 9.24,
+"avg_net_pct": -4.654,
+"max_trade_net_pct": 65.7,
+"exit_reasons": {
+"stop": {
+"n": 438,
+"avg_net_pct": -20.266
+},
+"timeout": {
+"n": 560,
+"avg_net_pct": 7.557
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr3_h12__v1": {
+"pfnet": 0.521,
+"pfgross": 0.575,
+"win_pct": 38.0,
+"n": 993,
+"avg_held_bars": 10.6,
+"avg_net_pct": -5.192,
+"max_trade_net_pct": 65.7,
+"exit_reasons": {
+"timeout": {
+"n": 733,
+"avg_net_pct": 2.895
+},
+"stop": {
+"n": 260,
+"avg_net_pct": -27.991
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr2_h26__v1": {
+"pfnet": 0.494,
+"pfgross": 0.537,
+"win_pct": 31.4,
+"n": 944,
+"avg_held_bars": 15.72,
+"avg_net_pct": -6.557,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 584,
+"avg_net_pct": -20.214
+},
+"timeout": {
+"n": 360,
+"avg_net_pct": 15.596
+}
+}
+},
+"oneil_baseonbase__breakout__short__1w__atr3_h26__v1": {
+"pfnet": 0.491,
+"pfgross": 0.53,
+"win_pct": 37.2,
+"n": 930,
+"avg_held_bars": 19.64,
+"avg_net_pct": -7.439,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 415,
+"avg_net_pct": -28.812
+},
+"timeout": {
+"n": 515,
+"avg_net_pct": 9.784
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr2_h8__v1": {
+"pfnet": 3.185,
+"pfgross": 3.421,
+"win_pct": 59.5,
+"n": 126,
+"avg_held_bars": 7.15,
+"avg_net_pct": 14.654,
+"max_trade_net_pct": 329.7,
+"exit_reasons": {
+"timeout": {
+"n": 95,
+"avg_net_pct": 26.164
+},
+"stop": {
+"n": 31,
+"avg_net_pct": -20.617
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr3_h8__v1": {
+"pfnet": 3.006,
+"pfgross": 3.218,
+"win_pct": 60.3,
+"n": 126,
+"avg_held_bars": 7.65,
+"avg_net_pct": 14.267,
+"max_trade_net_pct": 329.7,
+"exit_reasons": {
+"timeout": {
+"n": 114,
+"avg_net_pct": 18.494
+},
+"stop": {
+"n": 12,
+"avg_net_pct": -25.886
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr2_h12__v1": {
+"pfnet": 2.964,
+"pfgross": 3.167,
+"win_pct": 56.3,
+"n": 126,
+"avg_held_bars": 10.1,
+"avg_net_pct": 15.018,
+"max_trade_net_pct": 493.5,
+"exit_reasons": {
+"timeout": {
+"n": 85,
+"avg_net_pct": 32.335
+},
+"stop": {
+"n": 41,
+"avg_net_pct": -20.883
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr3_h12__v1": {
+"pfnet": 2.87,
+"pfgross": 3.059,
+"win_pct": 57.9,
+"n": 126,
+"avg_held_bars": 11.13,
+"avg_net_pct": 14.789,
+"max_trade_net_pct": 493.5,
+"exit_reasons": {
+"timeout": {
+"n": 107,
+"avg_net_pct": 22.47
+},
+"stop": {
+"n": 19,
+"avg_net_pct": -28.465
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr2_h26__v1": {
+"pfnet": 3.425,
+"pfgross": 3.605,
+"win_pct": 46.8,
+"n": 124,
+"avg_held_bars": 18.38,
+"avg_net_pct": 25.674,
+"max_trade_net_pct": 595.2,
+"exit_reasons": {
+"stop": {
+"n": 59,
+"avg_net_pct": -21.177
+},
+"timeout": {
+"n": 65,
+"avg_net_pct": 68.199
+}
+}
+},
+"oneil_hft__breakout__long__1w__atr3_h26__v1": {
+"pfnet": 3.868,
+"pfgross": 4.068,
+"win_pct": 53.2,
+"n": 124,
+"avg_held_bars": 22.27,
+"avg_net_pct": 27.895,
+"max_trade_net_pct": 595.2,
+"exit_reasons": {
+"timeout": {
+"n": 91,
+"avg_net_pct": 48.421
+},
+"stop": {
+"n": 33,
+"avg_net_pct": -28.708
+}
+}
+},
+"oneil_pivot__breakout__short__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__short__1w__pr3__v1": {
+"pfnet": 0.727,
+"pfgross": 0.834,
+"win_pct": 39.2,
+"n": 283,
+"avg_held_bars": 9.17,
+"avg_net_pct": -1.836,
+"max_trade_net_pct": 51.1,
+"exit_reasons": {
+"timeout": {
+"n": 161,
+"avg_net_pct": 7.086
+},
+"stop": {
+"n": 122,
+"avg_net_pct": -13.61
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr2_h8__v1": {
+"pfnet": 0.715,
+"pfgross": 0.828,
+"win_pct": 40.4,
+"n": 277,
+"avg_held_bars": 7.02,
+"avg_net_pct": -1.83,
+"max_trade_net_pct": 65.3,
+"exit_reasons": {
+"stop": {
+"n": 79,
+"avg_net_pct": -16.664
+},
+"timeout": {
+"n": 198,
+"avg_net_pct": 4.089
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr3_h8__v1": {
+"pfnet": 0.77,
+"pfgross": 0.892,
+"win_pct": 44.0,
+"n": 275,
+"avg_held_bars": 7.65,
+"avg_net_pct": -1.425,
+"max_trade_net_pct": 65.3,
+"exit_reasons": {
+"stop": {
+"n": 34,
+"avg_net_pct": -23.493
+},
+"timeout": {
+"n": 241,
+"avg_net_pct": 1.688
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr2_h12__v1": {
+"pfnet": 0.617,
+"pfgross": 0.699,
+"win_pct": 37.1,
+"n": 272,
+"avg_held_bars": 9.62,
+"avg_net_pct": -3.056,
+"max_trade_net_pct": 68.9,
+"exit_reasons": {
+"stop": {
+"n": 112,
+"avg_net_pct": -16.386
+},
+"timeout": {
+"n": 160,
+"avg_net_pct": 6.274
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr3_h12__v1": {
+"pfnet": 0.639,
+"pfgross": 0.723,
+"win_pct": 40.4,
+"n": 270,
+"avg_held_bars": 11.05,
+"avg_net_pct": -2.894,
+"max_trade_net_pct": 68.9,
+"exit_reasons": {
+"stop": {
+"n": 54,
+"avg_net_pct": -24.338
+},
+"timeout": {
+"n": 216,
+"avg_net_pct": 2.466
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr2_h26__v1": {
+"pfnet": 0.434,
+"pfgross": 0.482,
+"win_pct": 28.5,
+"n": 263,
+"avg_held_bars": 16.14,
+"avg_net_pct": -5.935,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 164,
+"avg_net_pct": -15.721
+},
+"timeout": {
+"n": 99,
+"avg_net_pct": 10.276
+}
+}
+},
+"oneil_triple__neckline__short__1w__atr3_h26__v1": {
+"pfnet": 0.436,
+"pfgross": 0.48,
+"win_pct": 34.5,
+"n": 258,
+"avg_held_bars": 20.39,
+"avg_net_pct": -6.824,
+"max_trade_net_pct": 92.0,
+"exit_reasons": {
+"stop": {
+"n": 118,
+"avg_net_pct": -22.887
+},
+"timeout": {
+"n": 140,
+"avg_net_pct": 6.714
+}
+}
+},
+"oneil_pivot__breakout__long__1w__atr3_chase10_h12__v1__x__oneil_tightness__range__long__1w__pr3__v1": {
+"pfnet": 3.059,
+"pfgross": 3.608,
+"win_pct": 51.7,
+"n": 484,
+"avg_held_bars": 10.37,
+"avg_net_pct": 6.553,
+"max_trade_net_pct": 841.2,
+"exit_reasons": {
+"stop": {
+"n": 128,
+"avg_net_pct": -9.731
+},
+"timeout": {
+"n": 356,
+"avg_net_pct": 12.408
+}
+}
+},
+"oneil_flagprice__breakout__long__1w__atr2_h8__v1": {
+"pfnet": 2.201,
+"pfgross": 2.427,
+"win_pct": 56.7,
+"n": 30,
+"avg_held_bars": 7.37,
+"avg_net_pct": 6.897,
+"max_trade_net_pct": 73.5,
+"exit_reasons": {
+"timeout": {
+"n": 24,
+"avg_net_pct": 12.534
+},
+"stop": {
+"n": 6,
+"avg_net_pct": -15.653
+}
+}
+},
+"oneil_flagprice__breakout__long__1w__atr3_h8__v1": {
+"pfnet": 2.57,
+"pfgross": 2.846,
+"win_pct": 60.0,
+"n": 30,
+"avg_held_bars": 7.67,
+"avg_net_pct": 7.941,
+"max_trade_net_pct": 73.5,
+"exit_reasons": {
+"timeout": {
+"n": 28,
+"avg_net_pct": 9.609
+},
+"stop": {
+"n": 2,
+"avg_net_pct": -15.409
+}
+}
+},
+"oneil_flagprice__breakout__long__1w__atr2_h12__v1": {
+"pfnet": 3.038,
+"pfgross": 3.329,
+"win_pct": 46.7,
+"n": 30,
+"avg_held_bars": 10.27,
+"avg_net_pct": 12.562,
+"max_trade_net_pct": 131.3,
+"exit_reasons": {
+"timeout": {
+"n": 20,
+"avg_net_pct": 26.856
+},
+"stop": {
+"n": 10,
+"avg_net_pct": -16.027
+}
+}
+},
+"oneil_flagprice__breakout__long__1w__atr3_h12__v1": {
+"pfnet": 3.583,
+"pfgross": 3.907,
+"win_pct": 50.0,
+"n": 30,
+"avg_held_bars": 11.13,
+"avg_net_pct": 15.661,
+"max_trade_net_pct": 131.3,
+"exit_reasons": {
+"timeout": {
+"n": 25,
+"avg_net_pct": 22.386
+},
+"stop": {
+"n": 5,
+"avg_net_pct": -17.964
+}
+}
+}
+}
+}
