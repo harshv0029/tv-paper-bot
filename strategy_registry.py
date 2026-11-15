@@ -3150,6 +3150,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_cstf.build())
         import strategy_registry_pl1d_tf as _pltf  # B-1091 pl1d candle/dir sweep run 43707237249
         REGISTRY.extend(_pltf.build())
+        import strategy_registry_gatetarget_tf as _gttf  # B-1010 gatetarget short candle x ATR sweep run 43714049928
+        REGISTRY.extend(_gttf.build())
         import strategy_registry_tasuki_tf as _tstf  # B-1181 tasuki candle/dir/universe sweep run 43701581391
         REGISTRY.extend(_tstf.build())
         import strategy_registry_brk20_1h_rerun as _b20r  # B-1596 brk20 1h long re-run 43696686802

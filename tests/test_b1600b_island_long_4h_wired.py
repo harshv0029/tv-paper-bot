@@ -147,9 +147,10 @@ def test_wired_in_1h_leg_and_daily_island_unchanged():
     src = inspect.getsource(main._run_long_swing_1h_pass)
     assert "_island_long_4h_try_entry(conn, symbol, df, capital" in src
     assert "_island_long_4h_exit(_island_4h_completed_bars(df), pos)" in src
-    assert "ISLAND_TFS_LONG_4H_TAGS" in inspect.getsource(main._with_held_1h_long_symbols)
+    assert "SWING_LONG_4H_TAGS" in inspect.getsource(main._with_held_1h_long_symbols)  # B-1605: island + pl1d 4h
+    assert set(main.ISLAND_TFS_LONG_4H_TAGS) <= set(main.SWING_LONG_4H_TAGS)
     assert "ISLAND_TFS_LONG_4H_TAGS" in inspect.getsource(main._scan_only_1h_long_cells)
-    assert "ISLAND_TFS_LONG_4H_TAGS" in inspect.getsource(main._run_swing_scan_pass)  # daily pass skips 4h positions
+    assert "SWING_LONG_4H_TAGS" in inspect.getsource(main._run_swing_scan_pass)  # daily pass skips 4h positions
     assert not set(main.ISLAND_TFS_LONG_4H_TAGS) & set(main.ISLAND_ALL_TAGS)
     assert main.ISLAND_ALL_TAGS[:12] == main.ISLAND_TFS_LONG_1D_TAGS
     assert "ISLAND_ALL_TAGS" in inspect.getsource(main._island_swing_try_entry)
