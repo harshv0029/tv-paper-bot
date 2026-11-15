@@ -38037,7 +38037,10 @@ def _tracked_union_git_push() -> bool:
 
 # B-1407: strategy_scan_counts joins the side-branch push. GitHub fired table-git-sync.yml hours apart (main's copy was
 # from the previous evening at the 2026-10-28 14:12 IST restart), so a restart zeroed the day's scan counts.
-_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts")
+# B-1564: kotak_fill_ledger (the real-fill history View 4's ROC/CAGR/XIRR read) also keeps a git copy on the side branch:
+# Upstash stays its primary restore, git is the second copy so one lost store can never shorten the history again.
+_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts", "kotak_fill_ledger")
+_FILL_LEDGER_KEY = ("day", "trdsym", "prod", "source")
 _git_tier_push_last_hash: dict = {}
 _SCAN_COUNTS_GIT_KEEP_DAYS = 14  # bounds the side-branch file (~300 rows/day)
 
@@ -38058,10 +38061,60 @@ def _git_tier_merge_rows(name: str, remote: list, local: list) -> list:
                 merged[k] = {"day": r.get("day"), "tag": r.get("tag"), "n": int(r.get("n") or 0)}
         cutoff = (ist_now() - dt.timedelta(days=_SCAN_COUNTS_GIT_KEEP_DAYS)).strftime("%Y-%m-%d")
         return sorted((r for r in merged.values() if (r["day"] or "") >= cutoff), key=lambda r: (r["day"], r["tag"]))
+    if name == "kotak_fill_ledger":
+        return _fill_ledger_merge_rows(remote, local)
     out = {_order_event_key(r): r for r in remote}
     for r in local:
         out.setdefault(_order_event_key(r), r)
     return sorted(out.values(), key=lambda r: (r.get("ts") or 0))
+
+
+def _fill_ledger_fills(r: dict) -> float:
+    return float(r.get("buy_qty") or 0) + float(r.get("sell_qty") or 0)
+
+
+def _fill_ledger_merge_rows(remote: list, local: list) -> list:
+    """B-1564: union on the primary key; for a key both hold, the row with more filled qty wins (a day's fills only grow),
+    ties go to the later updated_at. Local 'opening' rows are dropped when the remote already has history (the same rule
+    as _GENERIC_MIRROR_MERGE_DROP_LOCAL: a pre-restore 'first ever capture' would double-count). Never drops a remote row."""
+    out = {tuple(r.get(k) or "" for k in _FILL_LEDGER_KEY): dict(r) for r in remote}
+    for r in local:
+        if remote and r.get("source") == "opening":
+            continue
+        k = tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY)
+        o = out.get(k)
+        if o is None or (_fill_ledger_fills(r), float(r.get("updated_at") or 0)) > \
+                (_fill_ledger_fills(o), float(o.get("updated_at") or 0)):
+            out[k] = dict(r)
+    return sorted(out.values(), key=lambda r: tuple(str(r.get(c) or "") for c in _FILL_LEDGER_KEY))
+
+
+def _fill_ledger_git_restore(repo: str) -> bool:
+    """B-1564: merges the side-branch git copy of kotak_fill_ledger into SQLite (rows missing locally are added, a git row
+    with more fills replaces the local one). Marks the table restored so its push may start. A 404 counts as restored."""
+    resp = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/kotak_fill_ledger.json",
+                        timeout=6)
+    if resp.status_code != 404:
+        resp.raise_for_status()
+        remote = (resp.json() or {}).get("rows") or []
+        with closing(get_db()) as conn:
+            local = [dict(r) for r in conn.execute("SELECT * FROM kotak_fill_ledger").fetchall()]
+            have = {tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY): r for r in local}
+            cols = _generic_mirror_table_columns(conn, "kotak_fill_ledger")
+            n = 0
+            for r in _fill_ledger_merge_rows(remote, local):
+                k = tuple(r.get(c) or "" for c in _FILL_LEDGER_KEY)
+                if have.get(k) == r:
+                    continue
+                keep = {c: v for c, v in r.items() if c in cols}
+                conn.execute(f"INSERT OR REPLACE INTO kotak_fill_ledger ({','.join(keep)}) VALUES "
+                             f"({','.join('?' for _ in keep)})", tuple(keep.values()))
+                n += 1
+            conn.commit()
+        if n:
+            print(f"[table_mirror] B-1564: merged {n} kotak_fill_ledger row(s) from the git copy")
+    _git_tier_hydrated.add("kotak_fill_ledger")
+    return True
 
 
 def _git_tier_push_side_branch(name: str) -> bool:
@@ -38072,6 +38125,12 @@ def _git_tier_push_side_branch(name: str) -> bool:
     token = os.environ.get("GITHUB_SYNC_TOKEN")
     if not token:
         return False
+    if name == "kotak_fill_ledger" and name not in _git_tier_hydrated:
+        try:
+            _fill_ledger_git_restore(os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[table_mirror] B-1564 kotak_fill_ledger git restore failed (non-fatal, will retry): {e}")
+            return False
     if name not in _git_tier_hydrated:
         since = _git_tier_unhydrated_since.get(name)
         # B-1516: the order log never waits forever for a restore - an append-only union push cannot drop git rows
