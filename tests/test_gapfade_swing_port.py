@@ -45,17 +45,25 @@ def test_unknown_tag_and_tags_replay_verified():
         assert t not in main.REPLAY_OWED_TAGS and t not in main.REPLAY_FAILED_TAGS
     for t in main.GAPFADE_TAGS:
         assert t in main._STRATEGY_TAG_TO_REGISTRY_NAME
-    # B-1610: the 10 new variants stay replay-owed (real-money gate closed) until their main.py replay is on file;
-    # before B-1610 no tag was owed (B-1396).
-    new = set(main.GAPFADE_TAGS) - {main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG}
-    assert len(new) == 10 and new <= main.REPLAY_OWED_TAGS
-    assert main.REPLAY_OWED_TAGS <= new | set(main.GAPFADE_TAGS)
+    # B-1610: main replay run 43742835434 verified all 12 cells (> 1.00), so none is owed or failed; each new cell gates
+    # on its own `_mr` main-replay registry row.
+    for t in main.GAPFADE_TAGS:
+        assert t in main._replay_verified_tags() and t not in main.REPLAY_OWED_TAGS and t not in main.REPLAY_FAILED_TAGS
+        assert main._is_strategy_wired(t)
+        if t not in (main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG):
+            assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t.replace("__long__", "_mr__long__", 1)
+            assert main._registry_entry(main._STRATEGY_TAG_TO_REGISTRY_NAME[t]).metrics.pfnet > 1.0
+    assert not main.REPLAY_OWED_TAGS  # B-1396: every owed tag has a main.py replay on file
 
 
 def test_b1610_cells_param_entry():
     """Each cell uses its own nbars / ATR k / volume kind; same bars give the same entry, stops scale with k."""
     assert len(main.GAPFADE_TAGS) == 12 == len(set(main.GAPFADE_TAGS))
-    assert main.GAPFADE_TAGS[:2] == (main.GAPFADE_EXHAUST_TAG, main.GAPFADE_COMMON_TAG)
+    import json
+    d = json.load(open("docs/backtest_data/gapfade_main_replay_run_43742835434.json"))
+    rpd = {r["tag"]: r["metrics"]["avg_net_pct"] / r["metrics"]["avg_held_bars"] for r in d["rows"]}
+    assert set(rpd) == set(main.GAPFADE_TAGS)
+    assert [rpd[t] for t in main.GAPFADE_TAGS] == sorted(rpd.values(), reverse=True)  # return-per-day order
     for t, (exh, nb, k) in main.GAPFADE_CELLS.items():
         assert ("exhaust_fade" in t) == exh and f"_nb{nb}__" in t and f"__atr{k:g}".replace(".", "d") in t
 

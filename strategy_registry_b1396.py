@@ -23,6 +23,9 @@ _RUNS = (
     ("gapfade_main_replay_run_40623860743.json",
      "gapfade-main-replay.yml run 40623860743 (1d 5y, 2,412 symbols full NSE, cost 0.8%, FIFO)",
      "scripts/gapfade_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SWING),
+    ("gapfade_main_replay_run_43742835434.json",  # B-1610: the 12-cell table (the atr3_nb5 pair re-measured, kept as first registered)
+     "gapfade-main-replay.yml run 43742835434 (1d 5y, full NSE, cost 0.8%, FIFO, 12 GAPFADE_CELLS)",
+     "scripts/gapfade_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SWING),
 )
 _HOURS_PER_BAR = {"15m": 0.25, "1h": 1.0}
 

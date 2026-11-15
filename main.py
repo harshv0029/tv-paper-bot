@@ -6575,23 +6575,22 @@ GAPFADE_MAX_HOLD_BARS = 30
 GAPFADE_EXHAUST_TAG = "gaps__exhaust_fade__long__1d__atr3_nb5__v1"
 GAPFADE_COMMON_TAG = "gaps__common_fade__long__1d__atr3_nb5__v1"
 # B-1610 (user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired"): every long gap-fade 1d variant whose
-# strict-FIFO validation (elder-ge11-validate.yml run 43739717415, one position per symbol per cell, full universe, 0.8%
-# cost) kept pooled PFnet > 1.00. tag -> (exhaustion gap?, nbars, ATR stop k). The live atr3_nb5 pair first (main replay
-# 40623860743: common 1.286, exhaust 1.226), then by validation PFnet. The 10 new cells are REPLAY_OWED (real-money gate
-# closed) until scripts/gapfade_main_replay.py calls these functions for them and a run is on file.
+# strict-FIFO validation (elder-ge11-validate.yml run 43739717415) kept pooled PFnet > 1.00, re-measured with THESE functions
+# (gapfade-main-replay.yml run 43742835434, full NSE 5y, 0.8% cost, FIFO): all 12 clear 1.00. tag -> (exhaustion gap?, nbars,
+# ATR stop k). Entry check order = main-replay return per day (avg net % / avg held days), highest first.
 GAPFADE_CELLS = {
-    GAPFADE_EXHAUST_TAG: (True, 5, 3.0),                                   # validation 1.183 n4406
-    GAPFADE_COMMON_TAG: (False, 5, 3.0),                                   # 1.120 n5424
-    "gaps__exhaust_fade__long__1d__atr2_nb5__v1": (True, 5, 2.0),          # 1.166 n4406
-    "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1": (True, 5, 1.5),        # 1.160 n4406
-    "gaps__common_fade__long__1d__atr2_nb5__v1": (False, 5, 2.0),          # 1.101 n5424
-    "gaps__common_fade__long__1d__atr1d5_nb5__v1": (False, 5, 1.5),        # 1.094 n5424
-    "gaps__common_fade__long__1d__atr3_nb3__v1": (False, 3, 3.0),          # 1.090 n6949
-    "gaps__common_fade__long__1d__atr2_nb3__v1": (False, 3, 2.0),          # 1.070 n6949
-    "gaps__common_fade__long__1d__atr3_nb4__v1": (False, 4, 3.0),          # 1.050 n6021
-    "gaps__common_fade__long__1d__atr1d5_nb3__v1": (False, 3, 1.5),        # 1.038 n6949
-    "gaps__common_fade__long__1d__atr2_nb4__v1": (False, 4, 2.0),          # 1.031 n6022
-    "gaps__common_fade__long__1d__atr1d5_nb4__v1": (False, 4, 1.5),        # 1.006 n6023
+    "gaps__common_fade__long__1d__atr3_nb3__v1": (False, 3, 3.0),          # 0.189 %/d, PFnet 1.354 n6514
+    "gaps__common_fade__long__1d__atr2_nb3__v1": (False, 3, 2.0),          # 0.180 %/d, 1.330 n6518
+    "gaps__common_fade__long__1d__atr1d5_nb3__v1": (False, 3, 1.5),        # 0.162 %/d, 1.285 n6522
+    GAPFADE_COMMON_TAG: (False, 5, 3.0),                                   # 0.136 %/d, 1.272 n5247 (live since B-1396)
+    "gaps__common_fade__long__1d__atr2_nb5__v1": (False, 5, 2.0),          # 0.130 %/d, 1.257 n5247
+    "gaps__common_fade__long__1d__atr3_nb4__v1": (False, 4, 3.0),          # 0.118 %/d, 1.216 n5612
+    "gaps__common_fade__long__1d__atr2_nb4__v1": (False, 4, 2.0),          # 0.117 %/d, 1.213 n5614
+    "gaps__common_fade__long__1d__atr1d5_nb5__v1": (False, 5, 1.5),        # 0.115 %/d, 1.223 n5250
+    "gaps__common_fade__long__1d__atr1d5_nb4__v1": (False, 4, 1.5),        # 0.113 %/d, 1.202 n5617
+    GAPFADE_EXHAUST_TAG: (True, 5, 3.0),                                   # 0.101 %/d, 1.213 n4089 (live since B-1396)
+    "gaps__exhaust_fade__long__1d__atr2_nb5__v1": (True, 5, 2.0),          # 0.089 %/d, 1.184 n4098
+    "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1": (True, 5, 1.5),        # 0.085 %/d, 1.173 n4106
 }
 GAPFADE_TAGS = tuple(GAPFADE_CELLS)  # entry check order
 
@@ -16038,7 +16037,8 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
     "gaps__exhaust_fade__long__1d__atr3_nb5__v1": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
     "gaps__common_fade__long__1d__atr3_nb5__v1": "gaps__common_fade__long__1d__atr3_nb5__v1",
-    **{_t: _t for _t in (  # B-1610: 1:1, each its own research registry row (main replay verifies before real money)
+    **{_t: _t.replace("__long__", "_mr__long__", 1) for _t in (  # B-1610: each gates on its own `_mr` main-replay row
+        # (run 43742835434, the real main.py functions; B-1466 precedent), not the research harness row
         "gaps__exhaust_fade__long__1d__atr2_nb5__v1", "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1",
         "gaps__common_fade__long__1d__atr2_nb5__v1", "gaps__common_fade__long__1d__atr1d5_nb5__v1",
         "gaps__common_fade__long__1d__atr3_nb3__v1", "gaps__common_fade__long__1d__atr2_nb3__v1",

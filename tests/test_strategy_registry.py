@@ -208,6 +208,12 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         *(f"tasuki__gap_etf_mr__short__1d__atr{a}_h3__v1" for a in ("2d5", "4", "6")),
         *(f"month__effect_mr__short__15m__atr{a}_h25__v1" for a in ("2d5", "4", "6")),
         "gaps__common_fade_mr__long__1d__atr3_nb5__v1", "gaps__exhaust_fade_mr__long__1d__atr3_nb5__v1",  # B-1396d run 40623860743
+        # B-1610 run 43742835434: the 10 new gap-fade cells' main-replay rows (all > 1.00)
+        "gaps__exhaust_fade_mr__long__1d__atr2_nb5__v1", "gaps__exhaust_fade_mr__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade_mr__long__1d__atr2_nb5__v1", "gaps__common_fade_mr__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade_mr__long__1d__atr3_nb3__v1", "gaps__common_fade_mr__long__1d__atr2_nb3__v1",
+        "gaps__common_fade_mr__long__1d__atr1d5_nb3__v1", "gaps__common_fade_mr__long__1d__atr3_nb4__v1",
+        "gaps__common_fade_mr__long__1d__atr2_nb4__v1", "gaps__common_fade_mr__long__1d__atr1d5_nb4__v1",
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 

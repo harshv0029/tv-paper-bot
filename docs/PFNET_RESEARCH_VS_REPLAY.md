@@ -35,6 +35,8 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_gap__buy_on_gap_mr__long__1d__atr4d0_top10__v1 | chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1 | 1.45 | 1147 | 1.39 | 1211 | -0.05 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr2d5_top10__v1 | chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1 | 1.41 | 1147 | 1.36 | 1211 | -0.05 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr1d5_top10__v1 | chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1 | 1.36 | 1147 | 1.32 | 1211 | -0.05 | close |
+| gaps__exhaust_fade_mr__long__1d__atr1d5_nb5__v1 | gaps__exhaust_fade__long__1d__atr1d5_nb5__v1 | 1.22 | 4404 | 1.17 | 4106 | -0.04 | close |
+| gaps__exhaust_fade_mr__long__1d__atr2_nb5__v1 | gaps__exhaust_fade__long__1d__atr2_nb5__v1 | 1.23 | 4404 | 1.18 | 4098 | -0.04 | close |
 | envelope__0d05_fade_mr__long__1h__atr6_h18__v1 | envelope__0d05_fade__long__1h__atr6_h18__v1 | 1.07 | 2114 | 1.03 | 45111 | -0.03 | close |
 | osc__div_class_mr__long__1d__atr3_kb_oscrsi__v1 | osc__div_class__long__1d__atr3_kb_oscrsi__v1 | 0.96 | 10655 | 0.93 | 10696 | -0.03 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.67 | 988 | 1.65 | 1019 | -0.03 | close |
@@ -109,19 +111,27 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | envelope__0d05_fade_mr__short__1h__atr2d5_h18__v1 | envelope__0d05_fade__short__1h__atr2d5_h18__v1 | 0.46 | 3888 | 0.59 | 83334 | 0.12 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.25 | 11478 | 1.38 | 13087 | 0.13 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.28 | 11382 | 1.41 | 13009 | 0.13 | close |
+| gaps__common_fade_mr__long__1d__atr1d5_nb5__v1 | gaps__common_fade__long__1d__atr1d5_nb5__v1 | 1.09 | 5413 | 1.22 | 5250 | 0.13 | close |
 | envelope__0d05_fade_mr__short__1h__atr6_h18__v1 | envelope__0d05_fade__short__1h__atr6_h18__v1 | 0.47 | 3131 | 0.60 | 64797 | 0.13 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1 | 2.70 | 49 | 2.85 | 51 | 0.15 | close |
 | sma_crossover__gc_mr__long__1d__atrnone__v1 | sma_crossover__gc__long__1d__atrnone__v1 | 2.14 | 33 | 2.29 | 31 | 0.15 | close |
 | envelope__0d05_fade_mr__short__1h__atr2d5_h30__v1 | envelope__0d05_fade__short__1h__atr2d5_h30__v1 | 0.47 | 3840 | 0.63 | 81565 | 0.15 | close |
+| gaps__common_fade_mr__long__1d__atr2_nb5__v1 | gaps__common_fade__long__1d__atr2_nb5__v1 | 1.10 | 5413 | 1.26 | 5247 | 0.16 | close |
 | gaps__common_fade_mr__long__1d__atr3_nb5__v1 | gaps__common_fade__long__1d__atr3_nb5__v1 | 1.12 | 5413 | 1.29 | 5241 | 0.16 | close |
 | envelope__0d05_fade_mr__short__1h__atr4_h30__v1 | envelope__0d05_fade__short__1h__atr4_h30__v1 | 0.48 | 3319 | 0.64 | 68797 | 0.17 | close |
+| gaps__common_fade_mr__long__1d__atr3_nb4__v1 | gaps__common_fade__long__1d__atr3_nb4__v1 | 1.04 | 6002 | 1.22 | 5612 | 0.17 | close |
 | envelope__0d05_fade_mr__short__1h__atr6_h30__v1 | envelope__0d05_fade__short__1h__atr6_h30__v1 | 0.46 | 3025 | 0.64 | 60941 | 0.18 | close |
+| gaps__common_fade_mr__long__1d__atr2_nb4__v1 | gaps__common_fade__long__1d__atr2_nb4__v1 | 1.03 | 6002 | 1.21 | 5614 | 0.19 | close |
 | base__cup_cheat_3c_mr__long__1h__atr2d5_h6__v1 | base__cup_cheat_3c__long__1h__atr2d5_h6__v1 | 0.30 | 153 | 0.49 | 3462 | 0.19 | close |
 | swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1 | swingminrr__minervini_vcp_base__long__1d__atr1d5__v1 | 1.16 | 2606 | 1.35 | 2404 | 0.20 | close |
+| gaps__common_fade_mr__long__1d__atr1d5_nb4__v1 | gaps__common_fade__long__1d__atr1d5_nb4__v1 | 1.00 | 6002 | 1.20 | 5617 | 0.20 | close |
 | base__cup_cheat_3c_mr__long__1h__atr4_h6__v1 | base__cup_cheat_3c__long__1h__atr4_h6__v1 | 0.29 | 153 | 0.50 | 3457 | 0.21 | close |
 | supertrend__gc_mr__long__1d__atrnone__v1 | supertrend__gc__long__1d__atrnone__v1 | 2.13 | 18 | 2.35 | 17 | 0.22 | close |
 | base__cup_cheat_3c_mr__long__1h__atr6_h6__v1 | base__cup_cheat_3c__long__1h__atr6_h6__v1 | 0.28 | 153 | 0.51 | 3456 | 0.23 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1 | 2.06 | 111 | 2.30 | 110 | 0.23 | close |
+| gaps__common_fade_mr__long__1d__atr1d5_nb3__v1 | gaps__common_fade__long__1d__atr1d5_nb3__v1 | 1.03 | 6875 | 1.29 | 6522 | 0.25 | close |
+| gaps__common_fade_mr__long__1d__atr2_nb3__v1 | gaps__common_fade__long__1d__atr2_nb3__v1 | 1.06 | 6875 | 1.33 | 6518 | 0.27 | close |
+| gaps__common_fade_mr__long__1d__atr3_nb3__v1 | gaps__common_fade__long__1d__atr3_nb3__v1 | 1.08 | 6875 | 1.35 | 6514 | 0.27 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr2__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1 | 1.26 | 341 | 1.59 | 327 | 0.33 | replay higher |
 | reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2 | 1.32 | 1766 | 1.66 | 1772 | 0.34 | replay higher |
 | reversal__island_turn1cr_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 | 1.28 | 3082 | 1.67 | 3087 | 0.39 | replay higher |
