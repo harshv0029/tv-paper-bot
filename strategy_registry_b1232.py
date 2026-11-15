@@ -36,27 +36,45 @@ def _ex(r):
     return json.dumps(r.get("exit_reasons"), separators=(",", ":"))
 
 
+def _ge11_files():
+    """The 1h run first (unchanged registration), then every per-interval file the workflow's merge job commits
+    (elder_ge11_<tf>_run_<id>.json, B-850 2026-11-15)."""
+    import glob
+    first = "elder_ge11_1h_run_38272885846.json"
+    rest = sorted(os.path.basename(f) for f in glob.glob(os.path.join(_DIR, "elder_ge11_*_run_*.json")))
+    return [first] + [f for f in rest if f != first]
+
+
 def _ge11(seen):
-    d = _load("elder_ge11_1h_run_38272885846.json")
     out = []
-    ref = "elder-ge11-validate.yml run 38272885846 (1h, cost 0.8%, 2026-10-12 IST)"
+    for fn in _ge11_files():
+        out.extend(_ge11_file(seen, fn))
+    return out
+
+
+def _ge11_file(seen, fn):
+    d = _load(fn)
+    out = []
+    tf, rid = fn[len("elder_ge11_"):].split("_run_")[0], fn.split("_run_")[1].split(".")[0]
+    ref = ("elder-ge11-validate.yml run 38272885846 (1h, cost 0.8%, 2026-10-12 IST)" if rid == "38272885846"
+           else f"elder-ge11-validate.yml run {rid} ({tf}, cost 0.8%)")
     for r in (d or {}).get("rows", []):
         tag = r["tag"]
         if tag in seen or r.get("pfnet") is None:
             continue
         seen.add(tag)
         out.append(sr.StrategyDef(
-            name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(_cat(tag, sr.TradeCategory.BUY),), timeframe="1h",
+            name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(_cat(tag, sr.TradeCategory.BUY),), timeframe=tf,
             status=sr.StrategyStatus.RESEARCH, entry_fn=None,
             metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
                                n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]),
-                               avg_held_hrs=float(r["avg_hold_bars"]) * sr.market_hours_per_bar("1h"), avg_held_raw_unit="1h bars",
+                               avg_held_hrs=float(r["avg_hold_bars"]) * sr.market_hours_per_bar(tf), avg_held_raw_unit=f"{tf} bars",
                                universe=f"NSE full universe ({d.get('symbols_fetched')} fetched)", run_ref=ref),
             source="scripts/elder_ge11_validate.py",
             evidence=(f"{ref}: PFnet {r['pfnet']} (trim1 {r.get('pfnet_trim1')}, trim5 {r.get('pfnet_trim5')}), gross {r.get('pf_gross')}, win {r['win_pct']}%, "
-                      f"n={r['n']} (raw_n {r.get('raw_n')}), avg_hold {r['avg_hold_bars']} 1h bars, avg_net {r.get('avg_net_ret_pct')}%, "
+                      f"n={r['n']} (raw_n {r.get('raw_n')}), avg_hold {r['avg_hold_bars']} {tf} bars, avg_net {r.get('avg_net_ret_pct')}%, "
                       f"max_trade {r.get('max_trade_net_ret_pct')}%; exits {_ex(r)}"),
-            notes="Elder gap-fade/MACD 1h validation cell (own tag per segment: pooled / segis / segoos / segbull / segbear). B-1232 registration of a "
+            notes=f"Elder gap-fade/MACD {tf} validation cell (own tag per segment: pooled / segis / segoos / segbull / segbear). B-1232 registration of a "
                   "previously unregistered result. Viability derived from PFnet vs PFNET_LIVE_FLOOR; nothing wired."))
     return out
 

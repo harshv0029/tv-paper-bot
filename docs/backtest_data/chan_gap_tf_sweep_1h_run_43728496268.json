@@ -1,0 +1,202 @@
+{
+ "run": "chan-gap-tf-sweep.yml run 43728496268 (interval=1h, raw_daily=1, B-1606 cap5/fit5 stop rules)",
+ "interval": "1h",
+ "period": "730d",
+ "cost_round_trip_pct": 0.8,
+ "source": "merge job log (artifact download blocked)",
+ "raw_daily": true,
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr1d5_top10_rawd__v1",
+   "metrics": {
+    "n": 749,
+    "pfnet": 0.9972,
+    "pfgross": 2.0095,
+    "win_pct": 37.12,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 713,
+      "pfnet": 1.321139642283417,
+      "win_pct": 38.99,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 36,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr2d5_top10_rawd__v1",
+   "metrics": {
+    "n": 749,
+    "pfnet": 1.047,
+    "pfgross": 2.1639,
+    "win_pct": 37.25,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 746,
+      "pfnet": 1.0854247378908155,
+      "win_pct": 37.4,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 3,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr4d0_top10_rawd__v1",
+   "metrics": {
+    "n": 749,
+    "pfnet": 1.0445,
+    "pfgross": 2.1555,
+    "win_pct": 37.25,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 748,
+      "pfnet": 1.0649504378760442,
+      "win_pct": 37.3,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__atr4d0cap5_top10_rawd__v1",
+   "metrics": {
+    "n": 749,
+    "pfnet": 1.0773,
+    "pfgross": 2.2768,
+    "win_pct": 37.12,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 696,
+      "pfnet": 1.666541303556846,
+      "win_pct": 39.94,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 53,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1h__fit5_top10_rawd__v1",
+   "metrics": {
+    "n": 191,
+    "pfnet": 0.4379,
+    "pfgross": 1.1665,
+    "win_pct": 29.32,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 175,
+      "pfnet": 0.6787693880650301,
+      "win_pct": 32.0,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 16,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr1d5_top10_rawd__v1",
+   "metrics": {
+    "n": 747,
+    "pfnet": 0.7156,
+    "pfgross": 1.3627,
+    "win_pct": 41.23,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 662,
+      "pfnet": 1.3945991257519323,
+      "win_pct": 46.53,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 85,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr2d5_top10_rawd__v1",
+   "metrics": {
+    "n": 747,
+    "pfnet": 0.7317,
+    "pfgross": 1.3981,
+    "win_pct": 41.9,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 718,
+      "pfnet": 0.9758382539120307,
+      "win_pct": 43.59,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 29,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__short_on_gap__short__1h__atr4d0_top10_rawd__v1",
+   "metrics": {
+    "n": 747,
+    "pfnet": 0.7183,
+    "pfgross": 1.3623,
+    "win_pct": 41.9,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 739,
+      "pfnet": 0.7810498942932608,
+      "win_pct": 42.35,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 8,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  }
+ ]
+}

@@ -25,7 +25,7 @@ def _load(fn):
         return None
 
 
-def _pool_row(out, seen, r, uni):
+def _pool_row(out, seen, r, uni, tf="1d", ref=_REF_E):
     """B-1472 (2026-11-09; user 2026-11-05/06: pooled PFnet decides, OOS is recorded but never a veto): the Elder
     dirsys13 headline row above carries the OOS hold-out PFnet, so the POOLED (whole-run) figures are registered as
     their own "_pool" variant tag, every row with a pooled PFnet (no n / OOS-n filter). The OOS row is unchanged."""
@@ -39,28 +39,39 @@ def _pool_row(out, seen, r, uni):
     seen.add(tag)
     out.append(sr.StrategyDef(
         name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
-        categories=(sr.TradeCategory.SHORT_SELL if "__short__" in tag else sr.TradeCategory.SWING,), timeframe="1d",
+        categories=(sr.TradeCategory.SHORT_SELL if "__short__" in tag else sr.TradeCategory.SWING,), timeframe=tf,
         status=sr.StrategyStatus.RESEARCH, entry_fn=None,
         metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0),
                            win_rate_pct=float(r.get("win_pct") or 0.0), n_trades=int(r["n"]),
-                           avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * _D,
-                           avg_held_raw_unit="1d bars", universe=uni, run_ref=_REF_E.replace("OOS headline", "POOLED headline")),
+                           avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.market_hours_per_bar(tf),
+                           avg_held_raw_unit=f"{tf} bars", universe=uni, run_ref=ref.replace("OOS headline", "POOLED headline")),
         source="scripts/elder_dirsys13_research (B-588)",
-        evidence=(f"{_REF_E}: POOLED[n={r['n']} pfnet={r['pfnet']} pfnet_trim1={r.get('pfnet_trim1')} win={r.get('win_pct')}%]; "
+        evidence=(f"{ref}: POOLED[n={r['n']} pfnet={r['pfnet']} pfnet_trim1={r.get('pfnet_trim1')} win={r.get('win_pct')}%]; "
                   f"avg_net={r.get('avg_net_ret_pct')}%; OOS[n={r.get('oos_n')} pfnet={r.get('oos_pfnet')}] (recorded, not a veto)"),
         notes=("B-1472 pooled variant of the Elder dirsys13 cell (overlapping signals, not strict FIFO: pooled n is inflated). "
                "No main.py dirsys13 live path, so nothing is wired. Viability derived vs PFNET_LIVE_FLOOR.")))
 
 
-def _elder(seen):
+def _elder_runs(seen):
+    """B-588 (2026-11-15): per-interval runs the workflow's merge job commits (elder_dirsys13_<tf>_run_<id>.json)."""
+    import glob
     out = []
-    d = _load("elder_dirsys13_results_1d.json")
+    for f in sorted(glob.glob(os.path.join(_DIR, "elder_dirsys13_*_run_*.json"))):
+        fn = os.path.basename(f)
+        tf, rid = fn[len("elder_dirsys13_"):].split("_run_")[0], fn.split("_run_")[1].split(".")[0]
+        out.extend(_elder(seen, fn, tf, f"elder dirsys13 {tf} (B-588; docs/backtest_data/{fn}, run {rid}, cost 0.008, OOS headline)"))
+    return out
+
+
+def _elder(seen, fn="elder_dirsys13_results_1d.json", tf="1d", ref=_REF_E):
+    out = []
+    d = _load(fn)
     if not d:
         return out
     uni = f"full NSE universe file, {d.get('symbols_fetched')} symbols fetched with data, cost {d.get('cost_round_trip')} round trip"
     for r in d.get("rows", []):
         try:
-            _pool_row(out, seen, r, uni)
+            _pool_row(out, seen, r, uni, tf, ref)
         except Exception:
             pass
         try:
@@ -69,17 +80,18 @@ def _elder(seen):
                 continue
             seen.add(tag)
             short = "__short__" in tag
-            ev = (f"{_REF_E}: OOS[n={r['oos_n']} pfnet={r['oos_pfnet']} win={r['oos_win_pct']}%]; "
+            ev = (f"{ref}: OOS[n={r['oos_n']} pfnet={r['oos_pfnet']} win={r['oos_win_pct']}%]; "
                   f"POOLED[n={r['n']} pfnet={r['pfnet']} pfnet_trim1={r.get('pfnet_trim1')} pfgross={r.get('pf_gross')} win={r['win_pct']}% "
                   f"avg_hold={r['avg_hold_bars']}bars avg_net={r.get('avg_net_ret_pct')}% max_trade_net={r.get('max_trade_net_ret_pct')}%]; "
                   f"exits={json.dumps(r.get('exit_reasons'), separators=(',', ':'))}")
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
-                categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,), timeframe="1d",
+                categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,), timeframe=tf,
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["oos_pfnet"]), pfgross=float(r.get("pf_gross") or 0.0),
                                    win_rate_pct=float(r["oos_win_pct"]), n_trades=int(r["oos_n"]),
-                                   avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * _D, universe=uni, run_ref=_REF_E),
+                                   avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.market_hours_per_bar(tf),
+                                   universe=uni, run_ref=ref),
                 source="scripts/elder_dirsys13_research (B-588)",
                 evidence=ev,
                 notes=("Elder Directional System DI13 research cell. Headline pfnet/win/n are OOS; pfgross and avg hold are POOLED (OOS gross not "
@@ -124,7 +136,7 @@ def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref
 
 def build():
     seen = {x.name for x in sr.REGISTRY}
-    return _elder(seen) + _oneil(seen) + _oneil(
+    return _elder(seen) + _elder_runs(seen) + _oneil(seen) + _oneil(
         seen, "oneil_nonoverlap_results_1w.json", "1w", 5, "B-833",
         "oneil non-overlap 1w (B-833; docs/backtest_data/oneil_nonoverlap_results_1w.json, strict FIFO, cost 0.008, run 38245037321; avg_hold in weekly bars)") + _oneil(
         seen, "oneil_ext_main_nonovl_1d.json", "1d", 1, "B-1463",

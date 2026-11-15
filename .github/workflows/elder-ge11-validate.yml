@@ -59,6 +59,8 @@ jobs:
   merge:
     needs: research
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -80,3 +82,12 @@ jobs:
           path: |
             ge11_results.json
             ge11_table.txt
+      - name: Commit results to the branch (artifact zips are not downloadable from the dev container)
+        run: |
+          IV='${{ inputs.interval || '1d' }}'
+          F=docs/backtest_data/elder_ge11_${IV}_run_${{ github.run_id }}.json
+          mkdir -p docs/backtest_data && cp ge11_results.json "$F"
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git add "$F"
+          git commit -m "elder_ge11 ${IV} results run ${{ github.run_id }} [skip render]" || exit 0
+          git pull --rebase origin ${{ github.ref_name }} && git push origin HEAD:${{ github.ref_name }}

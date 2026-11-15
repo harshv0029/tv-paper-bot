@@ -1,6 +1,6 @@
 """B-1396d: gaps fade LONG 1d (exhaust + common, atr3 nb5): full-universe replay that CALLS the real main.py functions.
 
-The two tags in main.GAPFADE_TAGS (gaps__exhaust_fade__long__1d__atr3_nb5__v1, gaps__common_fade__long__1d__atr3_nb5__v1)
+Every tag in main.GAPFADE_TAGS (B-1610: 12 cells, main.GAPFADE_CELLS; originally the atr3_nb5 exhaust/common pair)
 sit in main.REPLAY_OWED_TAGS (real-money gate closed) until a replay that calls the live functions is on file. This is it.
 
 ENTRY = main.gapfade_long_entry_signal(df.iloc[:k+1], tag) (the exact call _gapfade_try_entry makes in the swing scan; the
@@ -109,7 +109,12 @@ def replay_symbol(m, df, tags, cost, band_cap="off"):
     if n < MIN_BARS + 3:
         return out
     band = bc.make_band(df, band_cap)
-    cand = _candidates(df, m.GAPFADE_NBARS)
+    # B-1610: cells differ in nbars; the prefilter is the union of each nbars' necessary condition (still exact per tag:
+    # gapfade_long_entry_signal decides on every candidate bar).
+    nbs = sorted({m.GAPFADE_CELLS[t][1] for t in tags if t in getattr(m, "GAPFADE_CELLS", {})} or {m.GAPFADE_NBARS})
+    cand = np.zeros(n, dtype=bool)
+    for nb in nbs:
+        cand |= np.asarray(_candidates(df, nb), dtype=bool)[:n]
     free = {t: 0 for t in tags}
     for k in np.flatnonzero(cand[:n - 1]):
         k = int(k)

@@ -2230,3 +2230,54 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - pl1d 4h, signals only on the 09:15 4h bar (run 43714020903): the long edge thins against the all-bar sweep (starc atr6 1.129 -> 1.065, atr4 1.068 -> 1.009, gap atr6 1.015 -> 1.020) and two cells flip (gap atr2d5 now 1.004 passes, starc atr2d5 0.934 fails). Four long cells pass PFnet > 1 and are wired on the 4h leg (entry 13:15-15:00 IST). Every short cell fails hard (0.04-0.72).
 - gatetarget short (B-1010, run 43714049928): every intraday and 4h cell fails (0.11-0.48). Gross PF is below 1 at every size, so this is no cost problem: the 1d/1h gatetarget edge does not survive smaller candles.
 - Profit-booking / exit takeaway: on pl1d 4h the winning trades are the max-hold timeouts (20 bars, about 10 sessions) and the wider 6x ATR stop does best, so let the trade run to the time exit rather than tightening the stop; the 2.5x stop gives most of the edge back to stop-outs.
+
+### 2026-11-15 IST: B-1607 chan_gap SHORT breakdown (why 1.31 became 0.71)
+- One cause at a time, full universe, real main.py functions, 0.8% cost, ATR 1.5 / 2.5 / 4.0:
+  - Price basis (1d bars, last 730 days, 15:30 close): adjusted 1.20 / 1.18 / 1.19 (n695, run 43720044302) vs raw 1.22 / 1.19 / 1.20 (n693, run 43720050830). Effect about +0.02: none.
+  - Exit time (1h raw bars, same 746 candidates): 15:15 live 0.710 / 0.726 / 0.713 vs 15:30 intraday close 0.711 / 0.725 / 0.712 (run 43721193037, _ic1530). Effect about 0.00: none. The earlier _xd1530 2.0 was the daily-vs-intraday bar mismatch, not the last 15 minutes.
+  - Bar size (both raw, both 15:30): 1d 1.22 (n693) vs 1h 0.71 (n746). This is the whole drop. Yahoo's first 1h bar opens >0.5% away from the daily Open on 46% of short candidate days (DOPEN p10 0.965), so the 1h replay enters at a different price and admits a different candidate set (746 vs 693).
+  - The old 1.31 (run 38502123279) was a longer history; on the same 730-day window the daily replay is about 1.20.
+- Open question, B-1608: which opening price does the live bot actually get, the daily Open or the first-intraday-bar Open? Answering it from the bot's own fills decides which replay is honest.
+- Profit-booking / exit takeaway: holding the short from 15:15 to 15:30 adds nothing, so the live 15:10 cover gives up no edge. The loss comes from the entry price, so any fix belongs at entry (fill at the real open), not at the exit.
+
+### 2026-11-15 IST: B-1608 chan_gap SHORT, which open does the live bot get?
+- The only live chan_gap fill (DABUR short, 2026-10-30) filled at Rs365.50 at 09:24:45 IST, a market fill about 9 minutes after the open. The 1h replay entered at 369.05 (a stale first bar equal to the prior 15:15 bar) and the adjusted daily open was 366.6, so the real fill was worse for a short than both replays.
+- So the 1h replay (PFnet 0.71) is the closer of the two and is still optimistic, and the daily-open replay (1.22) overstates the edge. The short gate stays closed. n=1, and no more fills can come while the short is unwired.
+- Profit-booking / exit takeaway: for open-gap fades, judge a cell on the price a market order actually gets a few minutes after the open, not the bar Open; a gap that half-fills before the fill erases most of a fade's edge.
+
+### 2026-11-15 IST: B-1606 chan_gap LONG cap5 / fit5 on the live basis
+- Re-measured with raw (unadjusted) daily and 1h bars, the real main.py cap5/fit5 stop rules, and an exit at the last 1h bar ending <= 15:15 IST. Full NSE universe, 730 days, 0.8% cost, run 43728496268.
+  - atr4d0cap5 (4 x ATR, capped 5% below entry): PFnet 1.077, n749, win 37.1%. 53 trades stopped, 696 closed at 1.67. It stays wired (> 1.00).
+  - fit5 (first ATR cell whose stop fits 5%, else no entry): PFnet 0.438, n191, win 29.3%. Gated off via live_exit_remeasure_run_43728496268.json.
+  - The plain ATR cells reproduce run 43710558361 (1.5 / 2.5 / 4.0: 0.997 / 1.047 / 1.044, n749 vs 751).
+- The adjusted 1d replays (cap5 1.411, fit5 1.242) overstated both. cap5 keeps about a quarter of that edge; fit5 keeps none. fit5's filter keeps only the tight-ATR days, and on raw intraday prices those are the worst days.
+- Profit-booking / exit takeaway: on a gap-buy held for one session, a hard 5% cap on a wide ATR stop helps (1.077 vs 1.044 uncapped) because it cuts the few deep losers while leaving most trades to the 15:15 flatten. Skipping trades whose ATR stop is wider than 5% (fit5) throws away the profitable volatile days.
+
+### 2026-11-15 IST: Douglas / Elder trade management at 15m (run 43728822855)
+- 504 entry and exit cells (scale-out, breakeven ratchet, min R:R, time stop, chase cap, cooldown, trend/regime gates, scale-in), both directions, full NSE universe (5362 with data), 60 days of 15m bars, 0.8% cost. Every cell fails; the best is 0.388 (brk20_min_rr short atr3 rr4, n825).
+- 5m (run 43730823714, 5368 with data): every cell fails again, best 0.189 (brk20_scale_atr long, n160k). PFnet halves again from 15m to 5m: the result scales with bar size, as a cost effect would.
+- The same cells at 1h (run 43593152439) reach 2.28 (brk20_min_rr long atr3 rr4). The rules are not the problem: a 15m bar's move is too small to cover a 0.8% round trip, so cost swamps every exit design.
+- Profit-booking / exit takeaway: no scale-out, ratchet or trailing design rescues an entry whose average move is under the round-trip cost. Pick the candle size by move per trade vs cost first, then tune the exit.
+
+### 2026-11-15 IST: B-1600 (e) island turn1cr LONG 1h wired
+- Of the three turn1cr 1h cells in run 43692422951, atr4 (1.012) and atr2d5 (1.004) pass the strict PFnet > 1.00 rule and are wired last on the 1h swing leg; atr1d5 (0.962) is not. n3264.
+- The margin is thin: about 1% over cost. Unlike the 4h cells (1.34-1.99), these sit near the line where a small fill-price slip (B-1608: a market fill a few minutes after the signal) can turn them below 1.00.
+- Profit-booking / exit takeaway: on 1h island longs the wider stop (4 ATR) beats the tight one (1.5 ATR); the tight stop takes too many noise stop-outs before the EMA13 rule exit can book the move.
+
+### 2026-11-15 IST: Elder gap-fade / MACD at 4h, dirsys13 at 1h
+- Elder >=1.1 cells at 4h (run 43735471593, 2377 symbols, 1h bars resampled to NSE-session 4h, 0.8% cost): every pooled cell fails, best 0.99 (gaps common_fade long atr3 nb4, n10389). In-sample segments reach 1.34 but out-of-sample falls to 0.67, so the daily edge (1.25) does not carry to 4h, the same as at 1h.
+- Elder Directional System DI13 at 1h (run 43735474064, 2513 symbols): all 192 cells fail, pooled best 0.60. The daily dirsys cells already failed OOS; at 1h they lose more to cost.
+- At 15m (runs 43736692561 / 43736695008, 2681 symbols) and 5m (runs 43738631635 / 43738634380, 2684) both families fail outright: Elder ge11 pooled best 0.235 / 0.132, dirsys13 best 0.444 / 0.245. PFnet roughly halves with each step down in bar size.
+- Profit-booking / exit takeaway: a gap fade on 4h bars holds about 3.5 bars (two sessions), and over that window the 0.8% round trip takes the whole fade. Only the daily version, which holds days, has room for the exit to book a move bigger than cost.
+
+### 2026-11-15 IST: Elder gap-fade 1d, strict-FIFO validation (B-850, run 43739717415)
+- One position per symbol per cell, 2361 symbols, 5 years, 0.8% cost. 12 long gap-fade cells keep pooled PFnet > 1.00: exhaust_fade nb5 1.16-1.18 (n4406), common_fade nb5 1.09-1.12 (n5424), nb3 1.04-1.09 (n6949), nb4 1.01-1.05. MACD hist_exhaust and every short fail.
+- Out of sample the split widens: exhaust_fade drops to 0.78, while common_fade nb5 holds at 1.05. The common (low-volume) gap is the steadier fade; the high-volume exhaustion gap did its best work in the early years.
+- Elder dirsys13 at 4h (run 43739720015) fails too: best 0.747. At 1m (run 43740746026, 7 days only) best 0.199. B-588 is closed: no interval clears 1.00 (1d best 0.807).
+- Profit-booking / exit takeaway: the gap fade books its move in about 3.4 days through the rule exit (high below the prior high). Waiting longer for the gap to fill (nb5 vs nb3) raises PFnet, and a wider stop (3 ATR) beats a tight one in every cell.
+
+### 2026-11-15 IST: B-1610 gap-fade LONG 1d, 12 cells on the real main.py functions (run 43742835434)
+- Full NSE universe, 5 years, 0.8% cost, FIFO per symbol per cell, fill at the signal close. All 12 cells clear 1.00: common_fade nb3 1.29-1.35 (n6.5k), common nb5 1.22-1.27, common nb4 1.20-1.22, exhaust nb5 1.17-1.21.
+- By return per day the waiting period matters most: common nb3 earns 0.19 %/day against 0.14 for the live common nb5 cell, because it enters two days sooner on more setups (6.5k vs 5.2k) and still books its move in about 3.4 days.
+- Main replay vs the research harness: the main replay is a little higher on every common cell (nb4 atr1.5: 1.20 vs research 0.999), so judging these by the research row would have dropped a profitable cell.
+- Profit-booking / exit takeaway: the rule exit (first day the high fails to exceed the prior high) does nearly all the booking, so a wider ATR stop only adds room: 3 ATR beats 2 and 1.5 in every family. Keep the stop wide and let the high-below-prior-high rule take the profit.

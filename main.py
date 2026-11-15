@@ -15,6 +15,7 @@ Endpoints:
                          workspace does not, so this is the automatic data path)
 """
 
+import calendar
 import asyncio
 
 
@@ -6131,6 +6132,18 @@ ISLAND_LONG_4H_CELLS = (
 ISLAND_TFS_LONG_4H_TAGS = tuple(t for t, _s, _k in ISLAND_LONG_4H_CELLS)
 for _t, _s, _k in ISLAND_LONG_4H_CELLS:
     _ISLAND_ATR_OF_TAG[_t] = _k
+# B-1600 (e), same sweep, same rule (pooled PFnet > 1.00 strict): the island turn1cr LONG 1h cells that qualify. atr1d5
+# (0.962 n3267) does not, so it is not wired. Same detector on the 1h frame _run_long_swing_1h_pass already fetches (the
+# sweep's within8 / 20-bar turnover / 30-bar hold are 1h BARS), selector = the 1d turn1cr tag, stop = signal close - k x
+# ATR14 of the 1h bars, frozen; fill = signal-bar close (sweep), exit = brk20_min_rr_exit_reason long on 1h bars from the
+# next bar (_island_long_4h_exit is bar-size agnostic). Ordered by pooled PFnet desc.
+ISLAND_LONG_1H_CELLS = (
+    ("reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2", ISLAND_TURN1CR_TAG, 4.0),      # 1.012 n3264
+    ("reversal__island_turn1cr_tfs__long__1h__atr2d5_within8__nonovl__v2", ISLAND_TURN1CR_TAG, 2.5),    # 1.004 n3264
+)
+ISLAND_TFS_LONG_1H_TAGS = tuple(t for t, _s, _k in ISLAND_LONG_1H_CELLS)
+for _t, _s, _k in ISLAND_LONG_1H_CELLS:
+    _ISLAND_ATR_OF_TAG[_t] = _k
 
 
 def island_bottom_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS,
@@ -6561,17 +6574,37 @@ GAPFADE_ATR_MULT = 3.0
 GAPFADE_MAX_HOLD_BARS = 30
 GAPFADE_EXHAUST_TAG = "gaps__exhaust_fade__long__1d__atr3_nb5__v1"
 GAPFADE_COMMON_TAG = "gaps__common_fade__long__1d__atr3_nb5__v1"
-GAPFADE_TAGS = (GAPFADE_EXHAUST_TAG, GAPFADE_COMMON_TAG)  # highest PFnet first
+# B-1610 (user 2026-11-15 "Only rule is PFnet >1 ... all variants will be wired"): every long gap-fade 1d variant whose
+# strict-FIFO validation (elder-ge11-validate.yml run 43739717415) kept pooled PFnet > 1.00, re-measured with THESE functions
+# (gapfade-main-replay.yml run 43742835434, full NSE 5y, 0.8% cost, FIFO): all 12 clear 1.00. tag -> (exhaustion gap?, nbars,
+# ATR stop k). Entry check order = main-replay return per day (avg net % / avg held days), highest first.
+GAPFADE_CELLS = {
+    "gaps__common_fade__long__1d__atr3_nb3__v1": (False, 3, 3.0),          # 0.189 %/d, PFnet 1.354 n6514
+    "gaps__common_fade__long__1d__atr2_nb3__v1": (False, 3, 2.0),          # 0.180 %/d, 1.330 n6518
+    "gaps__common_fade__long__1d__atr1d5_nb3__v1": (False, 3, 1.5),        # 0.162 %/d, 1.285 n6522
+    GAPFADE_COMMON_TAG: (False, 5, 3.0),                                   # 0.136 %/d, 1.272 n5247 (live since B-1396)
+    "gaps__common_fade__long__1d__atr2_nb5__v1": (False, 5, 2.0),          # 0.130 %/d, 1.257 n5247
+    "gaps__common_fade__long__1d__atr3_nb4__v1": (False, 4, 3.0),          # 0.118 %/d, 1.216 n5612
+    "gaps__common_fade__long__1d__atr2_nb4__v1": (False, 4, 2.0),          # 0.117 %/d, 1.213 n5614
+    "gaps__common_fade__long__1d__atr1d5_nb5__v1": (False, 5, 1.5),        # 0.115 %/d, 1.223 n5250
+    "gaps__common_fade__long__1d__atr1d5_nb4__v1": (False, 4, 1.5),        # 0.113 %/d, 1.202 n5617
+    GAPFADE_EXHAUST_TAG: (True, 5, 3.0),                                   # 0.101 %/d, 1.213 n4089 (live since B-1396)
+    "gaps__exhaust_fade__long__1d__atr2_nb5__v1": (True, 5, 2.0),          # 0.089 %/d, 1.184 n4098
+    "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1": (True, 5, 1.5),        # 0.085 %/d, 1.173 n4106
+}
+GAPFADE_TAGS = tuple(GAPFADE_CELLS)  # entry check order
 
 
 def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | None = None) -> dict | None:
     """Last-bar evaluation of the long gap-fade rule for `tag`. None if no signal / unknown tag."""
-    if tag not in GAPFADE_TAGS:
+    cell = GAPFADE_CELLS.get(tag)
+    if cell is None:
         return None
+    exhaust, nbars, k = cell
     d = df.iloc[-BRK20_CALC_WINDOW:]
     n = len(d)
     j = n - 1
-    i = j - GAPFADE_NBARS
+    i = j - nbars
     if i < GAPFADE_VOL_BARS + 1:
         return None
     h = d["High"].to_numpy(dtype=float)
@@ -6582,7 +6615,7 @@ def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
         return None
     vavg = float(np.mean(v[i - GAPFADE_VOL_BARS:i]))
     high_vol = bool(v[i] >= GAPFADE_VMULT * vavg)
-    if high_vol != (tag == GAPFADE_EXHAUST_TAG):
+    if high_vol != exhaust:
         return None
     if not float(np.min(l[i + 1:j + 1])) >= l[i]:  # no new low since the gap bar
         return None
@@ -6590,7 +6623,7 @@ def gapfade_long_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
     if not np.isfinite(atr) or atr <= 0:
         return None
     px = float(c[j]) if entry_price is None else float(entry_price)
-    stop = brk20_stop_price(px, atr, GAPFADE_ATR_MULT, "long")
+    stop = brk20_stop_price(px, atr, k, "long")
     if not (0 < stop < px):
         return None
     return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
@@ -16004,6 +16037,13 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
     "gaps__exhaust_fade__long__1d__atr3_nb5__v1": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
     "gaps__common_fade__long__1d__atr3_nb5__v1": "gaps__common_fade__long__1d__atr3_nb5__v1",
+    **{_t: _t.replace("__long__", "_mr__long__", 1) for _t in (  # B-1610: each gates on its own `_mr` main-replay row
+        # (run 43742835434, the real main.py functions; B-1466 precedent), not the research harness row
+        "gaps__exhaust_fade__long__1d__atr2_nb5__v1", "gaps__exhaust_fade__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade__long__1d__atr2_nb5__v1", "gaps__common_fade__long__1d__atr1d5_nb5__v1",
+        "gaps__common_fade__long__1d__atr3_nb3__v1", "gaps__common_fade__long__1d__atr2_nb3__v1",
+        "gaps__common_fade__long__1d__atr1d5_nb3__v1", "gaps__common_fade__long__1d__atr3_nb4__v1",
+        "gaps__common_fade__long__1d__atr2_nb4__v1", "gaps__common_fade__long__1d__atr1d5_nb4__v1")},
     # B-1466 (2026-11-09): the live swingminrr VCP tags gate on their main.py-calling replay rows (`_mr`, swing-short-
     # main-replay.yml run 38318986997, full NSE 5y, 0.8% cost: rr4 2.845 n51 / rr3 2.295 n110 / rr2 1.589 n327 / base
     # 1.351 n2404), not the scripts/swing_min_rr_research.py sim rows (2.698 / 2.062 / 1.263 / 1.155), which stay registered.
@@ -28294,8 +28334,8 @@ def _run_swing_scan_pass(conn):
             except Exception:
                 pass
             if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS or pos["strategy"] in CHAN_KALMAN_1H_CELLS or pos["strategy"] in BRK20_1H_LONG_CELLS \
-                    or pos["strategy"] in SWING_LONG_4H_TAGS:
-                continue  # B-984/B-1264/B-1600b: 1h/4h cell, managed by _run_long_swing_1h_pass on hourly/4h bars
+                    or pos["strategy"] in SWING_LONG_4H_TAGS or pos["strategy"] in ISLAND_TFS_LONG_1H_TAGS:
+                continue  # B-984/B-1264/B-1600b/B-1600e: 1h/4h cell, managed by _run_long_swing_1h_pass on hourly/4h bars
             # B-1486: peak-LTP trail cells. The resting stop (checked intraday, BEFORE the strategy's own exit, as the
             # band_cap replay does) is the trailed level; walk every completed bar since entry, persist the peak, and on
             # a trail hit let the strategy's own exit pre-empt it only on an EARLIER bar (df cut before the hit bar).
@@ -28900,7 +28940,7 @@ BRK20_SHORT_SWING_ATR_OF_TAG.update({t: k for t, _sel, k in ISLAND_SHORT_SWING_C
 SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS) + tuple(t for t, _s, _k in ISLAND_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
-REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWING_LONG_4H_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
+REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWING_LONG_4H_TAGS) | frozenset(ISLAND_TFS_LONG_1H_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
     | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS) | frozenset(PL1D_CELLS) | frozenset(CHAN_GAP_LONG_CELLS)
 
 
@@ -30062,6 +30102,8 @@ def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
         _scan_cell(t, (lambda t=t: _island_long_4h_signal(df4h, t)) if evaluate else None, count=count, blocked=evaluate)
     for t in PL1D_TFS_LONG_4H_TAGS:  # B-1605
         _scan_cell(t, (lambda t=t: _pl1d_long_4h_signal(df4h, t)) if evaluate else None, count=count, blocked=evaluate)
+    for t in ISLAND_TFS_LONG_1H_TAGS:  # B-1600 (e)
+        _scan_cell(t, (lambda t=t: _island_long_1h_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
 
 
 def _with_held_1h_long_symbols(conn, symbols: list) -> list:
@@ -30070,7 +30112,7 @@ def _with_held_1h_long_symbols(conn, symbols: list) -> list:
     out, seen = list(symbols), set(symbols)
     try:
         cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS) \
-            | set(SWING_LONG_4H_TAGS)
+            | set(SWING_LONG_4H_TAGS) | set(ISLAND_TFS_LONG_1H_TAGS)
         for r in conn.execute("SELECT symbol, strategy FROM signal_state_swing").fetchall():
             if r[1] in cells and r[0] not in seen:
                 out.append(r[0])
@@ -30243,6 +30285,68 @@ def _island_long_4h_exit(df4h, pos):
     return None
 
 
+# ---- B-1600 (e): island turn1cr LONG 1h cells (ISLAND_LONG_1H_CELLS) on the long swing engine's 1h leg ----
+_ISLAND_1H_CELL = {t: (s, k) for t, s, k in ISLAND_LONG_1H_CELLS}
+for _t in ISLAND_TFS_LONG_1H_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own _tfs registry row (never merged)
+
+
+def _island_long_1h_signal(df1h, tag):
+    """Signal of one ISLAND_LONG_1H_CELLS tag on the last 1h bar (sweep: fill at that bar's close), stop re-set with the
+    cell's own ATR k on 1h bars. None when no signal / unknown tag / invalid stop."""
+    cell = _ISLAND_1H_CELL.get(tag)
+    if cell is None or df1h is None or len(df1h) < 20:
+        return None
+    sig = _island_4h_reprice(island_swing_entry_signal(df1h, cell[0]), cell[1])
+    return {**sig, "tf": "1h"} if sig else None
+
+
+def _island_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -> str | None:
+    """Opens at most one island 1h long position (first cell in PFnet order that fires; the detector runs once, both cells
+    share the turn1cr selector). Real mirror via _maybe_place_real_swing_entry (SL with the entry, viability, switch)."""
+    for tag in ISLAND_TFS_LONG_1H_TAGS:
+        _record_strategy_scan(tag)
+    if df1h is None or len(df1h) < 20:
+        return None
+    base: dict = {}
+    for tag, sel, k in ISLAND_LONG_1H_CELLS:
+        if sel not in base:
+            base[sel] = island_swing_entry_signal(df1h, sel)
+        sig = _island_4h_reprice(base[sel], k)
+        if not sig:
+            continue
+        if not _is_strategy_wired(tag):
+            _record_blocked_trigger(tag)
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        bar = str(df1h["Date"].iloc[-1])
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, bar, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"], "tf": "1h",
+                         "signal_bar": bar, "signal_close": sig["signal_close"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 1h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f} bar {bar}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
 # ---- B-1605: pl1d LONG 4h bar-0 cells (PL1D_LONG_4H_CELLS) on the same 4h leg as the island cells ----
 # Same completed-4h-bar frame, same entry timing (_island_4h_entry_timing: bar-0 signal entered 13:15-15:00 IST at the live
 # price; a bar-1 signal is logged skipped_4h_signal_after_close, never entered). Stop = live entry - k x ATR14(4h), frozen.
@@ -30350,7 +30454,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
             if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS and pos["strategy"] not in CHAN_KALMAN_1H_CELLS and pos["strategy"] not in BRK20_1H_LONG_CELLS
-                                    and pos["strategy"] not in SWING_LONG_4H_TAGS) \
+                                    and pos["strategy"] not in SWING_LONG_4H_TAGS and pos["strategy"] not in ISLAND_TFS_LONG_1H_TAGS) \
                     or (pos is None and symbol in done_syms):
                 try:  # B-1275: another engine's position / done today: every 1h cell still scanned + trigger evaluated, no order
                     _df_scan = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
@@ -30377,6 +30481,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                     ex = _island_long_4h_exit(_island_4h_completed_bars(df), pos)  # B-1600 (b): replay on 4h bars
                 elif pos["strategy"] in PL1D_TFS_LONG_4H_TAGS:
                     ex = _pl1d_long_4h_exit(_island_4h_completed_bars(df), pos)  # B-1605: replay on 4h bars
+                elif pos["strategy"] in ISLAND_TFS_LONG_1H_TAGS:
+                    ex = _island_long_4h_exit(df, pos)  # B-1600 (e): same brk20 exit, replayed on the 1h bars
                 else:
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
@@ -30390,7 +30496,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                         if _chan_kalman_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1465
                             if _brk20_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1471
                                 if _island_long_4h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1600 (b)
-                                    _pl1d_long_4h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1605: LAST
+                                    if _pl1d_long_4h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1605
+                                        _island_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1600 (e): LAST
         except Exception as e:
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
@@ -32483,7 +32590,7 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
         return []
     fetch = fetch or fetch_ohlc
     live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) | set(BRK20_1H_LONG_CELLS) \
-        | set(SWING_LONG_4H_TAGS)  # B-1603/B-1605: 4h island + pl1d long ride the 1h pass (entry_day = the 4h signal bar)
+        | set(SWING_LONG_4H_TAGS) | set(ISLAND_TFS_LONG_1H_TAGS)  # B-1603/B-1605/B-1600e: 4h island + pl1d + 1h island ride the 1h pass (entry_day = the 4h signal bar)
     orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
                if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
     if not orphans:
@@ -34924,6 +35031,15 @@ def upstash_usage():
             "today_budget_bytes": _upstash_today_budget()[0], "today_budget_ops": _upstash_today_budget()[1],
             "month_prior_days": dict(_upstash_month_prior),  # B-1577: cumulative quota carry-over
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1609: View 4 shows month usage vs the free-tier 10 GB / 500k-command monthly limit
+            "month_limit_bytes": _UPSTASH_MONTHLY_BYTES,
+            "month_used_pct": round(100 * (sum(v[0] for v in _upstash_month_prior.values()) + tot) / _UPSTASH_MONTHLY_BYTES, 2),
+            "month_used_ops": sum(v[1] for v in _upstash_month_prior.values()) + ops,
+            "month_limit_ops": _UPSTASH_MONTHLY_OPS,
+            # B-1609 (user: "X used (<cumulative limit till date>)/10 gb"): pro-rata share of the monthly limit
+            # allowed up to and including today (IST): 10 GB x day-of-month / days-in-month.
+            "month_allowed_to_date_bytes": int(_UPSTASH_MONTHLY_BYTES * ist_now().day
+                                               / calendar.monthrange(ist_now().year, ist_now().month)[1]),
             # B-1576: daily limit crossed -> non-exempt writes refused until the IST day rolls over
             "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
             "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
@@ -35232,12 +35348,12 @@ _SWING_SL_RULES = {
     **{_t: f"entry - {_a:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t, _a, _r in BRK20_LONG_SWING_CELLS},
     **{_t: f"entry - {_ISLAND_ATR_OF_TAG.get(_t, ISLAND_ATR_MULT):g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
-       for _t in ISLAND_ALL_TAGS + ISLAND_TFS_LONG_4H_TAGS},
+       for _t in ISLAND_ALL_TAGS + ISLAND_TFS_LONG_4H_TAGS + ISLAND_TFS_LONG_1H_TAGS},
     **{_t: f"signal close - {_c[1]:g}xATR14 of the 4h bars, frozen (exit at the close of 4h bar {_c[2]}, next 4h bar = 1)"
        for _t, _c in PL1D_LONG_4H_CELLS.items()},
     **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
        for _t in SWINGMINRR_TAGS},
-    **{_t: f"entry - {GAPFADE_ATR_MULT:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
+    **{_t: f"entry - {GAPFADE_CELLS[_t][2]:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
        for _t in GAPFADE_TAGS},
     **{_t: f"entry - {a:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
        for _t, (a, h) in CHAN_SHAPE_CELLS.items()},
@@ -35371,7 +35487,7 @@ def _strategy_hold_spec(tag):
         return MACDDIV_MAX_HOLD_BARS, tf
     if tag in SWINGMINRR_SHORT_1H_CELLS:
         return SWINGMINRR_GATE_SHORT_1H_MAX_HOLD, tf
-    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in ISLAND_TFS_LONG_4H_TAGS \
+    if tag in BRK20_LONG_SWING_ATR_OF_TAG or tag in ISLAND_ALL_TAGS or tag in ISLAND_TFS_LONG_4H_TAGS or tag in ISLAND_TFS_LONG_1H_TAGS \
             or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
         return BRK20_MAX_HOLD_BARS, tf
     if len(parts) >= 5:

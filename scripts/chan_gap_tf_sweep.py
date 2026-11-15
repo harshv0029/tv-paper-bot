@@ -48,10 +48,10 @@ def window_days():
     return int(v) if v else None
 
 
-def tag_for(direction, interval, mult, window=None, xd=False, raw=False):
+def tag_for(direction, interval, mult, window=None, xd=False, raw=False, ic=False):
     k = ("%.1f" % mult).replace(".", "d")
     w = f"_w{window}d" if window else ""
-    x = "_xd1530" if xd else ""
+    x = "_xd1530" if xd else ("_ic1530" if ic else "")
     r = "_rawd" if raw else ""
     return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}{r}{x}__v1"
 
@@ -82,6 +82,32 @@ def paired_daily_close():
     15:30 bar the 1d replay uses) when the intraday stop did not fire by 15:15. Same candidates, same entry, same stop
     walk: the only difference between the plain tag and its _xd1530 twin is the exit time (15:15 live vs 15:30)."""
     return os.environ.get("PAIRED_DAILY_CLOSE", "").strip() == "1"
+
+
+def intraday_close_1530():
+    """Chan_gap breakdown (user 2026-11-15 "Do the breakdown run"): INTRADAY_CLOSE_1530=1 (intraday intervals only)
+    also walks every candidate through the bars ending <= 15:30 (the 15:15 bar included) and books the last intraday
+    close. Same candidates, same entry, same price basis: the only difference from the plain tag is the exit time
+    (15:15 live vs the 15:30 close), without the daily-vs-intraday Yahoo bar mismatch the _xd1530 twin carries."""
+    return os.environ.get("INTRADAY_CLOSE_1530", "").strip() == "1"
+
+
+IC_CUTOFF_MIN = 15 * 60 + 30
+
+
+def rule_cells():
+    """B-1606: RULE_CELLS=1 (long only) also replays the live cap5/fit5 stop-rule cells, with the stop from the real
+    main.chan_gap_stop_for on the same candidates, so they get a raw-price 15:15-exit re-measure like the ATR cells."""
+    return os.environ.get("RULE_CELLS", "").strip() == "1"
+
+
+RULE_LIVE_TAGS = {"cap5": "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1",
+                  "fit5": "chan_gap__buy_on_gap__long__1d__fit5_top10__v1"}
+
+
+def rule_tag(interval, rule, window=None, raw=False, ic=False):
+    k = "atr4d0cap5" if rule == "cap5" else "fit5"
+    return tag_for("long", interval, 1.0, window, raw=raw, ic=ic).replace("__atr1d0_top10", f"__{k}_top10")
 
 
 def daily_as_intraday(daily):
@@ -130,6 +156,9 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
     out = []
     win = window_days()
     pair = paired_daily_close() and interval != "1d"
+    ic = intraday_close_1530() and interval != "1d"
+    # Yahoo's last NSE bar starts at 15:15 and is shorter than BAR_MIN, so keep every bar that STARTS before 15:30
+    days_ic = split_days(intr, interval, IC_CUTOFF_MIN - 1 + BAR_MIN[interval]) if ic else {}
     raw = raw_daily()
     start = (pd.Timestamp.now(tz="Asia/Kolkata").normalize() - pd.Timedelta(days=win)).strftime("%Y-%m-%d") if win else ""
     for d in sorted(days):
@@ -156,6 +185,16 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
             res[tag_for(direction, interval, mult, win, raw=raw)] = list(walk)
             if pair and dclose is not None:  # B-1604: same trade, exit at the 15:30 daily close unless stopped by 15:15
                 res[tag_for(direction, interval, mult, win, xd=True, raw=raw)] = list(walk) if walk[0] == "stop" else ["close", dclose]
+            if ic and d in days_ic:  # same trade, stop walk continues through the 15:15 bar, flat at its 15:30 close
+                res[tag_for(direction, interval, mult, win, raw=raw, ic=True)] = list(day_walk(m, days_ic[d], o, sg["stop_loss"], direction, interval))
+        if rule_cells() and direction == "long":
+            for rule, live in RULE_LIVE_TAGS.items():
+                stop = m.chan_gap_stop_for(live, o, float(sig["atr_at_entry"]))
+                if stop is None:
+                    continue
+                res[rule_tag(interval, rule, win, raw=raw)] = list(day_walk(m, bars, o, stop, direction, interval))
+                if ic and d in days_ic:
+                    res[rule_tag(interval, rule, win, raw=raw, ic=True)] = list(day_walk(m, days_ic[d], o, stop, direction, interval))
         out.append((d, {**{k2: sig[k2] for k2 in ("entry_price", "score", "gap")}, "dopen_ratio": dopen_ratio}, res))
     return out
 
