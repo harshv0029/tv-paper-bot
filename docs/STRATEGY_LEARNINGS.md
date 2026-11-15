@@ -2094,3 +2094,13 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
   functions before any wiring.
 - Profit-booking / exit takeaway: a far fixed target (4R) with a wide 3-ATR stop beats tighter targets on 1h breakouts;
   most exits are rule exits (1603 of 2194), so the trailing/rule exit, not the target, books most of the profit.
+
+### 2026-11-15 IST: Elder patterns 1h (run 43668652845), 249 cells
+- 1h 730d, full NSE universe, 0.8% cost; families consol 81, trendline 60, reversal 60, bars 48. 7 pass, all
+  `consol__tri_desc`: long atr2_vol0 1.422 (n=150), atr3_vol0 1.412, atr1d5_vol0 1.370, vol1 cells 1.12-1.15 (n=88);
+  short atr3_vol0 1.017 (n=85). Every reversal, trendline and bar-pattern cell fails.
+- The descending-triangle long passes on BOTH 1d (1.22-1.27, n=313) and 1h, across all ATR multiples: a robust
+  family, not one lucky cell. The volume filter (vol1) cuts trades ~40% and lowers PFnet, so it hurts.
+- Thin samples (n<=150 at 1h). B-1597 ports it to main.py for a real-function replay before wiring.
+- Profit-booking / exit takeaway: most tri_desc exits are rule exits (96 of 150), and a wider 3-ATR stop cuts stop-outs
+  38 -> 9 with almost no PFnet loss, so let the rule exit book the profit and keep the stop wide.
