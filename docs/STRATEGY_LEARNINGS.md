@@ -2074,3 +2074,7 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - Side benefit: an MIS long is auto-squared-off by Kotak near 15:20 IST, a broker-side backstop if the bot's own 15:15 flatten fails (B-1567 (b)).
 - Coverage: buy (real_positions) done; swing stays CNC by design; short/swing-short already MIS/CNC respectively; futures/options/options_multi/commodity/currency use NRML, n/a.
 - Profit-booking / exit takeaway: an exit leg must carry the same product as the entry, or the broker rejects the profit-booking order exactly when it matters; record the product on the position row and derive every exit from it.
+
+### B-1581 (2026-11-15 IST): no new SL on a position already sold or exiting
+- NMDC 13-Nov: the rule exit filled at 09:18:57 IST, then a fresh SL went in at 09:19:05 IST and Kotak rejected it ("Check T1 holdings"). Before any SL, `place_real_stop_loss` now nets today's buys and sells from the Kotak order book against holdings, and returns `skipped_position_closed` when nothing is left to protect. `ensure_resting_sl` runs the same check once per pass.
+- Profit-booking / exit takeaway: once an exit fills, the position is closed. Protection logic must read Kotak's fills first, so a closing sale is never followed by an orphan SL that a later buy could trigger.
