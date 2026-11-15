@@ -7,6 +7,7 @@ Tag immutability: the sweep prints names identical to the island-validation rese
 harness and exit), so each row is registered as its own tag with `_tfs` on the variant field
 (reversal__island_gap05_tfs__short__1d__...); the research tags stay unchanged. Viability derived at read time.
 Nothing is wired from this module: the live island long path reads its own tags; a short wiring is shown to the user first."""
+import glob
 import json
 import os
 
@@ -14,6 +15,8 @@ import strategy_registry as sr
 
 _FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data",
                    "island_tf_dir_sweep_run_43692422951.json")
+# B-1603: later runs of the same harness (e.g. bar0_only=1 run 43709215753, `_b0` tags) are registered from the same dir.
+_GLOB = os.path.join(os.path.dirname(_FN), "island_tf_dir_sweep_run_*.json")
 
 
 def tfs_name(tag):
@@ -24,10 +27,17 @@ def tfs_name(tag):
 
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
-    try:
-        d = json.load(open(_FN))
-    except Exception:
-        return out
+    for fn in [_FN] + sorted(f for f in glob.glob(_GLOB) if os.path.abspath(f) != os.path.abspath(_FN)):
+        try:
+            d = json.load(open(fn))
+        except Exception:
+            continue
+        out.extend(_rows(d, seen))
+    return out
+
+
+def _rows(d, seen):
+    out = []
     ref = f"{d['run']} (cost {d['cost_round_trip_pct']}%, main.py functions, full universe)"
     for r in d.get("rows", []):
         try:
@@ -51,7 +61,9 @@ def build():
                           f"n={m['n']}, hold {bars} bars; exits {json.dumps(m.get('exit_reasons'), separators=(',', ':'))}"),
                 notes=(("PFnet>1.00 on the main.py-function replay. " +
                         ("Short: island_short_entry_signal is ported but NOT wired (B-891); wiring is shown to the user first."
-                         if short else "Long: the live island path wires the 1d atr1d5 cells; other ATR/tf cells owe a wiring decision."))
+                         if short else ("B-1603 bar-0 subset of the wired 4h _tfs long cell (the only signals the live 13:15 leg can "
+                                        "enter): confirms that cell; the live tag stays the _tfs name." if "_b0__" in name else
+                                        "Long: the live island path wires the 1d atr1d5 cells; other ATR/tf cells owe a wiring decision.")))
                        if ok else "Fails PFnet>1.00 after 0.8% cost; not wired.")))
         except Exception:
             continue

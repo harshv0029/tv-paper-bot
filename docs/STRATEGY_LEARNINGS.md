@@ -2208,3 +2208,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Live is fine. Today's open vs yesterday's adjusted close only differs on an ex-date, where the adjustment correctly removes the dividend gap.
 - Fix built: RAW_DAILY=1 (auto_adjust=False on daily and intraday, _rawd tags) plus a DOPEN_RATIO diagnostic. The _xd1530 adjusted rows are registered as ARTIFACT and never wired.
 - Profit-booking / exit takeaway: never compare exits priced from two data series with different adjustment bases. A win rate near 90% on a 1-session mean-reversion exit is a data bug until proven otherwise. Price both entry and exit from the same unadjusted series.
+
+### 2026-11-15 IST - B-1603 island 4h bar-0 subset + B-1091 pl1d candle sweep
+- Island 4h long, bar-0 only (run 43709215753): all four filters stay well above 1.00 on the 09:15-13:15 signals the live 13:15 leg can enter: gap05 2.01-2.08, turn1cr 1.69-1.75, none 1.62-1.65, px20 1.45-1.49. That is at or above the full-day cells, so restricting to bar 0 costs nothing. 4h island short fails on every filter.
+- pl1d (STARC full fade, gap runaway), run 43707237249: only 4h long clears 1.00 (starc atr6 1.129, atr4 1.068, runaway atr6 1.015). Every 1h/15m/5m cell and every short cell fails after 0.8% cost. Wider ATR stops help at 4h (atr6 > atr4 > atr2d5), the same pattern as the 1d cells.
+- Profit-booking / exit takeaway: the passing 4h exits come from the 20-bar timeout (letting the move run), not from the stop. Wide stops that survive noise plus a fixed time exit beat tight stops on these mean-reversion and runaway entries. On faster candles the 0.8% cost eats the edge.
