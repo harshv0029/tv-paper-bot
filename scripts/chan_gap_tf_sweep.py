@@ -13,7 +13,7 @@ only the stop/flatten resolution changes. Cost = main.ROUND_TRIP_COST_PCT/100 (0
 (full, NOT main.NSE_FULL_UNIVERSE). SL on every trade (the ATR stop is always set; no atrnone cell exists).
 Tags: chan_gap__{buy_on_gap__long|short_on_gap__short}__<tf>__atr<k>_top10__v1 (each cell its own tag, never pooled).
 
-  run    env: DIRECTION long|short, INTERVAL 5m|15m|1h, SHARD, NSHARDS, SYMBOL_LIMIT, ATRS="1.5,2.5,4.0", SYNTHETIC=1 (smoke, NOT a result)
+  run    env: DIRECTION long|short, INTERVAL 5m|15m|1h|1d, WINDOW_DAYS (optional, B-1602), SHARD, NSHARDS, SYMBOL_LIMIT, ATRS="1.5,2.5,4.0", SYNTHETIC=1 (smoke, NOT a result)
          -> out/chan_gap_tf_<dir>_<tf>_s<shard>.json
   merge  python3 scripts/chan_gap_tf_sweep.py merge DIR [OUT.json] -> rows[] (schema main._replay_verified_tags reads)
 """
@@ -32,8 +32,8 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brk20_replay as br  # noqa: E402
 
-PERIOD_BY_INTERVAL = {"5m": "60d", "15m": "60d", "1h": "730d"}
-BAR_MIN = {"5m": 5, "15m": 15, "1h": 60}
+PERIOD_BY_INTERVAL = {"5m": "60d", "15m": "60d", "1h": "730d", "1d": "5y"}
+BAR_MIN = {"5m": 5, "15m": 15, "1h": 60, "1d": 360}  # B-1602: 1d = the day bar itself, stamped 09:15, ends 15:15 (cutoff)
 NEED = 92  # CHAN_GAP_STD_WINDOW + 2 completed daily bars
 LOOKBACK = 110
 HOURS_PER_SESSION = 6.25
@@ -41,9 +41,25 @@ DEFAULT_ATRS = (1.5, 2.5, 4.0)
 NAMES = {"long": "buy_on_gap__long", "short": "short_on_gap__short"}
 
 
-def tag_for(direction, interval, mult):
+def window_days():
+    """B-1602: WINDOW_DAYS=N keeps only trade days in the last N calendar days (IST today), so 1d/1h cells can be
+    replayed on the same 60d window as the 5m/15m cells (separates period from stop-check resolution)."""
+    v = os.environ.get("WINDOW_DAYS", "").strip()
+    return int(v) if v else None
+
+
+def tag_for(direction, interval, mult, window=None):
     k = ("%.1f" % mult).replace(".", "d")
-    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10__v1"
+    w = f"_w{window}d" if window else ""
+    return f"chan_gap__{NAMES[direction]}__{interval}__atr{k}_top10{w}__v1"
+
+
+def daily_as_intraday(daily):
+    """1d resolution: one 'intraday' bar per day = the day's own OHLC, stamped 09:15 IST (stop checked on the day's
+    High/Low, flat at the day close), the same resolution as the 1d baseline."""
+    d = daily.copy()
+    d["Date"] = (pd.to_datetime(d["Date"]).dt.tz_localize(None).dt.normalize() + pd.Timedelta(hours=9, minutes=15)).dt.tz_localize("Asia/Kolkata")
+    return d
 
 
 def parse_atrs(s=None):
@@ -82,7 +98,11 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
     ddates = pd.to_datetime(daily["Date"]).dt.strftime("%Y-%m-%d").to_numpy()
     days = split_days(intr, interval, m.CHAN_FLATTEN_CUTOFF_MIN)
     out = []
+    win = window_days()
+    start = (pd.Timestamp.now(tz="Asia/Kolkata").normalize() - pd.Timedelta(days=win)).strftime("%Y-%m-%d") if win else ""
     for d in sorted(days):
+        if d < start:
+            continue
         bars = days[d]
         k = int(np.searchsorted(ddates, d, side="left"))  # completed daily bars strictly before d
         if k < NEED or bars.empty:
@@ -97,7 +117,7 @@ def day_candidates(m, daily, intr, direction, interval, atrs):
             sg = m.chan_gap_entry_signal(hist, o, direction, mult)
             if not sg:
                 continue
-            res[tag_for(direction, interval, mult)] = list(day_walk(m, bars, o, sg["stop_loss"], direction, interval))
+            res[tag_for(direction, interval, mult, win)] = list(day_walk(m, bars, o, sg["stop_loss"], direction, interval))
         out.append((d, {k2: sig[k2] for k2 in ("entry_price", "score", "gap")}, res))
     return out
 
@@ -111,6 +131,8 @@ def synthetic_pair(seed, interval, n_days=400):
     dd = pd.bdate_range("2023-01-02", periods=n_days)
     daily = pd.DataFrame({"Date": dd.strftime("%Y-%m-%d"), "Open": o, "High": hi, "Low": lo, "Close": c,
                           "Volume": rng.integers(2e6, 9e6, n_days).astype(float)})
+    if interval == "1d":
+        return daily, daily_as_intraday(daily)
     rows = []
     step = BAR_MIN[interval]
     for i in range(n_days - 30, n_days):
@@ -134,7 +156,7 @@ def load_pairs(m, interval, shard, nshards, limit=None):
     for s in syms:
         try:
             daily = m.fetch_ohlc(s, "5y", "1d")
-            intr = m.fetch_ohlc(s, PERIOD_BY_INTERVAL[interval], interval)
+            intr = daily_as_intraday(daily) if interval == "1d" else m.fetch_ohlc(s, PERIOD_BY_INTERVAL[interval], interval)
         except Exception:
             continue
         if daily is None or intr is None or len(daily) < NEED + 3 or len(intr) < 10:
@@ -163,7 +185,7 @@ def run():
     os.makedirs("out", exist_ok=True)
     path = f"out/chan_gap_tf_{direction}_{interval}_s{shard}.json"
     json.dump({"family": "chan_gap", "direction": direction, "interval": interval,
-               "period": PERIOD_BY_INTERVAL[interval], "shard": shard, "nshards": nshards, "n_symbols": len(pairs),
+               "period": PERIOD_BY_INTERVAL[interval], "window_days": window_days(), "shard": shard, "nshards": nshards, "n_symbols": len(pairs),
                "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT, "top_n": m.CHAN_GAP_TOP_N,
                "synthetic": os.environ.get("SYNTHETIC") == "1", "atrs": list(atrs), "candidates": cands}, open(path, "w"))
     print("wrote", path, "symbols", len(pairs), "candidate-days", len(cands))
