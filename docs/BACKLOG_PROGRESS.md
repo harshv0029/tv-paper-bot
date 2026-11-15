@@ -13,7 +13,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 47 |
+| OPEN | 46 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -24,12 +24,12 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
 | USER | 5 |
-| BUILT-ON-BRANCH | 4 |
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
 | FROM | 4 |
 | DEPLOYED | 3 |
+| BUILT-ON-BRANCH | 3 |
 | TODO | 2 |
 | IN-PROGRESS | 2 |
 | IN | 2 |
@@ -52,6 +52,8 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | WATCHDOG | 1 |
 | O | 1 |
 | B-1484 | 1 |
+| BUILT-PENDING-DEPLOY | 1 |
+| DONE-VERIFIED | 1 |
 | OPEN-RECURRING | 1 |
 | DONE-CODE | 1 |
 
@@ -72,13 +74,12 @@ Total rows: 1364 | closed: 988 | not closed: 376
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (180)
+## waiting-on-workflow/deploy (179)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-321 | P0 | DONE-PENDING-VERIFY | Per-strike setup scan: treat each index option strike (NIFTY/BANKNIFTY/SENSEX, ATM band 15, weekly+monthly)... | owed, remaining, pending, verify, needs, unverified |
 | B-333 | P0 | BUILT-ON-BRANCH | Per-strike option monitoring gap (user 2026-10-09: every strike in the chain, e.g | owed, pending, verify, needs |
-| B-1549 | P0 | BUILT-ON-BRANCH | 2026-11-11 IST | owed, needs, follow-up, awaiting, waiting |
 | B-343 | P1 | DONE-PENDING-VERIFY | User wants REAL MCX silver trading, no new kill switch (reuse is_real_fo_trading_enabled, futures engine) | owed, pending, verify, needs |
 | B-344 | P1 | DONE-PENDING-VERIFY | 2026-10-10 user: real trading for ALL tradeable MCX contracts, not only silver (gold GOLD/GOLDM, silver SIL... | owed, pending, verify, needs, awaiting, waiting |
 | B-356 | P1 | DONE-PENDING-VERIFY | User 2026-10-11 IST ("all applicable strategies on option strikes"): 6 atomic indicator strategies (sma_cro... | owed, pending, verify, needs |
@@ -174,7 +175,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-574 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-604 | P2 | PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
 | B-605 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, awaiting, waiting |
-| B-606 | P2 | P2 | RAN_1D_FAIL_INTRADAY_PENDING [2026-11-16 04:05 IST: 1h/730d dispatched (elder-stop-offset-research.yml, bra... | owed, pending, verify, needs |
+| B-606 | P2 | P2 | RAN_1D+1H [2026-11-16 05:30 IST: 1h 730d run 43769949221 registered, 84 tags all fail (best 0.698), file do... | owed, pending, verify, needs |
 | B-627 | P2 | BLOCKED | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, verify, needs, owner |
 | B-742 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, pending, verify, needs |
 | B-756 | P2 | BLOCKED | 2026-10-11 IST, B-749 research (agent report; NSE URLs UNVERIFIED, sandbox gets 403 from NSE, test from an ... | owed, blocked, needs, unverified |
@@ -257,11 +258,12 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-789 | P? | DONE-PENDING-VERIFY | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (79)
+## ready-to-build (80)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-865 | P0 | IN-PROGRESS | 2026-10-12 user report: /fo-entry-diagnosis says no F&O candles, so no option strike can ever fire | owed, verify, needs |
+| B-1549 | P0 | DONE-VERIFIED | 2026-11-11 IST | owed, needs, follow-up, awaiting, waiting |
 | B-1567 | P0 | PARTIAL | 2026-11-12 IST | verify, owner |
 | B-1582 | P0 | OPEN | 2026-11-14 IST | verify |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... | owed, follow-up |
@@ -288,7 +290,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-1454 | P2 | FROM | 2026-11-03 00:35 IST | needs |
 | B-1475 | P2 | OPEN | 2026-11-05 |  |
 | B-1483 | P2 | O | 2026-11-05 | owed, needs, owner |
-| B-1501 | P2 | OPEN | 2026-11-06 | owed, remaining, needs, follow-up |
+| B-1501 | P2 | BUILT-PENDING-DEPLOY | 2026-11-06 | owed, remaining, pending, needs, follow-up |
 | B-1502 | P2 | OPEN | 2026-11-06 | owed, needs, follow-up |
 | B-1521 | P2 | OPEN | 2026-11-09 | needs, follow-up |
 | B-1522 | P2 | OPEN | 2026-11-09 | owed, needs, owner, follow-up |

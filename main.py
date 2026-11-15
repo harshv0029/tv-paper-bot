@@ -1432,6 +1432,7 @@ def init_db():
         # entry for a LONG swing position, by return per day with the first viability-passing variant owning the entry
         # (_select_swing_exit_variant). Keyed by symbol; entry_day + strategy tie it to ONE position (a stale row never
         # applies). No row = a position opened before B-1500 (legacy SWING_PEAK_LTP_TRAIL_CELLS / fixed). Upstash T1.
+        # B-1501: SHORT swing rows share this table under symbol = 'short:<symbol>' (_swing_short_exit_variant_key).
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS swing_exit_variant (
@@ -29441,6 +29442,7 @@ def _short_swing_close_paper(conn, symbol, pos, exit_price, reason):
     )
     conn.execute("DELETE FROM signal_state_swing_short WHERE symbol = ?", (symbol,))
     _swing_trail_peak_clear(conn, symbol, "short")  # B-1486
+    _swing_short_exit_variant_clear(conn, symbol)  # B-1501
     conn.execute("INSERT OR IGNORE INTO swing_done_today (day, symbol) VALUES (?, ?)",
                  (ist_now().strftime("%Y-%m-%d"), symbol))
     conn.commit()
@@ -30696,9 +30698,13 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
                 if pos["strategy"] in SWINGMINRR_SHORT_1H_CELLS:
                     continue  # 1h cell: managed by _run_short_swing_1h_pass on hourly bars
                 if pos["strategy"] in TASUKI_SHORT_CELLS:
-                    ex = _tasuki_short_exit(df, pos)
+                    _xdf, _pk_hit = _short_swing_trail_walk(conn, symbol, pos, df)  # B-1501 (no variant: fixed)
+                    ex = _tasuki_short_exit(_xdf, pos)
                     if ex:
                         _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                    elif _pk_hit is not None:
+                        _short_swing_close_paper(conn, symbol, pos, float(_pk_hit["hit_price"]),
+                                                 "short_swing_peak_ltp_trail_stop_hit")
                     continue
                 if pos["strategy"] in MONTH_EFFECT_SHORT_CELLS:
                     continue  # exits handled by _run_month_effect_short_pass (B-965)
@@ -30707,16 +30713,8 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
                     if ex:
                         _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
                     continue
-                _xdf, _pk_hit = df, None
-                if pos["strategy"] in SHORT_SWING_PEAK_LTP_TRAIL_CELLS:  # B-1486 short mirror (trough LOW + N x R)
-                    try:
-                        _pw = peak_ltp_trail_walk(df, pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"],
-                                                  SHORT_SWING_PEAK_LTP_TRAIL_CELLS[pos["strategy"]][0], "short")
-                        _swing_trail_peak_put(conn, symbol, "short", pos["entry_day"], _pw["peak"])
-                        if _pw["hit_idx"] is not None:
-                            _pk_hit, _xdf = _pw, df.iloc[:_pw["hit_idx"]]
-                    except Exception as e:
-                        print(f"[SWING SHORT] B-1486 trail walk failed for {symbol} (non-fatal, fixed stop applies): {e}")
+                # B-1486 short mirror / B-1501: the position's own trail (stored variant, else the B-1486 cells)
+                _xdf, _pk_hit = _short_swing_trail_walk(conn, symbol, pos, df)
                 reason = _short_swing_exit_reason(_xdf, pos["entry_day"], pos["initial_stop_loss"],
                                                   pos["atr_at_entry"], pos["strategy"])
                 if reason:
@@ -30790,6 +30788,9 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
     """Mirrors a paper short-swing entry as a REAL sell-to-open, ONLY when every gate holds. Shares
     is_real_swing_trading_enabled (no new switch). NO TRADE WITHOUT A STOP: the BUY-stop is placed right after the
     fill and, if that fails, the short is covered immediately (unwound). Never raises."""
+    # B-1501: choose (and store) the short position's exit variant FIRST, so a paper-only short (real switch off, the
+    # overnight product unconfirmed, gate closed) still runs the best PFnet > 1 variant; None = legacy exits.
+    _select_short_swing_exit_variant(conn, symbol, strategy)
     if not is_real_swing_trading_enabled():
         return
     if not SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED:
@@ -31530,6 +31531,11 @@ try:
 except Exception as _e:  # noqa: BLE001 - a missing generated module only disables B-1500 (legacy behaviour)
     print(f"[SWING] B-1500 exit variants unavailable (legacy exits apply): {_e}")
     SWING_EXIT_VARIANTS = {}
+try:  # B-1501: the short daily swing engine's variants (same generator, same PFnet > 1.00 + return-per-day rules)
+    from swing_exit_variants_b1500 import SHORT_SWING_EXIT_VARIANTS
+except Exception as _e:  # noqa: BLE001 - a missing list only disables B-1501 (legacy short exits)
+    print(f"[SWING SHORT] B-1501 exit variants unavailable (legacy exits apply): {_e}")
+    SHORT_SWING_EXIT_VARIANTS = {}
 
 
 def swing_exit_mode_rule(mode):
@@ -31706,6 +31712,100 @@ def _select_swing_exit_variant(conn, symbol, strategy):
         return None
 
 
+# B-1501 (2026-11-15 IST): the B-1500 chooser for the SHORT daily swing engine (signal_state_swing_short). Short rows
+# live in the same swing_exit_variant table (Upstash T1 mirror, restore-on-wipe) under the key "short:<symbol>", so a
+# short row can never collide with (or be read as) the long row of the same symbol: the long helpers query the bare
+# symbol, the short helpers only the prefixed key.
+SHORT_SWING_EXIT_VARIANT_KEY_PREFIX = "short:"
+
+
+def _swing_short_exit_variant_key(symbol):
+    return SHORT_SWING_EXIT_VARIANT_KEY_PREFIX + str(symbol)
+
+
+def _swing_short_exit_variant_get(conn, symbol, entry_day=None, strategy=None):
+    """B-1501: the stored exit variant of the SHORT swing position on symbol (None: no row / another position)."""
+    return _swing_exit_variant_get(conn, _swing_short_exit_variant_key(symbol), entry_day, strategy)
+
+
+def _swing_short_exit_variant_put(conn, symbol, entry_day, strategy, mode, registry_tag):
+    return _swing_exit_variant_put(conn, _swing_short_exit_variant_key(symbol), entry_day, strategy, mode, registry_tag)
+
+
+def _swing_short_exit_variant_clear(conn, symbol):
+    _swing_exit_variant_clear(conn, _swing_short_exit_variant_key(symbol))
+
+
+def _swing_short_trail_rule(conn, symbol, strategy, entry_day):
+    """B-1501: the ONE lookup every short swing stop path uses: (kind, N) of the short position's trail, or None (fixed).
+    A stored variant wins ("live" = fixed even on a SHORT_SWING_PEAK_LTP_TRAIL_CELLS tag; an unknown mode = fixed, fail
+    safe); a position with no stored variant keeps SHORT_SWING_PEAK_LTP_TRAIL_CELLS (B-1486 trough-LOW trail) or fixed."""
+    v = _swing_short_exit_variant_get(conn, symbol, entry_day, strategy)
+    if v is not None:
+        return swing_exit_mode_rule(v["mode"])
+    pl = SHORT_SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+    return ("ltp", float(pl[0])) if pl else None
+
+
+def _select_short_swing_exit_variant(conn, symbol, strategy):
+    """B-1501 (user WIRING RULE, B-1500 mirror): pick the exit variant of a NEW short swing entry on a tag listed in
+    SHORT_SWING_EXIT_VARIANTS (PFnet > 1.00 variants in return-per-day order). The first variant whose OWN registry tag
+    passes _viability_verdict_for_registry_name owns the entry; none passing -> the first (paper). Chosen only on the
+    entry day and before a real short exists (real_positions_swing_short); afterwards frozen. Same return shape as
+    _select_swing_exit_variant; None for a tag without variants or a pre-B-1501 position. Never raises."""
+    try:
+        cands = SHORT_SWING_EXIT_VARIANTS.get(strategy)
+        if not cands:
+            return None
+        st = conn.execute("SELECT entry_day FROM signal_state_swing_short WHERE symbol = ? AND strategy = ?",
+                          (symbol, strategy)).fetchone()
+        if not st or not st[0]:
+            return None
+        entry_day = str(st[0])[:10]
+        cur = _swing_short_exit_variant_get(conn, symbol, entry_day, strategy)
+        has_real = conn.execute("SELECT 1 FROM real_positions_swing_short WHERE symbol = ?",
+                                (symbol,)).fetchone() is not None
+        if entry_day != ist_now().strftime("%Y-%m-%d") or (cur is not None and has_real):
+            if cur is None:
+                return None  # a short opened before B-1501: legacy exits, never re-chosen
+            ok, why = _viability_verdict_for_registry_name(cur["registry_tag"], strategy)
+            rpd = next((c[2] for c in cands if c[0] == cur["mode"]), None)
+            return {"mode": cur["mode"], "registry_tag": cur["registry_tag"], "gate_ok": ok, "verdict": why,
+                    "ret_per_day": rpd, "tried": [(cur["mode"], why)], "frozen": True}
+        tried, chosen = [], None
+        for c in cands:
+            ok, why = _viability_verdict_for_registry_name(c[1], strategy)
+            tried.append((c[0], why))
+            if ok:
+                chosen = c
+                break
+        pick = chosen or cands[0]
+        _swing_short_exit_variant_put(conn, symbol, entry_day, strategy, pick[0], pick[1])
+        return {"mode": pick[0], "registry_tag": pick[1], "gate_ok": chosen is not None,
+                "verdict": tried[-1][1] if chosen else "no_variant_viable", "ret_per_day": pick[2], "tried": tried,
+                "frozen": False}
+    except Exception as e:  # noqa: BLE001
+        print(f"[SWING SHORT] B-1501 exit variant selection failed for {symbol} (non-fatal, legacy exit): {e}")
+        return None
+
+
+def _short_swing_trail_walk(conn, symbol, pos, df):
+    """B-1501: walks the short position's own trail rule (_swing_short_trail_rule) over df, persists the trough and
+    returns (df to hand the strategy's exit fn, trail-hit dict or None). No rule -> (df, None): the fixed stop only."""
+    try:
+        rule = _swing_short_trail_rule(conn, symbol, pos["strategy"], pos["entry_day"])
+        if rule is None:
+            return df, None
+        pw = peak_ltp_trail_walk(df, pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"], rule[1], "short",
+                                 rule[0])
+        _swing_trail_peak_put(conn, symbol, "short", pos["entry_day"], pw["peak"])
+        if pw["hit_idx"] is not None:
+            return df.iloc[:pw["hit_idx"]], pw
+    except Exception as e:  # noqa: BLE001
+        print(f"[SWING SHORT] B-1501 trail walk failed for {symbol} (non-fatal, fixed stop applies): {e}")
+    return df, None
+
+
 def _swing_trail_peak_get(conn, symbol, side, entry_day):
     """B-1486: the stored completed-bar peak (long) / trough (short) of the position opened on entry_day; None when
     absent or the row belongs to an earlier position (a different entry_day). Never raises."""
@@ -31766,16 +31866,20 @@ def _swing_peak_trail_level(conn, symbol):
 
 def _swing_short_peak_trail_level(conn, symbol):
     """B-1486 short mirror: the trailed BUY-stop of a short-swing row on a SHORT_SWING_PEAK_LTP_TRAIL_CELLS tag (below
-    its initial stop), else None."""
+    its initial stop), else None. B-1501: the position's own trail rule (_swing_short_trail_rule: stored exit variant,
+    else the B-1486 cells); only ever a level BELOW the initial stop (a short trail only lowers the BUY stop)."""
     try:
         st = conn.execute("SELECT strategy, initial_stop_loss, entry_price, entry_day FROM signal_state_swing_short "
                           "WHERE symbol = ?", (symbol,)).fetchone()
-        if not st or st[0] not in SHORT_SWING_PEAK_LTP_TRAIL_CELLS or st[1] is None:
+        if not st or st[1] is None:
+            return None
+        rule = _swing_short_trail_rule(conn, symbol, st[0], st[3])
+        if rule is None:
             return None
         pk = _swing_trail_peak_get(conn, symbol, "short", st[3])
         if pk is None:
             return None
-        lvl = float(peak_ltp_trail_level("short", st[2], st[1], pk, SHORT_SWING_PEAK_LTP_TRAIL_CELLS[st[0]][0]))
+        lvl = float(swing_trail_level(rule[0], "short", st[2], st[1], pk, rule[1]))
         return lvl if lvl < float(st[1]) else None
     except Exception:
         return None

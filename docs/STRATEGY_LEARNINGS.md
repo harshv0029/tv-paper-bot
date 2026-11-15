@@ -2281,3 +2281,9 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - By return per day the waiting period matters most: common nb3 earns 0.19 %/day against 0.14 for the live common nb5 cell, because it enters two days sooner on more setups (6.5k vs 5.2k) and still books its move in about 3.4 days.
 - Main replay vs the research harness: the main replay is a little higher on every common cell (nb4 atr1.5: 1.20 vs research 0.999), so judging these by the research row would have dropped a profitable cell.
 - Profit-booking / exit takeaway: the rule exit (first day the high fails to exceed the prior high) does nearly all the booking, so a wider ATR stop only adds room: 3 ATR beats 2 and 1.5 in every family. Keep the stop wide and let the high-below-prior-high rule take the profit.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 1h (B-606, run 43769949221)
+- 84 tags on 1h bars over 730 days (5,026 NSE symbols with data, 0.8% round-trip cost), both directions, ATR 1.5/2/3. All fail: best PFnet 0.698 (brk20 long, raw 3 ATR stop).
+- Stop placement barely moves the result: structural offsets of 0.25-1.0 ATR, round-number snap and just-beyond-round all land within about 0.015 PFnet of the raw ATR stop. Long breakouts 0.65-0.70; dip entries 0.35-0.37; short breakouts 0.23-0.25.
+- Gross PF is above 1 for long breakouts (1.16-1.20), so the hourly entries do have an edge before costs, but 0.8% a round trip on 11-bar holds wipes it out. Same verdict as the 1d run (best 0.871).
+- Profit-booking / exit takeaway: at 1h the stop's exact position is not the lever; trade frequency against cost is. Hold longer or trade fewer, larger moves (the 1d swing engine's job) rather than refining the stop.
