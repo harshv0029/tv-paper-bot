@@ -9,7 +9,7 @@ import main
 def test_backfill_target_skips_after_t1_rejection_today():
     src = inspect.getsource(main._reconcile_real_positions_core)
     assert "_tgt_day_key in _target_backfill_t1_rejected" in src
-    place = src.index("place_real_target(r[\"kotak_trading_symbol\"], r[\"qty\"], target)")
+    place = src.index("place_real_target(r[\"kotak_trading_symbol\"], r[\"qty\"], target")  # B-1578: product kwarg follows
     guard = src.index("_tgt_day_key in _target_backfill_t1_rejected")
     record = src.index("_target_backfill_t1_rejected.add(_tgt_day_key)")
     assert guard < place < record

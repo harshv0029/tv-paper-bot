@@ -310,13 +310,13 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json, protection_degraded_since) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
                      pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
-                     pos.get("protection_degraded_since")),
+                     pos.get("protection_degraded_since"), pos.get("product")),  # B-1578
                 )
                 restored += 1
             if restored:
@@ -1285,9 +1285,16 @@ def init_db():
                                      -- so /real-trades-today-bot-only can show real per-trade
                                      -- attribution instead of a generic constant. NULL for a
                                      -- position adopted/backfilled without a known paper origin.
+                ,product TEXT       -- B-1578 (2026-11-15): Kotak product of this intraday long, 'MIS' for
+                                     -- every new buy-engine entry; NULL = legacy CNC row. Every SL/target/
+                                     -- exit leg uses it (_rp_product) so the sell matches what is held.
             )
             """
         )
+        try:  # B-1578: a DB file that survived a restart predates the product column
+            conn.execute("ALTER TABLE real_positions ADD COLUMN product TEXT")
+        except Exception:
+            pass  # already there (fresh CREATE above, or an earlier migration)
         # Real position mirror for the swing (Gap and Go) engine - SEPARATE
         # from real_positions (2026-09-22, real-order mirroring build).
         # real_positions is keyed by symbol alone (PRIMARY KEY), and the
@@ -11054,8 +11061,34 @@ _SL_RETRY_ATTEMPTS = 3  # 2026-09-10, found in review: a single placement
 # tick check doesn't already give.
 
 
+INTRADAY_REAL_PRODUCT = "MIS"  # B-1578: product of every new real_positions (intraday buy-engine) entry
+
+
+def _pkw(product) -> dict:
+    """B-1578: forward a long-side product only when it is not CNC, so swing/legacy calls are unchanged."""
+    p = str(product or "CNC").upper()
+    return {"product": "MIS"} if p == "MIS" else {}
+
+
+def _rp_product(row) -> str:
+    """B-1578: Kotak product of a real_positions row. A row from before B-1578 (or adopted without a
+    product) has NULL and was bought CNC, so its sells must stay CNC; a new entry is MIS."""
+    try:
+        p = row["product"] if row is not None else None
+    except (KeyError, IndexError, TypeError):
+        p = None
+    p = str(p or "CNC").upper()
+    return p if p in ("CNC", "MIS") else "CNC"
+
+
+def _kotak_row_product(raw) -> str | None:
+    """B-1578: the product Kotak reports for a position/order row ('MIS' or 'CNC'), else None (unknown)."""
+    p = str((raw or {}).get("prod") or "").upper() if isinstance(raw, dict) else ""
+    return p if p in ("CNC", "MIS") else None
+
+
 def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trigger_price: float,
-                                      attempts: int = _SL_RETRY_ATTEMPTS) -> dict:
+                                      attempts: int = _SL_RETRY_ATTEMPTS, product: str = "CNC") -> dict:
     """Fail-closed retry wrapper around kotak_real_orders.place_real_stop_loss.
     A protective SL order is safety-critical - a single placement failure
     right after a successful cancel used to leave a real position naked
@@ -11077,7 +11110,7 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
     import kotak_real_orders
     result = {"ok": False, "detail": "no attempt made"}
     for attempt in range(1, attempts + 1):
-        result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
+        result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price, **_pkw(product))
         if result.get("ok"):
             return result
         # B-1305: a Kotak rejection is never resent unchanged; only transient failures retry.
@@ -17660,7 +17693,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             _lra_tag(conn, symbol, "B", "skipped_stop_outside_price_band", kotak_trading_symbol=kotak_symbol,
                      price_est=ltp, detail=_sl_why)
             return
-    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
+    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp, **_pkw(INTRADAY_REAL_PRODUCT))
     if result.get("ok"):
         now = time.time()
         # Resync to Kotak's OWN confirmed fill data when available, not
@@ -17719,9 +17752,10 @@ def _maybe_place_real_entry(conn, symbol: str):
         real_strategy = paper_row["strategy"] if paper_row else None
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-            "entry_order_id, opened_at, day, exit_legs_json, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "entry_order_id, opened_at, day, exit_legs_json, strategy, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
-             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
+             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy,
+             INTRADAY_REAL_PRODUCT),
         )
         if basis_why == "paper qty":
             qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
@@ -17768,7 +17802,8 @@ def _maybe_place_real_entry(conn, symbol: str):
         sl_confirmed = False
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
-                kotak_symbol, real_qty, _cap_real_intraday_stop(real_entry_price, paper_row["stop_loss"])
+                kotak_symbol, real_qty, _cap_real_intraday_stop(real_entry_price, paper_row["stop_loss"]),
+                **_pkw(INTRADAY_REAL_PRODUCT),
             )
             if sl_result.get("ok"):
                 sl_confirmed = True
@@ -17854,7 +17889,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             )
         if sl_confirmed and target_leg_qty and target_leg_price:
             target_result = kotak_real_orders.place_real_target(
-                kotak_symbol, target_leg_qty, round(target_leg_price, 2)
+                kotak_symbol, target_leg_qty, round(target_leg_price, 2), **_pkw(INTRADAY_REAL_PRODUCT)
             )
             if target_result.get("ok"):
                 conn.execute(
@@ -18271,7 +18306,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
             new_state=f"long {remaining_qty} (leg already filled at Kotak, qty reconciled, no new order placed)",
         )
     else:
-        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty)
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty, **_pkw(_rp_product(row)))
         if not result.get("ok"):
             _log_real_attempt(
                 conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -18292,7 +18327,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 # (same qty, same trigger) rather than leaving the
                 # position naked over an unrelated sell failure.
                 restore = _place_real_stop_loss_with_retry(
-                    row["kotak_trading_symbol"], row["qty"], row["sl_trigger_price"]
+                    row["kotak_trading_symbol"], row["qty"], row["sl_trigger_price"], **_pkw(_rp_product(row))
                 )
                 if restore.get("ok"):
                     conn.execute(
@@ -18389,7 +18424,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     sl_confirmed = False
     if remaining_qty > 0 and row["sl_trigger_price"]:
         sl_result = _place_real_stop_loss_with_retry(
-            row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
+            row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"], **_pkw(_rp_product(row))
         )
         if sl_result.get("ok"):
             sl_confirmed = True
@@ -18449,7 +18484,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
     if sl_confirmed and next_leg and next_leg.get("target_price"):
         target_result = kotak_real_orders.place_real_target(
-            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
+            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2), **_pkw(_rp_product(row))
         )
         if target_result.get("ok"):
             conn.execute(
@@ -18591,7 +18626,7 @@ def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
             )
 
-    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"], **_pkw(_rp_product(row)))
     if result.get("ok"):
         conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
         # Resync to Kotak's own confirmed fill data for the audit log, same
@@ -19317,7 +19352,8 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # exact race recurs.
         kotak_real_orders.cancel_existing_resting_sl(real_row["kotak_trading_symbol"])
 
-    sl_result = _place_real_stop_loss_with_retry(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
+    sl_result = _place_real_stop_loss_with_retry(real_row["kotak_trading_symbol"], real_row["qty"], new_stop,
+                                                 **_pkw(_rp_product(real_row)))
     if sl_result.get("ok"):
         conn.execute(
             "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
@@ -21529,7 +21565,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
                 prev_state=f"resting @ Rs{row['target_price']}", new_state="cancelled (kill switch)",
                 detail=reason,
             )
-        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"], **_pkw(_rp_product(row)))
         if result.get("ok"):
             conn.execute("DELETE FROM real_positions WHERE symbol = ?", (row["symbol"],))
             _log_real_attempt(
@@ -24000,11 +24036,11 @@ def reconcile_real_positions_from_journal():
             conn.execute(
                 "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                 "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "target_order_id, target_price, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                  pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                  pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                 pos.get("target_order_id"), pos.get("target_price")),
+                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product")),  # B-1578
             )
             restored += 1
         conn.commit()
@@ -38872,6 +38908,14 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                              (int(kotak_match["qty"]), r["symbol"]))
                 qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                        "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
+            if kotak_match is not None and not kotak_match["is_short"]:
+                # B-1578: Kotak is ground truth for the product too - the SL/target/exit legs use the row's product,
+                # so a row whose product disagrees with what Kotak holds would send sells Kotak rejects.
+                _kp = _kotak_row_product(kotak_match.get("raw"))
+                if _kp and _kp != _rp_product(r):
+                    conn.execute("UPDATE real_positions SET product = ? WHERE symbol = ?", (_kp, r["symbol"]))
+                    print(f"[reconcile] B-1578 product corrected {r['kotak_trading_symbol']}: "
+                          f"{_rp_product(r)} -> {_kp} (Kotak)")
 
         # Short mirror of the long reconciliation just above (2026-09-29) -
         # SEPARATE table (real_positions_short), same "sign must match"
@@ -39158,12 +39202,12 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                         conn.execute(
                             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                             "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                            "target_order_id, target_price) "
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                            "target_order_id, target_price, product) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                             "ON CONFLICT(symbol) DO NOTHING",
                             (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
                              ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price,
-                             target_order_id, target_price),
+                             target_order_id, target_price, _kotak_row_product(raw)),  # B-1578: Kotak is truth
                         )
                         adopted.append({
                             "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
@@ -39232,7 +39276,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             if not r["sl_order_id"]:
                 import kotak_real_orders
                 sl_result = kotak_real_orders.place_real_stop_loss(
-                    r["kotak_trading_symbol"], r["qty"], stop_loss
+                    r["kotak_trading_symbol"], r["qty"], stop_loss, **_pkw(_rp_product(r))
                 )
                 if sl_result.get("ok"):
                     conn.execute(
@@ -39277,7 +39321,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 backfill_entry["target_failure_detail"] = "B-1329 skipped: Kotak rejected this target today (T1, SL holds the qty)"
             elif not r["target_order_id"]:
                 import kotak_real_orders
-                target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target)
+                target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target,
+                                                                    **_pkw(_rp_product(r)))
                 if not target_result.get("ok") and _T1_HOLDINGS_MARKER in str(target_result.get("detail") or ""):
                     # B-1329: the resting SL already holds the full qty, so Kotak rejects the target on every
                     # 5-min pass (ITC x4 on 2026-10-21). Try once per symbol per day; the tick poll books profit.
@@ -39703,7 +39748,7 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
         if row and row["target_order_id"]:
             kotak_real_orders.cancel_real_order(row["target_order_id"])
 
-        result = kotak_real_orders.place_real_exit(kotak_trading_symbol, qty)
+        result = kotak_real_orders.place_real_exit(kotak_trading_symbol, qty, **_pkw(_rp_product(row)))
         if result.get("ok"):
             if row:
                 conn.execute("DELETE FROM real_positions WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,))

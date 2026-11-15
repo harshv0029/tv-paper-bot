@@ -13,7 +13,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 129 |
 | BLOCKED | 58 |
-| OPEN | 49 |
+| OPEN | 48 |
 | P1 | 39 |
 | P2 | 37 |
 | DONE-MERGED | 22 |
@@ -24,10 +24,10 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | P3 | 9 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
+| BUILT-ON-BRANCH | 4 |
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | DEPLOYED | 3 |
-| BUILT-ON-BRANCH | 3 |
 | DISPATCH-READY | 3 |
 | USER | 3 |
 | FROM | 3 |
@@ -72,7 +72,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (211)
+## waiting-on-workflow/deploy (212)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -146,6 +146,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-798 | P1 | DONE-PENDING-VERIFY | Wire/replay brk20_min_rr (20-bar breakout entry with ATR stop and minimum reward:risk target) long+short, a... | owed, pending, needs, owner |
 | B-812 | P1 | DONE-PENDING-VERIFY | Strict-FIFO (one position per symbol per cell) non-overlap re-run of the 4 macddiv 1h long cells >=1.1 (lin... | owed, pending, verify, needs |
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
+| B-1578 | P1 | BUILT-ON-BRANCH | 2026-11-14 IST | owed, pending, owner |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
 | B-357 | P2 | BLOCKED | User 2026-10-11 "yes": short-selling engine on futures | owed, blocked, needs |
 | B-366 | P2 | BLOCKED | Spun out of B-365: order-book imbalance (Level 2 depth at best bid/ask, 5-level quote depth from Kotak) as ... | owed, blocked, needs |
@@ -288,7 +289,7 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-767 | P? | P3 | RUN-REGISTERED-1TF, CANDLE-SWEEP OWED (B-1479 2026-11-09) | owed, pending, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (81)
+## ready-to-build (80)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -308,7 +309,6 @@ Total rows: 1346 | closed: 930 | not closed: 416
 | B-1557 | P1 | OPEN | 2026-11-11 IST | pending |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1566 | P1 | OPEN | 2026-11-12 IST | owed, needs |
-| B-1578 | P1 | OPEN | 2026-11-14 IST | owed, owner |
 | B-1581 | P1 | OPEN | 2026-11-14 IST | owed |
 | B-1591 | P1 | OPEN | 2026-11-15 IST |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |

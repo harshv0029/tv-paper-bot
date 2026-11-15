@@ -2067,3 +2067,10 @@ Profit-booking / exit takeaway: never add size after a loss to "win it back"; ke
 - Notable results: Elder osc div_class cells 0.925/0.948 on a clean main.py replay (earlier 2.4 was a data glitch); martingale sizing ruined 28%/14% of accounts (never wire); capped optimal-f beat fixed 2% (0.914 vs 0.865, DD 11.0% vs 16.7%).
 - Coverage: short (B-313, B-1580) done; buy/swing/options SL legs (B-1557) built-held; futures, commodity, currency n/a for this merge.
 - Profit-booking / exit takeaway: an exit order sent when the market is closed or the broker is down only burns retries and hides real alarms; gate every emergency exit on market-open and broker-up first, then exit decisively at the open.
+
+## B-1578: intraday buy-engine real entries go MIS, not CNC (2026-11-15 IST)
+- Cause: BDL 2026-11-12 intraday buy went CNC; the same-day target LIMIT SELL was rejected 'No Holdings Present' (a CNC buy is not sellable as holdings until T+1 under some RMS paths) and the position was carried overnight.
+- Fix: long-side order functions take `product` (default CNC); real_positions records it ('MIS' for new entries, NULL = legacy CNC); every SL/target/exit leg reads it; reconcile corrects it from Kotak's `prod`.
+- Side benefit: an MIS long is auto-squared-off by Kotak near 15:20 IST, a broker-side backstop if the bot's own 15:15 flatten fails (B-1567 (b)).
+- Coverage: buy (real_positions) done; swing stays CNC by design; short/swing-short already MIS/CNC respectively; futures/options/options_multi/commodity/currency use NRML, n/a.
+- Profit-booking / exit takeaway: an exit leg must carry the same product as the entry, or the broker rejects the profit-booking order exactly when it matters; record the product on the position row and derive every exit from it.

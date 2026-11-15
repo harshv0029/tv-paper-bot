@@ -389,8 +389,24 @@ def _confirm_order_status(order_id: str) -> dict:
             "filled_qty": filled_qty, "row": row}
 
 
+def _long_product(product) -> str:
+    """B-1578 (BDL 2026-11-12: target SELL rejected 'No Holdings Present' because the intraday
+    buy was CNC). Long-side legs carry the product of the position they belong to: MIS for an
+    intraday buy-engine row, CNC for swing/delivery. Anything else falls back to CNC, the
+    pre-B-1578 behaviour, so a bad value can never send an order Kotak would not expect."""
+    p = str(product or "CNC").upper()
+    return p if p in ("CNC", "MIS") else "CNC"
+
+
+def _product_kw(product) -> dict:
+    """B-1578: kwargs to forward a long-side product. Empty for CNC, so every swing/delivery call stays exactly the
+    pre-B-1578 call; {"product": "MIS"} only for an intraday buy-engine row."""
+    p = _long_product(product)
+    return {} if p == "CNC" else {"product": p}
+
+
 @_records_send("entry", "real market BUY entry")
-def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
+def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float, product: str = "CNC") -> dict:
     """Places a REAL market BUY for `qty` shares via Kotak Neo, CNC, on
     nse_cm. Never raises - every failure path (login failure, an
     exception from place_order itself, an unrecognized response) returns
@@ -421,7 +437,7 @@ def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="CNC",
+            product=_long_product(product),  # B-1578
             price="0",
             order_type="MKT",
             quantity=str(qty),
@@ -554,7 +570,7 @@ def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "
 
 
 @_records_send("exit", "real market SELL exit")
-def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
+def place_real_exit(kotak_trading_symbol: str, qty: int, product: str = "CNC") -> dict:
     """Places a REAL market SELL to close a real position, CNC, on
     nse_cm. Same never-raises / rejection-confirmed discipline as
     place_real_entry - see its docstring, including the follow-up
@@ -576,7 +592,7 @@ def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="CNC",
+            product=_long_product(product),  # B-1578
             price="0",
             order_type="MKT",
             quantity=str(qty),
@@ -880,7 +896,7 @@ def _tick_size_for(kotak_trading_symbol: str) -> float:
 
 
 @_records_send("sl", "resting SELL stop-loss to protect an open long/swing position")
-def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "CNC") -> dict:
     """Places a REAL resting stop-loss sell order at Kotak for an already-
     open real position, so the stop fires at the exchange even if this app
     or Render's process is down between scheduler ticks. See this
@@ -921,7 +937,7 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="CNC",
+            product=_long_product(product),  # B-1578
             price=str(limit_price),
             order_type="SL",
             quantity=str(qty),
@@ -1334,13 +1350,13 @@ def _before_equity_open() -> bool:
     return n.hour * 60 + n.minute < 9 * 60 + 15
 
 
-def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "CNC") -> dict:
     if _before_equity_open():
         # Same failure shape as a Kotak reject, so callers behave exactly as before, minus the doomed order.
         return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
                 "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
     with _sl_symbol_lock(kotak_trading_symbol):
-        res = _place_real_stop_loss_unlocked(kotak_trading_symbol, qty, trigger_price)
+        res = _place_real_stop_loss_unlocked(kotak_trading_symbol, qty, trigger_price, **_product_kw(product))
         if res.get("ok") and res.get("order_id"):
             _RECENT_SL_PLACED[kotak_trading_symbol] = {"order_id": str(res["order_id"]), "qty": int(qty),
                                                        "trigger": float(res.get("trigger_price") or trigger_price),
@@ -1348,7 +1364,7 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
         return res
 
 
-def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "CNC") -> dict:
     """B-1304 (UNIONBANK 2026-10-21 09:16 IST, live): an SL whose trigger sat below the
     day's lower price band (159.67 vs a ~162.6 floor after a gap up) was rejected with
     "Order price is outside the valid price range" and the position stayed naked. On that
@@ -1362,7 +1378,7 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
     trigger_price, clamped_from = _preclamp_long_stop(kotak_trading_symbol, trigger_price)  # only ever raises
     trigger_price, market_info = clamp_stop_to_market(kotak_trading_symbol, trigger_price, "long")  # B-1520
     floor_info = {**floor_info, **market_info}
-    res = _place_real_stop_loss_once(kotak_trading_symbol, qty, trigger_price)
+    res = _place_real_stop_loss_once(kotak_trading_symbol, qty, trigger_price, **_product_kw(product))
     res.update(floor_info)
     if clamped_from is not None:
         res["band_clamped_from"] = clamped_from
@@ -1371,7 +1387,7 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
     _note_rejected(res, f"stop Rs{float(trigger_price):.2f} was outside the day's price band; retried at the next band floor (B-1304)")
     kb = _kotak_band_stop(kotak_trading_symbol, trigger_price, "long", res.get("detail"))  # B-1554
     if kb is not None:
-        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, kb)
+        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, kb, **_product_kw(product))
         if r2.get("ok"):
             r2["band_clamped_from"] = clamped_from if clamped_from is not None else trigger_price
             r2["band_source"] = "kotak_rejection"
@@ -1390,7 +1406,7 @@ def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_
         if cand <= trigger_price or cand in tried or cand >= last * 0.995:
             continue
         tried.add(cand)
-        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, cand)
+        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, cand, **_product_kw(product))
         if r2.get("ok"):
             r2["band_clamped_from"] = clamped_from if clamped_from is not None else trigger_price
             return r2
@@ -1702,7 +1718,7 @@ def _place_real_short_stop_loss_once(kotak_trading_symbol: str, qty: int, trigge
 
 
 @_records_send("target", "resting LIMIT SELL profit target")
-def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
+def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float, product: str = "CNC") -> dict:
     """Places a REAL resting LIMIT sell order at Kotak for an already-open
     real position, at the paper engine's own profit target, so a
     favorable price move gets sold and booked at the exchange itself even
@@ -1723,7 +1739,7 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="CNC",
+            product=_long_product(product),  # B-1578
             price=str(target_price),
             order_type="L",
             quantity=str(qty),
