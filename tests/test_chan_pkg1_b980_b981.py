@@ -56,7 +56,8 @@ def test_chan_gap_short_gate_follows_replay_evidence():
     assert t in main.CHAN_INTRADAY_SHORT_TAGS and t not in main.CHAN_SHORT_CELLS
     # B-1221: run 38502123279 (main.py replay, PFnet 1.31) is on file -> owed flag cleared, gate derives open
     assert t not in main.REPLAY_OWED_TAGS
-    assert main._is_strategy_viable_for_real_money(t, check_switch=False)
+    # B-1604: raw-price 15:15-exit re-measure 0.71 closes it (strict PFnet > 1.00)
+    assert t in main.REPLAY_FAILED_TAGS and not main._is_strategy_viable_for_real_money(t, check_switch=False)
 
 
 def test_chan_gap_manage_stop_flatten_only():

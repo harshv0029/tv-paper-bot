@@ -5,6 +5,8 @@ import json, re, sys
 STAT = re.compile(r"^(DONE|MERGED|CLOSED|OPEN|TODO|PENDING|IN[- ]|NOTE|FIX|CODE|BUILT|PARKED|BLOCKED|WAIT|RESEARCH|MONITOR|RULE|\(a\))")
 path = "docs/ACTIONABLES_BACKLOG.md"
 dec = json.load(open(sys.argv[1]))
+import datetime as _dt
+_TODAY = (_dt.datetime.utcnow() + _dt.timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d")
 out, hit = [], set()
 for line in open(path):
     m = re.match(r"\| *(B-\d+) *\|", line)
@@ -18,7 +20,7 @@ for line in open(path):
         di = max((i for i in range(1, min(4, len(inner)))), key=lambda i: len(inner[i]) if i != si else -1)
         status, note = dec[bid]
         inner[si] = f" {status} "
-        inner[di] = inner[di].rstrip() + f" **Decision 2026-10-10 IST:** {note} "
+        inner[di] = inner[di].rstrip() + f" **Decision {_TODAY} IST:** {note} "
         line = "|" + "|".join(inner) + "|\n"
         hit.add(bid)
     out.append(line)

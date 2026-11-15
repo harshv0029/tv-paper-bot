@@ -1,0 +1,896 @@
+{
+ "run": "island-tf-dir-sweep-replay.yml run 43709215753 (B-1603 bar0_only=1, 4h only: signals on the 09:15-13:15 bar, the only ones the live leg can enter)",
+ "cost_round_trip_pct": 0.8,
+ "source": "aggregate job log (artifact download 403)",
+ "note": "tag = registered `_tfs` name; printed_as = the name the sweep printed, with '__' written as '~' so it is not re-read as a tag",
+ "rows": [
+  {
+   "tag": "reversal__island_gap05_tfs__long__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~long~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2697,
+    "pfnet": 2.0798,
+    "pfgross": 3.1546,
+    "win_pct": 42.05,
+    "avg_held_bars": 9.79,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2059,
+      "pfnet": 3.4759953620822985,
+      "win_pct": 49.98,
+      "avg_held_bars": 10.59
+     },
+     "stop_loss": {
+      "n": 520,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.11
+     },
+     "data_end_forced_close": {
+      "n": 30,
+      "pfnet": 4.236310875542595,
+      "win_pct": 56.67,
+      "avg_held_bars": 7.87
+     },
+     "max_hold_timeout": {
+      "n": 88,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_gap05_tfs__long__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~long~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2696,
+    "pfnet": 2.0533,
+    "pfgross": 3.0697,
+    "win_pct": 42.84,
+    "avg_held_bars": 10.02,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2398,
+      "pfnet": 2.1664852988393872,
+      "win_pct": 43.74,
+      "avg_held_bars": 9.76
+     },
+     "stop_loss": {
+      "n": 178,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.52
+     },
+     "data_end_forced_close": {
+      "n": 32,
+      "pfnet": 4.23419187530348,
+      "win_pct": 56.25,
+      "avg_held_bars": 7.91
+     },
+     "max_hold_timeout": {
+      "n": 88,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_gap05_tfs__long__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~long~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2695,
+    "pfnet": 2.0146,
+    "pfgross": 2.9821,
+    "win_pct": 43.01,
+    "avg_held_bars": 10.09,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2506,
+      "pfnet": 1.8507674481843464,
+      "win_pct": 42.02,
+      "avg_held_bars": 9.54
+     },
+     "stop_loss": {
+      "n": 69,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.26
+     },
+     "data_end_forced_close": {
+      "n": 32,
+      "pfnet": 4.23419187530348,
+      "win_pct": 56.25,
+      "avg_held_bars": 7.91
+     },
+     "max_hold_timeout": {
+      "n": 88,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_gap05_tfs__short__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~short~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2370,
+    "pfnet": 0.036,
+    "pfgross": 0.0407,
+    "win_pct": 39.49,
+    "avg_held_bars": 8.94,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 1709,
+      "pfnet": 2.654451115799637,
+      "win_pct": 48.39,
+      "avg_held_bars": 9.44
+     },
+     "stop_loss": {
+      "n": 549,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.14
+     },
+     "max_hold_timeout": {
+      "n": 106,
+      "pfnet": 181.34053041005154,
+      "win_pct": 99.06,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 6,
+      "pfnet": 21.86246636259653,
+      "win_pct": 66.67,
+      "avg_held_bars": 5.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_gap05_tfs__short__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~short~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2366,
+    "pfnet": 0.0227,
+    "pfgross": 0.0256,
+    "win_pct": 40.53,
+    "avg_held_bars": 9.26,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2060,
+      "pfnet": 1.5021807102164062,
+      "win_pct": 41.17,
+      "avg_held_bars": 8.68
+     },
+     "stop_loss": {
+      "n": 192,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.39
+     },
+     "max_hold_timeout": {
+      "n": 108,
+      "pfnet": 183.05038170425175,
+      "win_pct": 99.07,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 6,
+      "pfnet": 21.86246636259653,
+      "win_pct": 66.67,
+      "avg_held_bars": 5.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_gap05_tfs__short__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_gap05~short~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2362,
+    "pfnet": 0.0147,
+    "pfgross": 0.0165,
+    "win_pct": 40.81,
+    "avg_held_bars": 9.34,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2185,
+      "pfnet": 1.2314158451460366,
+      "win_pct": 39.04,
+      "avg_held_bars": 8.44
+     },
+     "stop_loss": {
+      "n": 63,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.81
+     },
+     "max_hold_timeout": {
+      "n": 108,
+      "pfnet": 183.05038170425175,
+      "win_pct": 99.07,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 6,
+      "pfnet": 21.86246636259653,
+      "win_pct": 66.67,
+      "avg_held_bars": 5.67
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__long__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~long~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 8716,
+    "pfnet": 1.6176,
+    "pfgross": 2.4857,
+    "win_pct": 37.85,
+    "avg_held_bars": 9.5,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 6658,
+      "pfnet": 2.214080088813656,
+      "win_pct": 43.23,
+      "avg_held_bars": 10.01
+     },
+     "stop_loss": {
+      "n": 1557,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.36
+     },
+     "data_end_forced_close": {
+      "n": 196,
+      "pfnet": 4.9588495879079675,
+      "win_pct": 61.22,
+      "avg_held_bars": 7.57
+     },
+     "max_hold_timeout": {
+      "n": 305,
+      "pfnet": 4082.1603481585307,
+      "win_pct": 98.69,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__long__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~long~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 8680,
+    "pfnet": 1.6491,
+    "pfgross": 2.5129,
+    "win_pct": 38.72,
+    "avg_held_bars": 9.8,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 7743,
+      "pfnet": 1.4198659929563626,
+      "win_pct": 37.81,
+      "avg_held_bars": 9.33
+     },
+     "stop_loss": {
+      "n": 420,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.81
+     },
+     "data_end_forced_close": {
+      "n": 205,
+      "pfnet": 4.70977572781639,
+      "win_pct": 60.98,
+      "avg_held_bars": 7.69
+     },
+     "max_hold_timeout": {
+      "n": 312,
+      "pfnet": 4186.315931739206,
+      "win_pct": 98.72,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__long__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~long~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 8671,
+    "pfnet": 1.6491,
+    "pfgross": 2.5074,
+    "win_pct": 38.87,
+    "avg_held_bars": 9.85,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 8032,
+      "pfnet": 1.2463033431487707,
+      "win_pct": 36.55,
+      "avg_held_bars": 9.17
+     },
+     "stop_loss": {
+      "n": 120,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.99
+     },
+     "data_end_forced_close": {
+      "n": 206,
+      "pfnet": 4.64355974558897,
+      "win_pct": 60.68,
+      "avg_held_bars": 7.68
+     },
+     "max_hold_timeout": {
+      "n": 313,
+      "pfnet": 4188.616813265325,
+      "win_pct": 98.72,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__short__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~short~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7279,
+    "pfnet": 0.0737,
+    "pfgross": 0.0857,
+    "win_pct": 32.3,
+    "avg_held_bars": 8.2,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 4982,
+      "pfnet": 1.579085892559797,
+      "win_pct": 40.77,
+      "avg_held_bars": 8.85
+     },
+     "stop_loss": {
+      "n": 1950,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.45
+     },
+     "max_hold_timeout": {
+      "n": 278,
+      "pfnet": 281.67685760846314,
+      "win_pct": 99.28,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 69,
+      "pfnet": 4.466209558627841,
+      "win_pct": 63.77,
+      "avg_held_bars": 3.84
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__short__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~short~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7245,
+    "pfnet": 0.0481,
+    "pfgross": 0.0556,
+    "win_pct": 33.44,
+    "avg_held_bars": 8.61,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 6276,
+      "pfnet": 0.869396374923829,
+      "win_pct": 33.43,
+      "avg_held_bars": 8.13
+     },
+     "stop_loss": {
+      "n": 615,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.69
+     },
+     "max_hold_timeout": {
+      "n": 284,
+      "pfnet": 259.465571196032,
+      "win_pct": 98.94,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 70,
+      "pfnet": 3.2821724748674836,
+      "win_pct": 62.86,
+      "avg_held_bars": 3.8
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_none_tfs__short__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_none~short~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7233,
+    "pfnet": 0.0316,
+    "pfgross": 0.0364,
+    "win_pct": 33.69,
+    "avg_held_bars": 8.69,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 6743,
+      "pfnet": 0.7050548808484599,
+      "win_pct": 31.31,
+      "avg_held_bars": 7.88
+     },
+     "stop_loss": {
+      "n": 135,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.45
+     },
+     "max_hold_timeout": {
+      "n": 285,
+      "pfnet": 259.8374338057579,
+      "win_pct": 98.95,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 70,
+      "pfnet": 3.2821724748674836,
+      "win_pct": 62.86,
+      "avg_held_bars": 3.8
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__long__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~long~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7773,
+    "pfnet": 1.4516,
+    "pfgross": 2.2401,
+    "win_pct": 36.91,
+    "avg_held_bars": 9.51,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 5926,
+      "pfnet": 1.99824039854225,
+      "win_pct": 42.17,
+      "avg_held_bars": 10.05
+     },
+     "stop_loss": {
+      "n": 1401,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.45
+     },
+     "data_end_forced_close": {
+      "n": 181,
+      "pfnet": 4.837975109758623,
+      "win_pct": 60.22,
+      "avg_held_bars": 7.38
+     },
+     "max_hold_timeout": {
+      "n": 265,
+      "pfnet": 3310.6216941536227,
+      "win_pct": 98.49,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__long__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~long~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7738,
+    "pfnet": 1.4855,
+    "pfgross": 2.2746,
+    "win_pct": 37.75,
+    "avg_held_bars": 9.82,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 6912,
+      "pfnet": 1.2761558333971723,
+      "win_pct": 36.76,
+      "avg_held_bars": 9.36
+     },
+     "stop_loss": {
+      "n": 366,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.96
+     },
+     "data_end_forced_close": {
+      "n": 188,
+      "pfnet": 4.51906485939889,
+      "win_pct": 59.57,
+      "avg_held_bars": 7.41
+     },
+     "max_hold_timeout": {
+      "n": 272,
+      "pfnet": 3414.777277734297,
+      "win_pct": 98.53,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__long__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~long~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 7734,
+    "pfnet": 1.4916,
+    "pfgross": 2.2801,
+    "win_pct": 37.94,
+    "avg_held_bars": 9.88,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 7169,
+      "pfnet": 1.1293872080964127,
+      "win_pct": 35.61,
+      "avg_held_bars": 9.22
+     },
+     "stop_loss": {
+      "n": 103,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.16
+     },
+     "data_end_forced_close": {
+      "n": 189,
+      "pfnet": 4.452349895551551,
+      "win_pct": 59.26,
+      "avg_held_bars": 7.4
+     },
+     "max_hold_timeout": {
+      "n": 273,
+      "pfnet": 3417.078159260416,
+      "win_pct": 98.53,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__short__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~short~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 6329,
+    "pfnet": 0.8053,
+    "pfgross": 1.2075,
+    "win_pct": 30.32,
+    "avg_held_bars": 8.05,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 4270,
+      "pfnet": 1.3942292569573043,
+      "win_pct": 38.81,
+      "avg_held_bars": 8.79
+     },
+     "stop_loss": {
+      "n": 1770,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.47
+     },
+     "max_hold_timeout": {
+      "n": 228,
+      "pfnet": 223.66139937174074,
+      "win_pct": 99.12,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 61,
+      "pfnet": 3.373533000177204,
+      "win_pct": 59.02,
+      "avg_held_bars": 3.66
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__short__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~short~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 6299,
+    "pfnet": 0.8104,
+    "pfgross": 1.2009,
+    "win_pct": 31.47,
+    "avg_held_bars": 8.46,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 5456,
+      "pfnet": 0.7560947954948786,
+      "win_pct": 31.45,
+      "avg_held_bars": 8.04
+     },
+     "stop_loss": {
+      "n": 548,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.63
+     },
+     "max_hold_timeout": {
+      "n": 233,
+      "pfnet": 205.88335767645268,
+      "win_pct": 98.71,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 62,
+      "pfnet": 2.4791754643148822,
+      "win_pct": 58.06,
+      "avg_held_bars": 3.61
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_px20_tfs__short__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_px20~short~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 6288,
+    "pfnet": 0.8321,
+    "pfgross": 1.2344,
+    "win_pct": 31.71,
+    "avg_held_bars": 8.54,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 5883,
+      "pfnet": 0.6112494037855011,
+      "win_pct": 29.36,
+      "avg_held_bars": 7.77
+     },
+     "stop_loss": {
+      "n": 109,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.36
+     },
+     "max_hold_timeout": {
+      "n": 234,
+      "pfnet": 206.25522028617854,
+      "win_pct": 98.72,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 62,
+      "pfnet": 2.4791754643148822,
+      "win_pct": 58.06,
+      "avg_held_bars": 3.61
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__long__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~long~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 4043,
+    "pfnet": 1.6894,
+    "pfgross": 2.6568,
+    "win_pct": 40.86,
+    "avg_held_bars": 10.42,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 3133,
+      "pfnet": 2.0881149975959126,
+      "win_pct": 45.16,
+      "avg_held_bars": 10.77
+     },
+     "stop_loss": {
+      "n": 623,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.93
+     },
+     "data_end_forced_close": {
+      "n": 120,
+      "pfnet": 3.568972390796251,
+      "win_pct": 58.33,
+      "avg_held_bars": 6.45
+     },
+     "max_hold_timeout": {
+      "n": 167,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__long__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~long~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 4021,
+    "pfnet": 1.7504,
+    "pfgross": 2.7455,
+    "win_pct": 41.61,
+    "avg_held_bars": 10.7,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 3592,
+      "pfnet": 1.358676881910791,
+      "win_pct": 39.84,
+      "avg_held_bars": 10.1
+     },
+     "stop_loss": {
+      "n": 134,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.79
+     },
+     "data_end_forced_close": {
+      "n": 124,
+      "pfnet": 3.4543608558300902,
+      "win_pct": 57.26,
+      "avg_held_bars": 6.56
+     },
+     "max_hold_timeout": {
+      "n": 171,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__long__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~long~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 4020,
+    "pfnet": 1.7375,
+    "pfgross": 2.7135,
+    "win_pct": 41.67,
+    "avg_held_bars": 10.73,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 3679,
+      "pfnet": 1.2346625038588162,
+      "win_pct": 38.95,
+      "avg_held_bars": 10.01
+     },
+     "data_end_forced_close": {
+      "n": 125,
+      "pfnet": 3.390528569989459,
+      "win_pct": 56.8,
+      "avg_held_bars": 6.55
+     },
+     "max_hold_timeout": {
+      "n": 171,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "stop_loss": {
+      "n": 45,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__short__4h__atr1d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~short~4h~atr1d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 3012,
+    "pfnet": 0.6687,
+    "pfgross": 1.0021,
+    "win_pct": 25.83,
+    "avg_held_bars": 8.36,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 1936,
+      "pfnet": 1.1136374199513166,
+      "win_pct": 33.73,
+      "avg_held_bars": 9.45
+     },
+     "stop_loss": {
+      "n": 936,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.78
+     },
+     "max_hold_timeout": {
+      "n": 104,
+      "pfnet": 140.22756413945248,
+      "win_pct": 99.04,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 36,
+      "pfnet": 4.526240551763768,
+      "win_pct": 61.11,
+      "avg_held_bars": 3.78
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__short__4h__atr2d5_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~short~4h~atr2d5_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 3000,
+    "pfnet": 0.6761,
+    "pfgross": 0.9973,
+    "win_pct": 27.0,
+    "avg_held_bars": 8.83,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2610,
+      "pfnet": 0.5655103346909577,
+      "win_pct": 26.09,
+      "avg_held_bars": 8.43
+     },
+     "stop_loss": {
+      "n": 245,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 4.04
+     },
+     "max_hold_timeout": {
+      "n": 109,
+      "pfnet": 124.95979590796037,
+      "win_pct": 98.17,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 36,
+      "pfnet": 4.526240551763768,
+      "win_pct": 61.11,
+      "avg_held_bars": 3.78
+     }
+    }
+   }
+  },
+  {
+   "tag": "reversal__island_turn1cr_tfs__short__4h__atr4_within8_b0__nonovl__v2",
+   "printed_as": "reversal~island_turn1cr~short~4h~atr4_within8_b0~nonovl~v2",
+   "metrics": {
+    "n": 2992,
+    "pfnet": 0.7006,
+    "pfgross": 1.0323,
+    "win_pct": 27.27,
+    "avg_held_bars": 8.9,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 2816,
+      "pfnet": 0.47278811982007846,
+      "win_pct": 24.4,
+      "avg_held_bars": 8.15
+     },
+     "max_hold_timeout": {
+      "n": 109,
+      "pfnet": 124.95979590796037,
+      "win_pct": 98.17,
+      "avg_held_bars": 31.0
+     },
+     "stop_loss": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 5.0
+     },
+     "data_end_forced_close": {
+      "n": 36,
+      "pfnet": 4.526240551763768,
+      "win_pct": 61.11,
+      "avg_held_bars": 3.78
+     }
+    }
+   }
+  }
+ ]
+}

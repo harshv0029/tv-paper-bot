@@ -28925,6 +28925,30 @@ def _replay_failed_tags() -> frozenset:
     return frozenset(replayed - _replay_verified_tags())
 
 
+def _live_exit_remeasure_failed_tags() -> frozenset:
+    """B-1604: live tags whose re-measurement on the live basis (raw, unadjusted Yahoo bars for both the filter and the
+    trade; exit at the bot's real flatten time, not the 15:30 daily close) lands at or below PFNET_LIVE_FLOOR (strict
+    rule: only PFnet > 1.00 qualifies). Files: docs/backtest_data/live_exit_remeasure_run_*.json, rows
+    {tag, measured_tag, n, pfnet}. The NEWEST run (run_id) holding a tag decides it, so a newer passing re-measure
+    re-opens the tag with no code change. Entry gate only (REPLAY_FAILED_TAGS)."""
+    import glob as _g
+    import json as _j
+    import strategy_registry as _sr
+    latest = {}
+    for f in _g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "live_exit_remeasure_run_*.json")):
+        try:
+            d = _j.load(open(f))
+            rid = int(d.get("run_id") or 0)
+            for r in d.get("rows", []):
+                if r.get("pfnet") is None or int(r.get("n") or 0) < 1:
+                    continue
+                if r["tag"] not in latest or rid >= latest[r["tag"]][0]:
+                    latest[r["tag"]] = (rid, float(r["pfnet"]))
+        except Exception:
+            continue
+    return frozenset(t for t, (_rid, pf) in latest.items() if pf <= _sr.PFNET_LIVE_FLOOR)
+
+
 def _bandcap_live_failed_tags() -> frozenset:
     """B-1426: tags whose band_cap=live (Kotak resting-stop model: stop raised to the 10% band floor, intraday trigger)
     re-measurement in docs/backtest_data/swing_bandcap_run_*.json lands below PFNET_LIVE_FLOOR. The NEWEST run holding a
@@ -30270,6 +30294,10 @@ REPLAY_FAILED_TAGS = REPLAY_OWED_TAGS & _replay_failed_tags()  # B-1396: replay 
 # B-1426: band_cap=live re-measurement below the floor closes the ENTRY gate the same way (envelope/cup_cheat 1h cells whose
 # band_cap=off replay cleared 1.0 but the live resting-stop model does not). Only mapped (wired) tags; no new switch.
 REPLAY_FAILED_TAGS = REPLAY_FAILED_TAGS | (_bandcap_live_failed_tags() & frozenset(_STRATEGY_TAG_TO_REGISTRY_NAME))
+# B-1604 (user 2026-11-15 "If it does not qualify then follow the rules set by me till now"): a live-basis re-measurement
+# (docs/backtest_data/live_exit_remeasure_run_*.json: raw unadjusted prices, the bot's real flatten time) at or below the
+# strict floor closes the ENTRY gate; the newest run per tag decides. Exits/SL management never read this.
+REPLAY_FAILED_TAGS = REPLAY_FAILED_TAGS | (_live_exit_remeasure_failed_tags() & frozenset(_STRATEGY_TAG_TO_REGISTRY_NAME))
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - REPLAY_FAILED_TAGS
 CHAN_GAP_SCAN_START_MIN = 9 * 60 + 16
 CHAN_GAP_SCAN_END_MIN = 10 * 60 + 30

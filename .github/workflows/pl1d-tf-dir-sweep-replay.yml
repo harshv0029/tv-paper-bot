@@ -26,6 +26,10 @@ on:
       nshards_5m:
         description: "Shards for 5m"
         default: "24"
+      bar0_only:
+        description: "B-1605: 1 = 4h keeps only bucket-0 (09:15-13:15) signals (_b0 tags); set other nshards to 0"
+        required: false
+        default: ""
 
 jobs:
   plan:
@@ -68,6 +72,7 @@ jobs:
           NSHARDS: ${{ matrix.nshards }}
           ATRS: ${{ inputs.atrs }}
           HOLD: ${{ inputs.hold }}
+          BAR0_ONLY: ${{ inputs.bar0_only }}
         run: python3 scripts/pl1d_tf_dir_sweep_replay.py
       - uses: actions/upload-artifact@v4
         with:

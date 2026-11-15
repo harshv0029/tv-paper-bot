@@ -35,13 +35,28 @@ DEFAULT_HOLD = 20
 DEFAULT_SHARDS = {"4h": 8, "1h": 8, "15m": 16, "5m": 24}
 
 
-def make_tag(rule, direction, tf, atr, hold=DEFAULT_HOLD):
+def bar0_only():
+    """B-1605: BAR0_ONLY=1 (4h only) keeps signals whose completion bar is session bucket 0 (09:15-13:15 IST), the only
+    4h signals a live leg can enter with a resting SL before the 15:15 exchange cancel (same rule as B-1603 island)."""
+    return os.environ.get("BAR0_ONLY", "").strip() == "1"
+
+
+def is_bar0(date_str):
+    import pandas as pd
+    t = pd.Timestamp(str(date_str))
+    if t.tzinfo is not None:
+        t = t.tz_convert("Asia/Kolkata")
+    return t.hour * 60 + t.minute < 13 * 60 + 15
+
+
+def make_tag(rule, direction, tf, atr, hold=DEFAULT_HOLD, b0=False):
     fam = RULES[rule]
-    return f"{fam}__{direction}__{tf}__atr{C.num_token(atr)}_h{int(hold)}__v1"
+    return f"{fam}__{direction}__{tf}__atr{C.num_token(atr)}_h{int(hold)}{'_b0' if b0 else ''}__v1"
 
 
 def cell_specs(tf, atrs, hold):
-    return {make_tag(r, d, tf, a, hold): {"rule": r, "dir": d, "tf": tf, "atr": a, "hold": int(hold)}
+    b0 = bar0_only() and tf == "4h"
+    return {make_tag(r, d, tf, a, hold, b0): {"rule": r, "dir": d, "tf": tf, "atr": a, "hold": int(hold), "b0": b0}
             for r in RULES for d in DIRS for a in atrs}
 
 
@@ -80,6 +95,8 @@ def replay_symbol(m, df, specs, cost):
         fires = {}
         for tag, sp in specs.items():
             if k < free[tag]:
+                continue
+            if sp.get("b0") and not is_bar0(df["Date"].iloc[k]):
                 continue
             key = (sp["rule"], sp["dir"])
             if key not in fires:  # real rule fn once per (rule, dir) per bar

@@ -27,7 +27,8 @@ def test_tags_mapping_registry_and_owed():
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         # B-1220: run 38501321543 (main.py-calling replay, PFnet 1.32-1.39, n 1211) is on file -> owed flag cleared, gate derives viability
         assert t not in main.REPLAY_OWED_TAGS
-        assert main._is_strategy_viable_for_real_money(t, check_switch=False)
+        # B-1604: live-basis re-measure (raw prices, 15:15 exit) at or below 1.00 closes the gate (atr1d5 long 0.995)
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) == (t not in main._live_exit_remeasure_failed_tags())
         assert t.replace("buy_on_gap__long", "buy_on_gap_mr__long") in names  # its own BUY-category _mr row
     assert set(TAGS) <= main.CHAN_INTRADAY_LONG_TAGS and set(main.CHAN_LONG_CELLS) <= main.CHAN_INTRADAY_LONG_TAGS
 
@@ -121,7 +122,8 @@ def test_chan_gap_short_gate_open_and_has_mr_row():
     """B-1221: run 38502123279 (main.py replay, PFnet 1.31, n 1157) on file -> short atr1d5 gate derives open, own _mr row."""
     t = main.CHAN_GAP_SHORT_TAG
     assert t not in main.REPLAY_OWED_TAGS
-    assert main._is_strategy_viable_for_real_money(t, check_switch=False)
+    # B-1604: raw-price 15:15-exit re-measure 0.71 (run 43710558361) closes the entry gate under the strict PFnet > 1.00 rule
+    assert t in main.REPLAY_FAILED_TAGS and not main._is_strategy_viable_for_real_money(t, check_switch=False)
     assert t.replace("short_on_gap__short", "short_on_gap_mr__short") in {d.name for d in sr.REGISTRY}
 
 

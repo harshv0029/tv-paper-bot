@@ -2208,3 +2208,20 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Live is fine. Today's open vs yesterday's adjusted close only differs on an ex-date, where the adjustment correctly removes the dividend gap.
 - Fix built: RAW_DAILY=1 (auto_adjust=False on daily and intraday, _rawd tags) plus a DOPEN_RATIO diagnostic. The _xd1530 adjusted rows are registered as ARTIFACT and never wired.
 - Profit-booking / exit takeaway: never compare exits priced from two data series with different adjustment bases. A win rate near 90% on a 1-session mean-reversion exit is a data bug until proven otherwise. Price both entry and exit from the same unadjusted series.
+
+### 2026-11-15 IST - B-1603 island 4h bar-0 subset + B-1091 pl1d candle sweep
+- Island 4h long, bar-0 only (run 43709215753): all four filters stay well above 1.00 on the 09:15-13:15 signals the live 13:15 leg can enter: gap05 2.01-2.08, turn1cr 1.69-1.75, none 1.62-1.65, px20 1.45-1.49. That is at or above the full-day cells, so restricting to bar 0 costs nothing. 4h island short fails on every filter.
+- pl1d (STARC full fade, gap runaway), run 43707237249: only 4h long clears 1.00 (starc atr6 1.129, atr4 1.068, runaway atr6 1.015). Every 1h/15m/5m cell and every short cell fails after 0.8% cost. Wider ATR stops help at 4h (atr6 > atr4 > atr2d5), the same pattern as the 1d cells.
+- Profit-booking / exit takeaway: the passing 4h exits come from the 20-bar timeout (letting the move run), not from the stop. Wide stops that survive noise plus a fixed time exit beat tight stops on these mean-reversion and runaway entries. On faster candles the 0.8% cost eats the edge.
+
+### 2026-11-15 IST: B-1604 chan_gap 1h on raw (unadjusted) prices, run 43710558361
+- Dividend-adjusted daily history pushed prior closes below intraday prices, so the gap-down filter fired far too often for shorts: 4257 short candidates adjusted vs 746 raw.
+- On raw prices with the live 15:15 exit: chan_gap SHORT 1h scores 0.71-0.73 (fail). LONG passes at atr2d5 (1.045) and atr4d0 (1.042) and fails narrowly at atr1d5 (0.995).
+- Exiting at the 15:30 daily close still scores about 2.0 for shorts even on raw prices. Yahoo's NSE daily Open differs from the first 1h open by more than 0.5% on 40-46% of days, so daily and intraday Yahoo bars are not one price basis. Never mix them inside a single trade.
+- The live chan_gap SHORT gate rests on a 1d replay that used adjusted daily bars. That replay needs re-checking on raw prices.
+- Profit-booking / exit takeaway: the 15:30-close "edge" is a data artifact. Book chan_gap exits at the live flatten time (15:10-15:15) on one price source. Short gap fades do not survive an honest exit.
+
+### 2026-11-15 IST: B-1604 gate decision, chan_gap cells re-measured on the live basis
+- On the user's rule (PFnet > 1.00 strict, "follow the rules set by me till now"), live cells are now re-measured on raw prices with the real flatten-time exit, and the result decides the entry gate: chan_gap SHORT 0.71 closed, long atr1d5 0.995 closed, long atr2d5 1.045 / atr4d0 1.042 kept.
+- A replay on dividend-adjusted daily bars can pass a cell that fails on the prices the bot actually trades. The live-basis re-measure supersedes it, and the newest run decides.
+- Profit-booking / exit takeaway: judge a same-day cell only by the exit the bot really books (15:10-15:15 market flatten on raw prices). The wider 4x ATR stop keeps the long gap-buy edge because it lets the flatten, not the stop, book the trade.

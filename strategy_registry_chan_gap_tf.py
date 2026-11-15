@@ -43,6 +43,9 @@ def build():
                     notes=("B-1604 ARTIFACT, never wire: exit at the dividend-ADJUSTED daily close vs an unadjusted intraday entry "
                            "(yfinance auto_adjust=True adjusts daily bars only); short and long both shift toward a lower exit price."
                            if "_xd1530" in tag and "_rawd" not in tag else
+                           "B-1604 ARTIFACT, never wire: even unadjusted (_rawd), Yahoo's NSE daily bars disagree with its intraday bars "
+                           "(daily Open off the 1h open by >0.5% on 40-46% of traded days, run 43710558361), and the bot never exits at 15:30."
+                           if "_xd1530" in tag else
                            "PFnet>1.00 on the main.py-function sweep; wiring owed (show the user first)." if float(m["pfnet"]) > 1.0
                            else "Fails PFnet>1.00 after 0.8% cost at this candle size; not wired. Small n (yfinance intraday cap).")))
             except Exception:
