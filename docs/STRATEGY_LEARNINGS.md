@@ -2230,3 +2230,12 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - pl1d 4h, signals only on the 09:15 4h bar (run 43714020903): the long edge thins against the all-bar sweep (starc atr6 1.129 -> 1.065, atr4 1.068 -> 1.009, gap atr6 1.015 -> 1.020) and two cells flip (gap atr2d5 now 1.004 passes, starc atr2d5 0.934 fails). Four long cells pass PFnet > 1 and are wired on the 4h leg (entry 13:15-15:00 IST). Every short cell fails hard (0.04-0.72).
 - gatetarget short (B-1010, run 43714049928): every intraday and 4h cell fails (0.11-0.48). Gross PF is below 1 at every size, so this is no cost problem: the 1d/1h gatetarget edge does not survive smaller candles.
 - Profit-booking / exit takeaway: on pl1d 4h the winning trades are the max-hold timeouts (20 bars, about 10 sessions) and the wider 6x ATR stop does best, so let the trade run to the time exit rather than tightening the stop; the 2.5x stop gives most of the edge back to stop-outs.
+
+### 2026-11-15 IST: B-1607 chan_gap SHORT breakdown (why 1.31 became 0.71)
+- One cause at a time, full universe, real main.py functions, 0.8% cost, ATR 1.5 / 2.5 / 4.0:
+  - Price basis (1d bars, last 730 days, 15:30 close): adjusted 1.20 / 1.18 / 1.19 (n695, run 43720044302) vs raw 1.22 / 1.19 / 1.20 (n693, run 43720050830). Effect about +0.02: none.
+  - Exit time (1h raw bars, same 746 candidates): 15:15 live 0.710 / 0.726 / 0.713 vs 15:30 intraday close 0.711 / 0.725 / 0.712 (run 43721193037, _ic1530). Effect about 0.00: none. The earlier _xd1530 2.0 was the daily-vs-intraday bar mismatch, not the last 15 minutes.
+  - Bar size (both raw, both 15:30): 1d 1.22 (n693) vs 1h 0.71 (n746). This is the whole drop. Yahoo's first 1h bar opens >0.5% away from the daily Open on 46% of short candidate days (DOPEN p10 0.965), so the 1h replay enters at a different price and admits a different candidate set (746 vs 693).
+  - The old 1.31 (run 38502123279) was a longer history; on the same 730-day window the daily replay is about 1.20.
+- Open question, B-1608: which opening price does the live bot actually get, the daily Open or the first-intraday-bar Open? Answering it from the bot's own fills decides which replay is honest.
+- Profit-booking / exit takeaway: holding the short from 15:15 to 15:30 adds nothing, so the live 15:10 cover gives up no edge. The loss comes from the entry price, so any fix belongs at entry (fill at the real open), not at the exit.
