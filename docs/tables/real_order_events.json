@@ -98579,7 +98579,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs82.78",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs82.78 already covers the position (target stop Rs74.67), adopted, nothing placed"
+  },
+  {
+   "id": 8216,
+   "ts": 1794801040.6897423,
+   "symbol": "MOTHERSON.NS",
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000043102",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs164.15",
+   "detail": "reason: swing entry signal from strategy oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2 passed the PFnet gate; B-1500 exit variant live_tr2 (oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsbandfloor_rsn200_srcmain_trailr2__nonovl__v2, 0.124606 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-16T03:50:39Z"
+ "synced_at_utc": "2026-11-16T03:50:45Z"
 }
