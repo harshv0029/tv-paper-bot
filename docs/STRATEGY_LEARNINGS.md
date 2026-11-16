@@ -2343,3 +2343,24 @@ Profit-booking / exit takeaway: on 1h breakouts the tightest high-based trail (0
 ### 2026-11-16 IST - daily review: swing exit state lost after the Upstash slot switch (B-1615)
 After the 14-Nov switch to Upstash slot 1 (stale-DB mask) every deploy restarted on an empty signal_state_swing; 8 real daily holdings kept only their resting SL, with no strategy trail, rule exit or max hold. 1h cells and order_block_delta recovered through their rebuild paths, the rest did not.
 Profit-booking / exit takeaway: an exit rule that silently stops running is a profit leak even while the position looks "protected"; every live strategy needs a rebuild path for its exit state, and the daily review must flag retry_refused_no_paper_exit as P0.
+
+## 2026-11-16 IST - B-1566: why replay-firing cells never fired live (three wiring gaps)
+- The fire-rate audit (run 43847937784) found 19 cells that fired in the replay on 16-Nov but showed 0 fired / blocked / attempts live.
+- Cause 1: the buy engine returned `waiting_for_opening_range` before 09:30 IST ahead of every chan/gap cell, so the 09:15-09:25 signals (TMPV long, KALYANKJIL short) were never evaluated. Only the ORB entry waits now.
+- Cause 2: live chan band entries read Yahoo's still-forming bar while the replay fires on the completed signal bar (fill = next open). `_chan_completed_frame` now drops the forming bar.
+- Cause 3: triggers on symbols another engine already holds (TMPV, HCLTECH swing) were counted but never shown; /entry-funnel now reports `blocked_by_position`.
+- Still open: ZYDUSLIFE macddiv 1h at 11:15. Re-run the audit after deploy.
+- Lesson: a replay is only evidence for the live path when live sees the same bars at the same moment. Check early returns and forming-bar handling first.
+- Profit-booking / exit takeaway: unchanged here. These fixes affect only which entries fire; exits are untouched (managed on the same frames as before).
+
+## 2026-11-16 IST - B-1485: O'Neil leaders firsthigh 1d trail stops (run 43813215559)
+- Full NSE (2182 symbols), strict FIFO, cost 0.8%, rsbandfloor fixed stop vs 11 trail rules.
+- Results (PFnet / return per day):
+  - wired fixed: 1.577 / 0.1121%
+  - rsbandfloor fixed: 1.620 / 0.1195%
+  - chandelier 2R (tr2): 1.613 / 0.1207%
+  - breakeven at 2R (be2): 1.631 / 0.1206%
+  - be2 in-sample / out-of-sample: 2.222 / 1.090, vs 2.214 / 1.079 for rsbandfloor fixed
+- Tight trails lose badly: 0.5R peak-LTP 0.837, 0.5R chandelier 0.867. They cut the O'Neil winners that need room.
+- 6,048 new tags registered (research). Per-entry variant order now: tr2, be2, fixed, ...
+- Profit-booking / exit takeaway: on O'Neil breakouts, trail only after the trade has 2R of room (chandelier 2R or breakeven at 2R). Trails tighter than 1.5R give back the edge.

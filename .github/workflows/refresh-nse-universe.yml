@@ -83,6 +83,9 @@ jobs:
             echo "No change in NSE universe - nothing to commit"
           else
             COUNT=$(jq -r '.count' docs/nse_universe.json)
-            git commit -m "Weekly refresh: NSE EQ universe from Kotak scrip master ($COUNT symbols)"
+            # A delayed cron must not restart Render mid-session (09:00-15:35 IST, Mon-Fri): the bot then loads the file at its next restart.
+            HM=$(TZ=Asia/Kolkata date +%H%M); DOW=$(TZ=Asia/Kolkata date +%u); SKIP=""
+            if [ "$DOW" -le 5 ] && [ "$HM" -ge 0900 ] && [ "$HM" -le 1535 ]; then SKIP=" [skip render]"; fi
+            git commit -m "Weekly refresh: NSE EQ universe from Kotak scrip master ($COUNT symbols)$SKIP"
             git push
           fi

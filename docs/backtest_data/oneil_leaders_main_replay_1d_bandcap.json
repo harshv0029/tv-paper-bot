@@ -1,0 +1,173 @@
+{
+ "source": "oneil-nonoverlap.yml run 43813215559 (band_cap=trail, strict FIFO, cost 0.008)",
+ "rows": [
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.62,
+    "pfgross": 1.88,
+    "win_pct": 42.1,
+    "avg_net_pct": 2.86,
+    "avg_held_bars": 23.93
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr0d5__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_tr0d5",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 0.867,
+    "pfgross": 1.192,
+    "win_pct": 32.1,
+    "avg_net_pct": -0.368,
+    "avg_held_bars": 5.35
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr1__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_tr1",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.187,
+    "pfgross": 1.458,
+    "win_pct": 38.5,
+    "avg_net_pct": 0.704,
+    "avg_held_bars": 13.86
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr1d5__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_tr1d5",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.504,
+    "pfgross": 1.783,
+    "win_pct": 41.7,
+    "avg_net_pct": 2.087,
+    "avg_held_bars": 19.56
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr2__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_tr2",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.613,
+    "pfgross": 1.892,
+    "win_pct": 42.7,
+    "avg_net_pct": 2.652,
+    "avg_held_bars": 21.98
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr3__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_tr3",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.612,
+    "pfgross": 1.874,
+    "win_pct": 42.1,
+    "avg_net_pct": 2.795,
+    "avg_held_bars": 23.41
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailbe1r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_be1",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.612,
+    "pfgross": 1.904,
+    "win_pct": 47.4,
+    "avg_net_pct": 2.45,
+    "avg_held_bars": 21.2
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailbe2r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_be2",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.631,
+    "pfgross": 1.9,
+    "win_pct": 43.5,
+    "avg_net_pct": 2.825,
+    "avg_held_bars": 23.42
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp0d5r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_lt0d5",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 0.837,
+    "pfgross": 1.212,
+    "win_pct": 34.3,
+    "avg_net_pct": -0.394,
+    "avg_held_bars": 3.7
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp1r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_lt1",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.036,
+    "pfgross": 1.33,
+    "win_pct": 37.4,
+    "avg_net_pct": 0.115,
+    "avg_held_bars": 9.12
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp1d5r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_lt1d5",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.272,
+    "pfgross": 1.544,
+    "win_pct": 39.5,
+    "avg_net_pct": 1.053,
+    "avg_held_bars": 15.41
+   }
+  },
+  {
+   "tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp2r__nonovl__v2",
+   "wired_tag": "oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2",
+   "band_cap": "live_lt2",
+   "run_id": "43813215559",
+   "metrics": {
+    "n": 1611,
+    "pfnet": 1.542,
+    "pfgross": 1.821,
+    "win_pct": 42.2,
+    "avg_net_pct": 2.278,
+    "avg_held_bars": 19.78
+   }
+  }
+ ]
+}

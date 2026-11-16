@@ -27,7 +27,7 @@ import main  # noqa: E402
 _KS = os.environ.get("KS", "")
 SESSIONS = int(os.environ.get("SESSIONS") or (_KS if _KS.isdigit() else "5"))
 BOT_URL = os.environ.get("BOT_URL") or ("https://tv-paper-bot-gdan.onrender.com" if os.environ.get("GITHUB_ACTIONS") else "")
-_LIVE_KEYS = ("scans", "fired", "blocked_triggers", "attempts")
+_LIVE_KEYS = ("scans", "fired", "blocked_triggers", "attempts", "blocked_by_position")  # B-1566: + held elsewhere
 UNI_LIMIT = int(os.environ.get("UNI_LIMIT", "0"))
 OUT = "docs/fire_rate_audit_b1566.json"
 IST = "Asia/Kolkata"
@@ -143,7 +143,7 @@ def verdict(row, live, last_day):
     lv = live["tags"].get(row["tag"])
     if row["symbol_session_fires"] < 1:
         return "ok"
-    if lv is None or (lv["fired"] + lv["blocked_triggers"] + lv["attempts"]) == 0:
+    if lv is None or (lv["fired"] + lv["blocked_triggers"] + lv["attempts"] + lv.get("blocked_by_position", 0)) == 0:
         return "SUSPECT_WIRING"
     return "ok"
 

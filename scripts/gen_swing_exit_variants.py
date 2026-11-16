@@ -36,7 +36,8 @@ TRAIL_RUNS = ("41978699531", "42025478119", "42232093739")  # band_cap=trail run
 # main-replay band_cap trail runs of the wired cells that swing-bandcap-replay.yml does not cover (newer, so they
 # replace a TRAIL_RUNS entry for the same tag). Row shape differs (metrics, not live; dict rows keyed by band tag).
 MAIN_REPLAY_RUNS = (("minervini_lab_main_replay_live_cells.json", "43788663384"),
-                    ("chan_kalman_main_replay_1d_bandcap.json", "43781409223"))
+                    ("chan_kalman_main_replay_1d_bandcap.json", "43781409223"),
+                    ("oneil_leaders_main_replay_1d_bandcap.json", "43813215559"))  # scripts/oneil_bandcap_to_main_replay.py
 OUT = os.path.join(ROOT, "swing_exit_variants_b1500.py")
 
 

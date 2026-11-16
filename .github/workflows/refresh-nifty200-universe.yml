@@ -141,6 +141,9 @@ jobs:
           else
             COUNT=$(python3 -c "import json; print(json.load(open('docs/nifty200_universe.json'))['count'])")
             SOURCE=$(python3 -c "import json; print(json.load(open('docs/nifty200_universe.json'))['source'])")
-            git commit -m "Weekly refresh: NIFTY 200 constituents from $SOURCE ($COUNT symbols)"
+            # A delayed cron must not restart Render mid-session (09:00-15:35 IST, Mon-Fri): the bot then loads the file at its next restart.
+            HM=$(TZ=Asia/Kolkata date +%H%M); DOW=$(TZ=Asia/Kolkata date +%u); SKIP=""
+            if [ "$DOW" -le 5 ] && [ "$HM" -ge 0900 ] && [ "$HM" -le 1535 ]; then SKIP=" [skip render]"; fi
+            git commit -m "Weekly refresh: NIFTY 200 constituents from $SOURCE ($COUNT symbols)$SKIP"
             git push
           fi
