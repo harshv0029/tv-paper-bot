@@ -12,18 +12,23 @@ _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtes
 _FILES = (("chan_kalman_main_replay_1d_bandcap.json",
            "sector-rotation-backtest.yml run 43781409223 (2026-11-16 IST, chan_kalman 1d band_cap=trail, cost 0.8%)"),
           ("chan_kalman_main_replay_1h_bandcap.json",
-           "sector-rotation-backtest.yml run 43784674972 (2026-11-16 IST, chan_kalman 1h band_cap=trail, cost 0.8%)"))
+           "sector-rotation-backtest.yml run 43784674972 (2026-11-16 IST, chan_kalman 1h band_cap=trail, cost 0.8%)"),
+          ("minervini_lab_main_replay_live_cells.json",
+           "sector-rotation-backtest.yml TF=live_cells (2026-11-16 IST, minervini_lab wired cells band_cap=trail, cost 0.8%)"))
 _HRS = {"1d": sr.TRADING_HOURS_PER_DAY, "1h": 1.0, "4h": 4.0, "15m": 0.25, "5m": 5 / 60}
 
 
 def build():
     out, seen = [], {s.name for s in sr.REGISTRY}
     for fn, ref in _FILES:
+        src = "scripts/minervini_lab_main_replay_job.py" if fn.startswith("minervini") else "scripts/chan_kalman_main_replay_job.py"
         try:
             d = json.load(open(os.path.join(_DIR, fn)))
         except Exception:
             continue
-        for r in d.get("rows", []):
+        rows = d.get("rows", [])
+        items = [dict(r, tag=t) for t, r in rows.items()] if isinstance(rows, dict) else rows
+        for r in items:
             tag, m = r.get("tag"), r.get("metrics") or {}
             if not tag or tag in seen or "pfnet" not in m:
                 continue
@@ -39,7 +44,7 @@ def build():
                                        win_rate_pct=float(m.get("win_pct", 0.0)), n_trades=int(m.get("n", 0)),
                                        avg_held_bars=held, avg_held_hrs=held * _HRS.get(tf, 1.0),
                                        universe=f"NSE full universe file ({d.get('symbols_kept', '?')} kept)", run_ref=ref),
-                    source="scripts/chan_kalman_main_replay_job.py",  # band_cap via scripts/swing_bandcap.py
+                    source=src,  # band_cap via scripts/swing_bandcap.py
                     evidence=(f"{ref}: band_cap {r.get('band_cap')}, PFnet {float(m['pfnet']):.3f}, n={m.get('n')}, "
                               f"avg_held {held} bars, avg_net {m.get('avg_net_pct')}%, beats_fixed={r.get('beats_fixed')}"),
                     notes=f"B-1485 band_cap replay of wired cell {r.get('wired_tag', '')}; trail wired only if it beats the fixed live stop."))

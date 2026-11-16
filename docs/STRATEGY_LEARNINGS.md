@@ -2326,3 +2326,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - main.py-function replay of chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1, 2,418 symbols, 0.8% cost. Idealised baseline 1.084 (n 5,290); live band-clamped resting stop 1.031 (n 5,802, 5-bar hold): barely above 1.
 - No trail beats the fixed live stop. Wide trails are no-ops (1.029-1.032); tight ones push it below 1 (tr0d5 0.992, lt0d5 0.959).
 - Profit-booking / exit takeaway: the 1h Kalman edge is thin (1.03 live) and any tight trail erases it; keep the fixed 4 ATR stop. The cell stays wired under the PFnet > 1 rule but ranks low on return per day.
+
+### 2026-11-16 IST: Minervini wired cells, trailing-stop overlays (B-1485, sector-rotation-backtest.yml TF=live_cells)
+- main.py-function replay of all 28 wired MINERVINI_LAB_LIVE_CELLS (pct8 hard stop, 40-bar hold) with Kotak's band-clamped resting stop and 11 trail overlays, 0.8% cost; 336 new tags registered. Live fixed PFnet ranges 1.068-1.449.
+- A trail beats the fixed live stop on 15 of 28 cells, mostly the wide chandelier trails (tr2/tr3: e.g. updown_vol_pos off 1.309 -> 1.400, pivot_vol2x on 1.316 -> 1.385, ma200_rising off 1.092 -> lt2 1.182) and they also raise return per day. Tight trails (0.5R) never win.
+- Profit-booking / exit takeaway: Minervini VCP breakouts are trend trades, so a wide 2-3R chandelier trail locks in runs the fixed pct8 stop gives back; this is the opposite of the Kalman reversion cells, where trails do nothing. Wiring the winning trails changes real exits, so it goes to the user first.
