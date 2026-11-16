@@ -98255,7 +98255,31 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs357.45",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs357.45 already covers the position (target stop Rs349.15), adopted, nothing placed"
+  },
+  {
+   "id": 8189,
+   "ts": 1794800786.9239373,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015654",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs357.45",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs357.45 already covers the position (target stop Rs349.15), adopted, nothing placed"
+  },
+  {
+   "id": 8190,
+   "ts": 1794800788.4941933,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015971",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs232.69",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs232.69 already covers the position (target stop Rs214.03), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:46:25Z"
+ "synced_at_utc": "2026-11-16T03:46:31Z"
 }
