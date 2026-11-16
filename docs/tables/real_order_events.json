@@ -97655,7 +97655,115 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs183.25",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs183.25 already covers the position (target stop Rs175.18), adopted, nothing placed"
+  },
+  {
+   "id": 8139,
+   "ts": 1794800736.4852314,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014532",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs328.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs328.65 already covers the position (target stop Rs305.37), adopted, nothing placed"
+  },
+  {
+   "id": 8140,
+   "ts": 1794800739.764872,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014532",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs328.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs328.65 already covers the position (target stop Rs305.37), adopted, nothing placed"
+  },
+  {
+   "id": 8141,
+   "ts": 1794800741.132,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014544",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1350.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1350.80 already covers the position (target stop Rs1350.80), adopted, nothing placed"
+  },
+  {
+   "id": 8142,
+   "ts": 1794800743.58287,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261116000017740",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 16-Nov-2026 09:15:42 B L qty 1 trg 0.00 status complete rejRsn --"
+  },
+  {
+   "id": 8143,
+   "ts": 1794800744.6574438,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014544",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1350.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1350.80 already covers the position (target stop Rs1350.80), adopted, nothing placed"
+  },
+  {
+   "id": 8144,
+   "ts": 1794800745.103817,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000017740",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs381.15",
+   "detail": "reason: swing entry signal from strategy gaps__common_fade__long__1d__atr3_nb4__v1 passed the PFnet gate"
+  },
+  {
+   "id": 8145,
+   "ts": 1794800745.3664513,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014508",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs768.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs768.80 already covers the position (target stop Rs768.80), adopted, nothing placed"
+  },
+  {
+   "id": 8146,
+   "ts": 1794800749.1578693,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014508",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs768.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs768.80 already covers the position (target stop Rs768.80), adopted, nothing placed"
+  },
+  {
+   "id": 8147,
+   "ts": 1794800749.7330074,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014505",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs370.45",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs370.45 already covers the position (target stop Rs370.44), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:45:38Z"
+ "synced_at_utc": "2026-11-16T03:45:53Z"
 }
