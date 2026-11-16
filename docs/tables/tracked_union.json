@@ -17,6 +17,22 @@
    "symbol": "ADANIENSOL.NS"
   },
   {
+   "day": "2026-11-16",
+   "entry_order_id": "261116000033128",
+   "entry_price": 274.2,
+   "first_seen_day": "2026-11-16",
+   "is_short": 0,
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "opened_at": 1794800891.049714,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 247.2,
+   "source": "position",
+   "stop_loss": 242.96856798444475,
+   "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "symbol": "BANKBARODA.NS"
+  },
+  {
    "day": "2026-10-09",
    "entry_order_id": "261009000196477",
    "entry_price": 134.39,
