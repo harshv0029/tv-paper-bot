@@ -98651,7 +98651,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs196.26",
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1 passed the PFnet gate"
+  },
+  {
+   "id": 8222,
+   "ts": 1794801150.1645892,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "175.67",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8223,
+   "ts": 1794801150.2256455,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261116000049639",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 16-Nov-2026 09:22:27 S SL qty 1 trg 175.67 status trigger pending rejRsn --"
   }
  ],
- "synced_at_utc": "2026-11-16T03:52:22Z"
+ "synced_at_utc": "2026-11-16T03:52:35Z"
 }
