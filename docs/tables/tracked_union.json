@@ -401,6 +401,22 @@
    "symbol": "UPL.NS"
   },
   {
+   "day": "2026-11-16",
+   "entry_order_id": "261116000048915",
+   "entry_price": 196.26,
+   "first_seen_day": "2026-11-16",
+   "is_short": 0,
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "opened_at": 1794801139.4757674,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 175.67,
+   "source": "position",
+   "stop_loss": 168.9914267403739,
+   "strategy": "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1",
+   "symbol": "WIPRO.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000519865",
    "entry_price": 1207.5,
