@@ -98495,7 +98495,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs397.05",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8209,
+   "ts": 1794800955.0627327,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000037931",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs226.28",
+   "detail": "reason: swing entry signal from strategy oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2 passed the PFnet gate; B-1500 exit variant live (oneil_leaders__firsthigh__long__1w__atr3_h26_rsbandfloor_srcmain__nonovl__v2, 0.169781 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-16T03:49:03Z"
+ "synced_at_utc": "2026-11-16T03:49:16Z"
 }
