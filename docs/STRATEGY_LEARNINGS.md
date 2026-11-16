@@ -2281,3 +2281,65 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - By return per day the waiting period matters most: common nb3 earns 0.19 %/day against 0.14 for the live common nb5 cell, because it enters two days sooner on more setups (6.5k vs 5.2k) and still books its move in about 3.4 days.
 - Main replay vs the research harness: the main replay is a little higher on every common cell (nb4 atr1.5: 1.20 vs research 0.999), so judging these by the research row would have dropped a profitable cell.
 - Profit-booking / exit takeaway: the rule exit (first day the high fails to exceed the prior high) does nearly all the booking, so a wider ATR stop only adds room: 3 ATR beats 2 and 1.5 in every family. Keep the stop wide and let the high-below-prior-high rule take the profit.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 1h (B-606, run 43769949221)
+- 84 tags on 1h bars over 730 days (5,026 NSE symbols with data, 0.8% round-trip cost), both directions, ATR 1.5/2/3. All fail: best PFnet 0.698 (brk20 long, raw 3 ATR stop).
+- Stop placement barely moves the result: structural offsets of 0.25-1.0 ATR, round-number snap and just-beyond-round all land within about 0.015 PFnet of the raw ATR stop. Long breakouts 0.65-0.70; dip entries 0.35-0.37; short breakouts 0.23-0.25.
+- Gross PF is above 1 for long breakouts (1.16-1.20), so the hourly entries do have an edge before costs, but 0.8% a round trip on 11-bar holds wipes it out. Same verdict as the 1d run (best 0.871).
+- Profit-booking / exit takeaway: at 1h the stop's exact position is not the lever; trade frequency against cost is. Hold longer or trade fewer, larger moves (the 1d swing engine's job) rather than refining the stop.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 15m (B-606, run 43775842575)
+- 84 tags on 15m bars over 60 days (5,362 NSE symbols with data, 0.8% round-trip cost). All fail: best PFnet 0.265 (brk20 long, just-beyond-round stop). Gross PF is under 1 everywhere (max 0.725), so there is no edge even before costs.
+- Every stop variant again lands within about 0.003 PFnet of the raw ATR stop: the stop's position does not change the outcome.
+- Profit-booking / exit takeaway: on 15m the ~10-bar holds cannot pay a 0.8% round trip; no stop or exit refinement fixes that. Intraday versions of these entries stay off.
+
+### 2026-11-16 IST: O'Neil extension rerun with full cell tables (B-783, run 43774856917)
+- 288 cells each on 1d and 1w (2,181-symbol universe, 0.8% cost), every cell committed as a TSV this time (no top-N truncation). 1d: 86 pass PFnet > 1 (old run 87); 1w: 145 pass (old 143). 12 new tags; 9 cells flipped across the 1.00 line, the rest kept their verdicts.
+- Leaders: pivot breakout x tightness pr1 1d (3.17, n 337), leaders first-high 1d atr3 h60 (1.98, n 1611), flag-price breakout 1w (5.27, but n 28) and HFT breakout 1w (3.87, n 124).
+- Caveat stays: overlapping signals (no strict-FIFO non-overlap, no IS/OOS), and 2,181 of the 2,723 requested NSE-file symbols had enough daily history (the rest are newer listings). Passing cells still need the non-overlap rerun and a main.py replay before wiring.
+- Profit-booking / exit takeaway: the winners all use wide ATR stops (2-3x) with long time exits (40-60 days, 12-26 weeks); tight stops on O'Neil breakouts cut the trend early. Keep the wide-stop/long-hold exit on any version that gets wired.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 5m (B-606, run 43777004230)
+- 84 tags on 5m bars over 60 days, 0.8% cost. All fail: best PFnet 0.305 (brk20 long, round-number snap), gross PF at most 0.993. Caveat: only 120 of 5,446 symbols returned 5m data, so this is a thin slice (B-1614 re-runs it wider).
+- The stop variants again cluster tightly; nothing in stop placement lifts any cell near 1.
+- Profit-booking / exit takeaway: across 1d, 1h, 15m and 5m the stop's exact position is never the lever; cost per trade against hold length decides. Intraday Elder breakout/dip entries stay off whatever the stop.
+
+### 2026-11-16 IST: Chan extension rerun with full cell tables (B-783, run 43777006555)
+- 758 cells across 1d (446), 4h (90), 1h (90), 15m (66) and 5m (66), 0.8% cost, every cell committed as a TSV (the old run only printed ~80 per timeframe). Pass PFnet > 1: 1d 47, 4h 2, 1h 1, 15m 14, 5m 18. 469 tags are new to the registry; the rest were already registered from the old log slice and keep those numbers.
+- Leaders: chan_tsm lookback-sign long 1d atr2.5 h25 lb20 (2.35, n 943); Kalman band 5m short atr4 h40 z2 (2.01, n 1321); Kalman band 15m long atr4 h40 z2 (1.45, n 660); Kalman band 4h long atr4 z2 (1.24, n 11565).
+- Kalman band passes cluster at the widest stop (4 ATR) and the stricter z=2 entry; z=1 cells with 1.5 ATR stops fail on every timeframe.
+- Caveat: overlapping signals, no IS/OOS. Passing cells need the non-overlap rerun and a main.py replay before wiring.
+- Profit-booking / exit takeaway: mean-reversion bands only pay with a wide stop (4 ATR) that lets the reversion finish; tight stops turn Kalman reversion into a loss on every candle size.
+
+### 2026-11-16 IST: O'Neil base patterns rerun (B-783, run 43770029152)
+- Same 1,218 cells on 1d and 1w as run 38193479637 (2026-10-12), on a month more data, 0.8% cost. Pass PFnet > 1: 1d 373 (was 402), 1w 626 (was 703). 113 cells fell below 1.00, 7 rose above. Registry now takes the newest run's numbers (strategy_registry_oneilcup.py newest-run-first).
+- 39 of the cells that fell are in the live viable stack (cup-handle, flat-base, saucer, new-high first, pivot, double-bottom). Almost all were marginal before (1.00-1.10) and are 0.89-1.00 now: a thin edge that one more month of data erases.
+- Profit-booking / exit takeaway: O'Neil cells within ~0.1 of 1.00 are noise; the robust ones keep a wide ATR stop and a long time exit. The marginal cells' exits (tight pct7/pct8 stops, 20-day holds) are where the edge vanished.
+
+### 2026-11-16 IST: Chan Kalman 1d trailing-stop overlays on the wired cell (B-1485, run 43781409223)
+- main.py-function replay of the wired cell chan_kalman__band_srcmain__long__1d__atr4d0_hold40_ve10d0e4_z2d0__v1, 2,238 symbols, 0.8% cost. Idealised no-band baseline (off) PFnet 1.355; live model with Kotak's 10% band-clamped resting stop 1.237 (n 27,741, 5.8-day hold, 0.113% net a day).
+- None of the 11 trail overlays beats the fixed live stop. Chandelier 1.5-3R, breakeven 1R/2R and LTP 1.5R/2R are no-ops (identical trades: the mean-reversion state exit closes first). Tight trails hurt: tr0d5 1.133, lt0d5 1.125, lt1 1.225.
+- 1,489 trades hit the band-floor stop at PFnet 0.004: the band clamp, not the strategy stop, is what costs 0.12 PFnet against the idealised replay.
+- Profit-booking / exit takeaway: Kalman reversion exits on its own state flip within ~6 days; a trailing stop adds nothing and a tight one cuts winners. Keep the fixed 4 ATR stop; no trail wired.
+
+### 2026-11-16 IST: Chan Kalman 1h trailing-stop overlays on the wired cell (B-1485, run 43784674972)
+- main.py-function replay of chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1, 2,418 symbols, 0.8% cost. Idealised baseline 1.084 (n 5,290); live band-clamped resting stop 1.031 (n 5,802, 5-bar hold): barely above 1.
+- No trail beats the fixed live stop. Wide trails are no-ops (1.029-1.032); tight ones push it below 1 (tr0d5 0.992, lt0d5 0.959).
+- Profit-booking / exit takeaway: the 1h Kalman edge is thin (1.03 live) and any tight trail erases it; keep the fixed 4 ATR stop. The cell stays wired under the PFnet > 1 rule but ranks low on return per day.
+
+### 2026-11-16 IST: Minervini wired cells, trailing-stop overlays (B-1485, sector-rotation-backtest.yml TF=live_cells)
+- main.py-function replay of all 28 wired MINERVINI_LAB_LIVE_CELLS (pct8 hard stop, 40-bar hold) with Kotak's band-clamped resting stop and 11 trail overlays, 0.8% cost; 336 new tags registered. Live fixed PFnet ranges 1.068-1.449.
+- A trail beats the fixed live stop on 15 of 28 cells, mostly the wide chandelier trails (tr2/tr3: e.g. updown_vol_pos off 1.309 -> 1.400, pivot_vol2x on 1.316 -> 1.385, ma200_rising off 1.092 -> lt2 1.182) and they also raise return per day. Tight trails (0.5R) never win.
+- Profit-booking / exit takeaway: Minervini VCP breakouts are trend trades, so a wide 2-3R chandelier trail locks in runs the fixed pct8 stop gives back; this is the opposite of the Kalman reversion cells, where trails do nothing. Wiring the winning trails changes real exits, so it goes to the user first.
+
+### 2026-11-16 IST - B-1485: trailing stops wired for Minervini lab + Chan Kalman 1d (user OK)
+User: "If trailing SL has better results then replace fix SL with TRAILING SL". The two main-replay trail runs were added to the B-1500 exit-variant generator, so each new entry on these 29 tags picks the best PFnet > 1.00 exit variant by return per day (first that passes the viability gate). A trail is now first on 25 of 28 Minervini cells (tr3/tr2/lt2/be1/be2 mostly) and on Chan 1d (tr1, PFnet 1.236 vs fixed 1.237, faster turnover); fixed stays first on 3 Minervini cells (dryup_on h40, held_up_vs_index_off, tight_closes5_on). Open positions are untouched.
+Profit-booking / exit takeaway: on breakout swing cells a 2-3R close-based chandelier usually books more per day than the frozen initial stop without giving up PFnet; where it doesn't, the fixed stop stays.
+
+### 2026-11-16 IST - brk20 1h long: trailing stop vs fixed (B-1485, run 43803665426)
+brk20-min-rr-main-replay.yml band_cap=trail on the two wired 1h cells (full NSE, real main.py fns, 0.8% cost). Fixed resting stop: atr3_rr4 1.373 (n 2133, hold 13.5 bars), atr4_rr4 1.716 (n 1110, 15.2 bars). Peak-HIGH trail 0.5R (trailltp0d5r): atr3 1.582 (hold 10.0), atr4 2.014 (hold 12.5) - best of every mode on both cells; ltp1r/1.5r/2r next (1.47-1.94); close-based chandelier tr0.5-tr3 and breakeven be1/be2 are at or below fixed. Wired: SWING_1H_PEAK_LTP_TRAIL_CELLS, walked in _brk20_long_1h_exit from the bar after the fill bar, before the strategy exit; peak stored so the Kotak resting stop and the 30 s breach sweep follow it. 26 rows registered (variant main_replay_b1485).
+Profit-booking / exit takeaway: on 1h breakouts the tightest high-based trail (0.5R under the highest completed high) wins on both PF and turnover - it converts the many EMA13 rule exits that gave back gains (rule-exit PFnet ~0.9-1.15) into trail exits at PFnet 1.4-2.0; close-based and breakeven trails do not help here.
+
+### 2026-11-16 IST - daily review: swing exit state lost after the Upstash slot switch (B-1615)
+After the 14-Nov switch to Upstash slot 1 (stale-DB mask) every deploy restarted on an empty signal_state_swing; 8 real daily holdings kept only their resting SL, with no strategy trail, rule exit or max hold. 1h cells and order_block_delta recovered through their rebuild paths, the rest did not.
+Profit-booking / exit takeaway: an exit rule that silently stops running is a profit leak even while the position looks "protected"; every live strategy needs a rebuild path for its exit state, and the daily review must flag retry_refused_no_paper_exit as P0.

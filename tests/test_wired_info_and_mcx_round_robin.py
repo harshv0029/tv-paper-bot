@@ -5,7 +5,7 @@ import strategy_registry as sr
 def test_strategy_info_wired_only_is_small_and_has_live_tags():
     d = main.strategy_info(wired=1)
     live = set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
-    assert set(d) <= live and len(d) < 1000
+    assert set(d) <= live and len(d) < 3000  # B-1472: +1569 combo cells wired (user 2026-11-16)
     assert main._STRATEGY_TAG_TO_REGISTRY_NAME["order_block_delta"] in d
     assert d[main._STRATEGY_TAG_TO_REGISTRY_NAME["gap_and_go"]]["win_rate_pct"] is not None
 

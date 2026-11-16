@@ -3156,6 +3156,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_tstf.build())
         import strategy_registry_brk20_1h_rerun as _b20r  # B-1596 brk20 1h long re-run 43696686802
         REGISTRY.extend(_b20r.build())
+        import strategy_registry_brk20_1h_trail as _b20t  # B-1485 brk20 1h trail run 43803665426
+        REGISTRY.extend(_b20t.build())
         import strategy_registry_etc1h as _etc1h  # elder-trend-context 1h run 43681690093
         REGISTRY.extend(_etc1h.build())
         import strategy_registry_etc15m as _etc15  # elder-trend-context 15m run 43684505388
@@ -3180,6 +3182,16 @@ def _extend_with_sweeps():
     try:
         import strategy_registry_oneilext2 as _o2
         REGISTRY.extend(_o2.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_chanext2 as _c2  # B-783 Chan ext full-cell rerun (run 43777006555)
+        REGISTRY.extend(_c2.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_b1485 as _b1485  # B-1485 band_cap=trail replays of wired swing cells
+        REGISTRY.extend(_b1485.build())
     except Exception:
         pass
     try:

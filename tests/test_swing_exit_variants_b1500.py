@@ -264,3 +264,15 @@ def test_b1504_position_sl_rule_states_the_stored_variant(db):
     assert "breakeven" in main._position_sl_rule(db, "swing", GG, "X.NS")
     # other categories are untouched
     assert main._position_sl_rule(db, "buy", GG, "X.NS") == main._SWING_SL_RULES.get(GG)
+
+
+def test_b1485_main_replay_trail_runs_listed():
+    """B-1485 (user 2026-11-16): the Minervini lab + Chan Kalman 1d main-replay trail runs feed the exit variants,
+    every listed variant has PFnet > 1.00 and the list is in return-per-day order."""
+    from swing_exit_variants_b1500 import SWING_EXIT_VARIANTS as V
+    mv = [t for t in V if t.startswith("minervini_vcp__")]
+    assert len(mv) >= 28
+    assert "chan_kalman__band_srcmain__long__1d__atr4d0_hold40_ve10d0e4_z2d0__v1" in V
+    for t in mv:
+        assert all(c[3] > 1.0 for c in V[t])
+        assert [c[2] for c in V[t]] == sorted((c[2] for c in V[t]), reverse=True)

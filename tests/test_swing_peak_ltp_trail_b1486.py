@@ -223,6 +223,8 @@ def test_daily_pass_branch_wiring_present():
     src = inspect.getsource(main._run_swing_scan_pass)
     assert "peak_ltp_trail_walk(" in src and "peak_ltp_trail_stop_hit" in src and '"long", pos["entry_day"]' in src
     src = inspect.getsource(main._run_short_swing_pass)
-    assert "SHORT_SWING_PEAK_LTP_TRAIL_CELLS" in src and "short_swing_peak_ltp_trail_stop_hit" in src
+    # B-1501: the pass walks the position's own rule; the B-1486 cells are its no-stored-variant fallback
+    assert "_short_swing_trail_walk(" in src and "short_swing_peak_ltp_trail_stop_hit" in src
+    assert "SHORT_SWING_PEAK_LTP_TRAIL_CELLS" in inspect.getsource(main._swing_short_trail_rule)
     assert "_swing_short_peak_trail_level(" in inspect.getsource(main._heal_real_swing_short_sl)
     assert np.isfinite(main.peak_ltp_trail_level("long", 100, 90, 110, 0.5))

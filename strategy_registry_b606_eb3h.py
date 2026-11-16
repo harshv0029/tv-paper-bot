@@ -1,6 +1,9 @@
 """Registers two research runs, every row pass or fail (none pass: best PFnet 0.871 / 0.867):
 - elder-stop-offset-research.yml run 43666082279 (2026-11-15 IST, 1d 5y, B-606): 84 stop-offset / round-number tags.
 - elder-batch3-research.yml run 43593142428 (2026-11-14 IST, 1h 730d, osc+struct): 270 tags.
+- elder-stop-offset-research.yml run 43769949221 (2026-11-16 IST, 1h 730d, B-606): 84 tags, all fail (best 0.698).
+- elder-stop-offset-research.yml run 43775842575 (2026-11-16 IST, 15m 60d, B-606): 84 tags, all fail (best 0.265).
+- elder-stop-offset-research.yml run 43777004230 (2026-11-16 IST, 5m 60d, B-606): 84 tags, all fail (best 0.305); only 120 symbols returned 5m data.
 Raw rows parsed from each run's merge-job table: docs/backtest_data/elder_stop_offset_run_43666082279.json and
 docs/backtest_data/elder_batch3_1h_run_43593142428.json. Tags already registered are skipped, never renamed.
 Viability derived at read time; nothing wired.  avg_hold in bars of the tag's timeframe."""
@@ -10,8 +13,10 @@ import os
 import strategy_registry as sr
 
 _D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
-_FILES = ("elder_stop_offset_run_43666082279.json", "elder_batch3_1h_run_43593142428.json")
-_HRS_PER_BAR = {"1d": sr.TRADING_HOURS_PER_DAY, "1h": 1.0}
+_FILES = ("elder_stop_offset_run_43666082279.json", "elder_batch3_1h_run_43593142428.json",
+          "elder_stop_offset_run_43769949221.json", "elder_stop_offset_run_43775842575.json",
+          "elder_stop_offset_run_43777004230.json")
+_HRS_PER_BAR = {"1d": sr.TRADING_HOURS_PER_DAY, "1h": 1.0, "15m": 0.25, "5m": 5 / 60}
 
 
 def build():

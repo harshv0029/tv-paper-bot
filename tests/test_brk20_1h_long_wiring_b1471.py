@@ -51,6 +51,6 @@ def test_exit_stop_hit_after_fill():
 
 def test_wired_in_1h_leg():
     src = inspect.getsource(main._run_long_swing_1h_pass)
-    assert "_brk20_long_1h_try_entry(conn, symbol, df, capital" in src and "_brk20_long_1h_exit(df, pos)" in src
+    assert "_brk20_long_1h_try_entry(conn, symbol, df, capital" in src and "_brk20_long_1h_exit(df, pos, conn, symbol)" in src
     assert "BRK20_1H_LONG_CELLS" in inspect.getsource(main._with_held_1h_long_symbols)
     assert "BRK20_1H_LONG_CELLS" in inspect.getsource(main._scan_only_1h_long_cells)
