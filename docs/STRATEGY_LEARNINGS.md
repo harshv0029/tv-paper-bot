@@ -2321,3 +2321,8 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - None of the 11 trail overlays beats the fixed live stop. Chandelier 1.5-3R, breakeven 1R/2R and LTP 1.5R/2R are no-ops (identical trades: the mean-reversion state exit closes first). Tight trails hurt: tr0d5 1.133, lt0d5 1.125, lt1 1.225.
 - 1,489 trades hit the band-floor stop at PFnet 0.004: the band clamp, not the strategy stop, is what costs 0.12 PFnet against the idealised replay.
 - Profit-booking / exit takeaway: Kalman reversion exits on its own state flip within ~6 days; a trailing stop adds nothing and a tight one cuts winners. Keep the fixed 4 ATR stop; no trail wired.
+
+### 2026-11-16 IST: Chan Kalman 1h trailing-stop overlays on the wired cell (B-1485, run 43784674972)
+- main.py-function replay of chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1, 2,418 symbols, 0.8% cost. Idealised baseline 1.084 (n 5,290); live band-clamped resting stop 1.031 (n 5,802, 5-bar hold): barely above 1.
+- No trail beats the fixed live stop. Wide trails are no-ops (1.029-1.032); tight ones push it below 1 (tr0d5 0.992, lt0d5 0.959).
+- Profit-booking / exit takeaway: the 1h Kalman edge is thin (1.03 live) and any tight trail erases it; keep the fixed 4 ATR stop. The cell stays wired under the PFnet > 1 rule but ranks low on return per day.

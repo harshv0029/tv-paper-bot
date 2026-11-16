@@ -10,7 +10,9 @@ import strategy_registry as sr
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
 _FILES = (("chan_kalman_main_replay_1d_bandcap.json",
-           "sector-rotation-backtest.yml run 43781409223 (2026-11-16 IST, chan_kalman 1d band_cap=trail, cost 0.8%)"),)
+           "sector-rotation-backtest.yml run 43781409223 (2026-11-16 IST, chan_kalman 1d band_cap=trail, cost 0.8%)"),
+          ("chan_kalman_main_replay_1h_bandcap.json",
+           "sector-rotation-backtest.yml run 43784674972 (2026-11-16 IST, chan_kalman 1h band_cap=trail, cost 0.8%)"))
 _HRS = {"1d": sr.TRADING_HOURS_PER_DAY, "1h": 1.0, "4h": 4.0, "15m": 0.25, "5m": 5 / 60}
 
 
