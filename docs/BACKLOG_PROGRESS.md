@@ -269,7 +269,7 @@ Total rows: 1365 | closed: 988 | not closed: 377
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
-| B-1485 | P1 | UNKNOWN | 2026-11-05 | owed, needs |
+| B-1485 | P1 | UNKNOWN | 2026-11-05 | owed, pending, needs |
 | B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | pending, verify |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |

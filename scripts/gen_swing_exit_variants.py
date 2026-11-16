@@ -32,6 +32,11 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 TRAIL_RUNS = ("41978699531", "42025478119", "42232093739")  # band_cap=trail runs (B-1484, B-1485, B-1495a), oldest first
+# B-1485 (user 2026-11-16 IST: "If trailing SL has better results then replace fix SL with TRAILING SL"): the
+# main-replay band_cap trail runs of the wired cells that swing-bandcap-replay.yml does not cover (newer, so they
+# replace a TRAIL_RUNS entry for the same tag). Row shape differs (metrics, not live; dict rows keyed by band tag).
+MAIN_REPLAY_RUNS = (("minervini_lab_main_replay_live_cells.json", "43788663384"),
+                    ("chan_kalman_main_replay_1d_bandcap.json", "43781409223"))
 OUT = os.path.join(ROOT, "swing_exit_variants_b1500.py")
 
 
@@ -50,6 +55,16 @@ def build_rows(side="long"):
             rows.setdefault(r["tag"], []).append(r)
         for t, rs in rows.items():
             by_tag[t] = (rid, rs)  # a later run replaces an earlier one for the same tag
+    for fn, rid in MAIN_REPLAY_RUNS:  # B-1485
+        d = json.load(open(os.path.join(ROOT, "docs", "backtest_data", fn)))
+        raw = d.get("rows", [])
+        items = [dict(r, tag=k) for k, r in raw.items()] if isinstance(raw, dict) else raw
+        rows = {}
+        for r in items:
+            rows.setdefault(r["wired_tag"], []).append({"band_cap": r["band_cap"], "band_tag": r["tag"],
+                                                       "live": r.get("metrics") or {}})
+        for t, rs in rows.items():
+            by_tag[t] = (rid, rs)
     short_live = set(main.SHORT_SWING_TAGS) | set(main.TASUKI_SHORT_CELLS) | set(main.SHORT_SWING_PEAK_LTP_TRAIL_CELLS)
     out = {}
     for t in sorted(by_tag):
