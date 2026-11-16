@@ -1,17 +1,6 @@
 ---
 name: trader-budget
-description: >-
-  Budget Manager. Sizes every position to your budget and your max loss per
-  trade. Reads the trade plan from trader-exit (entry, stop, target), finds
-  the whole shares that fit inside four limits (max loss per trade, position
-  cap, max order, cash after your buffer), says which limit decided it, and
-  writes ONE bracket order (entry, stop-loss, take-profit) to
-  trader/orders.json in a broker-neutral shape that trader-broker turns into Kotak Neo legs. A stop
-  too far away for your max loss is a plain refusal, not a smaller order.
-  Nothing is placed. Use when the user says "how many shares", "size this
-  trade", "how much should I buy", "I have Rs 50,000", "I only want to risk ₹50
-  a trade", "set my rules", "keep 10% in cash", or after /trader-exit writes
-  a plan.
+description: "Position sizer: shares that fit max loss, position cap and cash; writes one bracket order to trader/orders.json. Use for \"how many shares\", \"size this trade\"."
 argument-hint: "[budget in dollars]"
 ---
 

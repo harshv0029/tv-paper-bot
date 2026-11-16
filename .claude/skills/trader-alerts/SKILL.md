@@ -1,18 +1,6 @@
 ---
 name: trader-alerts
-description: >-
-  Price Alerts. Rings when a price, a stop or the opening bell hits. Turns
-  the trade plan into three alerts in one go (the stop, the target and "flat
-  by close" at your flat-by time), plus above / below / stop / target levels,
-  percent moves from the previous close, any time of day, and the NSE
-  opening bell, each ringing once so you are not spammed. Knows NSE hours
-  with the 2026 and 2027 holidays and 1:00 p.m. early closes, works out New
-  York time itself, fetches free delayed quotes (Yahoo chart JSON, Stooq
-  CSV) one ticker at a time, and writes trader/prices.json for sizing and the
-  risk check. Use when the user says "alert me when", "tell me if RELIANCE.NS hits",
-  "watch my stop", "watch my trade", "remind me to close by 3:10", "is the
-  market open", "when does the market open", "get me a price", or right
-  after /trader-exit writes a plan.
+description: "Price alerts on NSE prices, stops, targets and the opening bell (Yahoo quotes). Use for \"alert me when\", \"watch my stop\", \"is the market open\"."
 argument-hint: "[ticker] [price]"
 ---
 

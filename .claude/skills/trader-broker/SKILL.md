@@ -1,15 +1,6 @@
 ---
 name: trader-broker
-description: >-
-  Kotak Order Ticket (draft only). Turns an approved, risk-checked order into
-  the exact Kotak Neo place_order legs (entry, SL-M stop, target limit) for
-  NSE/BSE/MCX with segment nse_cm/nse_fo/mcx_fo and product MIS/CNC/NRML,
-  refuses any entry without a stop-loss, records your yes and the fills,
-  and builds the flatten ticket by your flat-by time. It NEVER sends an
-  order: the live tv-paper-bot (main.py / kotak_real_orders.py) is the only
-  real-order path. Use when the user says "draft the order", "show the
-  Kotak ticket", "what would the order look like", "close my position",
-  "flatten", "record the fill", or after /trader-risk passes.
+description: "Draft-only Kotak Neo order ticket (entry, SL-M, target); never sends orders. Use for \"draft the order\", \"show the Kotak ticket\", \"flatten\"."
 argument-hint: "[order number]"
 ---
 
