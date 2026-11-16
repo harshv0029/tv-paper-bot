@@ -98459,7 +98459,19 @@
    "prev_state": "no position",
    "new_state": "long 2 @ Rs131.84",
    "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
+  },
+  {
+   "id": 8206,
+   "ts": 1794800920.9353156,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000035353",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs431.70",
+   "detail": "reason: swing entry signal from strategy gaps__common_fade__long__1d__atr3_nb4__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-16T03:48:41Z"
+ "synced_at_utc": "2026-11-16T03:48:48Z"
 }
