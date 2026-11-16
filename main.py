@@ -32000,6 +32000,21 @@ def _sl_fills_today(conn, since_ts) -> list:
     return out
 
 
+_UNLOGGED_MIN_AGE_S = 30.0
+
+
+def _kotak_order_too_young(ord_dt_tm, now=None, min_age=_UNLOGGED_MIN_AGE_S) -> bool:
+    """B-1516: True when a Kotak order (ordDtTm, IST '%d-%b-%Y %H:%M:%S') is younger than min_age seconds. The
+    UNLOGGED sweep skips such orders: on 16-Nov GROWW/WIPRO SLs were flagged 2-3 s before the app's own 'sl placed'
+    row was written. The 5-min reconcile re-checks them next pass. Unreadable time -> False (never hides an order)."""
+    try:
+        t = dt.datetime.strptime(str(ord_dt_tm).strip(), "%d-%b-%Y %H:%M:%S")
+        ts = (t - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+        return 0 <= (time.time() if now is None else now) - ts < min_age
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _unlogged_before_boot_note(ord_dt_tm, boot_ts=None) -> str:
     """B-1516: for an UNLOGGED Kotak order placed before this process booted, say so - its app row was most likely
     written by the previous process and lost to the restart (09-Nov-2026: 20 bot orders 09:15-10:08 IST, restart
@@ -32035,6 +32050,8 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
             oid = str(row.get("nOrdNo") or "")
             if not oid or oid in known:
                 continue
+            if _kotak_order_too_young(row.get("ordDtTm")):
+                continue  # B-1516: the app's own log row may land 2-3 s after Kotak lists it; next pass decides
             tsym = row.get("trdSym") or ""
             facts = (f"Kotak facts: {row.get('ordDtTm','')} {row.get('trnsTp','')} {row.get('prcTp','')} "
                      f"qty {row.get('qty','')} trg {row.get('trgPrc','')} status {row.get('ordSt','')} "
