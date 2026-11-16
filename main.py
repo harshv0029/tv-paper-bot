@@ -13412,14 +13412,21 @@ def _auto_signal_core(
         today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
 
         vol_contraction_signal = None
+        _orb_wait = None
         if strategy == "orb_breakout":
             orb_cutoff = open_min + orb_minutes
             orb_df = today_df[today_df["mins"] < orb_cutoff]
             if orb_df.empty or today_df["mins"].max() < orb_cutoff:
-                return {
+                # B-1566: was an early return, which also skipped every chan/gap cell (and open-position management)
+                # until 09:30 IST, so a signal on the 09:15-09:25 bars was never seen live although the replay fires on
+                # it. Only the ORB entry itself waits for its range now (returned just before the ORB block below).
+                _orb_wait = {
                     "symbol": symbol, "status": "waiting_for_opening_range",
                     "bars_so_far": len(today_df), "time_local": str(now_local),
                 }
+        if strategy == "orb_breakout" and _orb_wait is not None:
+            orb_high = orb_low = None
+        elif strategy == "orb_breakout":
             orb_high = float(orb_df["High"].max())
             orb_low = float(orb_df["Low"].min())
             # Volatility-contraction signal (2026-09-07, explicit user
@@ -13872,6 +13879,9 @@ def _auto_signal_core(
             if _gap_l is not None:
                 return _gap_l
 
+        if _orb_wait is not None:  # B-1566: the ORB entry still waits for its opening range
+            result.update(_orb_wait)
+            return result
         if strategy == "orb_breakout":
             # Stronger entries, explicit user instruction 2026-09-04: too
             # many trades were closing at a few rupees of P&L (e.g. real
@@ -14538,7 +14548,7 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
     Every entry carries its protective stop (stop = close - atr_mult*ATR); the real mirror unwinds if the SL cannot rest."""
     sig, tag = None, None
     try:
-        dfc = _chan_short_frame(df, ts_utc)
+        dfc = _chan_completed_frame(_chan_short_frame(df, ts_utc), interval)  # B-1566: completed bars only
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
             if CHAN_LONG_CELL_INTERVAL[_t] != interval:
@@ -14872,6 +14882,23 @@ def _chan_short_frame(df, ts_utc):
     return out
 
 
+def _chan_completed_frame(dfc, interval: str, now_utc=None):
+    """B-1566: drop the still-forming last bar (bar start + bar size > now). fetch_ohlc returns Yahoo's forming bar, so the
+    live entry check read a PARTIAL bar while the replay that validated every chan cell fires on the completed signal bar
+    (fill = next bar's open). With the forming bar last, the completed signal bar was never the bar being checked."""
+    if dfc is None or len(dfc) == 0 or interval not in _CHAN_BAR_MIN:
+        return dfc
+    now = pd.Timestamp(now_utc) if now_utc is not None else pd.Timestamp.now(tz="UTC")
+    if now.tzinfo is None:
+        now = now.tz_localize("UTC")
+    last = pd.Timestamp(dfc.index[-1])
+    if last.tzinfo is None:
+        last = last.tz_localize("UTC")
+    if last + pd.Timedelta(minutes=_CHAN_BAR_MIN[interval]) > now:
+        return dfc.iloc[:-1]
+    return dfc
+
+
 def _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_price, halted):
     """Exit reason for an open chan short, or None. Order: halt, stop, flatten (15:10+), state/max-hold."""
     if halted:
@@ -14931,7 +14958,7 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
     """Paper chan_kalman short entry. Returns the result dict when it entered, else None (caller falls through)."""
     sig, tag = None, None
     try:
-        dfc = _chan_short_frame(df, ts_utc)
+        dfc = _chan_completed_frame(_chan_short_frame(df, ts_utc), interval)  # B-1566: completed bars only
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_SHORT_CELLS.items():
             if CHAN_SHORT_CELL_INTERVAL[_t] != interval:
@@ -27064,6 +27091,7 @@ def _strategy_scans_in_last_seconds(tag: str, seconds: float = _RECENT_CHECK_WIN
 # trailing SLs and the engines' own entry chains (first-signal-wins order) are unchanged.
 # ---------------------------------------------------------------------------
 _strategy_entry_blocked_by_position: dict = {}  # tag -> triggers that fired on a symbol where a new entry is blocked
+_strategy_entry_blocked_by_position_seen: set = set()  # B-1566: (tag, symbol) already counted today
 
 
 def _scan_cell(tag: str, sig_fn=None, count: bool = True, blocked: bool = False):
@@ -27089,7 +27117,12 @@ def _scan_cell(tag: str, sig_fn=None, count: bool = True, blocked: bool = False)
             if _strategy_entry_blocked_by_position.get("_day") != day:
                 _strategy_entry_blocked_by_position.clear()
                 _strategy_entry_blocked_by_position["_day"] = day
-            _strategy_entry_blocked_by_position[tag] = _strategy_entry_blocked_by_position.get(tag, 0) + 1
+                _strategy_entry_blocked_by_position_seen.clear()
+            # B-1566: one count per (tag, symbol) per day (repeat passes re-see the same trigger every 15 min)
+            _k = (tag, _current_scan_symbol.get())
+            if _k[1] is None or _k not in _strategy_entry_blocked_by_position_seen:
+                _strategy_entry_blocked_by_position_seen.add(_k)
+                _strategy_entry_blocked_by_position[tag] = _strategy_entry_blocked_by_position.get(tag, 0) + 1
         except Exception:
             pass
     return sig
@@ -35346,6 +35379,11 @@ def entry_funnel():
                     _bt = int(_strategy_blocked_triggers.get(str(st.get("strategy_tag")), 0))
                     _r["blocked_triggers"] = _r.get("blocked_triggers", 0) + _bt
                     out[c]["blocked_triggers"] = out[c].get("blocked_triggers", 0) + _bt
+                    # B-1566 / B-1275: fired on a symbol another engine already holds (no entry possible, not a miss)
+                    _bp = int(_strategy_entry_blocked_by_position.get(str(st.get("strategy_tag")), 0)) \
+                        if _strategy_entry_blocked_by_position.get("_day") == ist_now().strftime("%Y-%m-%d") else 0
+                    _r["blocked_by_position"] = _r.get("blocked_by_position", 0) + _bp
+                    out[c]["blocked_by_position"] = out[c].get("blocked_by_position", 0) + _bp
                     _r["scans"] += int(st.get("scans_today") or 0)
                     _r["fired"] += int(st.get("successful_entries_today") or 0)
                     if int(st.get("successful_entries_today") or 0) > 0:
@@ -35415,9 +35453,11 @@ def entry_funnel():
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
         for _r in _all:  # B-1285: per-tag attempts = attempts_total = placed + blocked + failed (exits excluded)
             _r["attempts_total"] = _r["attempts"] = _r["placed"] + _r["blocked"] + _r["failed"]
-        o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
+        o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")
+                           or r.get("blocked_by_position")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
-                                     for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]
+                                     for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers")
+                                                           or r.get("blocked_by_position"))]
         if not o["viable_strategies"]:
             o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
         elif o["blocked"] and not o["placed"]:

@@ -442,6 +442,18 @@ SWING_EXIT_VARIANTS = {
         ('live_tr3', 'oneil_hns__neckline__long__1w__atr3_h26_rsbandfloor_srcmain_trailr3__nonovl__v2', 0.026373, 1.2291, 595, 2.0518, 77.8, '42232093739'),
         ('live_be2', 'oneil_hns__neckline__long__1w__atr3_h26_rsbandfloor_srcmain_trailbe2r__nonovl__v2', 0.010714, 1.0896, 595, 0.7967, 74.36, '42232093739'),
     ),
+    'oneil_leaders__firsthigh__long__1d__atr2_h40_srcmain__nonovl__v2': (
+        ('live_tr2', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr2__nonovl__v2', 0.120655, 1.613, 1611, 2.652, 21.98, '43813215559'),
+        ('live_be2', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailbe2r__nonovl__v2', 0.120623, 1.631, 1611, 2.825, 23.42, '43813215559'),
+        ('live', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain__nonovl__v2', 0.119515, 1.62, 1611, 2.86, 23.93, '43813215559'),
+        ('live_tr3', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr3__nonovl__v2', 0.119393, 1.612, 1611, 2.795, 23.41, '43813215559'),
+        ('live_be1', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailbe1r__nonovl__v2', 0.115566, 1.612, 1611, 2.45, 21.2, '43813215559'),
+        ('live_lt2', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp2r__nonovl__v2', 0.115167, 1.542, 1611, 2.278, 19.78, '43813215559'),
+        ('live_tr1d5', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr1d5__nonovl__v2', 0.106697, 1.504, 1611, 2.087, 19.56, '43813215559'),
+        ('live_lt1d5', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp1d5r__nonovl__v2', 0.068332, 1.272, 1611, 1.053, 15.41, '43813215559'),
+        ('live_tr1', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailr1__nonovl__v2', 0.050794, 1.187, 1611, 0.704, 13.86, '43813215559'),
+        ('live_lt1', 'oneil_leaders__firsthigh__long__1d__atr2_h40_rsbandfloor_srcmain_trailltp1r__nonovl__v2', 0.01261, 1.036, 1611, 0.115, 9.12, '43813215559'),
+    ),
     'oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2': (
         ('live', 'oneil_leaders__firsthigh__long__1w__atr3_h26_rsbandfloor_srcmain__nonovl__v2', 0.169781, 3.7296, 1363, 14.9747, 88.2, '42232093739'),
         ('live_be2', 'oneil_leaders__firsthigh__long__1w__atr3_h26_rsbandfloor_srcmain_trailbe2r__nonovl__v2', 0.155106, 3.4456, 1363, 13.336, 85.98, '42232093739'),

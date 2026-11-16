@@ -340,7 +340,7 @@ Total rows: 1368 | closed: 992 | not closed: 376
 | B-1389 | P? | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
 | B-1390 | P? | USER | 2026-10-27 21:15 IST | owed |
 | B-1391 | P? | USER | 2026-10-27 21:40 IST | awaiting, waiting |
-| B-1566 | P? | UNKNOWN | 2026-11-12 IST | owed, blocked, needs |
+| B-1566 | P? | UNKNOWN | 2026-11-12 IST | owed, blocked, needs, waiting |
 | B-1605 | P? | FROM | 2026-11-15 IST |  |
 
 ## research-queue (116)

@@ -83,11 +83,13 @@ def test_live_counts_and_verdict(monkeypatch):
     import urllib.request
     monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=None: R())
     live = m.live_counts("https://bot.example")
-    assert live["day"] == "2026-11-16" and live["tags"]["A"] == {"scans": 7, "fired": 1, "blocked_triggers": 2, "attempts": 1}
+    assert live["day"] == "2026-11-16" and live["tags"]["A"] == {"scans": 7, "fired": 1, "blocked_triggers": 2, "attempts": 1, "blocked_by_position": 0}
     assert live["tags"]["B"]["scans"] == 9 and live["tags"]["B"]["fired"] == 0
     monkeypatch.setattr(m, "SESSIONS", 1)
     assert m.verdict({"tag": "B", "symbol_session_fires": 3}, live, "2026-11-16") == "SUSPECT_WIRING"
     assert m.verdict({"tag": "A", "symbol_session_fires": 3}, live, "2026-11-16") == "ok"
     assert m.verdict({"tag": "C", "symbol_session_fires": 0}, live, "2026-11-16") == "ok"
+    live["tags"]["B"]["blocked_by_position"] = 1  # B-1566: fired on a symbol another engine holds = not a wiring miss
+    assert m.verdict({"tag": "B", "symbol_session_fires": 3}, live, "2026-11-16") == "ok"
     assert m.verdict({"tag": "B", "symbol_session_fires": 3}, live, "2026-11-13") == "n/a"  # different day: no verdict
     assert m.live_counts("") is None
