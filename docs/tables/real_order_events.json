@@ -98675,7 +98675,19 @@
    "prev_state": null,
    "new_state": "trigger pending",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 16-Nov-2026 09:22:27 S SL qty 1 trg 175.67 status trigger pending rejRsn --"
+  },
+  {
+   "id": 8224,
+   "ts": 1794801153.018307,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000049639",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs175.67",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-16T03:52:35Z"
+ "synced_at_utc": "2026-11-16T03:52:48Z"
 }
