@@ -3771,5 +3771,120 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1794861565.0783947,
+    "real_balance_inr": null,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "holdings_unprotected": [
+      {
+        "kotak_trading_symbol": "FEDERALBNK-EQ",
+        "qty": 2,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "BANKINDIA-EQ",
+        "qty": 8,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "PNB-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "UNIONBANK-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "BIOCON-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "HCLTECH-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "CGPOWER-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "LICI-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "COLPAL-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "UPL-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "ADANIENSOL-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "NHPC-EQ",
+        "qty": 5,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "TATASTEEL-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "IDEA-EQ",
+        "qty": 20,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "INDUSTOWER-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "MEESHO-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "IRCTC-EQ",
+        "qty": 1,
+        "is_short": false
+      }
+    ],
+    "swing_past_time_limit": [],
+    "holdings_healed": [],
+    "holdings_checked": 18,
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 0,
+    "governance_backfilled_swing": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
