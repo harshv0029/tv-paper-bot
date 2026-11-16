@@ -98447,7 +98447,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs247.20",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs247.20 already covers the position (target stop Rs242.97), adopted, nothing placed"
+  },
+  {
+   "id": 8205,
+   "ts": 1794800917.0986366,
+   "symbol": "CANBK.NS",
+   "kotak_trading_symbol": "CANBK-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000035028",
+   "prev_state": "no position",
+   "new_state": "long 2 @ Rs131.84",
+   "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
   }
  ],
- "synced_at_utc": "2026-11-16T03:48:29Z"
+ "synced_at_utc": "2026-11-16T03:48:41Z"
 }
