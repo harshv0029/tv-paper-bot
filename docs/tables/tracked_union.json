@@ -289,6 +289,22 @@
    "symbol": "MEESHO.NS"
   },
   {
+   "day": "2026-11-16",
+   "entry_order_id": "261116000043102",
+   "entry_price": 164.15,
+   "first_seen_day": "2026-11-16",
+   "is_short": 0,
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "opened_at": 1794801040.5941775,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 148.76,
+   "source": "position",
+   "stop_loss": 135.3728517804827,
+   "strategy": "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2",
+   "symbol": "MOTHERSON.NS"
+  },
+  {
    "day": "2026-11-13",
    "entry_order_id": "261113000018121",
    "entry_price": 76.28,
