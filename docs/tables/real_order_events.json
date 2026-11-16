@@ -98471,7 +98471,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs431.70",
    "detail": "reason: swing entry signal from strategy gaps__common_fade__long__1d__atr3_nb4__v1 passed the PFnet gate"
+  },
+  {
+   "id": 8207,
+   "ts": 1794800930.1686044,
+   "symbol": "CANBK.NS",
+   "kotak_trading_symbol": "CANBK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000035908",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs118.17",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8208,
+   "ts": 1794800932.196211,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000036012",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs397.05",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-16T03:48:48Z"
+ "synced_at_utc": "2026-11-16T03:49:03Z"
 }
