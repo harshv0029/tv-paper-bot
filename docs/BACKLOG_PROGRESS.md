@@ -13,7 +13,7 @@ Total rows: 1368 | closed: 991 | not closed: 377
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 45 |
+| OPEN | 44 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -56,6 +56,7 @@ Total rows: 1368 | closed: 991 | not closed: 377
 | DONE-VERIFIED | 1 |
 | OPEN-RECURRING | 1 |
 | DONE-CODE | 1 |
+| BUILT | 1 |
 | WEEKLY | 1 |
 
 ## Counts by priority (all rows / not closed)
@@ -265,7 +266,7 @@ Total rows: 1368 | closed: 991 | not closed: 377
 | B-1549 | P0 | DONE-VERIFIED | 2026-11-11 IST | owed, needs, follow-up, awaiting, waiting |
 | B-1567 | P0 | PARTIAL | 2026-11-12 IST | verify, owner |
 | B-1582 | P0 | UNKNOWN | 2026-11-14 IST | verify |
-| B-1615 | P0 | OPEN | 2026-11-16 IST |  |
+| B-1615 | P0 | BUILT | 2026-11-16 IST | awaiting, waiting |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | UNKNOWN | 2026-11-05 | owed, remaining, needs, follow-up |

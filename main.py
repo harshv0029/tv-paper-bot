@@ -32876,6 +32876,82 @@ def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
     return out
 
 
+_orphan_1d_state_last_day = None
+
+
+def _ensure_daily_swing_state_for_orphans(conn, fetch=None) -> list:
+    """B-1615 (2026-11-16, user approved): BIOCON, CGPOWER, FEDERALBNK, IRCTC, MEESHO, NHPC, TATASTEEL and UPL are real
+    DAILY swing holdings whose signal_state_swing rows came back empty after the 14-Nov Upstash slot switch (B-1574) and
+    a fresh-disk deploy, so their strategy exits never ran ('retry_refused_no_paper_exit'); only the resting SL guarded
+    them. B-1364 (order_block_delta), the gap_and_go restore and B-1381 (1h/4h cells) cover their own strategies; this is
+    the generic daily rebuild for every other strategy, so _run_swing_scan_pass (the owning engine) evaluates the
+    position's OWN exit rule again: entry_day / entry_price from the real row, initial stop = the entry-day stop
+    (swing_entry_stop) or the real row's stop, ATR14 frozen on the bars the entry signal saw (completed bars before the
+    entry day, as the daily pass drops the forming bar), running max close over completed bars since entry. Kotak
+    holdings are read first; a symbol Kotak does not show as held is skipped; Kotak unknown retries next tick. Places
+    no order and never moves a resting stop. Once per IST day."""
+    global _orphan_1d_state_last_day
+    today = ist_now().strftime("%Y-%m-%d")
+    if _orphan_1d_state_last_day == today:
+        return []
+    fetch = fetch or fetch_ohlc
+    own_restore = {"order_block_delta", "gap_and_go"}
+    hourly = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS) | set(CHAN_KALMAN_1H_CELLS) \
+        | set(BRK20_1H_LONG_CELLS) | set(SWING_LONG_4H_TAGS) | set(ISLAND_TFS_LONG_1H_TAGS)
+    orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
+               if r["strategy"] and r["strategy"] not in own_restore and r["strategy"] not in hourly
+               and not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
+    if not orphans:
+        _orphan_1d_state_last_day = today
+        return []
+    held = _kotak_holdings_open_by_trdsym()
+    if held is None:
+        return []  # unknown is not "not held": retry next tick
+    out = []
+    for row in orphans:
+        sym, strat = row["symbol"], row["strategy"]
+        if row["kotak_trading_symbol"] not in held and _kotak_symbol_still_open(row["kotak_trading_symbol"]) is not True:
+            out.append({"symbol": sym, "derived": False, "why": "not held at Kotak"})
+            continue
+        entry, day = float(row["entry_price"] or 0), str(row["day"] or "")[:10]
+        try:
+            df = fetch(sym, "1y", "1d")
+            df = df.reset_index() if "Date" not in df.columns else df
+            dates = df["Date"].astype(str).str[:10]
+            upto = df[(dates < day).to_numpy()]
+            atr = _compute_atr_value(upto, 14) if len(upto) > 20 else None
+            since = df[((dates >= day) & (dates < today)).to_numpy()]
+            run_max = max(entry, float(since["Close"].max())) if len(since) else entry
+        except Exception as e:
+            print(f"[SWING] B-1615 daily state derivation failed for {sym}: {e}")
+            continue
+        stop = _swing_entry_stop(conn, sym) or float(row["stop_loss"] or 0)
+        if not day or not atr or atr <= 0 or not (0 < stop < entry):
+            _log_real_order_event(
+                conn, sym, "reroute", "swing_1d_state_not_derivable", kotak_trading_symbol=row["kotak_trading_symbol"],
+                new_state="no exit state restored; resting SL keeps protecting",
+                reason=f"B-1615: {strat} entry day/ATR/stop could not be derived honestly (day {day!r}, ATR {atr}, stop {stop})")
+            out.append({"symbol": sym, "derived": False, "why": "entry day/ATR/stop not derivable"})
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, "
+            "qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 1.0, ?, ?) "
+            "ON CONFLICT(symbol) DO NOTHING",
+            (sym, strat, day, entry, stop, int(row["qty"]), float(row["opened_at"] or time.time()), float(atr), run_max))
+        if not conn.execute("SELECT 1 FROM positions WHERE symbol = ? AND qty > 0", (sym,)).fetchone():
+            apply_paper_trade(conn, sym, "buy", int(row["qty"]), entry)  # so the paper exit has a position to close
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        _log_real_order_event(
+            conn, sym, "reroute", "swing_1d_state_restored", kotak_trading_symbol=row["kotak_trading_symbol"],
+            new_state=f"{strat}: entry {day} @ Rs{entry:.2f}, stop Rs{stop:.2f}, ATR14 Rs{atr:.2f}, peak close Rs{run_max:.2f}",
+            reason="B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily "
+                   "engine evaluates this position's own exit rule again (no order placed by the rebuild)")
+        out.append({"symbol": sym, "derived": True, "entry_day": day, "stop": stop, "atr": round(float(atr), 4)})
+    _orphan_1d_state_last_day = today
+    return out
+
+
 SWING_PASS_INTERVAL_SEC = 900  # B-419: repeat swing pass every 15 min during market hours
 _swing_last_pass_ts = 0.0
 SWING_FEED_WARM_MIN_TICKS = 20      # B-1561: a pass waits until the Kotak live feed carries at least this many prices
@@ -33459,6 +33535,7 @@ async def _scheduler_tick():
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
                 await _real_off_loop(_ensure_order_block_state_for_held)  # B-1364
                 await _real_off_loop(_ensure_1h_swing_state_for_orphans)  # B-1381
+                await _real_off_loop(_ensure_daily_swing_state_for_orphans)  # B-1615
             except Exception as e:
                 print(f"[SWING] gap_and_go state restore failed (non-fatal): {e}")
         try:
