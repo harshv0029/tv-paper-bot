@@ -145,6 +145,22 @@
    "symbol": "FEDERALBNK.NS"
   },
   {
+   "day": "2026-11-16",
+   "entry_order_id": "261116000037931",
+   "entry_price": 226.28,
+   "first_seen_day": "2026-11-16",
+   "is_short": 0,
+   "kotak_trading_symbol": "GROWW-EQ",
+   "opened_at": 1794800955.0520937,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 202.48,
+   "source": "position",
+   "stop_loss": 180.5571507045201,
+   "strategy": "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2",
+   "symbol": "GROWW.NS"
+  },
+  {
    "day": "2026-11-13",
    "entry_order_id": "261113000268464",
    "entry_price": 1382.0,
