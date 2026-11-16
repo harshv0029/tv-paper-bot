@@ -98159,7 +98159,103 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l5_n5__v1: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs586.75 - capped to 0 by remaining daily cap Rs3338.92 (max 5) and/or real capital Rs3720.07 (max 6)"
+  },
+  {
+   "id": 8181,
+   "ts": 1794800771.9388752,
+   "symbol": "MFSL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1399.30 - capped to 0 by remaining daily cap Rs3338.92 (max 2) and/or real capital Rs3720.07 (max 2)"
+  },
+  {
+   "id": 8182,
+   "ts": 1794800771.9454184,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"15 nse symbols printed new trades today within 120s\", \"symbols\": [\"KALYANKJIL.NS\", \"LENSKART.NS\", \"LICI.NS\", \"LTM.NS\", \"MCX.NS\", \"MEESHO.NS\", \"MOTHERSON.NS\", \"MUTHOOTFIN.NS\", \"NATIONALUM.NS\", \"NHPC.NS\"], \"count\": 15, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 31.1}, \"replay\": {\"placed\": 1, \"dropped\": 26, \"requeued\": 0, \"considered\": 27}}"
+  },
+  {
+   "id": 8183,
+   "ts": 1794800774.6072574,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015204",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs169.47",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs169.47 already covers the position (target stop Rs169.47), adopted, nothing placed"
+  },
+  {
+   "id": 8184,
+   "ts": 1794800774.7680595,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015190",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs69.33",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs69.33 already covers the position (target stop Rs69.33), adopted, nothing placed"
+  },
+  {
+   "id": 8185,
+   "ts": 1794800778.6972187,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015164",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs11.71",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs11.71 already covers the position (target stop Rs11.71), adopted, nothing placed"
+  },
+  {
+   "id": 8186,
+   "ts": 1794800778.8749685,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015204",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs169.47",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs169.47 already covers the position (target stop Rs169.47), adopted, nothing placed"
+  },
+  {
+   "id": 8187,
+   "ts": 1794800782.845158,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015164",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs11.71",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs11.71 already covers the position (target stop Rs11.71), adopted, nothing placed"
+  },
+  {
+   "id": 8188,
+   "ts": 1794800782.9547284,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000015654",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs357.45",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs357.45 already covers the position (target stop Rs349.15), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:46:12Z"
+ "synced_at_utc": "2026-11-16T03:46:25Z"
 }
