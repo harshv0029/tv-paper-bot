@@ -1,1458 +1,780 @@
 {
- "run": "43734503299",
- "sessions": 5,
+ "run": "43847937784",
+ "sessions": 1,
  "universe_intraday": 200,
  "universe_swing": 202,
  "errors": 0,
- "secs": 181,
+ "secs": 138,
+ "live_day": "2026-11-16",
+ "live_error": null,
+ "last_session": "2026-11-16",
  "rows": [
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 36,
-   "symbol_session_fires": 14,
-   "per_session": 2.8,
+   "bar_fires": 3,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "CUMMINSIND.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:20:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:25:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:25:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15686,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 36,
-   "symbol_session_fires": 14,
-   "per_session": 2.8,
+   "bar_fires": 3,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "CUMMINSIND.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:20:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:25:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:25:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "ASTRAL.NS",
-    "COCHINSHIP.NS",
-    "PAGEIND.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:30:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:35:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 36,
-   "symbol_session_fires": 14,
-   "per_session": 2.8,
+   "bar_fires": 3,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "CUMMINSIND.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:20:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:25:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:25:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "ASTRAL.NS",
-    "COCHINSHIP.NS",
-    "PAGEIND.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:30:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:35:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 20,
-   "symbol_session_fires": 17,
-   "per_session": 3.4,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "CUMMINSIND.NS",
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "CUMMINSIND.NS",
+     "2026-11-16",
+     "2026-11-16 10:15:00+05:30"
     ],
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 20,
-   "symbol_session_fires": 17,
-   "per_session": 3.4,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "CUMMINSIND.NS",
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "CUMMINSIND.NS",
+     "2026-11-16",
+     "2026-11-16 10:15:00+05:30"
     ],
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "ASTRAL.NS",
-    "COCHINSHIP.NS",
-    "PAGEIND.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:30:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:35:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 20,
-   "symbol_session_fires": 17,
-   "per_session": 3.4,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HINDALCO.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "CUMMINSIND.NS",
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "CUMMINSIND.NS",
+     "2026-11-16",
+     "2026-11-16 10:15:00+05:30"
     ],
     [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:20:00+05:30"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "COCHINSHIP.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 17,
-   "symbol_session_fires": 7,
-   "per_session": 1.4,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:25:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:35:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 17,
-   "symbol_session_fires": 7,
-   "per_session": 1.4,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:25:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:35:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 17,
-   "symbol_session_fires": 7,
-   "per_session": 1.4,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "KALYANKJIL.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:25:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:35:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 12,
-   "symbol_session_fires": 10,
-   "per_session": 2.0,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "HINDCOPPER.NS",
-     "2026-11-12",
-     "2026-11-12 09:15:00+05:30"
-    ],
-    [
-     "INDIGO.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 12,
-   "symbol_session_fires": 10,
-   "per_session": 2.0,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "HINDCOPPER.NS",
-     "2026-11-12",
-     "2026-11-12 09:15:00+05:30"
-    ],
-    [
-     "INDIGO.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 12,
-   "symbol_session_fires": 10,
-   "per_session": 2.0,
-   "symbols": [
-    "DIVISLAB.NS",
-    "HINDCOPPER.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:20:00+05:30"
-    ],
-    [
-     "HINDCOPPER.NS",
-     "2026-11-12",
-     "2026-11-12 09:15:00+05:30"
-    ],
-    [
-     "INDIGO.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "bar_fires": 4,
-   "symbol_session_fires": 3,
-   "per_session": 0.6,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "PAGEIND.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
-    ],
-    [
-     "PAGEIND.NS",
-     "2026-11-12",
-     "2026-11-12 14:30:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
-   "bar_fires": 39,
-   "symbol_session_fires": 22,
-   "per_session": 4.4,
+   "bar_fires": 3,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "BDL.NS",
-    "BHEL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "CUMMINSIND.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HAL.NS",
-    "HINDALCO.NS",
-    "JUBLFOOD.NS",
-    "KEI.NS",
-    "MOTHERSON.NS",
-    "NATIONALUM.NS",
-    "PAGEIND.NS",
-    "POLYCAB.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:30:00+05:30"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:45:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 10:00:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 10:15:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:45:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15685,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve1d0e4_z2d0__v1",
-   "bar_fires": 30,
-   "symbol_session_fires": 26,
-   "per_session": 5.2,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "AUBANK.NS",
-    "BDL.NS",
-    "BHEL.NS",
-    "CGPOWER.NS",
-    "COCHINSHIP.NS",
-    "CUMMINSIND.NS",
-    "ENRIN.NS",
-    "GROWW.NS",
-    "GVT&D.NS",
-    "HAL.NS",
-    "HINDALCO.NS",
-    "HINDCOPPER.NS",
-    "JUBLFOOD.NS",
-    "KEI.NS",
-    "LICI.NS",
-    "MOTHERSON.NS",
-    "NATIONALUM.NS",
-    "ONGC.NS",
-    "PAGEIND.NS",
-    "POLYCAB.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS",
-    "TIINDIA.NS",
-    "VOLTAS.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
-    ],
-    [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 10:00:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15:00+05:30"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:30:00+05:30"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15679,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 4,
-   "per_session": 0.8,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ],
-    [
-     "YESBANK.NS",
-     "2026-11-06",
-     "2026-11-06 12:45:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 4,
-   "per_session": 0.8,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ],
-    [
-     "YESBANK.NS",
-     "2026-11-06",
-     "2026-11-06 12:45:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 4,
-   "per_session": 0.8,
-   "symbols": [
-    "DIVISLAB.NS",
-    "KALYANKJIL.NS",
-    "POWERINDIA.NS",
-    "YESBANK.NS"
-   ],
-   "first": [
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "KALYANKJIL.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-13",
-     "2026-11-13 09:15:00+05:30"
-    ],
-    [
-     "YESBANK.NS",
-     "2026-11-06",
-     "2026-11-06 12:45:00+05:30"
-    ]
-   ]
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 28,
-   "symbol_session_fires": 16,
-   "per_session": 3.2,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "DIVISLAB.NS",
-    "EXIDEIND.NS",
-    "GVT&D.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "RVNL.NS",
-    "SIEMENS.NS",
-    "SWIGGY.NS",
-    "WAAREEENER.NS",
-    "YESBANK.NS"
+    "KALYANKJIL.NS"
    ],
    "first": [
     [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:45:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:00:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:15:00+05:30"
+     "KALYANKJIL.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 28,
-   "symbol_session_fires": 16,
-   "per_session": 3.2,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "DIVISLAB.NS",
-    "EXIDEIND.NS",
-    "GVT&D.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "RVNL.NS",
-    "SIEMENS.NS",
-    "SWIGGY.NS",
-    "WAAREEENER.NS",
-    "YESBANK.NS"
+    "KALYANKJIL.NS"
    ],
    "first": [
     [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:45:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:00:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:15:00+05:30"
+     "KALYANKJIL.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 28,
-   "symbol_session_fires": 16,
-   "per_session": 3.2,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "DIVISLAB.NS",
-    "EXIDEIND.NS",
-    "GVT&D.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "KEI.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "RVNL.NS",
-    "SIEMENS.NS",
-    "SWIGGY.NS",
-    "WAAREEENER.NS",
-    "YESBANK.NS"
+    "KALYANKJIL.NS"
    ],
    "first": [
     [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:45:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:00:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 10:15:00+05:30"
+     "KALYANKJIL.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 26,
-   "symbol_session_fires": 20,
-   "per_session": 4.0,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "ABCAPITAL.NS",
-    "CGPOWER.NS",
-    "DIVISLAB.NS",
-    "ENRIN.NS",
-    "EXIDEIND.NS",
-    "HDFCLIFE.NS",
-    "HINDCOPPER.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "SIEMENS.NS",
-    "SUNPHARMA.NS",
-    "WAAREEENER.NS",
-    "YESBANK.NS"
+    "KALYANKJIL.NS"
    ],
    "first": [
     [
-     "ABCAPITAL.NS",
-     "2026-11-12",
-     "2026-11-12 09:15:00+05:30"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "ENRIN.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
+     "KALYANKJIL.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 1,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 26,
-   "symbol_session_fires": 20,
-   "per_session": 4.0,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "ABCAPITAL.NS",
-    "CGPOWER.NS",
-    "DIVISLAB.NS",
-    "ENRIN.NS",
-    "EXIDEIND.NS",
-    "HDFCLIFE.NS",
-    "HINDCOPPER.NS",
-    "INDIGO.NS",
-    "KALYANKJIL.NS",
-    "MANKIND.NS",
-    "MOTILALOFS.NS",
-    "MPHASIS.NS",
-    "POWERINDIA.NS",
-    "SIEMENS.NS",
-    "SUNPHARMA.NS",
-    "WAAREEENER.NS",
-    "YESBANK.NS"
+    "KALYANKJIL.NS"
    ],
    "first": [
     [
-     "ABCAPITAL.NS",
-     "2026-11-12",
-     "2026-11-12 09:15:00+05:30"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:15:00+05:30"
-    ],
-    [
-     "DIVISLAB.NS",
-     "2026-11-09",
-     "2026-11-09 09:30:00+05:30"
-    ],
-    [
-     "ENRIN.NS",
-     "2026-11-11",
-     "2026-11-11 09:15:00+05:30"
+     "KALYANKJIL.NS",
+     "2026-11-16",
+     "2026-11-16 09:15:00+05:30"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 15680,
+    "fired": 0,
+    "blocked_triggers": 1,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 5,
-   "per_session": 1.0,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KEI.NS",
-    "MOTHERSON.NS",
-    "OIL.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS"
+    "HCLTECH.NS",
+    "ZYDUSLIFE.NS"
    ],
    "first": [
     [
-     "KEI.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "HCLTECH.NS",
+     "2026-11-16",
+     "2026-11-16 09:15"
     ],
     [
-     "MOTHERSON.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
-    ],
-    [
-     "OIL.NS",
-     "2026-11-11",
-     "2026-11-11 14:15"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-06",
-     "2026-11-06 14:15"
-    ],
-    [
-     "SUPREMEIND.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "ZYDUSLIFE.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 5254,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 5,
-   "per_session": 1.0,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KEI.NS",
-    "MOTHERSON.NS",
-    "OIL.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS"
+    "HCLTECH.NS",
+    "ZYDUSLIFE.NS"
    ],
    "first": [
     [
-     "KEI.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "HCLTECH.NS",
+     "2026-11-16",
+     "2026-11-16 09:15"
     ],
     [
-     "MOTHERSON.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
-    ],
-    [
-     "OIL.NS",
-     "2026-11-11",
-     "2026-11-11 14:15"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-06",
-     "2026-11-06 14:15"
-    ],
-    [
-     "SUPREMEIND.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "ZYDUSLIFE.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 5254,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
-   "bar_fires": 5,
-   "symbol_session_fires": 5,
-   "per_session": 1.0,
+   "bar_fires": 2,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KEI.NS",
-    "MOTHERSON.NS",
-    "OIL.NS",
-    "POWERINDIA.NS",
-    "SUPREMEIND.NS"
+    "HCLTECH.NS",
+    "ZYDUSLIFE.NS"
    ],
    "first": [
     [
-     "KEI.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "HCLTECH.NS",
+     "2026-11-16",
+     "2026-11-16 09:15"
     ],
     [
-     "MOTHERSON.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
-    ],
-    [
-     "OIL.NS",
-     "2026-11-11",
-     "2026-11-11 14:15"
-    ],
-    [
-     "POWERINDIA.NS",
-     "2026-11-06",
-     "2026-11-06 14:15"
-    ],
-    [
-     "SUPREMEIND.NS",
-     "2026-11-06",
-     "2026-11-06 15:15"
+     "ZYDUSLIFE.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 5254,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "bar_fires": 15,
-   "symbol_session_fires": 15,
-   "per_session": 3.0,
+   "bar_fires": 9,
+   "symbol_session_fires": 9,
+   "per_session": 9.0,
    "symbols": [
-    "ADANIENSOL.NS",
-    "BLUESTARCO.NS",
-    "COFORGE.NS",
-    "DABUR.NS",
-    "FORTIS.NS",
+    "DMART.NS",
+    "GRASIM.NS",
     "HCLTECH.NS",
-    "ICICIPRULI.NS",
-    "INDUSTOWER.NS",
-    "LTF.NS",
-    "MPHASIS.NS",
-    "NTPC.NS",
-    "OIL.NS",
-    "PERSISTENT.NS",
-    "PIIND.NS",
-    "RELIANCE.NS"
+    "INFY.NS",
+    "MARICO.NS",
+    "SUNPHARMA.NS",
+    "TORNTPHARM.NS",
+    "VAML.NS",
+    "ZYDUSLIFE.NS"
    ],
    "first": [
     [
-     "ADANIENSOL.NS",
-     "2026-11-12",
-     "2026-11-12 12:15"
+     "DMART.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ],
     [
-     "BLUESTARCO.NS",
-     "2026-11-06",
-     "2026-11-06 14:15"
+     "GRASIM.NS",
+     "2026-11-16",
+     "2026-11-16 13:15"
     ],
     [
-     "COFORGE.NS",
-     "2026-11-12",
-     "2026-11-12 12:15"
+     "HCLTECH.NS",
+     "2026-11-16",
+     "2026-11-16 09:15"
     ],
     [
-     "DABUR.NS",
-     "2026-11-11",
-     "2026-11-11 11:15"
+     "INFY.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ],
     [
-     "FORTIS.NS",
-     "2026-11-13",
-     "2026-11-13 10:15"
+     "MARICO.NS",
+     "2026-11-16",
+     "2026-11-16 11:15"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 5254,
+    "fired": 6,
+    "blocked_triggers": 0,
+    "attempts": 4
+   },
+   "verdict": "ok"
   },
   {
    "tag": "brk20_min_rr__main_replay__long__1h__atr4_rr4__v1",
@@ -1460,7 +782,14 @@
    "symbol_session_fires": 0,
    "per_session": 0.0,
    "symbols": [],
-   "first": []
+   "first": [],
+   "live": {
+    "scans": 5249,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "brk20_min_rr__main_replay__long__1h__atr3_rr4__v1",
@@ -1468,46 +797,42 @@
    "symbol_session_fires": 0,
    "per_session": 0.0,
    "symbols": [],
-   "first": []
+   "first": [],
+   "live": {
+    "scans": 5249,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "bar_fires": 7,
-   "symbol_session_fires": 4,
-   "per_session": 0.8,
+   "bar_fires": 2,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "APARINDS.NS",
-    "ASTRAL.NS",
-    "CGPOWER.NS",
-    "PAGEIND.NS"
+    "TMPV.NS"
    ],
    "first": [
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 09:15"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 09:15"
     ],
     [
-     "APARINDS.NS",
-     "2026-11-06",
-     "2026-11-06 10:15"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 09:15"
-    ],
-    [
-     "ASTRAL.NS",
-     "2026-11-06",
-     "2026-11-06 10:15"
-    ],
-    [
-     "CGPOWER.NS",
-     "2026-11-06",
-     "2026-11-06 09:15"
+     "TMPV.NS",
+     "2026-11-16",
+     "2026-11-16 10:15"
     ]
-   ]
+   ],
+   "live": {
+    "scans": 5249,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "power_play",
@@ -1515,7 +840,14 @@
    "symbol_session_fires": 0,
    "per_session": 0.0,
    "symbols": [],
-   "first": []
+   "first": [],
+   "live": {
+    "scans": 5252,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0
+   },
+   "verdict": "ok"
   }
  ]
 }
