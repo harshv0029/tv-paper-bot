@@ -17,6 +17,22 @@
    "symbol": "ADANIENSOL.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 274.25,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-10-09",
    "entry_order_id": "261009000196477",
    "entry_price": 134.39,
@@ -47,6 +63,22 @@
    "stop_loss": 305.3714686802455,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "BIOCON.NS"
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 131.865,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "CANBK-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 2,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-11",
@@ -81,6 +113,22 @@
    "symbol": "COLPAL.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 381.22,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "DABUR-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000298121",
    "entry_price": 357.1,
@@ -97,6 +145,22 @@
    "symbol": "FEDERALBNK.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 226.32,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "GROWW-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-11-13",
    "entry_order_id": "261113000268464",
    "entry_price": 1382.0,
@@ -111,6 +175,22 @@
    "stop_loss": 1350.795432559942,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "HCLTECH.NS"
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 431.77,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-13",
@@ -145,6 +225,22 @@
    "symbol": "INDUSTOWER.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 1143.86,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "INFY-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000158129",
    "entry_price": 479.05,
@@ -177,6 +273,38 @@
    "symbol": "LICI.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 92.23,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 2,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 905.33,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "MARICO-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000159207",
    "entry_price": 244.24,
@@ -191,6 +319,22 @@
    "stop_loss": 191.91143144880022,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
    "symbol": "MEESHO.NS"
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 164.18,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-13",
@@ -241,6 +385,22 @@
    "symbol": "TATASTEEL.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 265.8,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "TMPV-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
@@ -271,6 +431,22 @@
    "stop_loss": 480.84279087611606,
    "strategy": "gap__runaway__long__1d__atr4_h20__v1",
    "symbol": "UPL.NS"
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 196.3,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "holding",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
   },
   {
    "day": "2026-11-09",
