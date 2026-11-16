@@ -30056,6 +30056,17 @@ BRK20_1H_LONG_CELLS = {BRK20_1H_LONG_TAG: (4.0, 4.0, BRK20_MAX_HOLD_BARS)}  # ta
 BRK20_1H_LONG_CELLS["brk20_min_rr__main_replay__long__1h__atr3_rr4__v1"] = (3.0, 4.0, BRK20_MAX_HOLD_BARS)
 for _t in BRK20_1H_LONG_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
+# B-1485 (user 2026-11-16 IST "If trailing SL has better results then replace fix SL with TRAILING SL"): brk20-min-rr-main-
+# replay.yml run 43803665426 (band_cap=trail, full NSE, real main.py fns, 0.8% cost): the peak-HIGH trail 0.5R beats the
+# fixed stop on both 1h cells (atr4_rr4 1.716 -> 2.014, hold 15.2 -> 12.5 bars; atr3_rr4 1.373 -> 1.582, 13.5 -> 10.0).
+# Same rule as SWING_PEAK_LTP_TRAIL_CELLS on 1h bars: long stop = max(initial, peak - 0.5R), peak = max(entry, HIGH of
+# every COMPLETED 1h bar after the fill bar); checked from the bar after the fill bar, before the strategy's own exit
+# (scripts/brk20_replay.py + swing_bandcap.trailed_stop). Live tag kept; the validated trailed registry tag is recorded.
+SWING_1H_PEAK_LTP_TRAIL_CELLS = {
+    BRK20_1H_LONG_TAG: (0.5, "brk20_min_rr__main_replay_b1485__long__1h__atr4_rr4_rsbandfloor_trailltp0d5r__v1"),
+    "brk20_min_rr__main_replay__long__1h__atr3_rr4__v1":
+        (0.5, "brk20_min_rr__main_replay_b1485__long__1h__atr3_rr4_rsbandfloor_trailltp0d5r__v1"),
+}
 
 
 def brk20_1h_long_entry_signal(df1h: pd.DataFrame, tag: str) -> dict | None:
@@ -30074,9 +30085,11 @@ def brk20_1h_long_entry_signal(df1h: pd.DataFrame, tag: str) -> dict | None:
             "direction": "long"}
 
 
-def _brk20_long_1h_exit(df, pos):
+def _brk20_long_1h_exit(df, pos, conn=None, symbol=None):
     """(reason, exit_px) via the real brk20_min_rr_exit_reason, replayed bar by bar from the first bar after the signal
-    bar (entry_day = the signal bar's Date); None while open."""
+    bar (entry_day = the signal bar's Date); None while open. B-1485: a SWING_1H_PEAK_LTP_TRAIL_CELLS tag also walks the
+    peak-HIGH trail from the bar after the fill bar (checked BEFORE the strategy exit on the same bar, as the replay);
+    with conn + symbol the walked peak is stored (swing_trail_peak) so the Kotak resting stop / breach sweep follow it."""
     cfg = BRK20_1H_LONG_CELLS.get(pos["strategy"])
     if cfg is None or len(df) == 0:
         return None
@@ -30087,7 +30100,25 @@ def _brk20_long_1h_exit(df, pos):
         return None
     start = int(idx[-1]) + 1
     fill = str(dates[start])
+    hit_abs, hit_px = None, None
+    rule = (_swing_long_trail_rule(conn, symbol, pos["strategy"], pos["entry_day"]) if conn is not None and symbol
+            else (("ltp", float(SWING_1H_PEAK_LTP_TRAIL_CELLS[pos["strategy"]][0]))
+                  if pos["strategy"] in SWING_1H_PEAK_LTP_TRAIL_CELLS else None))
+    if rule is not None and start + 1 < len(df):
+        try:
+            pw = peak_ltp_trail_walk(df.iloc[start + 1:], "0000-00-00", pos["entry_price"], pos["initial_stop_loss"],
+                                     rule[1], "long", kind=rule[0])
+            if pw["hit_idx"] is not None:
+                hit_abs, hit_px = start + 1 + int(pw["hit_idx"]), float(pw["hit_price"])
+            if conn is not None and symbol:  # fresh walk is authoritative: replace (a same-day earlier position's peak must not leak)
+                conn.execute("INSERT OR REPLACE INTO swing_trail_peak (symbol, side, entry_day, peak, updated_at) "
+                             "VALUES (?, 'long', ?, ?, ?)", (symbol, str(pos["entry_day"])[:10], float(pw["peak"]), time.time()))
+                conn.commit()
+        except Exception as e:
+            print(f"[SWING LONG 1h] B-1485 trail walk failed for {symbol} (non-fatal, fixed stop applies): {e}")
     for j in range(start, len(df)):
+        if hit_abs is not None and j == hit_abs:
+            return "brk20_trail_stop_hit", hit_px
         r, px = brk20_min_rr_exit_reason(df.iloc[: j + 1], fill, float(pos["entry_price"]), float(pos["initial_stop_loss"]),
                                          "long", be_r=None, max_hold_bars=hold)
         if r:
@@ -30524,7 +30555,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                 elif pos["strategy"] in CHAN_KALMAN_1H_CELLS:
                     ex = _chan_kalman_long_1h_exit(df, pos)
                 elif pos["strategy"] in BRK20_1H_LONG_CELLS:
-                    ex = _brk20_long_1h_exit(df, pos)
+                    ex = _brk20_long_1h_exit(df, pos, conn, symbol)  # B-1485: + peak-HIGH trail
                 elif pos["strategy"] in ISLAND_TFS_LONG_4H_TAGS:
                     ex = _island_long_4h_exit(_island_4h_completed_bars(df), pos)  # B-1600 (b): replay on 4h bars
                 elif pos["strategy"] in PL1D_TFS_LONG_4H_TAGS:
@@ -31654,7 +31685,7 @@ def _swing_long_trail_rule(conn, symbol, strategy, entry_day):
     v = _swing_exit_variant_get(conn, symbol, entry_day, strategy)
     if v is not None:
         return swing_exit_mode_rule(v["mode"])
-    pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+    pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy) or SWING_1H_PEAK_LTP_TRAIL_CELLS.get(strategy)  # B-1485 1h cells
     return ("ltp", float(pl[0])) if pl else None
 
 
@@ -31909,7 +31940,7 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     B-1500: trail_rule = the position's own (kind, N) from _swing_long_trail_rule (None = fixed: the trail branch is
     skipped even on a SWING_PEAK_LTP_TRAIL_CELLS tag); `peak_ltp` is then that kind's stored peak (HIGHs or CLOSEs)."""
     if trail_rule is _TRAIL_RULE_LEGACY:
-        _pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy)
+        _pl = SWING_PEAK_LTP_TRAIL_CELLS.get(strategy) or SWING_1H_PEAK_LTP_TRAIL_CELLS.get(strategy)  # B-1485
         trail_rule = ("ltp", float(_pl[0])) if _pl is not None else None
     if trail_rule is not None:
         if peak_ltp is None or entry_price is None:
@@ -35586,6 +35617,10 @@ _SWING_SL_RULES.update({
     _t: (f"peak-LTP trail: lowest completed-day low since entry + {_n:g}R, never above the initial stop "
          f"(initial: entry + {BRK20_SHORT_SWING_ATR_OF_TAG[_t]:g}xATR(Wilder); exit also on the EMA13 rule or 30-bar max hold)")
     for _t, (_n, _rt) in SHORT_SWING_PEAK_LTP_TRAIL_CELLS.items()})
+_SWING_SL_RULES.update({  # B-1485: brk20 1h cells
+    _t: (f"peak-LTP trail: highest completed-1h-bar high since the fill bar - {_n:g}R, never below the initial stop "
+         f"(initial: {_SWING_SL_RULES.get(_t, 'the signal stop').replace(', frozen', '')})")
+    for _t, (_n, _rt) in SWING_1H_PEAK_LTP_TRAIL_CELLS.items()})
 
 
 _SWING_TRAIL_KIND_TEXT = {"ltp": "peak-LTP trail: highest completed-day high since entry - {n}R",

@@ -94,6 +94,12 @@ for _s in sr.REGISTRY:
     if _s.source.startswith("scripts/exit_family_research.py"):
         VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])
 
+# B-1485 (run 43803665426): exit-mode measurements of the two wired brk20 1h cells (each its own research row); the
+# trailltp0d5r rows are the live exit (main.SWING_1H_PEAK_LTP_TRAIL_CELLS), every row is a variant of its wired cell.
+for _s in sr.REGISTRY:
+    if "__main_replay_b1485__long__1h__" in _s.name:
+        VARIANT_OF_WIRED.setdefault(_s.name, "brk20_min_rr__main_replay__long__1h__" + _s.name.split("__")[4].split("_rsband")[0] + "__v1")
+
 
 def test_every_viable_strategy_is_wired_or_explained():
     mapped = set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
