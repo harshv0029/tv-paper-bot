@@ -257,6 +257,22 @@
    "symbol": "LICI.NS"
   },
   {
+   "day": "2026-11-16",
+   "entry_order_id": "261116000040552",
+   "entry_price": 92.21,
+   "first_seen_day": "2026-11-16",
+   "is_short": 0,
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "opened_at": 1794801003.2669683,
+   "owner": "swing",
+   "qty": 2,
+   "sl_trigger_price": 82.78,
+   "source": "position",
+   "stop_loss": 74.66786302839006,
+   "strategy": "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2",
+   "symbol": "MAHABANK.NS"
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000159207",
    "entry_price": 244.24,
