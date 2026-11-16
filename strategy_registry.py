@@ -3183,6 +3183,11 @@ def _extend_with_sweeps():
     except Exception:
         pass
     try:
+        import strategy_registry_chanext2 as _c2  # B-783 Chan ext full-cell rerun (run 43777006555)
+        REGISTRY.extend(_c2.build())
+    except Exception:
+        pass
+    try:
         import strategy_registry_chan_gap_mr as _cg
         REGISTRY.extend(_cg.build())
     except Exception:

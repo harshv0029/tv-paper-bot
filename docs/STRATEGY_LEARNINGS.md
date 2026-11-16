@@ -2298,3 +2298,20 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Leaders: pivot breakout x tightness pr1 1d (3.17, n 337), leaders first-high 1d atr3 h60 (1.98, n 1611), flag-price breakout 1w (5.27, but n 28) and HFT breakout 1w (3.87, n 124).
 - Caveat stays: overlapping signals (no strict-FIFO non-overlap, no IS/OOS), and 2,181 of the 2,723 requested NSE-file symbols had enough daily history (the rest are newer listings). Passing cells still need the non-overlap rerun and a main.py replay before wiring.
 - Profit-booking / exit takeaway: the winners all use wide ATR stops (2-3x) with long time exits (40-60 days, 12-26 weeks); tight stops on O'Neil breakouts cut the trend early. Keep the wide-stop/long-hold exit on any version that gets wired.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 5m (B-606, run 43777004230)
+- 84 tags on 5m bars over 60 days, 0.8% cost. All fail: best PFnet 0.305 (brk20 long, round-number snap), gross PF at most 0.993. Caveat: only 120 of 5,446 symbols returned 5m data, so this is a thin slice (B-1614 re-runs it wider).
+- The stop variants again cluster tightly; nothing in stop placement lifts any cell near 1.
+- Profit-booking / exit takeaway: across 1d, 1h, 15m and 5m the stop's exact position is never the lever; cost per trade against hold length decides. Intraday Elder breakout/dip entries stay off whatever the stop.
+
+### 2026-11-16 IST: Chan extension rerun with full cell tables (B-783, run 43777006555)
+- 758 cells across 1d (446), 4h (90), 1h (90), 15m (66) and 5m (66), 0.8% cost, every cell committed as a TSV (the old run only printed ~80 per timeframe). Pass PFnet > 1: 1d 47, 4h 2, 1h 1, 15m 14, 5m 18. 469 tags are new to the registry; the rest were already registered from the old log slice and keep those numbers.
+- Leaders: chan_tsm lookback-sign long 1d atr2.5 h25 lb20 (2.35, n 943); Kalman band 5m short atr4 h40 z2 (2.01, n 1321); Kalman band 15m long atr4 h40 z2 (1.45, n 660); Kalman band 4h long atr4 z2 (1.24, n 11565).
+- Kalman band passes cluster at the widest stop (4 ATR) and the stricter z=2 entry; z=1 cells with 1.5 ATR stops fail on every timeframe.
+- Caveat: overlapping signals, no IS/OOS. Passing cells need the non-overlap rerun and a main.py replay before wiring.
+- Profit-booking / exit takeaway: mean-reversion bands only pay with a wide stop (4 ATR) that lets the reversion finish; tight stops turn Kalman reversion into a loss on every candle size.
+
+### 2026-11-16 IST: O'Neil base patterns rerun (B-783, run 43770029152)
+- Same 1,218 cells on 1d and 1w as run 38193479637 (2026-10-12), on a month more data, 0.8% cost. Pass PFnet > 1: 1d 373 (was 402), 1w 626 (was 703). 113 cells fell below 1.00, 7 rose above. Registry now takes the newest run's numbers (strategy_registry_oneilcup.py newest-run-first).
+- 39 of the cells that fell are in the live viable stack (cup-handle, flat-base, saucer, new-high first, pivot, double-bottom). Almost all were marginal before (1.00-1.10) and are 0.89-1.00 now: a thin edge that one more month of data erases.
+- Profit-booking / exit takeaway: O'Neil cells within ~0.1 of 1.00 are noise; the robust ones keep a wide ATR stop and a long time exit. The marginal cells' exits (tight pct7/pct8 stops, 20-day holds) are where the edge vanished.
