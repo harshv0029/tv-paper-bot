@@ -98423,7 +98423,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs274.20",
    "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
+  },
+  {
+   "id": 8203,
+   "ts": 1794800902.7598615,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000033862",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs247.20",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8204,
+   "ts": 1794800903.804326,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000033862",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs247.20",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs247.20 already covers the position (target stop Rs242.97), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:48:13Z"
+ "synced_at_utc": "2026-11-16T03:48:29Z"
 }
