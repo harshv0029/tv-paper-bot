@@ -98639,7 +98639,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs259.45",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8221,
+   "ts": 1794801139.4917684,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000048915",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs196.26",
+   "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-16T03:52:01Z"
+ "synced_at_utc": "2026-11-16T03:52:22Z"
 }
