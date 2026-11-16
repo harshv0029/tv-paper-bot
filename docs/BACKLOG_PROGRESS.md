@@ -141,7 +141,7 @@ Total rows: 1365 | closed: 988 | not closed: 377
 | B-812 | P1 | DONE-PENDING-VERIFY | Strict-FIFO (one position per symbol per cell) non-overlap re-run of the 4 macddiv 1h long cells >=1.1 (lin... | owed, pending, verify, needs |
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
 | B-1547 | P1 | DONE-PENDING-VERIFY | 2026-11-11 IST | pending, verify, follow-up, awaiting, waiting |
-| B-1578 | P1 | BUILT-ON-BRANCH | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify, owner |
+| B-1578 | P1 | BUILT-ON-BRANCH | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify, owner |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
 | B-357 | P2 | BLOCKED | User 2026-10-11 "yes": short-selling engine on futures | owed, blocked, needs |
 | B-366 | P2 | BLOCKED | Spun out of B-365: order-book imbalance (Level 2 depth at best bid/ask, 5-level quote depth from Kotak) as ... | owed, blocked, needs |
@@ -270,9 +270,9 @@ Total rows: 1365 | closed: 988 | not closed: 377
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | IN | 2026-11-05 | owed, remaining, needs, follow-up |
 | B-1485 | P1 | UNKNOWN | 2026-11-05 | owed, pending, needs |
-| B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | pending, verify |
+| B-1557 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | pending, verify |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
-| B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-15 06:19 IST: deployed via deploy-gate run 43660033232, main 9000c4ca7; verify... | owed, pending, verify |
+| B-1581 | P1 | OPEN | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify |
 | B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
 | B-1600 | P1 | PARTIAL | 2026-11-15 IST | owed, needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
