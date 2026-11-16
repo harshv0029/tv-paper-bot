@@ -98627,7 +98627,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs265.75",
    "detail": "reason: swing entry signal from strategy starc__fade_full__long__1d__atr2d5_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt1 (starc__fade_full__long__1d__atr2d5_h20_rsbandfloor_trailltp1r__v1, 0.084927 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 8220,
+   "ts": 1794801116.9661176,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000047390",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs259.45",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-16T03:51:45Z"
+ "synced_at_utc": "2026-11-16T03:52:01Z"
 }
