@@ -98567,7 +98567,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs82.78",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8215,
+   "ts": 1794801023.732865,
+   "symbol": "MAHABANK.NS",
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000041927",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs82.78",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs82.78 already covers the position (target stop Rs74.67), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:50:25Z"
+ "synced_at_utc": "2026-11-16T03:50:39Z"
 }
