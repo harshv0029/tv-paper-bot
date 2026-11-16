@@ -13,7 +13,7 @@ Total rows: 1367 | closed: 992 | not closed: 375
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 47 |
+| OPEN | 45 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -23,12 +23,12 @@ Total rows: 1367 | closed: 992 | not closed: 375
 | HARNESS-BUILT-RUN-PENDING | 7 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
+| UNKNOWN | 5 |
+| FROM | 5 |
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
-| UNKNOWN | 4 |
 | USER | 4 |
-| FROM | 4 |
 | DEPLOYED | 3 |
 | TODO | 2 |
 | IN | 2 |
@@ -262,7 +262,7 @@ Total rows: 1367 | closed: 992 | not closed: 375
 |---|---|---|---|---|
 | B-1549 | P0 | DONE-VERIFIED | 2026-11-11 IST | owed, needs, follow-up, awaiting, waiting |
 | B-1567 | P0 | PARTIAL | 2026-11-12 IST | verify, owner |
-| B-1582 | P0 | OPEN | 2026-11-14 IST | verify |
+| B-1582 | P0 | UNKNOWN | 2026-11-14 IST | verify |
 | B-1615 | P0 | OPEN | 2026-11-16 IST |  |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
@@ -304,7 +304,7 @@ Total rows: 1367 | closed: 992 | not closed: 375
 | B-1593 | P2 | OPEN | 2026-11-15 IST |  |
 | B-1595 | P2 | OPEN-RECURRING | 2026-11-15 IST |  |
 | B-1599 | P2 | OPEN | 2026-11-15 IST | owed |
-| B-1601 | P2 | OPEN | 2026-11-15 IST |  |
+| B-1601 | P2 | FROM | 2026-11-15 IST | pending |
 | B-1613 | P2 | USER | 2026-11-16 IST | verify, needs, waiting |
 | B-1614 | P2 | OPEN | 2026-11-16 IST |  |
 | B-1456 | P3 | PARKED | 2026-11-03 00:35 IST |  |

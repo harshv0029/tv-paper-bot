@@ -39645,10 +39645,18 @@ def _log_signal_shadow(conn, strategy_tag, symbol, direction, taken: bool, reaso
     a hard rule (viability floor, switch off, cutoff, no liquidity); discretionary skips must be False.
     Never raises, never affects trading."""
     try:
+        _day = ist_now().strftime("%Y-%m-%d")
+        # B-1601: a daily signal re-checked every scan pass was logged up to 448x/day (16-Nov: 10,048 rows,
+        # 5,896 unique). One row per (day, tag, symbol, direction, taken, reason) keeps the report's counts honest.
+        if conn.execute(
+                "SELECT 1 FROM signal_shadow_log WHERE day=? AND strategy_tag=? AND symbol=? AND direction=? "
+                "AND taken=? AND reason=? LIMIT 1",
+                (_day, strategy_tag, symbol, direction, 1 if taken else 0, reason)).fetchone():
+            return
         conn.execute(
             "INSERT INTO signal_shadow_log (ts, day, strategy_tag, symbol, direction, taken, reason, hard_gate) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (time.time(), ist_now().strftime("%Y-%m-%d"), strategy_tag, symbol, direction,
+            (time.time(), _day, strategy_tag, symbol, direction,
              1 if taken else 0, reason, 1 if hard_gate else 0))
         conn.commit()
     except Exception as e:
