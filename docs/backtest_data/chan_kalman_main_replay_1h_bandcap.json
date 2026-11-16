@@ -1,0 +1,1983 @@
+{
+ "job": "1h",
+ "tf": "1h",
+ "shard": 0,
+ "nshards": 1,
+ "symbols_seen": 2723,
+ "symbols_kept": 2418,
+ "band_cap_modes": [
+  "off",
+  "live",
+  "live_tr0d5",
+  "live_tr1",
+  "live_tr1d5",
+  "live_tr2",
+  "live_tr3",
+  "live_be1",
+  "live_be2",
+  "live_lt0d5",
+  "live_lt1",
+  "live_lt1d5",
+  "live_lt2"
+ ],
+ "is_oos_cutoff_utc": "2025-12-24 15:09:00+00:00",
+ "cost_round_trip_pct": 0.8,
+ "synthetic": false,
+ "universe_requested": "main._load_nse_universe_from_file()",
+ "functions": [
+  "main.chan_kalman_band_v1_precompute",
+  "main.chan_kalman_band_v1_entry_signal",
+  "main.chan_kalman_band_v1_stop",
+  "main.chan_kalman_band_v1_exit_reason",
+  "scripts/swing_bandcap.band_hit (resting stop + trail)"
+ ],
+ "note": "B-1485 trail overlay on the wired chan_kalman cells; off = same-run fixed-stop baseline",
+ "rows": [
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "off",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5290,
+    "win_pct": 61.02,
+    "pfnet": 1.084394815159517,
+    "pfgross": 1.5255584385131924,
+    "avg_net_pct": 0.1822,
+    "avg_gross_pct": 0.9822,
+    "avg_held_bars": 8.18,
+    "exit_reasons": {
+     "state_exit": {
+      "n": 4723,
+      "pfnet": 2.694519336931986,
+      "win_pct": 68.35,
+      "avg_held_bars": 7.97
+     },
+     "stop": {
+      "n": 561,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.69
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 4,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 8.18,
+    "is": {
+     "n": 3552,
+     "win_pct": 63.12,
+     "pfnet": 1.1197377588647726,
+     "pfgross": 1.5815035282115857,
+     "avg_net_pct": 0.2487,
+     "avg_gross_pct": 1.0487,
+     "avg_held_bars": 8.08,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 3165,
+       "pfnet": 2.956627766993769,
+       "win_pct": 70.84,
+       "avg_held_bars": 7.9
+      },
+      "stop": {
+       "n": 383,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 9.3
+      },
+      "max_hold": {
+       "n": 4,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 8.08
+    },
+    "oos": {
+     "n": 1738,
+     "win_pct": 56.73,
+     "pfnet": 1.0198451419764478,
+     "pfgross": 1.4225755580172372,
+     "avg_net_pct": 0.0461,
+     "avg_gross_pct": 0.8461,
+     "avg_held_bars": 8.37,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1558,
+       "pfnet": 2.287815112777475,
+       "win_pct": 63.29,
+       "avg_held_bars": 8.12
+      },
+      "stop": {
+       "n": 178,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.52
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      }
+     },
+     "avg_held_hours": 8.37
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": null
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailr0d5_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_tr0d5",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5841,
+    "win_pct": 44.89,
+    "pfnet": 0.992395985147406,
+    "pfgross": 1.6097855967246961,
+    "avg_net_pct": -0.013,
+    "avg_gross_pct": 0.787,
+    "avg_held_bars": 4.59,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2551,
+      "pfnet": 0.10031807808953642,
+      "win_pct": 13.48,
+      "avg_held_bars": 2.38
+     },
+     "state_exit": {
+      "n": 2670,
+      "pfnet": 16.826453190336608,
+      "win_pct": 85.28,
+      "avg_held_bars": 6.04
+     },
+     "trail_stop_hit": {
+      "n": 587,
+      "pfnet": 8.265444060111019e-05,
+      "win_pct": 0.17,
+      "avg_held_bars": 7.74
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     }
+    },
+    "avg_held_hours": 4.59,
+    "is": {
+     "n": 3920,
+     "win_pct": 45.61,
+     "pfnet": 0.9941568697653187,
+     "pfgross": 1.612739905583229,
+     "avg_net_pct": -0.0099,
+     "avg_gross_pct": 0.7901,
+     "avg_held_bars": 4.6,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1747,
+       "pfnet": 0.1052777446554713,
+       "win_pct": 13.39,
+       "avg_held_bars": 2.38
+      },
+      "state_exit": {
+       "n": 1769,
+       "pfnet": 20.109520954385534,
+       "win_pct": 87.79,
+       "avg_held_bars": 6.1
+      },
+      "trail_stop_hit": {
+       "n": 378,
+       "pfnet": 0.00013191724966362967,
+       "win_pct": 0.26,
+       "avg_held_bars": 8.09
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.6
+    },
+    "oos": {
+     "n": 1921,
+     "win_pct": 43.41,
+     "pfnet": 0.988848466819161,
+     "pfgross": 1.603774858821137,
+     "avg_net_pct": -0.0192,
+     "avg_gross_pct": 0.7808,
+     "avg_held_bars": 4.56,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 901,
+       "pfnet": 12.696292635537151,
+       "win_pct": 80.36,
+       "avg_held_bars": 5.92
+      },
+      "trail_stop_hit": {
+       "n": 209,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 7.1
+      },
+      "band_floor_stop_hit": {
+       "n": 804,
+       "pfnet": 0.08891518372760367,
+       "win_pct": 13.68,
+       "avg_held_bars": 2.37
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.56
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailr1_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_tr1",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5804,
+    "win_pct": 46.07,
+    "pfnet": 1.0289137271827498,
+    "pfgross": 1.669665180734898,
+    "avg_net_pct": 0.0483,
+    "avg_gross_pct": 0.8483,
+    "avg_held_bars": 5.04,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2614,
+      "pfnet": 0.08650154756264412,
+      "win_pct": 13.05,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3002,
+      "pfnet": 5.853795250638646,
+      "win_pct": 77.71,
+      "avg_held_bars": 6.92
+     },
+     "resting_stop_hit": {
+      "n": 108,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.32
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "trail_stop_hit": {
+      "n": 47,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.68
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     }
+    },
+    "avg_held_hours": 5.04,
+    "is": {
+     "n": 3895,
+     "win_pct": 46.65,
+     "pfnet": 1.0206880486517622,
+     "pfgross": 1.6569469443341724,
+     "avg_net_pct": 0.0345,
+     "avg_gross_pct": 0.8345,
+     "avg_held_bars": 5.06,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1781,
+       "pfnet": 0.09448234900609423,
+       "win_pct": 13.03,
+       "avg_held_bars": 2.48
+      },
+      "state_exit": {
+       "n": 1983,
+       "pfnet": 6.24468498106982,
+       "win_pct": 79.93,
+       "avg_held_bars": 7.03
+      },
+      "resting_stop_hit": {
+       "n": 72,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.22
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "trail_stop_hit": {
+       "n": 33,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 13.06
+      }
+     },
+     "avg_held_hours": 5.06
+    },
+    "oos": {
+     "n": 1909,
+     "win_pct": 44.89,
+     "pfnet": 1.045667061523847,
+     "pfgross": 1.6958398126398364,
+     "avg_net_pct": 0.0763,
+     "avg_gross_pct": 0.8763,
+     "avg_held_bars": 5.0,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1019,
+       "pfnet": 5.215952409302224,
+       "win_pct": 73.41,
+       "avg_held_bars": 6.71
+      },
+      "resting_stop_hit": {
+       "n": 36,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.53
+      },
+      "band_floor_stop_hit": {
+       "n": 833,
+       "pfnet": 0.07012438778631215,
+       "win_pct": 13.09,
+       "avg_held_bars": 2.47
+      },
+      "trail_stop_hit": {
+       "n": 14,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 11.79
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.0
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailr1d5_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_tr1d5",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailr2_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_tr2",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailr3_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_tr3",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailbe1r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_be1",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailbe2r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_be2",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0314894437521458,
+    "pfgross": 1.6751346495392458,
+    "avg_net_pct": 0.0524,
+    "avg_gross_pct": 0.8524,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 138,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.25
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0503777094409457,
+     "pfgross": 1.705374312626992,
+     "avg_net_pct": 0.0838,
+     "avg_gross_pct": 0.8838,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 45,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.49
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailltp0d5r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_lt0d5",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5850,
+    "win_pct": 42.72,
+    "pfnet": 0.95850873844391,
+    "pfgross": 1.5893716564238962,
+    "avg_net_pct": -0.0693,
+    "avg_gross_pct": 0.7307,
+    "avg_held_bars": 4.27,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2511,
+      "pfnet": 0.10240293854827365,
+      "win_pct": 13.62,
+      "avg_held_bars": 2.34
+     },
+     "state_exit": {
+      "n": 2353,
+      "pfnet": 23.89582024088452,
+      "win_pct": 88.14,
+      "avg_held_bars": 5.52
+     },
+     "trail_stop_hit": {
+      "n": 953,
+      "pfnet": 0.02833414403298425,
+      "win_pct": 8.71,
+      "avg_held_bars": 6.33
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     }
+    },
+    "avg_held_hours": 4.27,
+    "is": {
+     "n": 3925,
+     "win_pct": 43.46,
+     "pfnet": 0.955786847426389,
+     "pfgross": 1.5861526492642755,
+     "avg_net_pct": -0.0736,
+     "avg_gross_pct": 0.7264,
+     "avg_held_bars": 4.3,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1719,
+       "pfnet": 0.10835855336976642,
+       "win_pct": 13.55,
+       "avg_held_bars": 2.34
+      },
+      "state_exit": {
+       "n": 1560,
+       "pfnet": 31.398337646763377,
+       "win_pct": 90.83,
+       "avg_held_bars": 5.64
+      },
+      "trail_stop_hit": {
+       "n": 620,
+       "pfnet": 0.027623337603153286,
+       "win_pct": 9.03,
+       "avg_held_bars": 6.47
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.3
+    },
+    "oos": {
+     "n": 1925,
+     "win_pct": 41.19,
+     "pfnet": 0.9639951009563892,
+     "pfgross": 1.595927556665577,
+     "avg_net_pct": -0.0606,
+     "avg_gross_pct": 0.7394,
+     "avg_held_bars": 4.21,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 793,
+       "pfnet": 16.261440426607187,
+       "win_pct": 82.85,
+       "avg_held_bars": 5.3
+      },
+      "trail_stop_hit": {
+       "n": 333,
+       "pfnet": 0.02953571544626304,
+       "win_pct": 8.11,
+       "avg_held_bars": 6.06
+      },
+      "band_floor_stop_hit": {
+       "n": 792,
+       "pfnet": 0.08866082398685633,
+       "win_pct": 13.76,
+       "avg_held_bars": 2.34
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.21
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailltp1r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_lt1",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5807,
+    "win_pct": 45.82,
+    "pfnet": 1.0206772298138491,
+    "pfgross": 1.6556852675723606,
+    "avg_net_pct": 0.0347,
+    "avg_gross_pct": 0.8347,
+    "avg_held_bars": 4.95,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2601,
+      "pfnet": 0.09012654286713184,
+      "win_pct": 13.19,
+      "avg_held_bars": 2.44
+     },
+     "state_exit": {
+      "n": 2919,
+      "pfnet": 6.902359162360732,
+      "win_pct": 79.24,
+      "avg_held_bars": 6.69
+     },
+     "trail_stop_hit": {
+      "n": 190,
+      "pfnet": 0.005410108746776099,
+      "win_pct": 2.63,
+      "avg_held_bars": 11.13
+     },
+     "resting_stop_hit": {
+      "n": 64,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.62
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     }
+    },
+    "avg_held_hours": 4.95,
+    "is": {
+     "n": 3897,
+     "win_pct": 46.37,
+     "pfnet": 1.0102444785999862,
+     "pfgross": 1.6384441025115568,
+     "avg_net_pct": 0.0172,
+     "avg_gross_pct": 0.8172,
+     "avg_held_bars": 4.97,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1773,
+       "pfnet": 0.09800637109273347,
+       "win_pct": 13.14,
+       "avg_held_bars": 2.45
+      },
+      "state_exit": {
+       "n": 1930,
+       "pfnet": 7.351793782724969,
+       "win_pct": 81.45,
+       "avg_held_bars": 6.8
+      },
+      "trail_stop_hit": {
+       "n": 126,
+       "pfnet": 0.001101531017602856,
+       "win_pct": 1.59,
+       "avg_held_bars": 11.53
+      },
+      "resting_stop_hit": {
+       "n": 42,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.24
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.97
+    },
+    "oos": {
+     "n": 1910,
+     "win_pct": 44.71,
+     "pfnet": 1.0420638110510145,
+     "pfgross": 1.6914578744061015,
+     "avg_net_pct": 0.0703,
+     "avg_gross_pct": 0.8703,
+     "avg_held_bars": 4.89,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 989,
+       "pfnet": 6.164564738804637,
+       "win_pct": 74.92,
+       "avg_held_bars": 6.47
+      },
+      "resting_stop_hit": {
+       "n": 22,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 11.36
+      },
+      "band_floor_stop_hit": {
+       "n": 828,
+       "pfnet": 0.07403706450091058,
+       "win_pct": 13.29,
+       "avg_held_bars": 2.43
+      },
+      "trail_stop_hit": {
+       "n": 64,
+       "pfnet": 0.014703243776484956,
+       "win_pct": 4.69,
+       "avg_held_bars": 10.33
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 4.89
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailltp1d5r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_lt1d5",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.05,
+    "pfnet": 1.0291066370336608,
+    "pfgross": 1.6708047284665273,
+    "avg_net_pct": 0.0485,
+    "avg_gross_pct": 0.8485,
+    "avg_held_bars": 5.04,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3003,
+      "pfnet": 5.697596767115555,
+      "win_pct": 77.59,
+      "avg_held_bars": 6.96
+     },
+     "resting_stop_hit": {
+      "n": 127,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.14
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "trail_stop_hit": {
+      "n": 23,
+      "pfnet": 0.0048790325275397195,
+      "win_pct": 4.35,
+      "avg_held_bars": 10.09
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.04,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.021762552768888,
+     "pfgross": 1.659509846748932,
+     "avg_net_pct": 0.0362,
+     "avg_gross_pct": 0.8362,
+     "avg_held_bars": 5.06,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1984,
+       "pfnet": 6.094225477916529,
+       "win_pct": 79.84,
+       "avg_held_bars": 7.06
+      },
+      "resting_stop_hit": {
+       "n": 84,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.02
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "trail_stop_hit": {
+       "n": 16,
+       "pfnet": 0.00623367726991629,
+       "win_pct": 6.25,
+       "avg_held_bars": 11.62
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.06
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.81,
+     "pfnet": 1.044040838569701,
+     "pfgross": 1.694024868495851,
+     "avg_net_pct": 0.0736,
+     "avg_gross_pct": 0.8736,
+     "avg_held_bars": 5.0,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1019,
+       "pfnet": 5.0543441229971116,
+       "win_pct": 73.21,
+       "avg_held_bars": 6.75
+      },
+      "resting_stop_hit": {
+       "n": 43,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.37
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "trail_stop_hit": {
+       "n": 7,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 6.57
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.0
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_rsbandfloor_trailltp2r_ve10d0e4_z2d0__v1",
+   "wired_tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
+   "band_cap": "live_lt2",
+   "direction": "long",
+   "tf": "1h",
+   "atr": 4.0,
+   "ve": 0.001,
+   "z": 2.0,
+   "hold_bars": 40,
+   "walk": "per_direction",
+   "metrics": {
+    "n": 5802,
+    "win_pct": 46.09,
+    "pfnet": 1.0315978105890589,
+    "pfgross": 1.6753666980769102,
+    "avg_net_pct": 0.0526,
+    "avg_gross_pct": 0.8526,
+    "avg_held_bars": 5.05,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "n": 2615,
+      "pfnet": 0.08628824526361442,
+      "win_pct": 13.04,
+      "avg_held_bars": 2.48
+     },
+     "state_exit": {
+      "n": 3015,
+      "pfnet": 5.637343687532297,
+      "win_pct": 77.38,
+      "avg_held_bars": 6.97
+     },
+     "resting_stop_hit": {
+      "n": 137,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.23
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     },
+     "data_end": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 10.5
+     },
+     "trail_stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 15.0
+     },
+     "max_hold": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 40.0
+     }
+    },
+    "avg_held_hours": 5.05,
+    "is": {
+     "n": 3894,
+     "win_pct": 46.66,
+     "pfnet": 1.0222375770504815,
+     "pfgross": 1.6604845136046107,
+     "avg_net_pct": 0.037,
+     "avg_gross_pct": 0.837,
+     "avg_held_bars": 5.07,
+     "exit_reasons": {
+      "band_floor_stop_hit": {
+       "n": 1783,
+       "pfnet": 0.09409894960368936,
+       "win_pct": 13.01,
+       "avg_held_bars": 2.49
+      },
+      "state_exit": {
+       "n": 1991,
+       "pfnet": 5.989783551883453,
+       "win_pct": 79.61,
+       "avg_held_bars": 7.09
+      },
+      "resting_stop_hit": {
+       "n": 93,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.14
+      },
+      "stop": {
+       "n": 26,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      },
+      "max_hold": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 40.0
+      }
+     },
+     "avg_held_hours": 5.07
+    },
+    "oos": {
+     "n": 1908,
+     "win_pct": 44.92,
+     "pfnet": 1.0507134215717497,
+     "pfgross": 1.706098380093818,
+     "avg_net_pct": 0.0844,
+     "avg_gross_pct": 0.8844,
+     "avg_held_bars": 5.01,
+     "exit_reasons": {
+      "state_exit": {
+       "n": 1024,
+       "pfnet": 5.056470512721741,
+       "win_pct": 73.05,
+       "avg_held_bars": 6.76
+      },
+      "resting_stop_hit": {
+       "n": 44,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 12.41
+      },
+      "band_floor_stop_hit": {
+       "n": 832,
+       "pfnet": 0.07018168223371016,
+       "win_pct": 13.1,
+       "avg_held_bars": 2.47
+      },
+      "data_end": {
+       "n": 2,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 10.5
+      },
+      "trail_stop_hit": {
+       "n": 1,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 15.0
+      },
+      "stop": {
+       "n": 5,
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_held_bars": 1.0
+      }
+     },
+     "avg_held_hours": 5.01
+    }
+   },
+   "fixed_baseline": {
+    "n": 5290,
+    "pfnet": 1.084394815159517,
+    "win_pct": 61.02,
+    "avg_held_bars": 8.18
+   },
+   "beats_fixed": false
+  }
+ ],
+ "elapsed_s": 741.0
+}
