@@ -23,13 +23,13 @@ Total rows: 1367 | closed: 992 | not closed: 375
 | HARNESS-BUILT-RUN-PENDING | 7 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
-| USER | 5 |
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
+| UNKNOWN | 4 |
+| USER | 4 |
 | FROM | 4 |
 | DEPLOYED | 3 |
-| UNKNOWN | 3 |
 | TODO | 2 |
 | IN | 2 |
 | DISPATCH-READY | 2 |
@@ -338,7 +338,7 @@ Total rows: 1367 | closed: 992 | not closed: 375
 | B-1389 | P? | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
 | B-1390 | P? | USER | 2026-10-27 21:15 IST | owed |
 | B-1391 | P? | USER | 2026-10-27 21:40 IST | awaiting, waiting |
-| B-1566 | P? | USER | 2026-11-12 IST | owed, needs |
+| B-1566 | P? | UNKNOWN | 2026-11-12 IST | owed, blocked, needs |
 | B-1605 | P? | FROM | 2026-11-15 IST |  |
 
 ## research-queue (116)
