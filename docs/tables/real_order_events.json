@@ -97583,7 +97583,79 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs128.91",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs128.91 already covers the position (target stop Rs120.49), adopted, nothing placed"
+  },
+  {
+   "id": 8133,
+   "ts": 1794800731.559691,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_strategy_not_viable: strategy 'volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 8134,
+   "ts": 1794800731.6704533,
+   "symbol": "BHEL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_strategy_not_viable: strategy 'volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 8135,
+   "ts": 1794800732.3409305,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014670",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs183.25",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs183.25 already covers the position (target stop Rs175.18), adopted, nothing placed"
+  },
+  {
+   "id": 8136,
+   "ts": 1794800732.7271795,
+   "symbol": "BOSCHLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing minervini_vcp_livermore: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs49680.00 - capped to 0 by remaining daily cap Rs4101.22 (max 0) and/or real capital Rs4101.22 (max 0)"
+  },
+  {
+   "id": 8137,
+   "ts": 1794800733.2920675,
+   "symbol": "COLPAL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing gaps__common_fade__long__1d__atr3_nb4__v1: skipped_already_open: "
+  },
+  {
+   "id": 8138,
+   "ts": 1794800735.4344482,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261116000014670",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs183.25",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs183.25 already covers the position (target stop Rs175.18), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-16T03:45:30Z"
+ "synced_at_utc": "2026-11-16T03:45:38Z"
 }
