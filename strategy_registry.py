@@ -3188,6 +3188,11 @@ def _extend_with_sweeps():
     except Exception:
         pass
     try:
+        import strategy_registry_b1485 as _b1485  # B-1485 band_cap=trail replays of wired swing cells
+        REGISTRY.extend(_b1485.build())
+    except Exception:
+        pass
+    try:
         import strategy_registry_chan_gap_mr as _cg
         REGISTRY.extend(_cg.build())
     except Exception:

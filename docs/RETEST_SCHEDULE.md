@@ -6,7 +6,7 @@ Families: 458. List what is overdue today with `python scripts/retest_due.py --c
 
 | Due | Family | TF | Tags | Live | Oldest result | Undated |
 |---|---|---|---|---|---|---|
-| 2027-03-03 | combo | 1d | 19054 | 81 | 2026-09-01 | 18974 |
+| 2027-03-03 | combo | 1d | 24024 | 81 | 2026-09-01 | 18533 |
 | 2027-03-03 | starc | 1d | 96 | 16 | 2026-09-01 | 1 |
 | 2027-03-03 | donchian | 1d | 481 | 15 | 2026-09-01 | 1 |
 | 2027-03-03 | envelope | 1d | 321 | 13 | 2026-09-01 | 1 |
@@ -263,7 +263,7 @@ Families: 458. List what is overdue today with `python scripts/retest_due.py --c
 | 2027-04-12 | chan | 1d | 276 | 0 | 2026-10-11 | 0 |
 | 2027-04-12 | chan_alexander | 1d | 64 | 0 | 2026-10-11 | 0 |
 | 2027-04-12 | chan_ema_regime | 1d | 91 | 0 | 2026-10-11 | 0 |
-| 2027-04-12 | chan_kalman | 1d | 168 | 0 | 2026-10-11 | 0 |
+| 2027-04-12 | chan_kalman | 1d | 180 | 0 | 2026-10-11 | 0 |
 | 2027-04-12 | chan_kalman | 1h | 192 | 0 | 2026-10-11 | 0 |
 | 2027-04-12 | chan_lateday | 15m | 18 | 0 | 2026-10-11 | 0 |
 | 2027-04-12 | chan_lateday | 5m | 18 | 0 | 2026-10-11 | 0 |

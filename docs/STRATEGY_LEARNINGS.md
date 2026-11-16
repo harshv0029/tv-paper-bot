@@ -2315,3 +2315,9 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Same 1,218 cells on 1d and 1w as run 38193479637 (2026-10-12), on a month more data, 0.8% cost. Pass PFnet > 1: 1d 373 (was 402), 1w 626 (was 703). 113 cells fell below 1.00, 7 rose above. Registry now takes the newest run's numbers (strategy_registry_oneilcup.py newest-run-first).
 - 39 of the cells that fell are in the live viable stack (cup-handle, flat-base, saucer, new-high first, pivot, double-bottom). Almost all were marginal before (1.00-1.10) and are 0.89-1.00 now: a thin edge that one more month of data erases.
 - Profit-booking / exit takeaway: O'Neil cells within ~0.1 of 1.00 are noise; the robust ones keep a wide ATR stop and a long time exit. The marginal cells' exits (tight pct7/pct8 stops, 20-day holds) are where the edge vanished.
+
+### 2026-11-16 IST: Chan Kalman 1d trailing-stop overlays on the wired cell (B-1485, run 43781409223)
+- main.py-function replay of the wired cell chan_kalman__band_srcmain__long__1d__atr4d0_hold40_ve10d0e4_z2d0__v1, 2,238 symbols, 0.8% cost. Idealised no-band baseline (off) PFnet 1.355; live model with Kotak's 10% band-clamped resting stop 1.237 (n 27,741, 5.8-day hold, 0.113% net a day).
+- None of the 11 trail overlays beats the fixed live stop. Chandelier 1.5-3R, breakeven 1R/2R and LTP 1.5R/2R are no-ops (identical trades: the mean-reversion state exit closes first). Tight trails hurt: tr0d5 1.133, lt0d5 1.125, lt1 1.225.
+- 1,489 trades hit the band-floor stop at PFnet 0.004: the band clamp, not the strategy stop, is what costs 0.12 PFnet against the idealised replay.
+- Profit-booking / exit takeaway: Kalman reversion exits on its own state flip within ~6 days; a trailing stop adds nothing and a tight one cuts winners. Keep the fixed 4 ATR stop; no trail wired.
