@@ -98615,7 +98615,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs148.76",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs148.76 already covers the position (target stop Rs135.37), adopted, nothing placed"
+  },
+  {
+   "id": 8219,
+   "ts": 1794801103.6672354,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000046649",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs265.75",
+   "detail": "reason: swing entry signal from strategy starc__fade_full__long__1d__atr2d5_h20__v1 passed the PFnet gate; B-1500 exit variant live_lt1 (starc__fade_full__long__1d__atr2d5_h20_rsbandfloor_trailltp1r__v1, 0.084927 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-16T03:51:17Z"
+ "synced_at_utc": "2026-11-16T03:51:45Z"
 }
