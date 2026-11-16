@@ -20,7 +20,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 15 |
 | P3 | 9 |
-| HARNESS-BUILT-RUN-PENDING | 8 |
+| HARNESS-BUILT-RUN-PENDING | 7 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
 | USER | 5 |
@@ -37,6 +37,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | UNKNOWN | 2 |
 | RESEARCH | 2 |
 | OWNER-ACTION | 1 |
+| ONEIL-DONE-CHAN-RUNNING | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
 | DONE-ON-BRANCH | 1 |
@@ -74,7 +75,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (179)
+## waiting-on-workflow/deploy (178)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -134,7 +135,6 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-754 | P1 | BLOCKED | 2026-10-11 IST, B-749 research (agent report; NSE URLs UNVERIFIED, sandbox gets 403 from NSE, test from an ... | owed, blocked, needs, unverified |
 | B-755 | P1 | BLOCKED | 2026-10-11 IST, B-749 research (agent report; NSE URLs UNVERIFIED, sandbox gets 403 from NSE, test from an ... | owed, blocked, needs, unverified |
 | B-773 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST, B-751/B-772 result: run 38130747915 (main c5793a4), swing OB/VP long, daily 5y full univers... | pending, verify, needs, owner |
-| B-783 | P1 | HARNESS-BUILT-RUN-PENDING | Complete the O'Neil/Chan ext data: logs printed only top-N (O'Neil 1d 61/282, 1w 66/274; Chan 1d ~80/452, 1... | owed, pending, verify, needs |
 | B-784 | P1 | HARNESS-BUILT-RUN-PENDING | Re-run O'Neil (1953-2166 symbols) and Chan 1d (NIFTY200+ETF mix) on the true full universe via _load_nse_un... | owed, pending, verify |
 | B-786 | P1 | BLOCKED-ON-RUN | Replay O'Neil flat-base/pivot (PFnet 5.165, 2.92) and Chan kalman 5m/15m via real main.py functions at full... | owed, blocked, needs |
 | B-792 | P1 | DONE-PENDING-VERIFY | Intraday buy/short classification of the 63 viable strategies with avg hold <= 1 day (user ask 2026-10-11) | owed, pending, verify |
@@ -175,7 +175,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-574 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, needs, awaiting, waiting |
 | B-604 | P2 | PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, needs |
 | B-605 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, pending, verify, awaiting, waiting |
-| B-606 | P2 | P2 | RAN_1D+1H [2026-11-16 05:30 IST: 1h 730d run 43769949221 registered, 84 tags all fail (best 0.698), file do... | owed, pending, verify, needs |
+| B-606 | P2 | P2 | RAN_1D+1H+15M [2026-11-16 05:45 IST: 15m 60d run 43775842575 registered, 84 tags all fail (best 0.265, gros... | owed, pending, verify, needs |
 | B-627 | P2 | BLOCKED | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, verify, needs, owner |
 | B-742 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, pending, verify, needs |
 | B-756 | P2 | BLOCKED | 2026-10-11 IST, B-749 research (agent report; NSE URLs UNVERIFIED, sandbox gets 403 from NSE, test from an ... | owed, blocked, needs, unverified |
@@ -343,7 +343,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-1566 | P? | USER | 2026-11-12 IST | owed, needs |
 | B-1605 | P? | FROM | 2026-11-15 IST |  |
 
-## research-queue (116)
+## research-queue (117)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -373,6 +373,7 @@ Total rows: 1364 | closed: 988 | not closed: 376
 | B-596 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, needs |
 | B-597 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, needs, follow-up |
 | B-743 | P1 | PARTIAL | 2026-10-12 IST DISPATCH-READY 2026-10-12 (portfolio-overlay-research at other candle sizes) | owed, needs |
+| B-783 | P1 | ONEIL-DONE-CHAN-RUNNING | Complete the O'Neil/Chan ext data: logs printed only top-N (O'Neil 1d 61/282, 1w 66/274; Chan 1d ~80/452, 1... | owed, verify, needs |
 | B-787 | P1 | OPEN | O'Neil replay RESULT (run 38149046190, 2026-10-11 IST, bar-by-bar port, 1955 syms 1w, cost 0.8%): 6/7 tags ... | owed, needs |
 | B-789 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (island reversal at 1h/15m/5m, also covers B-815 nonovl + IS/OOS c... | owed, needs |
 | B-812 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (macddiv non-overlap, other candle sizes; also covers B-814 IS/OOS... | owed, remaining, needs |

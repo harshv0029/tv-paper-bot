@@ -2287,3 +2287,14 @@ trailing-stop set (trailltp/chandelier) in the B-1090 main.py sweep before wirin
 - Stop placement barely moves the result: structural offsets of 0.25-1.0 ATR, round-number snap and just-beyond-round all land within about 0.015 PFnet of the raw ATR stop. Long breakouts 0.65-0.70; dip entries 0.35-0.37; short breakouts 0.23-0.25.
 - Gross PF is above 1 for long breakouts (1.16-1.20), so the hourly entries do have an edge before costs, but 0.8% a round trip on 11-bar holds wipes it out. Same verdict as the 1d run (best 0.871).
 - Profit-booking / exit takeaway: at 1h the stop's exact position is not the lever; trade frequency against cost is. Hold longer or trade fewer, larger moves (the 1d swing engine's job) rather than refining the stop.
+
+### 2026-11-16 IST: Elder stop-offset and round-number stops, 15m (B-606, run 43775842575)
+- 84 tags on 15m bars over 60 days (5,362 NSE symbols with data, 0.8% round-trip cost). All fail: best PFnet 0.265 (brk20 long, just-beyond-round stop). Gross PF is under 1 everywhere (max 0.725), so there is no edge even before costs.
+- Every stop variant again lands within about 0.003 PFnet of the raw ATR stop: the stop's position does not change the outcome.
+- Profit-booking / exit takeaway: on 15m the ~10-bar holds cannot pay a 0.8% round trip; no stop or exit refinement fixes that. Intraday versions of these entries stay off.
+
+### 2026-11-16 IST: O'Neil extension rerun with full cell tables (B-783, run 43774856917)
+- 288 cells each on 1d and 1w (2,181-symbol universe, 0.8% cost), every cell committed as a TSV this time (no top-N truncation). 1d: 86 pass PFnet > 1 (old run 87); 1w: 145 pass (old 143). 12 new tags; 9 cells flipped across the 1.00 line, the rest kept their verdicts.
+- Leaders: pivot breakout x tightness pr1 1d (3.17, n 337), leaders first-high 1d atr3 h60 (1.98, n 1611), flag-price breakout 1w (5.27, but n 28) and HFT breakout 1w (3.87, n 124).
+- Caveat stays: overlapping signals (no strict-FIFO non-overlap, no IS/OOS), and 2,181 of the 2,723 requested NSE-file symbols had enough daily history (the rest are newer listings). Passing cells still need the non-overlap rerun and a main.py replay before wiring.
+- Profit-booking / exit takeaway: the winners all use wide ATR stops (2-3x) with long time exits (40-60 days, 12-26 weeks); tight stops on O'Neil breakouts cut the trend early. Keep the wide-stop/long-hold exit on any version that gets wired.

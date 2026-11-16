@@ -14,11 +14,15 @@ import os
 import strategy_registry as sr
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
-_FILES = (
-    ("oneil_ext_1d_cells.tsv", "1d"),
-    ("oneil_ext_1w_cells.tsv", "1w"),
-)
+# Newest run first: a tag takes the metrics of the latest run that has it (B-783 rerun 2026-11-16 IST).
+_REF_NEW = "oneil-ext-research.yml run 43774856917 (2026-11-16 IST, cost 0.8%, 2181-symbol universe)"
 _REF = "oneil-ext-research.yml run 38207070547 (2026-10-12 IST, cost 0.8%)"
+_FILES = (
+    ("oneil_ext_1d_cells_run_43774856917.tsv", "1d", _REF_NEW, "NSE 2181 symbols"),
+    ("oneil_ext_1w_cells_run_43774856917.tsv", "1w", _REF_NEW, "NSE 2181 symbols"),
+    ("oneil_ext_1d_cells.tsv", "1d", _REF, "NSE ~2166 symbols"),
+    ("oneil_ext_1w_cells.tsv", "1w", _REF, "NSE ~2166 symbols"),
+)
 _SRC = "scripts/oneil_ext_research.py"
 
 
@@ -31,7 +35,7 @@ def _hrs(tf, hold):
 def build():
     out = []
     seen = {s.name for s in sr.REGISTRY}
-    for fn, _tf in _FILES:
+    for fn, _tf, ref, uni in _FILES:
         try:
             rows = list(csv.DictReader(open(os.path.join(_DIR, fn)), delimiter="\t"))
         except Exception:
@@ -51,10 +55,10 @@ def build():
                     metrics=sr.Metrics(
                         pfnet=float(r["pfnet"]), pfgross=(0.0 if g in ("", "NA") else float(g)),
                         win_rate_pct=float(r["win_pct"]), n_trades=int(r["n"]),
-                        avg_held_bars=float(r["avg_hold"]), avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe="NSE ~2166 symbols",
-                        run_ref=_REF),
+                        avg_held_bars=float(r["avg_hold"]), avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe=uni,
+                        run_ref=ref),
                     source=_SRC,
-                    evidence=(f"{_REF}: PFnet {r['pfnet']}, gross {g}, win {r['win_pct']}%, n={r['n']}, "
+                    evidence=(f"{ref}: PFnet {r['pfnet']}, gross {g}, win {r['win_pct']}%, n={r['n']}, "
                               f"avg_hold {r['avg_hold']} {r.get('avg_hold_unit', '')}, avg_net {r.get('avg_net_pct', '')}%, "
                               f"max_trade {r.get('max_trade_net_pct', '')}%; exits {r.get('exit_reasons_json', '')}"),
                     notes=("O'Neil extension research cell; overlapping signals (no strict-FIFO non-overlap, no IS/OOS): "
