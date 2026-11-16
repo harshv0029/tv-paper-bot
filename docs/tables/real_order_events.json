@@ -98507,7 +98507,55 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs226.28",
    "detail": "reason: swing entry signal from strategy oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2 passed the PFnet gate; B-1500 exit variant live (oneil_leaders__firsthigh__long__1w__atr3_h26_rsbandfloor_srcmain__nonovl__v2, 0.169781 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 8210,
+   "ts": 1794800966.5716486,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "202.48",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8211,
+   "ts": 1794800966.6782107,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261116000038645",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it; Kotak facts: 16-Nov-2026 09:19:23 S SL qty 1 trg 202.48 status trigger pending rejRsn --"
+  },
+  {
+   "id": 8212,
+   "ts": 1794800968.4272835,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261116000038645",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs202.48",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8213,
+   "ts": 1794801003.6463094,
+   "symbol": "MAHABANK.NS",
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261116000040552",
+   "prev_state": "no position",
+   "new_state": "long 2 @ Rs92.21",
+   "detail": "reason: swing entry signal from strategy oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2 passed the PFnet gate; B-1500 exit variant live (oneil_leaders__firsthigh__long__1w__atr3_h26_rsbandfloor_srcmain__nonovl__v2, 0.169781 %/day; first viable variant by return per day)"
   }
  ],
- "synced_at_utc": "2026-11-16T03:49:16Z"
+ "synced_at_utc": "2026-11-16T03:50:05Z"
 }
