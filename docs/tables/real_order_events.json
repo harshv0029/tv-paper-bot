@@ -100847,7 +100847,31 @@
    "prev_state": "short 1",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 8405,
+   "ts": 1794893912.7018533,
+   "symbol": "EXIDEIND.NS",
+   "kotak_trading_symbol": "EXIDEIND-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261117000177271",
+   "prev_state": "resting @ Rs384.55",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 8406,
+   "ts": 1794893932.6674862,
+   "symbol": "EXIDEIND.NS",
+   "kotak_trading_symbol": "EXIDEIND-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261117000318535",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-17T05:38:31Z"
+ "synced_at_utc": "2026-11-17T05:38:57Z"
 }
