@@ -100835,7 +100835,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs431.85",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 8404,
+   "ts": 1794893909.19801,
+   "symbol": "EXIDEIND.NS",
+   "kotak_trading_symbol": "EXIDEIND-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-17T05:18:45Z"
+ "synced_at_utc": "2026-11-17T05:38:31Z"
 }
