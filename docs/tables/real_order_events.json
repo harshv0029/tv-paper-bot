@@ -100703,7 +100703,19 @@
    "prev_state": null,
    "new_state": "1129.2",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8393,
+   "ts": 1794888331.3030148,
+   "symbol": "EXIDEIND.NS",
+   "kotak_trading_symbol": "EXIDEIND-EQ",
+   "leg": "short_sl",
+   "event": "placed",
+   "order_id": "261117000101679",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs392.15",
+   "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-11-17T04:05:27Z"
+ "synced_at_utc": "2026-11-17T04:05:36Z"
 }
