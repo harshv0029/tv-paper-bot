@@ -401,22 +401,6 @@
    "symbol": "NHPC.NS"
   },
   {
-   "day": "2026-11-17",
-   "entry_order_id": "261117000022718",
-   "entry_price": 439.5,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "OIL-EQ",
-   "opened_at": 1794887160.5403326,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 431.85,
-   "source": "position",
-   "stop_loss": 431.8166328054036,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "OIL.NS"
-  },
-  {
    "day": "2026-11-09",
    "entry_order_id": "261109000822429",
    "entry_price": 131.87,
