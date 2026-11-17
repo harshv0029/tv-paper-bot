@@ -100883,7 +100883,19 @@
    "prev_state": "resting SELL trigger Rs138.90",
    "new_state": "resting SELL trigger Rs138.96",
    "detail": "reason: order_block_delta trail rule raised the stop from Rs138.90 to Rs138.96 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8408,
+   "ts": 1794895461.0491157,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000372714",
+   "prev_state": "resting SELL trigger Rs541.40",
+   "new_state": "resting SELL trigger Rs542.50",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs541.40 to Rs542.50 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T05:58:09Z"
+ "synced_at_utc": "2026-11-17T06:04:34Z"
 }
