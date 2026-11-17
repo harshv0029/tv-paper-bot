@@ -101099,7 +101099,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs1350.80",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 8426,
+   "ts": 1794906352.3570707,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000756768",
+   "prev_state": "resting SELL trigger Rs139.85",
+   "new_state": "resting SELL trigger Rs140.26",
+   "detail": "reason: order_block_delta trail rule raised the stop from Rs139.85 to Rs140.26 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T08:35:34Z"
+ "synced_at_utc": "2026-11-17T09:05:55Z"
 }
