@@ -100343,7 +100343,79 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1916.70 - capped to 0 by remaining daily cap Rs4659.99 (max 2) and/or real capital Rs4659.99 (max 2)"
+  },
+  {
+   "id": 8363,
+   "ts": 1794887147.311205,
+   "symbol": "BRITANNIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs4766.60 - capped to 0 by remaining daily cap Rs3252.19 (max 0) and/or real capital Rs3252.19 (max 0)"
+  },
+  {
+   "id": 8364,
+   "ts": 1794887148.891164,
+   "symbol": "CUMMINSIND.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing macddiv__line_any__long__1h__atr3_w5__nonovl__v2: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs4155.60 - capped to 0 by remaining daily cap Rs3252.19 (max 0) and/or real capital Rs3252.19 (max 0)"
+  },
+  {
+   "id": 8365,
+   "ts": 1794887150.7341094,
+   "symbol": "HYUNDAI.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs2105.30 - capped to 0 by remaining daily cap Rs3252.19 (max 1) and/or real capital Rs3252.19 (max 1)"
+  },
+  {
+   "id": 8366,
+   "ts": 1794887150.7832832,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000021309",
+   "prev_state": "resting SELL trigger Rs241.05",
+   "new_state": "resting SELL trigger Rs246.85",
+   "detail": "reason: starc__fade_full__long__1d__atr2d5_h20__v1 trail rule raised the stop from Rs241.05 to Rs246.85 | daily starc__fade_full__long__1d__atr2d5_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8367,
+   "ts": 1794887158.8205645,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261117000022535",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1371.50",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs1371.50 (target stop Rs1371.44)"
+  },
+  {
+   "id": 8368,
+   "ts": 1794887160.5969238,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": "OIL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261117000022718",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs439.50",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-17T03:45:48Z"
+ "synced_at_utc": "2026-11-17T03:46:02Z"
 }
