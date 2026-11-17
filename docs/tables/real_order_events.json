@@ -100885,7 +100885,7 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs138.90 to Rs138.96 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8409,
+   "id": 8408,
    "ts": 1794895449.6578243,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100897,7 +100897,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8408,
+   "id": 8409,
    "ts": 1794895461.0491157,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100909,7 +100909,7 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs541.40 to Rs542.50 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8411,
+   "id": 8410,
    "ts": 1794895971.0652921,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -100921,7 +100921,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8410,
+   "id": 8411,
    "ts": 1794895987.7775362,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -100933,7 +100933,7 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs138.96 to Rs139.85 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8413,
+   "id": 8412,
    "ts": 1794895996.3209708,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100945,7 +100945,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8412,
+   "id": 8413,
    "ts": 1794896008.0838795,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100981,5 +100981,5 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-17T06:21:17Z"
+ "synced_at_utc": "2026-11-17T06:37:18Z"
 }
