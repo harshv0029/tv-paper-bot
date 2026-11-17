@@ -100979,7 +100979,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1184.50",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8416,
+   "ts": 1794898384.317408,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000459987",
+   "prev_state": "resting SELL trigger Rs1133.00",
+   "new_state": "resting SELL trigger Rs1133.20",
+   "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1133.00 to Rs1133.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T06:37:18Z"
+ "synced_at_utc": "2026-11-17T06:53:09Z"
 }
