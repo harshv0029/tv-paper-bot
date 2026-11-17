@@ -100657,6 +100657,18 @@
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   },
   {
+   "id": 8392,
+   "ts": 1794888309.9442403,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261117000042676",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8389,
    "ts": 1794888313.7798462,
    "symbol": "EXIDEIND.NS",
@@ -100667,7 +100679,31 @@
    "prev_state": "no position",
    "new_state": "short 1 @ Rs380.75",
    "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8390,
+   "ts": 1794888319.4273531,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000101051",
+   "prev_state": "resting SELL trigger Rs1126.20",
+   "new_state": "resting SELL trigger Rs1129.20",
+   "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1126.20 to Rs1129.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8391,
+   "ts": 1794888320.3917,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "1129.2",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-17T04:05:18Z"
+ "synced_at_utc": "2026-11-17T04:05:27Z"
 }
