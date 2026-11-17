@@ -100511,7 +100511,43 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs345.85",
    "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8377,
+   "ts": 1794887212.2449076,
+   "symbol": "TATAPOWER.NS",
+   "kotak_trading_symbol": "TATAPOWER-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261117000028268",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs337.35",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8378,
+   "ts": 1794887212.2607772,
+   "symbol": "TATAPOWER.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_placed",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "placed",
+   "detail": "reason: trigger queued at 2026-11-17 00:16:22 IST (market closed) passed fresh re-validation at the open; placed by the swing engine with its SL | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: confirmed"
+  },
+  {
+   "id": 8379,
+   "ts": 1794887212.2679713,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"13 nse symbols printed new trades today within 120s\", \"symbols\": [\"RELIANCE.NS\", \"RVNL.NS\", \"SBILIFE.NS\", \"SBIN.NS\", \"SUZLON.NS\", \"TATAPOWER.NS\", \"TATASTEEL.NS\", \"TCS.NS\", \"TITAN.NS\", \"TMPV.NS\"], \"count\": 13, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 31.9}, \"replay\": {\"placed\": 2, \"dropped\": 4, \"requeued\": 1, \"considered\": 7}}"
   }
  ],
- "synced_at_utc": "2026-11-17T03:46:51Z"
+ "synced_at_utc": "2026-11-17T03:47:06Z"
 }
