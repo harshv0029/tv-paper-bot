@@ -100775,7 +100775,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs390.65",
    "detail": "reason: swing entry signal from strategy reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8399,
+   "ts": 1794890049.319183,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261117000186041",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs349.30",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-17T04:33:55Z"
+ "synced_at_utc": "2026-11-17T04:34:12Z"
 }
