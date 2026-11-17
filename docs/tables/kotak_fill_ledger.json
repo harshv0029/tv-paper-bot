@@ -358,7 +358,7 @@
    "buy_amt": 1220.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -370,7 +370,19 @@
    "buy_amt": 1407.8,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "COCHINSHIP-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1150.8,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -382,7 +394,19 @@
    "buy_amt": 375.7,
    "sell_qty": 1.0,
    "sell_amt": 380.75,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "GAIL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 3.0,
+   "buy_amt": 564.03,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -394,7 +418,7 @@
    "buy_amt": 390.65,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -406,7 +430,7 @@
    "buy_amt": 439.5,
    "sell_qty": 1.0,
    "sell_amt": 431.85,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -418,7 +442,7 @@
    "buy_amt": 345.85,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
   },
   {
    "day": "2026-11-17",
@@ -430,8 +454,8 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 181.83,
-   "updated_at": 1794898710.8426113
+   "updated_at": 1794899011.1014676
   }
  ],
- "synced_at_utc": "2026-11-17T06:58:43Z"
+ "synced_at_utc": "2026-11-17T07:03:43Z"
 }
