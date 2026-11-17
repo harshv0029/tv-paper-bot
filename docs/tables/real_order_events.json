@@ -101087,7 +101087,19 @@
    "prev_state": "resting SELL trigger Rs1133.20",
    "new_state": "resting SELL trigger Rs1134.00",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1133.20 to Rs1134.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8425,
+   "ts": 1794901932.972674,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261117000016761",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs1350.80",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-17T07:52:10Z"
+ "synced_at_utc": "2026-11-17T07:53:56Z"
 }
