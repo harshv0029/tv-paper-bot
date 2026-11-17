@@ -154,7 +154,7 @@
    "opened_at": 1794888312.2869813,
    "owner": "short",
    "qty": 1,
-   "sl_trigger_price": 392.15,
+   "sl_trigger_price": 384.55,
    "source": "position",
    "stop_loss": null,
    "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
