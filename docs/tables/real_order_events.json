@@ -99671,7 +99671,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 3 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"3 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\", \"SI=F\"], \"count\": 3, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 6.0}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 8307,
+   "ts": 1794887122.3718371,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "reroute",
+   "event": "swing_1d_state_restored",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: entry 2026-11-09 @ Rs373.30, stop Rs328.65, ATR14 Rs10.97, peak close Rs373.30",
+   "detail": "reason: B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily engine evaluates this position's own exit rule again (no order placed by the rebuild)"
   }
  ],
- "synced_at_utc": "2026-11-17T03:30:15Z"
+ "synced_at_utc": "2026-11-17T03:45:24Z"
 }
