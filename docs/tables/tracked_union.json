@@ -1,6 +1,22 @@
 {
  "rows": [
   {
+   "day": "2026-11-17",
+   "entry_order_id": "261117000397982",
+   "entry_price": 1220.0,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "360ONE-EQ",
+   "opened_at": 1794896459.742369,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1184.5,
+   "source": "position",
+   "stop_loss": 1184.4603386017875,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "360ONE.NS"
+  },
+  {
    "day": "2026-11-12",
    "entry_order_id": "261112000571543",
    "entry_price": 1434.6,
