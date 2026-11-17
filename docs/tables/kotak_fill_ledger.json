@@ -347,7 +347,55 @@
    "sell_qty": 0.0,
    "sell_amt": 0.0,
    "updated_at": 1794853559.3614383
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "ADANIGREEN-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1407.8,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794887526.0576031
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "OIL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 439.5,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794887526.0576031
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "TATAPOWER-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 345.85,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794887526.0576031
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "TATASTEEL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 181.83,
+   "updated_at": 1794887526.0576031
   }
  ],
- "synced_at_utc": "2026-11-16T18:26:58Z"
+ "synced_at_utc": "2026-11-17T03:52:35Z"
 }
