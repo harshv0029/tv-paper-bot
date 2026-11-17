@@ -100547,7 +100547,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"13 nse symbols printed new trades today within 120s\", \"symbols\": [\"RELIANCE.NS\", \"RVNL.NS\", \"SBILIFE.NS\", \"SBIN.NS\", \"SUZLON.NS\", \"TATAPOWER.NS\", \"TATASTEEL.NS\", \"TCS.NS\", \"TITAN.NS\", \"TMPV.NS\"], \"count\": 13, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 31.9}, \"replay\": {\"placed\": 2, \"dropped\": 4, \"requeued\": 1, \"considered\": 7}}"
+  },
+  {
+   "id": 8380,
+   "ts": 1794887252.130758,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_already_open: "
   }
  ],
- "synced_at_utc": "2026-11-17T03:47:06Z"
+ "synced_at_utc": "2026-11-17T03:47:34Z"
 }
