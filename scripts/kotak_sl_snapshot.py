@@ -48,11 +48,19 @@ print("tracked-union rows:", len(union_syms), union_syms)
 print("expected five present:", {k: any(k in s for s in union_syms) for k in FALLBACK})
 orders = rows_of(get(f"/kotak-neo/order-report?token={TOKEN}"))
 print("order rows:", len(orders))
+now_ist = datetime.datetime.now(IST)
 if not orders:
+    # B-1622: GitHub can run the 15:30/17:00 IST cron hours late (16-Nov runs fired 01:29 and 02:41 IST next day).
+    # After midnight Kotak's book has been reset, so an empty book then is expected, not an error.
+    if now_ist.hour < 9 or now_ist.weekday() >= 5:
+        print("late run outside the trading day: order book already reset - skipped (no snapshot)"); sys.exit(0)
     print("NO order rows (market closed / error) - snapshot not written"); sys.exit(1)
 
 targets = union_syms or list(FALLBACK)
-snap = {"date_ist": datetime.datetime.now(IST).strftime("%Y-%m-%d"),
+# B-1622: name the file by the trading day the book belongs to (latest order time), not the run time, so a
+# late run past midnight no longer labels 16-Nov's book as 17-Nov.
+_days = [d for d in (ts(r) for r in orders) if d]
+snap = {"date_ist": (max(_days).strftime("%Y-%m-%d") if _days else now_ist.strftime("%Y-%m-%d")),
         "captured_at_ist": datetime.datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
         "union_source": "tracked-union" if union_syms else "fallback-list", "symbols": {}}
 for t in targets:

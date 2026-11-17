@@ -2376,3 +2376,7 @@ Profit-booking / exit takeaway: none directly; lower context per turn leaves mor
 ### B-1619 (2026-11-17 IST): memory housekeeping keyed to tick count starved on slow ticks
 A periodic job scheduled "every N ticks" silently assumes a tick length. Live ticks ran 5-10x slower than assumed, so the memory trim never fired and the process was OOM-killed 8 times in one market session. Housekeeping now has a wall-clock floor and an independent watchdog-thread guard that trims at 55% RSS and clears caches at 75%.
 Profit-booking / exit takeaway: every restart mid-session pauses trailing-stop and exit management for minutes; keeping the process alive is a precondition for booking profit on schedule.
+
+### B-1622 (2026-11-17 IST): late cron runs mislabel the daily SL snapshot
+GitHub schedules can run hours late; anything that dates its output by the run clock mislabels the day. Date data by its own timestamps.
+Profit-booking / exit takeaway: SL history must map to the right trading day, or reviews of stop placement and trail giveback compare the wrong day's exits.
