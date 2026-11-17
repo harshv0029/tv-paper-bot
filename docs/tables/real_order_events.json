@@ -100583,7 +100583,31 @@
    "prev_state": "long 1 @ Rs189.20",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 paper swing exit: peak_ltp_trail_stop_hit"
+  },
+  {
+   "id": 8383,
+   "ts": 1794887323.417553,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261117000039015",
+   "prev_state": "long 1 @ Rs189.20",
+   "new_state": "closed",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 paper swing exit: peak_ltp_trail_stop_hit"
+  },
+  {
+   "id": 8384,
+   "ts": 1794887352.5024447,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000041273",
+   "prev_state": "resting SELL trigger Rs508.65",
+   "new_state": "resting SELL trigger Rs541.40",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs508.65 to Rs541.40 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T03:48:38Z"
+ "synced_at_utc": "2026-11-17T03:49:17Z"
 }
