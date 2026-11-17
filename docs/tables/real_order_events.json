@@ -100559,7 +100559,31 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_already_open: "
+  },
+  {
+   "id": 8381,
+   "ts": 1794887316.403597,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261117000017217",
+   "prev_state": "resting @ Rs169.47",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 paper swing exit: peak_ltp_trail_stop_hit"
+  },
+  {
+   "id": 8382,
+   "ts": 1794887316.4132671,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs189.20",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 paper swing exit: peak_ltp_trail_stop_hit"
   }
  ],
- "synced_at_utc": "2026-11-17T03:47:34Z"
+ "synced_at_utc": "2026-11-17T03:48:38Z"
 }
