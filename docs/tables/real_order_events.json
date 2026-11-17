@@ -100981,7 +100981,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 8417,
+   "id": 8416,
    "ts": 1794898373.3511527,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100993,7 +100993,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8416,
+   "id": 8417,
    "ts": 1794898384.317408,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -101065,5 +101065,5 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-17T07:03:47Z"
+ "synced_at_utc": "2026-11-17T07:12:47Z"
 }
