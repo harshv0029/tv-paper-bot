@@ -25108,10 +25108,23 @@ def _upstash_pause_exempt(key: str) -> bool:
     key = str(key)
     if key in (_REAL_POSITIONS_REDIS_KEY, _REAL_POSITIONS_SHORT_REDIS_KEY, _REAL_POSITIONS_SWING_REDIS_KEY,
                _SIGNAL_STATE_SWING_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY, _T1_RESTRICTED_REDIS_KEY,
-               _UPSTASH_USAGE_KEY):
+               _UPSTASH_USAGE_KEY, "restart_tracker:heartbeat"):  # B-1623: heartbeat ~1 KB/min
         return True
     m = re.match(r"tv_paper_bot:tbl:([a-z0-9_]+):", key)
     return bool(m and m.group(1) in _UPSTASH_PAUSE_EXEMPT_TABLES)
+
+
+def _upstash_month_headroom_ok(today_bytes: int, today_ops: int = 0, now=None) -> bool:
+    """B-1623 (2026-11-17 IST: 11 restarts re-read the restore keys, 878 MB vs a 695 MB day budget; the 125% hard stop
+    then refused real_positions/swing mirrors and the restart heartbeat for the rest of the day while the month sat at
+    15% of 10 GB). The hard stop exists to protect the MONTHLY free-tier limit, so exempt writes (a few KB each) go on
+    while month-to-date usage is below both the pro-rata allowance to date and 90% of the monthly limit."""
+    t = ist_now() if now is None else now
+    share = t.day / calendar.monthrange(t.year, t.month)[1]
+    used_b = sum(int(v[0]) for v in _upstash_month_prior.values()) + int(today_bytes or 0)
+    used_o = sum(int(v[1]) for v in _upstash_month_prior.values()) + int(today_ops or 0)
+    return (used_b < min(_UPSTASH_MONTHLY_BYTES * share, 0.9 * _UPSTASH_MONTHLY_BYTES)
+            and used_o < min(_UPSTASH_MONTHLY_OPS * share, 0.9 * _UPSTASH_MONTHLY_OPS))
 
 
 def _upstash_pause_check(key: str) -> None:
@@ -25127,8 +25140,8 @@ def _upstash_pause_check(key: str) -> None:
         _UPSTASH_PAUSE.update(paused=True, since=time.time())
         print(f"[upstash_budget] RED FLAG daily limit crossed ({b / 1e6:.1f} MB, {o} cmds): Upstash writes PAUSED "
               f"for the rest of {day} IST except real-money state (hard stop at {_UPSTASH_HARD_STOP_FRAC:.0%})")
-    if frac < _UPSTASH_HARD_STOP_FRAC and _upstash_pause_exempt(key):
-        return
+    if _upstash_pause_exempt(key) and (frac < _UPSTASH_HARD_STOP_FRAC or _upstash_month_headroom_ok(b, o)):
+        return  # B-1623: real-money state + restart heartbeat keep writing while the MONTH is within its pro-rata share
     fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
     _UPSTASH_PAUSE["skipped"][fam] = _UPSTASH_PAUSE["skipped"].get(fam, 0) + 1
     raise UpstashPausedForDay(f"Upstash daily limit crossed; write to {fam} paused until tomorrow IST")

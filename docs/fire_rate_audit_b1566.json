@@ -1,268 +1,157 @@
 {
- "run": "43847937784",
+ "run": "44063949751",
  "sessions": 1,
  "universe_intraday": 200,
  "universe_swing": 202,
  "errors": 0,
- "secs": 138,
- "live_day": "2026-11-16",
+ "secs": 96,
+ "live_day": "2026-11-17",
  "live_error": null,
- "last_session": "2026-11-16",
+ "last_session": "2026-11-17",
  "rows": [
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 3,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:20:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:25:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15686,
+    "scans": 24465,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 3,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:20:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:25:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 3,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:20:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:25:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 2,
-   "symbol_session_fires": 2,
-   "per_session": 2.0,
-   "symbols": [
-    "CUMMINSIND.NS",
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "CUMMINSIND.NS",
-     "2026-11-16",
-     "2026-11-16 10:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 2,
-   "symbol_session_fires": 2,
-   "per_session": 2.0,
-   "symbols": [
-    "CUMMINSIND.NS",
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "CUMMINSIND.NS",
-     "2026-11-16",
-     "2026-11-16 10:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 2,
-   "symbol_session_fires": 2,
-   "per_session": 2.0,
-   "symbols": [
-    "CUMMINSIND.NS",
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "CUMMINSIND.NS",
-     "2026-11-16",
-     "2026-11-16 10:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24464,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
@@ -272,10 +161,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -287,10 +177,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -302,181 +193,205 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 0,
-   "symbol_session_fires": 0,
-   "per_session": 0.0,
-   "symbols": [],
-   "first": [],
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:20:00+05:30"
+    ]
+   ],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "ok"
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 0,
-   "symbol_session_fires": 0,
-   "per_session": 0.0,
-   "symbols": [],
-   "first": [],
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:20:00+05:30"
+    ]
+   ],
    "live": {
-    "scans": 15680,
+    "scans": 24453,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "ok"
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 0,
-   "symbol_session_fires": 0,
-   "per_session": 0.0,
-   "symbols": [],
-   "first": [],
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:20:00+05:30"
+    ]
+   ],
    "live": {
-    "scans": 15680,
+    "scans": 24453,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "ok"
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 0,
-   "symbol_session_fires": 0,
-   "per_session": 0.0,
-   "symbols": [],
-   "first": [],
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ]
+   ],
    "live": {
-    "scans": 15680,
+    "scans": 24453,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "ok"
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 0,
-   "symbol_session_fires": 0,
-   "per_session": 0.0,
-   "symbols": [],
-   "first": [],
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ]
+   ],
    "live": {
-    "scans": 15680,
+    "scans": 24452,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "ok"
+   "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "EXIDEIND.NS"
+   ],
+   "first": [
+    [
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ]
+   ],
+   "live": {
+    "scans": 24452,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0,
+    "blocked_by_position": 0
+   },
+   "verdict": "SUSPECT_WIRING"
+  },
+  {
+   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
    "bar_fires": 0,
    "symbol_session_fires": 0,
    "per_session": 0.0,
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24463,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
   {
-   "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
-   "live": {
-    "scans": 15685,
-    "fired": 0,
-    "blocked_triggers": 0,
-    "attempts": 0
-   },
-   "verdict": "SUSPECT_WIRING"
-  },
-  {
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
-   "bar_fires": 3,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:30:00+05:30"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:45:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15685,
+    "scans": 24463,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve1d0e4_z2d0__v1",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 15679,
+    "scans": 24460,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
@@ -486,10 +401,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -501,10 +417,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -516,263 +433,304 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 15680,
+    "scans": 24454,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
+   "bar_fires": 3,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KALYANKJIL.NS"
+    "EXIDEIND.NS",
+    "IREDA.NS"
    ],
    "first": [
     [
-     "KALYANKJIL.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:30:00+05:30"
     ]
    ],
    "live": {
-    "scans": 15680,
+    "scans": 24457,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
+   "bar_fires": 3,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KALYANKJIL.NS"
+    "EXIDEIND.NS",
+    "IREDA.NS"
    ],
    "first": [
     [
-     "KALYANKJIL.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:30:00+05:30"
     ]
    ],
    "live": {
-    "scans": 15680,
+    "scans": 24456,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
+   "bar_fires": 3,
+   "symbol_session_fires": 2,
+   "per_session": 2.0,
    "symbols": [
-    "KALYANKJIL.NS"
+    "EXIDEIND.NS",
+    "IREDA.NS"
    ],
    "first": [
     [
-     "KALYANKJIL.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
+    ],
+    [
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:30:00+05:30"
     ]
    ],
    "live": {
-    "scans": 15680,
+    "scans": 24456,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "KALYANKJIL.NS"
-   ],
-   "first": [
-    [
-     "KALYANKJIL.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
-   "live": {
-    "scans": 15680,
-    "fired": 0,
-    "blocked_triggers": 1,
-    "attempts": 0
-   },
-   "verdict": "ok"
-  },
-  {
-   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "bar_fires": 1,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "KALYANKJIL.NS"
-   ],
-   "first": [
-    [
-     "KALYANKJIL.NS",
-     "2026-11-16",
-     "2026-11-16 09:15:00+05:30"
-    ]
-   ],
-   "live": {
-    "scans": 15680,
-    "fired": 0,
-    "blocked_triggers": 1,
-    "attempts": 0
-   },
-   "verdict": "ok"
-  },
-  {
-   "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "bar_fires": 2,
    "symbol_session_fires": 2,
    "per_session": 2.0,
    "symbols": [
-    "HCLTECH.NS",
-    "ZYDUSLIFE.NS"
+    "EXIDEIND.NS",
+    "IREDA.NS"
    ],
    "first": [
     [
-     "HCLTECH.NS",
-     "2026-11-16",
-     "2026-11-16 09:15"
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
     ],
     [
-     "ZYDUSLIFE.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
     ]
    ],
    "live": {
-    "scans": 5254,
+    "scans": 24456,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
-   "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+   "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
    "bar_fires": 2,
    "symbol_session_fires": 2,
    "per_session": 2.0,
    "symbols": [
-    "HCLTECH.NS",
-    "ZYDUSLIFE.NS"
+    "EXIDEIND.NS",
+    "IREDA.NS"
    ],
    "first": [
     [
-     "HCLTECH.NS",
-     "2026-11-16",
-     "2026-11-16 09:15"
+     "EXIDEIND.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
     ],
     [
-     "ZYDUSLIFE.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "IREDA.NS",
+     "2026-11-17",
+     "2026-11-17 09:15:00+05:30"
     ]
    ],
    "live": {
-    "scans": 5254,
+    "scans": 24456,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
+   },
+   "verdict": "SUSPECT_WIRING"
+  },
+  {
+   "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "PERSISTENT.NS"
+   ],
+   "first": [
+    [
+     "PERSISTENT.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
+    ]
+   ],
+   "live": {
+    "scans": 6870,
+    "fired": 3,
+    "blocked_triggers": 0,
+    "attempts": 4,
+    "blocked_by_position": 0
+   },
+   "verdict": "ok"
+  },
+  {
+   "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
+   "symbols": [
+    "PERSISTENT.NS"
+   ],
+   "first": [
+    [
+     "PERSISTENT.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
+    ]
+   ],
+   "live": {
+    "scans": 6868,
+    "fired": 0,
+    "blocked_triggers": 0,
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
-   "bar_fires": 2,
-   "symbol_session_fires": 2,
-   "per_session": 2.0,
+   "bar_fires": 1,
+   "symbol_session_fires": 1,
+   "per_session": 1.0,
    "symbols": [
-    "HCLTECH.NS",
-    "ZYDUSLIFE.NS"
+    "PERSISTENT.NS"
    ],
    "first": [
     [
-     "HCLTECH.NS",
-     "2026-11-16",
-     "2026-11-16 09:15"
-    ],
-    [
-     "ZYDUSLIFE.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "PERSISTENT.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
     ]
    ],
    "live": {
-    "scans": 5254,
+    "scans": 6868,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "SUSPECT_WIRING"
   },
   {
    "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "bar_fires": 9,
-   "symbol_session_fires": 9,
-   "per_session": 9.0,
+   "bar_fires": 13,
+   "symbol_session_fires": 13,
+   "per_session": 13.0,
    "symbols": [
-    "DMART.NS",
-    "GRASIM.NS",
-    "HCLTECH.NS",
-    "INFY.NS",
-    "MARICO.NS",
+    "360ONE.NS",
+    "BIOCON.NS",
+    "BOSCHLTD.NS",
+    "COCHINSHIP.NS",
+    "COFORGE.NS",
+    "GAIL.NS",
+    "INDIANB.NS",
+    "JINDALSTEL.NS",
+    "NHPC.NS",
+    "PERSISTENT.NS",
     "SUNPHARMA.NS",
-    "TORNTPHARM.NS",
-    "VAML.NS",
-    "ZYDUSLIFE.NS"
+    "TCS.NS",
+    "TVSMOTOR.NS"
    ],
    "first": [
     [
-     "DMART.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "360ONE.NS",
+     "2026-11-17",
+     "2026-11-17 10:15"
     ],
     [
-     "GRASIM.NS",
-     "2026-11-16",
-     "2026-11-16 13:15"
+     "BIOCON.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
     ],
     [
-     "HCLTECH.NS",
-     "2026-11-16",
-     "2026-11-16 09:15"
+     "BOSCHLTD.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
     ],
     [
-     "INFY.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "COCHINSHIP.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
     ],
     [
-     "MARICO.NS",
-     "2026-11-16",
-     "2026-11-16 11:15"
+     "COFORGE.NS",
+     "2026-11-17",
+     "2026-11-17 11:15"
     ]
    ],
    "live": {
-    "scans": 5254,
-    "fired": 6,
+    "scans": 6868,
+    "fired": 14,
     "blocked_triggers": 0,
-    "attempts": 4
+    "attempts": 15,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -784,10 +742,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 5249,
+    "scans": 6852,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
@@ -799,40 +758,29 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 5249,
+    "scans": 6852,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   },
   {
    "tag": "chan_kalman__band_srcmain__long__1h__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "bar_fires": 2,
-   "symbol_session_fires": 1,
-   "per_session": 1.0,
-   "symbols": [
-    "TMPV.NS"
-   ],
-   "first": [
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 09:15"
-    ],
-    [
-     "TMPV.NS",
-     "2026-11-16",
-     "2026-11-16 10:15"
-    ]
-   ],
+   "bar_fires": 0,
+   "symbol_session_fires": 0,
+   "per_session": 0.0,
+   "symbols": [],
+   "first": [],
    "live": {
-    "scans": 5249,
+    "scans": 6852,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
-   "verdict": "SUSPECT_WIRING"
+   "verdict": "ok"
   },
   {
    "tag": "power_play",
@@ -842,10 +790,11 @@
    "symbols": [],
    "first": [],
    "live": {
-    "scans": 5252,
+    "scans": 8807,
     "fired": 0,
     "blocked_triggers": 0,
-    "attempts": 0
+    "attempts": 0,
+    "blocked_by_position": 0
    },
    "verdict": "ok"
   }
