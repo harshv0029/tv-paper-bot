@@ -100331,7 +100331,19 @@
    "prev_state": null,
    "new_state": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: entry 2026-11-11 @ Rs244.24, stop Rs191.91, ATR14 Rs9.50, peak close Rs257.07",
    "detail": "reason: B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily engine evaluates this position's own exit rule again (no order placed by the rebuild)"
+  },
+  {
+   "id": 8362,
+   "ts": 1794887146.1610086,
+   "symbol": "ADANIPORTS.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1916.70 - capped to 0 by remaining daily cap Rs4659.99 (max 2) and/or real capital Rs4659.99 (max 2)"
   }
  ],
- "synced_at_utc": "2026-11-17T03:45:38Z"
+ "synced_at_utc": "2026-11-17T03:45:48Z"
 }
