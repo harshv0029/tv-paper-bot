@@ -225,6 +225,22 @@
    "symbol": "HINDCOPPER.NS"
   },
   {
+   "day": "2026-11-17",
+   "entry_order_id": "261117000185584",
+   "entry_price": 390.65,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "opened_at": 1794890033.6663067,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 349.3,
+   "source": "position",
+   "stop_loss": 346.35125039741496,
+   "strategy": "reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2",
+   "symbol": "HINDPETRO.NS"
+  },
+  {
    "day": "2026-11-13",
    "entry_order_id": "261113000066724",
    "entry_price": 12.69,
