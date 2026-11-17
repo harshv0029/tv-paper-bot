@@ -101905,6 +101905,18 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs140.26 to Rs140.52 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 8494,
+   "ts": 1794908618.0484931,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261117000384820",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8493,
    "ts": 1794908643.6531794,
    "symbol": "UPL.NS",
@@ -101915,7 +101927,31 @@
    "prev_state": "resting SELL trigger Rs543.10",
    "new_state": "resting SELL trigger Rs545.30",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs543.10 to Rs545.30 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8495,
+   "ts": 1794908739.1416929,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8496,
+   "ts": 1794908739.233652,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-17T09:44:10Z"
+ "synced_at_utc": "2026-11-17T09:45:44Z"
 }
