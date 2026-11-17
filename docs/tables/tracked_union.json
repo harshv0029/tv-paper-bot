@@ -401,6 +401,22 @@
    "symbol": "PNB.NS"
   },
   {
+   "day": "2026-11-17",
+   "entry_order_id": "261117000027372",
+   "entry_price": 345.85,
+   "first_seen_day": "2026-11-17",
+   "is_short": 0,
+   "kotak_trading_symbol": "TATAPOWER-EQ",
+   "opened_at": 1794887198.2130992,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 337.35,
+   "source": "position",
+   "stop_loss": 337.35341564021536,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "TATAPOWER.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000035814",
    "entry_price": 189.2,
