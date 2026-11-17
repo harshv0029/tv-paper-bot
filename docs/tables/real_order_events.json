@@ -100801,6 +100801,18 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1130.80 to Rs1133.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
+   "id": 8402,
+   "ts": 1794891471.708224,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261117000016193",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8401,
    "ts": 1794891484.6592107,
    "symbol": "BANKINDIA.NS",
@@ -100813,5 +100825,5 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs138.09 to Rs138.90 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T04:58:08Z"
+ "synced_at_utc": "2026-11-17T05:01:28Z"
 }
