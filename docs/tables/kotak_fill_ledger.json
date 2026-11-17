@@ -358,7 +358,7 @@
    "buy_amt": 1407.8,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794890019.8677304
+   "updated_at": 1794890321.1256404
   },
   {
    "day": "2026-11-17",
@@ -370,7 +370,19 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 380.75,
-   "updated_at": 1794890019.8677304
+   "updated_at": 1794890321.1256404
+  },
+  {
+   "day": "2026-11-17",
+   "trdsym": "HINDPETRO-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 390.65,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794890321.1256404
   },
   {
    "day": "2026-11-17",
@@ -382,7 +394,7 @@
    "buy_amt": 439.5,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794890019.8677304
+   "updated_at": 1794890321.1256404
   },
   {
    "day": "2026-11-17",
@@ -394,7 +406,7 @@
    "buy_amt": 345.85,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794890019.8677304
+   "updated_at": 1794890321.1256404
   },
   {
    "day": "2026-11-17",
@@ -406,8 +418,8 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 181.83,
-   "updated_at": 1794890019.8677304
+   "updated_at": 1794890321.1256404
   }
  ],
- "synced_at_utc": "2026-11-17T04:34:08Z"
+ "synced_at_utc": "2026-11-17T04:39:09Z"
 }
