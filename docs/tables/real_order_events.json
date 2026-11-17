@@ -100955,7 +100955,19 @@
    "prev_state": "resting SELL trigger Rs542.50",
    "new_state": "resting SELL trigger Rs543.10",
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs542.50 to Rs543.10 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8414,
+   "ts": 1794896459.834508,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261117000397982",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1220.00",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-17T06:15:11Z"
+ "synced_at_utc": "2026-11-17T06:21:03Z"
 }
