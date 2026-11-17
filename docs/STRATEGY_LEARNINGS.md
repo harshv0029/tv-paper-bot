@@ -2368,3 +2368,11 @@ Profit-booking / exit takeaway: an exit rule that silently stops running is a pr
 ### B-1615 (2026-11-16 IST): daily swing exit state rebuild after a state loss
 A lost signal_state_swing row silently turns a strategy position into a "stop-only" position: the trailing stop, rule exit and max hold stop running, and only the wide entry stop remains (UPL and TATASTEEL were guarded at 4xATR instead of their peak-high minus 0.5R trail). Every strategy family now has a rebuild path (gap_and_go, order_block_delta, 1h/4h cells, and the generic daily one), derived only from the real row, the entry-day stop and completed bars.
 Profit-booking / exit takeaway: a trail that is not being computed is a profit giveback; restoring state honestly from bars brings back the strategy's own profit-booking, and the rebuild itself never sells.
+
+### B-1618 (2026-11-17 IST): weekly context review
+Skill descriptions are loaded into every turn, the skill bodies only when invoked; long multi-line descriptions on rarely used skills were the cheapest always-on cost to cut (8.9k to 1.9k chars). Unused MCP connectors remain the biggest always-on cost and need the user to disconnect them.
+Profit-booking / exit takeaway: none directly; lower context per turn leaves more room for exit and governance checks in long sessions.
+
+### B-1619 (2026-11-17 IST): memory housekeeping keyed to tick count starved on slow ticks
+A periodic job scheduled "every N ticks" silently assumes a tick length. Live ticks ran 5-10x slower than assumed, so the memory trim never fired and the process was OOM-killed 8 times in one market session. Housekeeping now has a wall-clock floor and an independent watchdog-thread guard that trims at 55% RSS and clears caches at 75%.
+Profit-booking / exit takeaway: every restart mid-session pauses trailing-stop and exit management for minutes; keeping the process alive is a precondition for booking profit on schedule.

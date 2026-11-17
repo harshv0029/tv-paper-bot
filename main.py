@@ -1046,6 +1046,9 @@ def init_db():
             )
             """
         )
+        # B-1619: the B-1601 once-per-day dedupe SELECT ran a full table scan for every signal check
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_signal_shadow_day_tag_sym ON signal_shadow_log "
+                     "(day, strategy_tag, symbol)")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS strategy_scan_counts (
@@ -26194,6 +26197,8 @@ _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
 _scheduler_tick_count = 0
 _MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
+_MEMORY_TICK_HOUSEKEEP_MAX_GAP_S = 600  # B-1619: also at least every 10 min of wall clock
+_MEMORY_TICK_HOUSEKEEP = {"last_ts": 0.0}
 # user instruction 2026-09-21 ("find root cause... set limit"): Render's
 # own logs persist past a restart (unlike this process's in-memory state),
 # so a periodic RSS line here is what lets a FUTURE memory-limit email be
@@ -33822,7 +33827,9 @@ async def _scheduler_tick():
     except Exception as e:
         print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
     await asyncio.to_thread(_upstash_usage_persist)  # B-1342: daily Upstash budget guard (never raises)
-    if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
+    if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0 or \
+            time.time() - _MEMORY_TICK_HOUSEKEEP["last_ts"] >= _MEMORY_TICK_HOUSEKEEP_MAX_GAP_S:
+        _MEMORY_TICK_HOUSEKEEP["last_ts"] = time.time()  # B-1619: wall-clock floor, slow ticks no longer starve it
         # B-1288a: return freed pages to the OS (glibc fragmentation after big pandas scans)
         try:
             _prune_unbounded_scheduler_state()  # B-1447: drop rolled-off derivative keys before the trim
@@ -37137,7 +37144,8 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         except Exception as e:  # noqa: BLE001
             print(f"[memory] trim failed (non-fatal): {e}")
     return {"memory_level": level, "memory_pct_now": pct, "memory_warn_pct": RSS_WARN_PCT,
-            "memory_trims": _MEMORY_STATE["trims"], "stage_rss": _stage_rss_snapshot()}
+            "memory_trims": _MEMORY_STATE["trims"], "stage_rss": _stage_rss_snapshot(),
+            "memory_guard": dict(_MEMORY_GUARD_STATE)}  # B-1619
 
 
 def _rss_headroom(rss_mb=None) -> dict:
@@ -38779,8 +38787,48 @@ def _watchdog_loop(sleep=time.sleep, rounds=None):
             _restart_tracker_tick()  # B-1371
         except Exception as e:  # noqa: BLE001
             print(f"[restart-tracker] failed (non-fatal): {e}")
+        try:
+            _memory_guard_tick()  # B-1619
+        except Exception as e:  # noqa: BLE001
+            print(f"[memory-guard] failed (non-fatal): {e}")
         n += 1
         sleep(_WATCHDOG_EVERY_SECONDS)
+
+
+# B-1619 (2026-11-17 IST, 8 market-hours restarts, RSS 1.5-1.9 GB each): the native trim and the cache-clearing
+# pressure check ran only every _MEMORY_LOG_EVERY_N_TICKS (20) scheduler ticks, written for 30 s ticks (~10 min). With
+# ticks at 160-308 s (Yahoo prefetch timeouts) 20 ticks is 53-100 min, so each process was OOM-killed at 15-38 min with
+# native_trim trims=0. This guard runs from the watchdog thread (alive even while a tick is slow) on wall-clock time:
+# every _MEMORY_GUARD_EVERY_S, at >= _MEMORY_GUARD_TRIM_PCT of the limit it returns freed heap pages to the OS, and at
+# >= RSS_WARN_PCT it runs the existing pressure check (clears only the re-fetchable data cache, own 5-min thrash guard).
+# Touches no positions, orders, SL or strategy state, so no trading decision can change.
+_MEMORY_GUARD_EVERY_S = 60
+_MEMORY_GUARD_TRIM_PCT = 55.0
+_MEMORY_GUARD_STATE = {"last_ts": 0.0, "runs": 0, "trims": 0, "pressure_checks": 0, "last_rss_mb": None}
+
+
+def _memory_guard_tick(now=None, rss_mb=None, trim=None, pressure=None) -> dict | None:
+    now = time.time() if now is None else now
+    if now - _MEMORY_GUARD_STATE["last_ts"] < _MEMORY_GUARD_EVERY_S:
+        return None
+    _MEMORY_GUARD_STATE["last_ts"] = now
+    _MEMORY_GUARD_STATE["runs"] += 1
+    if rss_mb is None:
+        rss_mb = _current_rss_mb()
+    if rss_mb is None:
+        return None
+    _MEMORY_GUARD_STATE["last_rss_mb"] = rss_mb
+    pct = rss_mb / RSS_LIMIT_MB * 100
+    out = {"rss_mb": rss_mb, "pct": round(pct, 1), "trimmed": False, "pressure": False}
+    if pct >= RSS_WARN_PCT:
+        (pressure or _memory_pressure_check)(now_mb=rss_mb)  # clears the data cache + native trim itself
+        _MEMORY_GUARD_STATE["pressure_checks"] += 1
+        out["pressure"] = True
+    elif pct >= _MEMORY_GUARD_TRIM_PCT:
+        (trim or _trim_native_heap)()
+        _MEMORY_GUARD_STATE["trims"] += 1
+        out["trimmed"] = True
+    return out
 
 
 # B-1371 (2026-10-26, user: "keep track of restart by render so that u can optimise the code further"): Render's

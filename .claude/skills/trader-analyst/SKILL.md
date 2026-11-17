@@ -1,16 +1,6 @@
 ---
 name: trader-analyst
-description: >-
-  The Earnings Analyst. Reads a company's reported numbers straight from SEC
-  EDGAR (XBRL company facts from its 10-Qs and 10-Ks, plus the latest earnings
-  8-K and its press release) and sums up what changed: revenue, gross,
-  operating and net margins, net income and diluted EPS, quarter by quarter,
-  each against the same quarter a year earlier, with the trailing twelve
-  months. Reads an earnings call transcript when you paste one. Use when the
-  user says "how did Reliance's earnings look", "analyze the earnings", "what
-  changed this quarter", "is revenue growing", "check the 10-Q", "compare
-  margins", "sum up the call", "does it report this week", or before trading
-  a stock around its earnings.
+description: "Earnings analyst: quarter-by-quarter revenue, margins, EPS and what changed. Use for \"how did X's earnings look\", \"compare margins\"."
 argument-hint: "[tickers]"
 ---
 

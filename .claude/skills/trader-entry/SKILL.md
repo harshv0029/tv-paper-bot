@@ -1,17 +1,6 @@
 ---
 name: trader-entry
-description: >-
-  Entry Timer. Watches a setup bar by bar and tells you the moment to get in.
-  Reads free Yahoo 1-minute or 5-minute bars, builds the opening range (the
-  first 15 minutes by default) and calls the entry on the first completed bar
-  that CLOSES above the range high, or above a level you give it (like a
-  20-day high from the scanner), with an optional volume check. Says waiting
-  and how far, triggered with the time and the price, expired, or not open
-  yet, and writes trader/entry.json for /trader-exit. Long and short (MIS). It never
-  places an order. Use when the user says "tell me when to get in", "watch
-  RELIANCE.NS", "has it broken out", "did it break the opening range", "entry
-  signal", "time my entry", "check my watchlist", or after /trader-scanner
-  and /trader-news, before /trader-exit.
+description: "Entry timer on 1m/5m bars (opening-range or level breakout, long/short). Use for \"tell me when to get in\", \"has it broken out\"."
 argument-hint: "[TICKER] [--setup orb|level] [--interval 5m|1m]"
 ---
 

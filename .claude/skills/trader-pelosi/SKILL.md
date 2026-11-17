@@ -1,16 +1,6 @@
 ---
 name: trader-pelosi
-description: >-
-  India Smart-Money Tracker (the Pelosi skill, ported). Watches who is
-  buying and selling Indian stocks in public NSE data: bulk deals (one
-  client >= 0.5% of a company in a day), block deals (>= Rs 10 crore) and
-  SEBI PIT insider disclosures (promoters, directors, KMP). Shows only new
-  rows, IST dates, value in Rs crore, and flags rows in stocks you hold or
-  watch. Read-only, never trades. Use when the user says "who is buying",
-  "bulk deals", "block deals", "insider trades", "promoter buying",
-  "smart money", "what is Pelosi buying" (India equivalent), or "run the
-  Pelosi skill". The upstream US Congress PTR reader (ptr.py) is kept for
-  US stocks only.
+description: "India smart-money tracker: NSE bulk/block deals and SEBI PIT insider trades, read-only. Use for \"bulk deals\", \"insider trades\", \"who is buying\", \"run the Pelosi skill\"."
 argument-hint: "[member name] [--read]"
 ---
 

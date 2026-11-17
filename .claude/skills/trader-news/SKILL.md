@@ -1,15 +1,6 @@
 ---
 name: trader-news
-description: >-
-  News Monitor. Tracks breaking news on every stock you watch and flags what
-  moves it: Yahoo Finance headlines per ticker, each company's 8-K filings on
-  SEC EDGAR (earnings, CEO changes, deals, restatements, bankruptcy) and how
-  far each stock is from yesterday's close. Shows only what is new since the
-  last check, newest first, in India (IST) time, tags each item (earnings,
-  analyst, deal, halt, regulatory, macro...) and never repeats one. Use when
-  the user says "any news on RELIANCE.NS", "why is this moving", "what's the news on
-  my watchlist", "morning briefing", "pre-market news", "monitor the news",
-  "did anything break", "check the 8-Ks", or after /trader-scanner finds setups.
+description: "News monitor for watched stocks: new headlines and filings, tagged, IST. Use for \"any news on X\", \"why is this moving\", \"morning briefing\"."
 argument-hint: "[tickers]"
 ---
 
