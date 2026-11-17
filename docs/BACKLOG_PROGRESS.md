@@ -35,6 +35,7 @@ Total rows: 1375 | closed: 991 | not closed: 384
 | P0 | 2 |
 | BUILT-ON-BRANCH | 2 |
 | RESEARCH | 2 |
+| DAILY | 2 |
 | WEEKLY | 2 |
 | OWNER-ACTION | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -52,14 +53,12 @@ Total rows: 1375 | closed: 991 | not closed: 384
 | B-1388 | 1 |
 | WATCHDOG | 1 |
 | O | 1 |
-| BUILT-PENDING-DEPLOY | 1 |
+| NEEDS | 1 |
 | KOTAK | 1 |
 | DONE-VERIFIED | 1 |
 | OPEN-RECURRING | 1 |
 | DONE-CODE | 1 |
-| DAILY | 1 |
 | TICK | 1 |
-| BUILT | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -269,7 +268,7 @@ Total rows: 1375 | closed: 991 | not closed: 384
 | B-1567 | P0 | PARTIAL | 2026-11-12 IST | verify, owner |
 | B-1582 | P0 | UNKNOWN | 2026-11-14 IST | verify |
 | B-1615 | P0 | DAILY | 2026-11-16 IST | verify, awaiting, waiting |
-| B-1623 | P0 | BUILT | 2026-11-17 IST | awaiting, waiting |
+| B-1623 | P0 | DAILY | 2026-11-17 IST | awaiting, waiting |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | UNKNOWN | 2026-11-05 | owed, remaining, needs, follow-up |
@@ -295,7 +294,7 @@ Total rows: 1375 | closed: 991 | not closed: 384
 | B-1454 | P2 | FROM | 2026-11-03 00:35 IST | needs |
 | B-1475 | P2 | OPEN | 2026-11-05 |  |
 | B-1483 | P2 | O | 2026-11-05 | owed, needs, owner |
-| B-1501 | P2 | BUILT-PENDING-DEPLOY | 2026-11-06 | owed, remaining, pending, needs, follow-up |
+| B-1501 | P2 | NEEDS | 2026-11-06 | owed, remaining, pending, needs, follow-up |
 | B-1502 | P2 | OPEN | 2026-11-06 | owed, needs, follow-up |
 | B-1521 | P2 | OPEN | 2026-11-09 | needs, follow-up |
 | B-1522 | P2 | OPEN | 2026-11-09 | owed, needs, owner, follow-up |
