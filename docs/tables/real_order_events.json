@@ -101879,7 +101879,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"GC=F\", \"SI=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 7.0}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 8491,
+   "ts": 1794908596.3675065,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261117000852779",
+   "prev_state": "resting SELL trigger Rs140.26",
+   "new_state": "resting SELL trigger Rs140.52",
+   "detail": "reason: order_block_delta trail rule raised the stop from Rs140.26 to Rs140.52 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T09:20:11Z"
+ "synced_at_utc": "2026-11-17T09:43:27Z"
 }
