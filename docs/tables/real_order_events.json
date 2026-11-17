@@ -100333,6 +100333,30 @@
    "detail": "reason: B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily engine evaluates this position's own exit rule again (no order placed by the rebuild)"
   },
   {
+   "id": 8370,
+   "ts": 1794887142.5507536,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261117000019098",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
+   "id": 8371,
+   "ts": 1794887144.551331,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "entry",
+   "event": "kotak_placed",
+   "order_id": "261117000020711",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
    "id": 8362,
    "ts": 1794887146.1610086,
    "symbol": "ADANIPORTS.NS",
@@ -100415,7 +100439,67 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs439.50",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8369,
+   "ts": 1794887162.9967654,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261117000022535",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1371.50",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1371.50 already covers the position (target stop Rs1371.44), adopted, nothing placed"
+  },
+  {
+   "id": 8373,
+   "ts": 1794887172.2267592,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": "OIL-EQ",
+   "leg": "sl",
+   "event": "kotak_placed",
+   "order_id": "261117000024412",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=431.85 limit_price=431.85"
+  },
+  {
+   "id": 8372,
+   "ts": 1794887189.652816,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "431.85",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8374,
+   "ts": 1794887190.7938514,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": "OIL-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261117000024412",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs431.85",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8375,
+   "ts": 1794887190.8153722,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_placed",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "placed",
+   "detail": "reason: trigger queued at 2026-11-17 00:15:16 IST (market closed) passed fresh re-validation at the open; placed by the swing engine with its SL | swing macddiv__line_any__long__1h__atr3_w5__nonovl__v2: confirmed"
   }
  ],
- "synced_at_utc": "2026-11-17T03:46:02Z"
+ "synced_at_utc": "2026-11-17T03:46:37Z"
 }
