@@ -100021,7 +100021,7 @@
    "detail": "reason: B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily engine evaluates this position's own exit rule again (no order placed by the rebuild)"
   },
   {
-   "id": 8337,
+   "id": 8336,
    "ts": 1794887129.7482455,
    "symbol": "MOTHERSON.NS",
    "kotak_trading_symbol": "MOTHERSON-EQ",
@@ -100033,7 +100033,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   },
   {
-   "id": 8336,
+   "id": 8337,
    "ts": 1794887129.9773178,
    "symbol": "MOTHERSON.NS",
    "kotak_trading_symbol": "MOTHERSON-EQ",
@@ -100333,7 +100333,7 @@
    "detail": "reason: B-1615: paper swing exit state was lost; rebuilt from the real row and daily bars so the daily engine evaluates this position's own exit rule again (no order placed by the rebuild)"
   },
   {
-   "id": 8370,
+   "id": 8362,
    "ts": 1794887142.5507536,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -100345,7 +100345,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8371,
+   "id": 8363,
    "ts": 1794887144.551331,
    "symbol": "ADANIGREEN.NS",
    "kotak_trading_symbol": "ADANIGREEN-EQ",
@@ -100357,7 +100357,7 @@
    "detail": "reason: real market BUY entry; Kotak accepted it"
   },
   {
-   "id": 8362,
+   "id": 8364,
    "ts": 1794887146.1610086,
    "symbol": "ADANIPORTS.NS",
    "kotak_trading_symbol": null,
@@ -100369,7 +100369,7 @@
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1916.70 - capped to 0 by remaining daily cap Rs4659.99 (max 2) and/or real capital Rs4659.99 (max 2)"
   },
   {
-   "id": 8363,
+   "id": 8365,
    "ts": 1794887147.311205,
    "symbol": "BRITANNIA.NS",
    "kotak_trading_symbol": null,
@@ -100381,7 +100381,7 @@
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs4766.60 - capped to 0 by remaining daily cap Rs3252.19 (max 0) and/or real capital Rs3252.19 (max 0)"
   },
   {
-   "id": 8364,
+   "id": 8366,
    "ts": 1794887148.891164,
    "symbol": "CUMMINSIND.NS",
    "kotak_trading_symbol": null,
@@ -100393,7 +100393,7 @@
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing macddiv__line_any__long__1h__atr3_w5__nonovl__v2: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs4155.60 - capped to 0 by remaining daily cap Rs3252.19 (max 0) and/or real capital Rs3252.19 (max 0)"
   },
   {
-   "id": 8365,
+   "id": 8367,
    "ts": 1794887150.7341094,
    "symbol": "HYUNDAI.NS",
    "kotak_trading_symbol": null,
@@ -100405,7 +100405,7 @@
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs2105.30 - capped to 0 by remaining daily cap Rs3252.19 (max 1) and/or real capital Rs3252.19 (max 1)"
   },
   {
-   "id": 8366,
+   "id": 8368,
    "ts": 1794887150.7832832,
    "symbol": "TMPV.NS",
    "kotak_trading_symbol": "TMPV-EQ",
@@ -100417,7 +100417,7 @@
    "detail": "reason: starc__fade_full__long__1d__atr2d5_h20__v1 trail rule raised the stop from Rs241.05 to Rs246.85 | daily starc__fade_full__long__1d__atr2d5_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8367,
+   "id": 8369,
    "ts": 1794887158.8205645,
    "symbol": "ADANIGREEN.NS",
    "kotak_trading_symbol": "ADANIGREEN-EQ",
@@ -100429,7 +100429,7 @@
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs1371.50 (target stop Rs1371.44)"
   },
   {
-   "id": 8368,
+   "id": 8370,
    "ts": 1794887160.5969238,
    "symbol": "OIL.NS",
    "kotak_trading_symbol": "OIL-EQ",
@@ -100441,7 +100441,7 @@
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   },
   {
-   "id": 8369,
+   "id": 8371,
    "ts": 1794887162.9967654,
    "symbol": "ADANIGREEN.NS",
    "kotak_trading_symbol": "ADANIGREEN-EQ",
@@ -100453,7 +100453,7 @@
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1371.50 already covers the position (target stop Rs1371.44), adopted, nothing placed"
   },
   {
-   "id": 8373,
+   "id": 8372,
    "ts": 1794887172.2267592,
    "symbol": "OIL.NS",
    "kotak_trading_symbol": "OIL-EQ",
@@ -100465,7 +100465,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak accepted it | trigger_price=431.85 limit_price=431.85"
   },
   {
-   "id": 8372,
+   "id": 8373,
    "ts": 1794887189.652816,
    "symbol": "OIL.NS",
    "kotak_trading_symbol": null,
@@ -100597,7 +100597,7 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 paper swing exit: peak_ltp_trail_stop_hit"
   },
   {
-   "id": 8385,
+   "id": 8384,
    "ts": 1794887341.8702343,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100609,7 +100609,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8384,
+   "id": 8385,
    "ts": 1794887352.5024447,
    "symbol": "UPL.NS",
    "kotak_trading_symbol": "UPL-EQ",
@@ -100621,7 +100621,7 @@
    "detail": "reason: gap__runaway__long__1d__atr4_h20__v1 trail rule raised the stop from Rs508.65 to Rs541.40 | daily gap__runaway__long__1d__atr4_h20__v1 stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8388,
+   "id": 8386,
    "ts": 1794887359.733323,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100633,7 +100633,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8386,
+   "id": 8387,
    "ts": 1794887370.4688394,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100645,7 +100645,7 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1123.70 to Rs1126.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8387,
+   "id": 8388,
    "ts": 1794887374.2543135,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100657,7 +100657,7 @@
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   },
   {
-   "id": 8392,
+   "id": 8389,
    "ts": 1794888309.9442403,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100669,7 +100669,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8389,
+   "id": 8390,
    "ts": 1794888313.7798462,
    "symbol": "EXIDEIND.NS",
    "kotak_trading_symbol": "EXIDEIND-EQ",
@@ -100681,7 +100681,7 @@
    "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   },
   {
-   "id": 8390,
+   "id": 8391,
    "ts": 1794888319.4273531,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -100693,7 +100693,7 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1126.20 to Rs1129.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8391,
+   "id": 8392,
    "ts": 1794888320.3917,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": null,
@@ -100717,5 +100717,5 @@
    "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-11-17T04:05:36Z"
+ "synced_at_utc": "2026-11-17T04:07:24Z"
 }
