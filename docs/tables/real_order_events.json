@@ -101003,7 +101003,19 @@
    "prev_state": "resting SELL trigger Rs1133.00",
    "new_state": "resting SELL trigger Rs1133.20",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1133.00 to Rs1133.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8418,
+   "ts": 1794898956.9132218,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261117000473273",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1150.80",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-17T06:54:55Z"
+ "synced_at_utc": "2026-11-17T07:02:39Z"
 }
