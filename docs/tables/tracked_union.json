@@ -145,6 +145,22 @@
    "symbol": "DABUR.NS"
   },
   {
+   "day": "2026-11-17",
+   "entry_order_id": "261117000100694",
+   "entry_price": 380.75,
+   "first_seen_day": "2026-11-17",
+   "is_short": 1,
+   "kotak_trading_symbol": "EXIDEIND-EQ",
+   "opened_at": 1794888312.2869813,
+   "owner": "short",
+   "qty": 1,
+   "sl_trigger_price": 392.15,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "symbol": "EXIDEIND.NS"
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000298121",
    "entry_price": 357.1,
@@ -490,7 +506,7 @@
    "opened_at": 1794206983.7167838,
    "owner": "swing",
    "qty": 1,
-   "sl_trigger_price": 1126.2,
+   "sl_trigger_price": 1129.2,
    "source": "holding",
    "stop_loss": 1123.699951171875,
    "strategy": "minervini_vcp_livermore",
