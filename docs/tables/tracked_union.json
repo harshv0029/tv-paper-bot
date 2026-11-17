@@ -225,22 +225,6 @@
    "symbol": "GROWW.NS"
   },
   {
-   "day": "2026-11-13",
-   "entry_order_id": "261113000268464",
-   "entry_price": 1382.0,
-   "first_seen_day": "2026-11-13",
-   "is_short": 0,
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "opened_at": 1794548877.563133,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1350.8,
-   "source": "holding",
-   "stop_loss": 1350.795432559942,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "HCLTECH.NS"
-  },
-  {
    "day": "2026-11-17",
    "entry_order_id": null,
    "entry_price": 431.77,
@@ -463,22 +447,6 @@
    "stop_loss": 337.35341564021536,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "TATAPOWER.NS"
-  },
-  {
-   "day": "2026-11-09",
-   "entry_order_id": "261109000035814",
-   "entry_price": 189.2,
-   "first_seen_day": "2026-11-09",
-   "is_short": 0,
-   "kotak_trading_symbol": "TATASTEEL-EQ",
-   "opened_at": 1794196131.4697149,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 169.47,
-   "source": "holding",
-   "stop_loss": 169.4657265799386,
-   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
-   "symbol": "TATASTEEL.NS"
   },
   {
    "day": "2026-11-17",
