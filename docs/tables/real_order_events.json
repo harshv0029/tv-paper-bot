@@ -101065,7 +101065,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 8424,
+   "id": 8423,
    "ts": 1794900207.6058369,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -101077,7 +101077,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8423,
+   "id": 8424,
    "ts": 1794900219.4850442,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -101089,5 +101089,5 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1133.20 to Rs1134.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-17T07:27:34Z"
+ "synced_at_utc": "2026-11-17T07:52:10Z"
 }
