@@ -273,6 +273,22 @@
    "symbol": "MAHABANK.NS"
   },
   {
+   "day": "2026-11-18",
+   "entry_order_id": "261118000584188",
+   "entry_price": 2629.0,
+   "first_seen_day": "2026-11-18",
+   "is_short": 0,
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "opened_at": 1794992955.1741145,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 2582.1,
+   "source": "position",
+   "stop_loss": 2582.0811543916234,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "MANKIND.NS"
+  },
+  {
    "day": "2026-11-17",
    "entry_order_id": null,
    "entry_price": 905.33,
