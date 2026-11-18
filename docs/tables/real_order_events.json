@@ -103343,7 +103343,43 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"61 nse symbols printed new trades today within 120s\", \"symbols\": [\"COALINDIA.NS\", \"DIVISLAB.NS\", \"EXIDEIND.NS\", \"GAIL.NS\", \"GLENMARK.NS\", \"GODFRYPHLP.NS\", \"GODREJPROP.NS\", \"GRASIM.NS\", \"GROWW.NS\", \"GVT&D.NS\"], \"count\": 61, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 43.2}, \"replay\": {\"placed\": 0, \"dropped\": 0, \"requeued\": 1, \"considered\": 1}}"
+  },
+  {
+   "id": 8613,
+   "ts": 1794973547.480905,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016059",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1134.00",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1134.00 already covers the position (target stop Rs1134.00), adopted, nothing placed"
+  },
+  {
+   "id": 8614,
+   "ts": 1794973550.4791093,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016059",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1134.00",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1134.00 already covers the position (target stop Rs1134.00), adopted, nothing placed"
+  },
+  {
+   "id": 8615,
+   "ts": 1794973551.7353446,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000015942",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1390.20",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1390.20 already covers the position (target stop Rs1390.20), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:45:46Z"
+ "synced_at_utc": "2026-11-18T03:45:53Z"
 }
