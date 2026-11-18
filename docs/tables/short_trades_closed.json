@@ -263,7 +263,19 @@
       "pnl_inr": -565.0,
       "exit_reason": "state_exit",
       "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2"
+    },
+    {
+      "id": 23,
+      "ts": 1794996692.4202557,
+      "symbol": "BPCL.NS",
+      "qty": 1.0,
+      "entry_price": 302.0,
+      "exit_price": 305.5,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -3.5,
+      "exit_reason": "short_swing_rule_exit",
+      "strategy": "reversal__island_px20_tfs__short__1d__atr4_within8__nonovl__v2"
     }
   ],
-  "synced_at_utc": "2026-11-13T10:16:06Z"
+  "synced_at_utc": "2026-11-18T10:50:48Z"
 }
