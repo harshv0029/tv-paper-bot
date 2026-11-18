@@ -32,7 +32,7 @@ full file wins.
 - A transfer pack or summary is a claim. Verify against git before relying on it.
 - Every commit needs: the full suite green, `ast.parse(main.py)`, and the attribution footer.
   Never edit code while the suite is running.
-- Deploy only on the user's explicit "deploy X". Use `deploy-gate.yml` with ref `main` and
+- Deploy only on the user's explicit "deploy X" (sole exception: render-watch outage auto-deploy, user grant 2026-11-18, see the skill). Use `deploy-gate.yml` with ref `main` and
   source_ref set to the working branch. Real-exit fixes are shown to the user before deploy.
 - A commit to main restarts Render (~8-11 min). Batch merges.
 - GitHub Actions: one run in flight and one queued. Order by urgency: gate and safety first,

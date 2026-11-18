@@ -1,4 +1,5 @@
 """B-1351: idle (tag, symbol) pairs drop their timestamp deque; counts and in-window readings are unchanged."""
+import array
 import collections
 
 import main
@@ -20,10 +21,10 @@ def test_idle_pair_deque_freed_count_kept(monkeypatch):
     main._record_pair_scan("hot", "B.NS", "2026-10-26")  # triggers the sweep (last sweep > 300 s ago)
     old, hot = main._pair_scan_stats[("old", "A.NS")], main._pair_scan_stats[("hot", "B.NS")]
     assert old[0] == 1 and old[1] == ()  # count kept, deque freed
-    assert hot[0] == 2 and isinstance(hot[1], collections.deque) and len(hot[1]) == 1
+    assert hot[0] == 2 and isinstance(hot[1], array.array) and len(hot[1]) == 1
     # an evicted pair rebuilds its deque on the next scan
     main._record_pair_scan("old", "A.NS", "2026-10-26")
-    assert old[0] == 2 and isinstance(old[1], collections.deque) and list(old[1]) == [t[0]]
+    assert old[0] == 2 and isinstance(old[1], array.array) and list(old[1]) == [t[0]]
 
 
 def test_sweep_keeps_in_window_pairs():
