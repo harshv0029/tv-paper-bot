@@ -102347,7 +102347,79 @@
    "prev_state": "long 1 @ Rs1143.86",
    "new_state": "closed",
    "detail": "reason: entry-day stop Rs1117.80 breached (live Rs1115.30); the stop is never lowered, so the holding is sold"
+  },
+  {
+   "id": 8530,
+   "ts": 1794973524.5364592,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261118000015832",
+   "prev_state": null,
+   "new_state": "cancelled before the breach exit",
+   "detail": "reason: peak-LTP trailed stop (B-1486) Rs545.30 breached (live Rs542.25); the stop is never lowered, so the holding is sold"
+  },
+  {
+   "id": 8531,
+   "ts": 1794973524.8888164,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000015579",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs143.80",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs143.80 already covers the position (target stop Rs139.85), adopted, nothing placed"
+  },
+  {
+   "id": 8532,
+   "ts": 1794973526.5575566,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs555.75",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: peak-LTP trailed stop (B-1486) Rs545.30 breached (live Rs542.25); the stop is never lowered, so the holding is sold"
+  },
+  {
+   "id": 8533,
+   "ts": 1794973527.489633,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261118000017177",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange across segment across product"
+  },
+  {
+   "id": 8534,
+   "ts": 1794973528.5782712,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000015574",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs135.40",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs135.40 already covers the position (target stop Rs130.52), adopted, nothing placed"
+  },
+  {
+   "id": 8535,
+   "ts": 1794973528.9805896,
+   "symbol": "UPL.NS",
+   "kotak_trading_symbol": "UPL-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261118000017144",
+   "prev_state": "long 1 @ Rs555.75",
+   "new_state": "closed",
+   "detail": "reason: peak-LTP trailed stop (B-1486) Rs545.30 breached (live Rs542.25); the stop is never lowered, so the holding is sold"
   }
  ],
- "synced_at_utc": "2026-11-18T03:45:24Z"
+ "synced_at_utc": "2026-11-18T03:45:32Z"
 }
