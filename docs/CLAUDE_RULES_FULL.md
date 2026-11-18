@@ -672,3 +672,12 @@ User, verbatim intent: "Add one weekly activity, Tuesday 5am, that you will chec
 - Never run more than 3 subagents at once. Each still gets a tight brief (file:line pointers) and returns a patch path plus a
   report of 15 lines or less. Subagents never push, dispatch, deploy, call Kotak or Render, or post to GitHub; the coordinator
   merges by patch, runs the full suite, and pushes once. Watch the 5-hour usage limit: 3 agents re-reading the repo burn it faster.
+
+## Outage auto-deploy exception (user 2026-11-18 13:15 IST, B-1627)
+User asked for "an auto check and mitigation agent ... protects n correct the issues raised on render" and chose
+"Outage fixes only" for self-deploy. The intraday render-watch watchdog (.claude/skills/render-watch/SKILL.md) may run
+deploy-gate.yml without a fresh "deploy X" ONLY when: Render is in an outage (2+ market-hours restarts today, or the
+scheduler stalled > 10 min); the fix touches only memory / crash / startup / scheduler-liveness code (never entry,
+sizing, exit, SL, order or kill-switch code); the full suite is green and ast.parse passes; the time is not
+09:05-09:35 IST. It reports each such deploy right after with evidence and verifies /health. Every other deploy still
+needs the user's explicit word.

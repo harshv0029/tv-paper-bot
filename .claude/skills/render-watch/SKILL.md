@@ -27,7 +27,13 @@ endpoint, parse only the needed keys, no long output. Skip entirely if today is 
 - Restart or memory: find the stage with the big stage_rss delta, root-cause it in code, build the fix with a test,
   run the full suite, ast.parse, commit and push to claude/confident-fermi-mlqbka.
 - Any other bug: same as above. Diagnostic and reconcile workflows may be dispatched (1 running + 1 queued).
-- NOT allowed without the user's explicit word: Deploy Gate / merge to main, any rule that decides real entries,
+- Outage auto-deploy (user grant 2026-11-18 13:15 IST, "Outage fixes only"): when Render is in an OUTAGE (crash /
+  OOM restart loop: 2+ market-hours restarts today; or scheduler stalled > 10 min) and the fix touches ONLY memory,
+  crash, startup or scheduler-liveness code, you may run deploy-gate.yml (ref main, source_ref the working branch)
+  without waiting, after the full suite is green and ast.parse passes. Never between 09:05 and 09:35 IST (open
+  protection). Report each such deploy to the user right after, with the evidence, and verify /health shows the new
+  commit. A fix that touches any entry, sizing, exit, SL, order or kill-switch code does NOT qualify.
+- NOT allowed without the user's explicit word: any other Deploy Gate / merge to main, any rule that decides real entries,
   sizing or exits, a new kill switch, tuning off one result. Build, push, and list under "Input required" with
   the evidence and the expected impact, so the user can say "deploy X".
 
