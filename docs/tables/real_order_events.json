@@ -104435,7 +104435,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs160.25",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=11"
+  },
+  {
+   "id": 8704,
+   "ts": 1794992955.1854963,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261118000584188",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs2629.00",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-18T08:42:59Z"
+ "synced_at_utc": "2026-11-18T09:09:17Z"
 }
