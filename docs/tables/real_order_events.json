@@ -104339,7 +104339,31 @@
    "prev_state": "Rs156.53",
    "new_state": "cancel resting SL, then place SL at Rs160.21",
    "detail": "reason: trailing stop-loss tightened"
+  },
+  {
+   "id": 8696,
+   "ts": 1794978560.006683,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "moved",
+   "order_id": "261118000235244",
+   "prev_state": "Rs156.53",
+   "new_state": "Rs160.21",
+   "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 8697,
+   "ts": 1794978563.1512604,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261118000235244",
+   "prev_state": "Rs160.21",
+   "new_state": "cancel resting SL, then place SL at Rs160.25",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-18T05:09:12Z"
+ "synced_at_utc": "2026-11-18T05:09:25Z"
 }
