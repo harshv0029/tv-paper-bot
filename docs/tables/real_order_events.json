@@ -103919,7 +103919,31 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_real_switch_off_or_orphan | swing oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2: skipped_real_switch_off_or_orphan: the swing engine took no attempt (real swing switch off or orphan tag)"
+  },
+  {
+   "id": 8661,
+   "ts": 1794973778.0753524,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261118000015578",
+   "prev_state": "resting @ Rs768.8",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: gaps__exhaust_fade__long__1d__atr3_nb5__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8662,
+   "ts": 1794973778.0838206,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs815.35",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: gaps__exhaust_fade__long__1d__atr3_nb5__v1 paper swing exit: gapfade_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-18T03:48:49Z"
+ "synced_at_utc": "2026-11-18T03:49:40Z"
 }
