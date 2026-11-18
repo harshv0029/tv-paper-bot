@@ -49,22 +49,6 @@
    "symbol": "ADANIGREEN.NS"
   },
   {
-   "day": "2026-11-18",
-   "entry_order_id": "261118000103419",
-   "entry_price": 158.11,
-   "first_seen_day": "2026-11-18",
-   "is_short": 0,
-   "kotak_trading_symbol": "ASHOKLEY-EQ",
-   "opened_at": 1794974961.041858,
-   "owner": "swing",
-   "qty": 11,
-   "sl_trigger_price": 160.25,
-   "source": "position",
-   "stop_loss": 156.53,
-   "strategy": "swing_rerouted_orphan",
-   "symbol": "ASHOKLEY.NS"
-  },
-  {
    "day": "2026-11-17",
    "entry_order_id": null,
    "entry_price": 274.25,
