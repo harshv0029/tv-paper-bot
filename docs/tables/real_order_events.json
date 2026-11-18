@@ -103907,7 +103907,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs184.48",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs184.48 already covers the position (target stop Rs184.48), adopted, nothing placed"
+  },
+  {
+   "id": 8660,
+   "ts": 1794973727.7500656,
+   "symbol": "ICICIPRULI.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_real_switch_off_or_orphan | swing oneil_trendline__break__long__1w__atr3_h26_srcmain__nonovl__v2: skipped_real_switch_off_or_orphan: the swing engine took no attempt (real swing switch off or orphan tag)"
   }
  ],
- "synced_at_utc": "2026-11-18T03:47:54Z"
+ "synced_at_utc": "2026-11-18T03:48:49Z"
 }
