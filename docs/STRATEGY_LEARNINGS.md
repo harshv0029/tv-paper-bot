@@ -2397,3 +2397,10 @@ Profit-booking / exit takeaway: SL history must map to the right trading day, or
 - Never use CNC as a "short" product in code: if the name is held, it sells a real holding instead.
 - Profit-booking / exit takeaway: 1d short signals (brk20 short, best PFnet on record) can only be booked intraday
   in cash, so their profit stays paper until a futures route is affordable; size research toward MIS-exit variants.
+
+## 2026-11-18 IST - B-1625 swing pattern-cell scan crash loop (4 market-hours OOM restarts)
+- A 1d signal on completed bars has one answer per day; recomputing it on every 15-min repeat pass and on every boot
+  cost ~950 MB per run and, with the tick prefetch on top, crossed the 2 GB limit every ~40 min.
+- Cache day-constant signals by bar identity and mirror the small result so a restart does not redo the heavy work.
+- Profit-booking / exit takeaway: every restart drops intraday trail and exit state and leaves UNLOGGED casualties,
+  so memory spikes in entry scans directly cost exit quality; heavy entry scans must never share the peak with exits.
