@@ -104423,7 +104423,19 @@
    "prev_state": "intraday table (no strategy, no SL, no target)",
    "new_state": "swing table, stop Rs156.53 (from previous resting stop-loss logged for this symbol)",
    "detail": "reason: orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell"
+  },
+  {
+   "id": 8703,
+   "ts": 1794979422.0399134,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261118000235660",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs160.25",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=11"
   }
  ],
- "synced_at_utc": "2026-11-18T05:23:13Z"
+ "synced_at_utc": "2026-11-18T05:24:34Z"
 }
