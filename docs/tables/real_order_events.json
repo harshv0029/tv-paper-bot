@@ -103823,7 +103823,79 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs351.65",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs351.65 already covers the position (target stop Rs349.30), adopted, nothing placed"
+  },
+  {
+   "id": 8653,
+   "ts": 1794973634.7153776,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017640",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs351.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs351.65 already covers the position (target stop Rs349.30), adopted, nothing placed"
+  },
+  {
+   "id": 8654,
+   "ts": 1794973635.1764164,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017656",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1184.50",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1184.50 already covers the position (target stop Rs1184.50), adopted, nothing placed"
+  },
+  {
+   "id": 8655,
+   "ts": 1794973638.9713724,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017656",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1184.50",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1184.50 already covers the position (target stop Rs1184.50), adopted, nothing placed"
+  },
+  {
+   "id": 8656,
+   "ts": 1794973639.2248287,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017612",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1120.60",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1120.60 already covers the position (target stop Rs1120.60), adopted, nothing placed"
+  },
+  {
+   "id": 8657,
+   "ts": 1794973643.031307,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017612",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1120.60",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1120.60 already covers the position (target stop Rs1120.60), adopted, nothing placed"
+  },
+  {
+   "id": 8658,
+   "ts": 1794973643.3481765,
+   "symbol": "GAIL.NS",
+   "kotak_trading_symbol": "GAIL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000018098",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs184.48",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs184.48 already covers the position (target stop Rs184.48), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:47:13Z"
+ "synced_at_utc": "2026-11-18T03:47:27Z"
 }
