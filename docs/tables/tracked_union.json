@@ -178,22 +178,6 @@
   },
   {
    "day": "2026-11-17",
-   "entry_order_id": null,
-   "entry_price": 431.77,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "HINDCOPPER-EQ",
-   "opened_at": 1794887120.2652376,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 391.45,
-   "source": "holding",
-   "stop_loss": 391.43,
-   "strategy": "holding_atr_stop",
-   "symbol": "HINDCOPPER.NS"
-  },
-  {
-   "day": "2026-11-17",
    "entry_order_id": "261117000185584",
    "entry_price": 390.65,
    "first_seen_day": "2026-11-17",
