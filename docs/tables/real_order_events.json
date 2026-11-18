@@ -103895,7 +103895,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs184.48",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs184.48 already covers the position (target stop Rs184.48), adopted, nothing placed"
+  },
+  {
+   "id": 8659,
+   "ts": 1794973667.5714216,
+   "symbol": "GAIL.NS",
+   "kotak_trading_symbol": "GAIL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000018098",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs184.48",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs184.48 already covers the position (target stop Rs184.48), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:47:27Z"
+ "synced_at_utc": "2026-11-18T03:47:54Z"
 }
