@@ -31479,7 +31479,89 @@ def pattern_cell_exit_reason(df, entry_day: str, initial_stop: float, hold_days:
     return None
 
 
+# B-1625 (2026-11-18 IST): crash loop - 4 market-hours OOM restarts (09:26/10:16/10:56/11:36 IST), each ~40 min after
+# boot. pattern_fresh_long_signals over the full universe adds ~950 MB RSS (glibc keeps it) per pass, and the repeat
+# pass re-ran it every 15 min although its answer is fixed for the day: the scan sees only COMPLETED daily bars (B-419).
+# So the per-symbol answer is cached by (symbol, last bar date, bar count) for the IST day, in memory and mirrored to
+# Upstash (pattern_fresh:<day>) so a restart reuses it instead of recomputing. Same bars -> same answer: no trading
+# decision changes. A new completed bar (after the close) changes the key and recomputes. Derived data, recomputable,
+# so losing the mirror only costs time.
+_PATTERN_FRESH_CACHE = {"day": None, "by_sym": {}, "dirty": False, "restored": False}
+_PATTERN_FRESH_TRIM_EVERY = 150
+
+
+def _pattern_bar_key(df) -> str:
+    try:
+        last = df["Date"].iloc[-1] if "Date" in getattr(df, "columns", ()) else df.index[-1]
+    except Exception:  # noqa: BLE001
+        last = ""
+    try:
+        close = float(df["Close"].iloc[-1])
+    except Exception:  # noqa: BLE001
+        close = float("nan")
+    return f"{str(last)[:10]}|{len(df)}|{close:.4f}"
+
+
+def _pattern_fresh_cache_for(today: str) -> dict:
+    c = _PATTERN_FRESH_CACHE
+    if c["day"] != today:
+        c.update(day=today, by_sym={}, dirty=False, restored=False)
+    if not c["restored"]:
+        c["restored"] = True
+        try:
+            if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+                raw = _upstash_get(f"pattern_fresh:{today}")
+                if raw:
+                    got = json.loads(raw)
+                    if isinstance(got, dict):
+                        for sym, v in got.items():
+                            if isinstance(v, list) and len(v) == 2 and isinstance(v[1], dict):
+                                c["by_sym"].setdefault(sym, (str(v[0]), {k: bool(x) for k, x in v[1].items()}))
+        except Exception as e:  # noqa: BLE001
+            print(f"[PATTERN] fresh-cache restore failed (non-fatal, recomputes): {e}")
+    return c["by_sym"]
+
+
+def _pattern_fresh_cache_flush(today: str) -> None:
+    c = _PATTERN_FRESH_CACHE
+    if not c["dirty"] or c["day"] != today:
+        return
+    c["dirty"] = False
+    try:
+        if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+            _upstash_set(f"pattern_fresh:{today}", json.dumps(
+                {s: [k, {r: True for r, x in v.items() if x}] for s, (k, v) in c["by_sym"].items()},
+                separators=(",", ":")))
+    except Exception as e:  # noqa: BLE001
+        print(f"[PATTERN] fresh-cache mirror failed (non-fatal): {e}")
+
+
+def _pattern_fresh_cached(sym: str, df, today: str, counter: list) -> dict:
+    """pattern_fresh_long_signals(df), cached per (symbol, completed-bar key) for the IST day (B-1625)."""
+    cache = _pattern_fresh_cache_for(today)
+    key = _pattern_bar_key(df)
+    hit = cache.get(sym)
+    if hit is not None and hit[0] == key:
+        return {r: hit[1].get(r, False) for r in {c[1] for c in _PATTERN_LIVE_CELLS}}
+    out = pattern_fresh_long_signals(df)
+    cache[sym] = (key, dict(out))
+    _PATTERN_FRESH_CACHE["dirty"] = True
+    counter[0] += 1
+    if counter[0] % _PATTERN_FRESH_TRIM_EVERY == 0:
+        _trim_native_heap()  # return the per-symbol signal frames' pages to the OS as we go
+    return out
+
+
 def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
+    try:
+        return _run_pattern_cell_entries_inner(conn, dfs, capital, today)
+    finally:
+        _pattern_fresh_cache_flush(today)
+        _trim_native_heap()
+
+
+def _run_pattern_cell_entries_inner(conn, dfs: dict, capital, today: str):
+    _computed = [0]
     for c in _PATTERN_LIVE_CELLS:
         _record_strategy_scan(c[0])
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
@@ -31494,12 +31576,12 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
                 _record_symbol_strategy_scan(_c[0])
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             try:  # B-1275: held symbol still gets its triggers evaluated (scan-only); a second entry stays blocked
-                pattern_fresh_long_signals(df)
+                _pattern_fresh_cached(sym, df, today, _computed)
             except Exception:
                 pass
             continue  # one swing position per symbol
         try:
-            fresh_by_sym[sym] = pattern_fresh_long_signals(df)
+            fresh_by_sym[sym] = _pattern_fresh_cached(sym, df, today, _computed)
         except Exception as e:
             print(f"[PATTERN] signal eval failed for {sym}: {e}")
             continue
