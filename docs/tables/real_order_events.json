@@ -104447,7 +104447,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs2629.00",
    "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8705,
+   "ts": 1794992969.210738,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261118000584457",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs2582.10",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8706,
+   "ts": 1794992971.586808,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000584457",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs2582.10",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs2582.10 already covers the position (target stop Rs2582.08), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T09:09:17Z"
+ "synced_at_utc": "2026-11-18T09:09:36Z"
 }
