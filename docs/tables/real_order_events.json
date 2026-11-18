@@ -104327,7 +104327,19 @@
    "prev_state": "Rs153.32",
    "new_state": "Rs156.53",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 8695,
+   "ts": 1794978544.7700782,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261118000228257",
+   "prev_state": "Rs156.53",
+   "new_state": "cancel resting SL, then place SL at Rs160.21",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-18T05:07:38Z"
+ "synced_at_utc": "2026-11-18T05:09:12Z"
 }
