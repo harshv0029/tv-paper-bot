@@ -29,8 +29,8 @@ Total rows: 1379 | closed: 993 | not closed: 386
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
 | USER | 4 |
+| OWNER-ACTION | 3 |
 | DEPLOYED | 3 |
-| OWNER-ACTION | 2 |
 | TODO | 2 |
 | DISPATCH-READY | 2 |
 | P0 | 2 |
@@ -59,7 +59,6 @@ Total rows: 1379 | closed: 993 | not closed: 386
 | OPEN-RECURRING | 1 |
 | DONE-CODE | 1 |
 | TICK | 1 |
-| BUILT | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -72,11 +71,12 @@ Total rows: 1379 | closed: 993 | not closed: 386
 | Info | 1 | 0 |
 | P? | 182 | 108 |
 
-## needs-owner (2)
+## needs-owner (3)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-1625 | P0 | OWNER-ACTION | 2026-11-18 IST | remaining, verify |
+| B-1628 | P0 | OWNER-ACTION | 2026-11-18 IST |  |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
 ## waiting-on-workflow/deploy (178)
@@ -262,7 +262,7 @@ Total rows: 1379 | closed: 993 | not closed: 386
 | B-789 | P? | DONE-PENDING-VERIFY | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (90)
+## ready-to-build (89)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -271,7 +271,6 @@ Total rows: 1379 | closed: 993 | not closed: 386
 | B-1582 | P0 | UNKNOWN | 2026-11-14 IST | verify |
 | B-1615 | P0 | DAILY | 2026-11-16 IST | verify, awaiting, waiting |
 | B-1623 | P0 | DAILY | 2026-11-17 IST | awaiting, waiting |
-| B-1628 | P0 | BUILT | 2026-11-18 IST |  |
 | B-867 | P1 | DEPLOYED | 2026-10-12 | owed, verify |
 | B-1447 | P1 | WATCHDOG | 2026-11-02 22:40 IST | owed, remaining, verify |
 | B-1472 | P1 | UNKNOWN | 2026-11-05 | owed, remaining, needs, follow-up |
