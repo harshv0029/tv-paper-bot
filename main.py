@@ -66,6 +66,18 @@ def _trim_native_heap() -> bool:
         return False
 
 
+def _malloc_trim_only() -> bool:
+    """B-1629: glibc malloc_trim(0) without gc.collect (a full collect of ~900k objects holds the GIL; the prefetch
+    spike is native, not Python objects). Silent no-op off glibc. True when it trimmed."""
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        _NATIVE_TRIM_STATE["batch_trims"] = _NATIVE_TRIM_STATE.get("batch_trims", 0) + 1
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 import os  # noqa: E402
 
 _cap_malloc_arenas()
@@ -24354,6 +24366,7 @@ SCHEDULER_INTERVAL_SECONDS = 30
 # daily-loss / position caps cannot race.
 SCAN_PREFETCH_WORKERS = 8
 SCAN_PREFETCH_TIMEOUT_SECONDS = 60
+SCAN_PREFETCH_BATCH_KEYS = 48  # B-1629: keys queued per prefetch batch (6 rounds of the 8 workers), heap trimmed between
 _SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
 _SCHEDULER_TICK_TIMING_KEEP = 20
 
@@ -24419,26 +24432,48 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
     # Fixed size (not min(len(syms))): one pool for the process; ThreadPoolExecutor starts threads lazily.
     pool = _prefetch_pool(max(1, int(workers or SCAN_PREFETCH_WORKERS)))
     futs = []
+    batches = 0
+    # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
+    keys = [(s, period, iv) for s in syms for iv in ivs]
+    deadline = t0 + float(timeout or SCAN_PREFETCH_TIMEOUT_SECONDS)
+    batch_n = max(1, int(SCAN_PREFETCH_BATCH_KEYS))
     try:
-        # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
-        keys = [(s, period, iv) for s in syms for iv in ivs]
-        futs = [pool.submit(_prefetch_one_frame, *k) for k in keys]
-        key_of = dict(zip(futs, keys))
-        try:
-            for f in _cf.as_completed(futs, timeout=timeout or SCAN_PREFETCH_TIMEOUT_SECONDS):
-                try:
-                    fetched_at, df = f.result()
-                    ok += 1
-                    if collect is not None:  # B-1419: the bar sweep pins these for its own scan (data_fetch._PINNED_FRAMES)
-                        collect[key_of[f]] = (fetched_at, df)
-                except Exception:  # noqa: BLE001
-                    failed += 1
-        except _cf.TimeoutError:
-            failed += sum(1 for f in futs if not f.done())
+        # B-1629: submit in bounded batches and trim the native heap between them. All ~400 keys of the bar sweep
+        # used to be queued at once, so 8 downloads' Yahoo JSON/pandas temporaries piled up together (tick_prefetch
+        # max_delta 747 MB on /health, 18-Nov oom_suspect restarts with a flat Python heap).
+        for i in range(0, len(keys), batch_n):
+            chunk = keys[i:i + batch_n]
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                failed += len(keys) - i
+                break
+            futs = [pool.submit(_prefetch_one_frame, *k) for k in chunk]
+            key_of = dict(zip(futs, chunk))
+            try:
+                for f in _cf.as_completed(futs, timeout=remaining):
+                    try:
+                        fetched_at, df = f.result()
+                        ok += 1
+                        if collect is not None:  # B-1419: the bar sweep pins these for its own scan (data_fetch._PINNED_FRAMES)
+                            collect[key_of[f]] = (fetched_at, df)
+                    except Exception:  # noqa: BLE001
+                        failed += 1
+            except _cf.TimeoutError:
+                failed += sum(1 for f in futs if not f.done())
+                failed += len(keys) - i - len(chunk)
+                break
+            finally:
+                for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+                    f.cancel()
+                futs = []
+            batches += 1
+            if len(keys) > batch_n:
+                _malloc_trim_only()
     finally:
-        for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+        for f in futs:
             f.cancel()
-    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "batches": batches,
+            "seconds": round(time.time() - t0, 2)}
 
 
 def _record_tick_timing(entry: dict) -> None:
