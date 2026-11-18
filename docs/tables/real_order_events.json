@@ -104003,7 +104003,43 @@
    "prev_state": "long 1 @ Rs1673.40",
    "new_state": "closed",
    "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8668,
+   "ts": 1794973814.672481,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261118000016770",
+   "prev_state": "resting @ Rs353.15",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8669,
+   "ts": 1794973814.8102067,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs381.22",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8670,
+   "ts": 1794973822.3269253,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261118000042003",
+   "prev_state": "long 1 @ Rs381.22",
+   "new_state": "closed",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-18T03:50:10Z"
+ "synced_at_utc": "2026-11-18T03:50:26Z"
 }
