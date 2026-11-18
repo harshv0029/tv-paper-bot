@@ -105599,7 +105599,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8801,
+   "ts": 1795027379.1827483,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs1434.60",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-18T11:04:45Z"
+ "synced_at_utc": "2026-11-18T18:43:01Z"
 }
