@@ -104471,7 +104471,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs2582.10",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs2582.10 already covers the position (target stop Rs2582.08), adopted, nothing placed"
+  },
+  {
+   "id": 8707,
+   "ts": 1794995014.7040603,
+   "symbol": "TATAPOWER.NS",
+   "kotak_trading_symbol": "TATAPOWER-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261118000017647",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs337.35",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-18T09:22:42Z"
+ "synced_at_utc": "2026-11-18T09:44:15Z"
 }
