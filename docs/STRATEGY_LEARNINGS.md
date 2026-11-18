@@ -2388,3 +2388,12 @@ Profit-booking / exit takeaway: SL history must map to the right trading day, or
 - Restarts cost twice: lost intraday state, plus restore reads that burn the storage budget.
 - Profit-booking / exit takeaway: trail and exit state must survive a restart, so the mirrors that carry it are never
   the writes a budget guard cuts first.
+
+## 2026-11-18 IST - B-871/B-967 overnight cash short retest (Kotak rejects both products)
+- 1-share IDEA-EQ SELL, market order. NRML: RMS block "SHORT SELLING NOT ALLOWED IN NRML PRODUCT, USE MIS".
+  CNC: rejected on the T1 holdings check (a CNC sell is a delivery sale of shares held, not a short).
+- Same answer as 20-Oct (B-967): an equity cash short cannot be carried overnight at Kotak. Only MIS (intraday,
+  auto-squared) shorts are possible; multi-day shorts need stock futures or puts (B-1339, capital-gated).
+- Never use CNC as a "short" product in code: if the name is held, it sells a real holding instead.
+- Profit-booking / exit takeaway: 1d short signals (brk20 short, best PFnet on record) can only be booked intraday
+  in cash, so their profit stays paper until a futures route is affordable; size research toward MIS-exit variants.
