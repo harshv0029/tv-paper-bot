@@ -104135,7 +104135,31 @@
    "prev_state": "no position",
    "new_state": "long 2 @ Rs83.72",
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1 passed the PFnet gate"
+  },
+  {
+   "id": 8679,
+   "ts": 1794973984.4721675,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261118000051519",
+   "prev_state": "resting SELL trigger Rs1134.00",
+   "new_state": "resting SELL trigger Rs1135.10",
+   "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1134.00 to Rs1135.10 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8680,
+   "ts": 1794973994.2227669,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261118000052057",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs75.46",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-18T03:53:04Z"
+ "synced_at_utc": "2026-11-18T03:53:19Z"
 }
