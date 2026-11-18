@@ -105563,7 +105563,79 @@
       "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
       "new_state": "none (placement failed)",
       "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+    },
+    {
+      "id": 8798,
+      "ts": 1794999880.941375,
+      "symbol": "MEESHO.NS",
+      "kotak_trading_symbol": null,
+      "leg": "sl",
+      "event": "cleared_no_live_sl_at_kotak",
+      "order_id": null,
+      "prev_state": null,
+      "new_state": "none",
+      "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+    },
+    {
+      "id": 8799,
+      "ts": 1794999880.9475439,
+      "symbol": "IRCTC.NS",
+      "kotak_trading_symbol": null,
+      "leg": "sl",
+      "event": "cleared_no_live_sl_at_kotak",
+      "order_id": null,
+      "prev_state": null,
+      "new_state": "none",
+      "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+    },
+    {
+      "id": 8800,
+      "ts": 1794999880.9532566,
+      "symbol": "GROWW.NS",
+      "kotak_trading_symbol": null,
+      "leg": "sl",
+      "event": "cleared_no_live_sl_at_kotak",
+      "order_id": null,
+      "prev_state": null,
+      "new_state": "none",
+      "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+    },
+    {
+      "id": 8801,
+      "ts": 1795027379.1827483,
+      "symbol": "ADANIENSOL.NS",
+      "kotak_trading_symbol": "ADANIENSOL-EQ",
+      "leg": "exit",
+      "event": "intent",
+      "order_id": null,
+      "prev_state": "long 1 @ Rs1434.60",
+      "new_state": "market SELL about to be sent to Kotak",
+      "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+    },
+    {
+      "id": 8802,
+      "ts": 1795027382.7540238,
+      "symbol": "ADANIENSOL.NS",
+      "kotak_trading_symbol": "ADANIENSOL-EQ",
+      "leg": "exit",
+      "event": "kotak_send_error",
+      "order_id": null,
+      "prev_state": "sent to Kotak",
+      "new_state": "failed",
+      "detail": "reason: real market SELL exit; the send failed before Kotak returned an order id | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+    },
+    {
+      "id": 8803,
+      "ts": 1795027383.1117766,
+      "symbol": "ADANIENSOL.NS",
+      "kotak_trading_symbol": "ADANIENSOL-EQ",
+      "leg": "exit",
+      "event": "failed",
+      "order_id": null,
+      "prev_state": "long 1 @ Rs1434.60",
+      "new_state": "still open (exit attempt failed)",
+      "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
     }
   ],
-  "synced_at_utc": "2026-11-18T10:50:50Z"
+  "synced_at_utc": "2026-11-18T19:08:32Z"
 }
