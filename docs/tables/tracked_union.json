@@ -289,22 +289,6 @@
    "symbol": "INDUSTOWER.NS"
   },
   {
-   "day": "2026-11-17",
-   "entry_order_id": null,
-   "entry_price": 1143.86,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "INFY-EQ",
-   "opened_at": 1794887121.6872005,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1117.8,
-   "source": "holding",
-   "stop_loss": 1117.79,
-   "strategy": "holding_atr_stop",
-   "symbol": "INFY.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000158129",
    "entry_price": 479.05,
@@ -479,22 +463,6 @@
    "stop_loss": 164.8,
    "strategy": "order_block_delta",
    "symbol": "UNIONBANK.NS"
-  },
-  {
-   "day": "2026-11-11",
-   "entry_order_id": "261111000251285",
-   "entry_price": 555.75,
-   "first_seen_day": "2026-11-11",
-   "is_short": 0,
-   "kotak_trading_symbol": "UPL-EQ",
-   "opened_at": 1794410848.1822288,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 545.3,
-   "source": "holding",
-   "stop_loss": 480.84279087611606,
-   "strategy": "gap__runaway__long__1d__atr4_h20__v1",
-   "symbol": "UPL.NS"
   },
   {
    "day": "2026-11-17",
