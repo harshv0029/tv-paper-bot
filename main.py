@@ -70,6 +70,8 @@ import os  # noqa: E402
 
 _cap_malloc_arenas()
 import base64
+import array
+import bisect
 import collections
 import contextvars
 import datetime as dt
@@ -26855,7 +26857,7 @@ def _pair_scan_drop_idle(now: float) -> int:
     cutoff, n = now - _PAIR_SCAN_WINDOW_SEC, 0
     for rec in list(_pair_scan_stats.values()):
         dq = rec[1]
-        if isinstance(dq, collections.deque) and (not dq or dq[-1] < cutoff):
+        if isinstance(dq, (collections.deque, array.array)) and (not dq or dq[-1] < cutoff):
             rec[1] = ()
             n += 1
     return n
@@ -26873,13 +26875,19 @@ def _record_pair_scan(tag: str, sym: str, today_str: str):
     if now - _pair_scan_last_sweep >= _PAIR_SCAN_IDLE_SWEEP_SEC:
         _pair_scan_drop_idle(now)
     rec[0] += 1
+    # B-1628 (18-Nov crash loop): a collections.deque per pair costs ~600 B empty plus ~32 B per timestamp, and the
+    # daily swing pass touches ~225k (tag, symbol) pairs, so /memory-breakdown showed deques 19.7k -> 70.7k in 2 min
+    # and Render OOM-restarted every ~40 min (the 1 h idle sweep never got a chance). A flat array('d') holds the same
+    # timestamps at 8 B each (~64 B base); readers only iterate / reversed / [-1] / len, which array supports.
     dq = rec[1]
-    if not isinstance(dq, collections.deque):
-        dq = rec[1] = collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)
+    if not isinstance(dq, array.array):
+        dq = rec[1] = array.array("d", dq or ())
     dq.append(now)
     cutoff = now - _PAIR_SCAN_WINDOW_SEC
-    while dq and dq[0] < cutoff:
-        dq.popleft()
+    if dq[0] < cutoff:
+        del dq[:bisect.bisect_left(dq, cutoff)]
+    if len(dq) > _PAIR_SCAN_RECENT_MAX:
+        del dq[:len(dq) - _PAIR_SCAN_RECENT_MAX]
 
 
 def _record_symbol_strategy_scan(tag: str):
