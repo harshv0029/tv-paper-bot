@@ -103739,7 +103739,91 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs246.85",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs246.85 already covers the position (target stop Rs246.85), adopted, nothing placed"
+  },
+  {
+   "id": 8646,
+   "ts": 1794973618.1898315,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017579",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs174.71",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs174.71 already covers the position (target stop Rs174.71), adopted, nothing placed"
+  },
+  {
+   "id": 8647,
+   "ts": 1794973621.3756175,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017579",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs174.71",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs174.71 already covers the position (target stop Rs174.71), adopted, nothing placed"
+  },
+  {
+   "id": 8648,
+   "ts": 1794973622.4118698,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017560",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1371.50",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1371.50 already covers the position (target stop Rs1371.50), adopted, nothing placed"
+  },
+  {
+   "id": 8649,
+   "ts": 1794973626.0687585,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017560",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1371.50",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1371.50 already covers the position (target stop Rs1371.50), adopted, nothing placed"
+  },
+  {
+   "id": 8650,
+   "ts": 1794973626.766538,
+   "symbol": "TATAPOWER.NS",
+   "kotak_trading_symbol": "TATAPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017647",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs337.35",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs337.35 already covers the position (target stop Rs337.35), adopted, nothing placed"
+  },
+  {
+   "id": 8651,
+   "ts": 1794973630.3746703,
+   "symbol": "TATAPOWER.NS",
+   "kotak_trading_symbol": "TATAPOWER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017647",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs337.35",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs337.35 already covers the position (target stop Rs337.35), adopted, nothing placed"
+  },
+  {
+   "id": 8652,
+   "ts": 1794973631.0366833,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017640",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs351.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs351.65 already covers the position (target stop Rs349.30), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:46:59Z"
+ "synced_at_utc": "2026-11-18T03:47:13Z"
 }
