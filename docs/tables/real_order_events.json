@@ -104291,7 +104291,19 @@
    "prev_state": null,
    "new_state": null,
    "detail": "reason: intraday paper exit: exited_state_exit | real_swing_row=False paper_swing_row=True strategy=None"
+  },
+  {
+   "id": 8692,
+   "ts": 1794978243.018092,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "move_intent",
+   "order_id": "261118000104165",
+   "prev_state": "Rs153.32",
+   "new_state": "cancel resting SL, then place SL at Rs156.53",
+   "detail": "reason: trailing stop-loss tightened"
   }
  ],
- "synced_at_utc": "2026-11-18T05:03:46Z"
+ "synced_at_utc": "2026-11-18T05:04:18Z"
 }
