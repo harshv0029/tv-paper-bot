@@ -102313,7 +102313,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :326.80,  Low Price Range:329.25 High Price Range:402.35  for entity account-XUAEZ across exchange across"
   },
   {
-   "id": 8528,
+   "id": 8527,
    "ts": 1794973516.1317647,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -102325,7 +102325,7 @@
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs330.25 already covers the position (target stop Rs326.80), adopted, nothing placed"
   },
   {
-   "id": 8527,
+   "id": 8528,
    "ts": 1794973516.8225548,
    "symbol": "INFY.NS",
    "kotak_trading_symbol": "INFY-EQ",
@@ -104125,7 +104125,7 @@
    "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
   },
   {
-   "id": 8682,
+   "id": 8678,
    "ts": 1794973974.5289965,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -104137,7 +104137,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8678,
+   "id": 8679,
    "ts": 1794973980.2345285,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -104149,7 +104149,7 @@
    "detail": "reason: swing entry signal from strategy sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1 passed the PFnet gate"
   },
   {
-   "id": 8679,
+   "id": 8680,
    "ts": 1794973984.4721675,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -104161,7 +104161,7 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1134.00 to Rs1135.10 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   },
   {
-   "id": 8680,
+   "id": 8681,
    "ts": 1794973994.2227669,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -104173,7 +104173,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 8681,
+   "id": 8682,
    "ts": 1794973997.053663,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -104185,5 +104185,5 @@
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs75.46 already covers the position (target stop Rs71.74), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:53:49Z"
+ "synced_at_utc": "2026-11-18T03:57:22Z"
 }
