@@ -104231,7 +104231,31 @@
    "prev_state": "resting SELL trigger Rs1135.10",
    "new_state": "resting SELL trigger Rs1139.20",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1135.10 to Rs1139.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8687,
+   "ts": 1794976611.998902,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "short_entry",
+   "event": "kotak_rejected",
+   "order_id": "261118000180348",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: real market SELL-to-open short entry; Kotak rejected it | Kotak rejRsn: RMS:Blocked for Snse_cmNRMLRemarks:SHORT SELLING NOT ALLOWED IN NRML PRODUCT KINDLY USE MIS PRODUCT  block type: NON-SQROFF"
+  },
+  {
+   "id": 8688,
+   "ts": 1794976612.0249047,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "entry",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "B-967 overnight NRML short test",
+   "detail": "reason: B-967 test: 1-share NRML equity short to see if it survives past 15:15 IST | order 261118000180348 rejected: RMS:Blocked for Snse_cmNRMLRemarks:SHORT SELLING NOT ALLOWED IN NRML PRODUCT KINDLY USE MIS PRODUCT  block type: NON-SQROFF"
   }
  ],
- "synced_at_utc": "2026-11-18T04:16:01Z"
+ "synced_at_utc": "2026-11-18T04:36:55Z"
 }
