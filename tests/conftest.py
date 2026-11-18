@@ -281,3 +281,12 @@ def _upstash_db_not_stale():
     yield
     _m._UPSTASH_STALE_DB.update(checked=True, stale=False)
     _m._upstash_written_keys.clear()
+
+
+@pytest.fixture(autouse=True)
+def _b1625_pattern_fresh_cache_reset():
+    # B-1625: the per-day pattern signal cache is module state; each test starts empty.
+    import main
+    main._PATTERN_FRESH_CACHE.update(day=None, by_sym={}, dirty=False, restored=False)
+    yield
+    main._PATTERN_FRESH_CACHE.update(day=None, by_sym={}, dirty=False, restored=False)

@@ -160,7 +160,7 @@ def _run_exit_check_at(now_ist: str):
         # max_hold_minutes set high so stale_timeout (which would
         # otherwise fire first - entry is at market open, "now" is hours
         # later) doesn't mask the squareoff-time check under test.
-        return main._auto_signal_core("TESTSTOCK.NS", currency="INR", max_hold_minutes=100000.0)
+        return main._auto_signal_core("TESTSTOCK.NS", currency="INR", max_hold_minutes=1e9)
 
 
 def test_squareoff_fires_at_915pm():
