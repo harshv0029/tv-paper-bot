@@ -103643,7 +103643,103 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1581: Kotak shows INFY-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
+  },
+  {
+   "id": 8638,
+   "ts": 1794973603.7744846,
+   "symbol": "MAHABANK.NS",
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016947",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs86.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs86.65 already covers the position (target stop Rs83.05), adopted, nothing placed"
+  },
+  {
+   "id": 8639,
+   "ts": 1794973603.9837112,
+   "symbol": "MAHABANK.NS",
+   "kotak_trading_symbol": "MAHABANK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016947",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs86.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs86.65 already covers the position (target stop Rs83.05), adopted, nothing placed"
+  },
+  {
+   "id": 8640,
+   "ts": 1794973605.4575984,
+   "symbol": "MARICO.NS",
+   "kotak_trading_symbol": "MARICO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016894",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs889.30",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs889.30 already covers the position (target stop Rs889.30), adopted, nothing placed"
+  },
+  {
+   "id": 8641,
+   "ts": 1794973605.6034966,
+   "symbol": "MARICO.NS",
+   "kotak_trading_symbol": "MARICO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016894",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs889.30",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs889.30 already covers the position (target stop Rs889.30), adopted, nothing placed"
+  },
+  {
+   "id": 8642,
+   "ts": 1794973609.8183098,
+   "symbol": "MOTHERSON.NS",
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017543",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs148.39",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs148.39 already covers the position (target stop Rs147.12), adopted, nothing placed"
+  },
+  {
+   "id": 8643,
+   "ts": 1794973612.8416228,
+   "symbol": "MOTHERSON.NS",
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017543",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs148.39",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs148.39 already covers the position (target stop Rs147.12), adopted, nothing placed"
+  },
+  {
+   "id": 8644,
+   "ts": 1794973613.974927,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017538",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs246.85",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs246.85 already covers the position (target stop Rs246.85), adopted, nothing placed"
+  },
+  {
+   "id": 8645,
+   "ts": 1794973616.9862294,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000017538",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs246.85",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs246.85 already covers the position (target stop Rs246.85), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:46:45Z"
+ "synced_at_utc": "2026-11-18T03:46:59Z"
 }
