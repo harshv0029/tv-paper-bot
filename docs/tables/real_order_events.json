@@ -104111,7 +104111,19 @@
    "prev_state": "long 1 @ Rs404.75",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8677,
+   "ts": 1794973899.9719608,
+   "symbol": "LICI.NS",
+   "kotak_trading_symbol": "LICI-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261118000046347",
+   "prev_state": "long 1 @ Rs404.75",
+   "new_state": "closed",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-18T03:51:34Z"
+ "synced_at_utc": "2026-11-18T03:51:53Z"
 }
