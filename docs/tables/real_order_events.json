@@ -104195,7 +104195,19 @@
    "prev_state": "no position",
    "new_state": "long 11 @ Rs158.11",
    "detail": "reason: paper long entry signal from strategy chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1 passed the PFnet gate"
+  },
+  {
+   "id": 8684,
+   "ts": 1794974981.5971322,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261118000104165",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs153.32",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-18T04:09:32Z"
+ "synced_at_utc": "2026-11-18T04:09:58Z"
 }
