@@ -104039,7 +104039,19 @@
    "prev_state": "long 1 @ Rs381.22",
    "new_state": "closed",
    "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8671,
+   "ts": 1794973852.8718233,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261118000016840",
+   "prev_state": "resting @ Rs391.45",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-18T03:50:26Z"
+ "synced_at_utc": "2026-11-18T03:50:54Z"
 }
