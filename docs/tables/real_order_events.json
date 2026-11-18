@@ -104377,6 +104377,18 @@
    "detail": "reason: trailing stop-loss tightened"
   },
   {
+   "id": 8700,
+   "ts": 1794978566.1374989,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261118000235244",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8698,
    "ts": 1794978577.2448673,
    "symbol": "ASHOKLEY.NS",
@@ -104389,5 +104401,5 @@
    "detail": "reason: stop-loss moved to follow the trailing stop"
   }
  ],
- "synced_at_utc": "2026-11-18T05:09:56Z"
+ "synced_at_utc": "2026-11-18T05:10:20Z"
 }
