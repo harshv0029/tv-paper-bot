@@ -104051,7 +104051,43 @@
    "prev_state": "resting @ Rs391.45",
    "new_state": "cancelled (position exiting)",
    "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8672,
+   "ts": 1794973852.8809717,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs431.77",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
+  },
+  {
+   "id": 8673,
+   "ts": 1794973856.262366,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8674,
+   "ts": 1794973860.9684083,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261118000044191",
+   "prev_state": "long 1 @ Rs431.77",
+   "new_state": "closed",
+   "detail": "reason: gaps__common_fade__long__1d__atr3_nb4__v1 paper swing exit: gapfade_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-18T03:50:54Z"
+ "synced_at_utc": "2026-11-18T03:51:12Z"
 }
