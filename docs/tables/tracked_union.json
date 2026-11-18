@@ -219,7 +219,7 @@
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": 75.46,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 71.73857879638672,
    "strategy": "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1",
    "symbol": "IDFCFIRSTB.NS"
@@ -283,7 +283,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 2582.1,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 2582.0811543916234,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "MANKIND.NS"
