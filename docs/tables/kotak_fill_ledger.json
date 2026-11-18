@@ -470,6 +470,54 @@
   },
   {
    "day": "2026-11-18",
+   "trdsym": "CGPOWER-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 802.65,
+   "updated_at": 1794973885.3693619
+  },
+  {
+   "day": "2026-11-18",
+   "trdsym": "COLPAL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 1691.3,
+   "updated_at": 1794973885.3693619
+  },
+  {
+   "day": "2026-11-18",
+   "trdsym": "DABUR-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 381.6,
+   "updated_at": 1794973885.3693619
+  },
+  {
+   "day": "2026-11-18",
+   "trdsym": "HINDCOPPER-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 424.8,
+   "updated_at": 1794973885.3693619
+  },
+  {
+   "day": "2026-11-18",
    "trdsym": "INFY-EQ",
    "prod": "CNC",
    "source": "kotak_positions",
@@ -478,7 +526,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1114.5,
-   "updated_at": 1794973575.2306936
+   "updated_at": 1794973885.3693619
   },
   {
    "day": "2026-11-18",
@@ -490,8 +538,8 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 541.8,
-   "updated_at": 1794973575.2306936
+   "updated_at": 1794973885.3693619
   }
  ],
- "synced_at_utc": "2026-11-18T03:46:27Z"
+ "synced_at_utc": "2026-11-18T03:51:29Z"
 }
