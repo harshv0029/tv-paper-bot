@@ -478,7 +478,7 @@
    "buy_amt": 1739.21,
    "sell_qty": 11.0,
    "sell_amt": 1762.75,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -490,7 +490,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 802.65,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -502,7 +502,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1691.3,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -514,7 +514,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 381.6,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -526,7 +526,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 424.8,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -538,7 +538,7 @@
    "buy_amt": 167.44,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -550,7 +550,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1114.5,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -562,7 +562,19 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 400.5,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
+  },
+  {
+   "day": "2026-11-18",
+   "trdsym": "MANKIND-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 2629.0,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1794992959.2882218
   },
   {
    "day": "2026-11-18",
@@ -574,8 +586,8 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 541.8,
-   "updated_at": 1794992653.363679
+   "updated_at": 1794992959.2882218
   }
  ],
- "synced_at_utc": "2026-11-18T09:04:27Z"
+ "synced_at_utc": "2026-11-18T09:09:32Z"
 }
