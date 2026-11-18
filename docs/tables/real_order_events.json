@@ -103379,7 +103379,43 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs1390.20",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1390.20 already covers the position (target stop Rs1390.20), adopted, nothing placed"
+  },
+  {
+   "id": 8616,
+   "ts": 1794973554.7649992,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000015942",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1390.20",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1390.20 already covers the position (target stop Rs1390.20), adopted, nothing placed"
+  },
+  {
+   "id": 8617,
+   "ts": 1794973556.2691324,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016034",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs69.33",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs69.33 already covers the position (target stop Rs69.33), adopted, nothing placed"
+  },
+  {
+   "id": 8618,
+   "ts": 1794973559.4413214,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016034",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs69.33",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs69.33 already covers the position (target stop Rs69.33), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-18T03:45:53Z"
+ "synced_at_utc": "2026-11-18T03:46:02Z"
 }
