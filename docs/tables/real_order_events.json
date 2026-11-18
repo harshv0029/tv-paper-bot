@@ -103571,7 +103571,79 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs248.14",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs248.14 already covers the position (target stop Rs243.91), adopted, nothing placed"
+  },
+  {
+   "id": 8632,
+   "ts": 1794973593.170669,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016762",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs248.14",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs248.14 already covers the position (target stop Rs243.91), adopted, nothing placed"
+  },
+  {
+   "id": 8633,
+   "ts": 1794973593.821922,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016840",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs391.45",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs391.45 already covers the position (target stop Rs391.45), adopted, nothing placed"
+  },
+  {
+   "id": 8634,
+   "ts": 1794973597.3524413,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016840",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs391.45",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs391.45 already covers the position (target stop Rs391.45), adopted, nothing placed"
+  },
+  {
+   "id": 8635,
+   "ts": 1794973597.8660357,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016790",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs205.27",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs205.27 already covers the position (target stop Rs203.04), adopted, nothing placed"
+  },
+  {
+   "id": 8636,
+   "ts": 1794973601.6440697,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261118000016790",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs205.27",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs205.27 already covers the position (target stop Rs203.04), adopted, nothing placed"
+  },
+  {
+   "id": 8637,
+   "ts": 1794973602.5219743,
+   "symbol": "INFY.NS",
+   "kotak_trading_symbol": "INFY-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1581: Kotak shows INFY-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
   }
  ],
- "synced_at_utc": "2026-11-18T03:46:31Z"
+ "synced_at_utc": "2026-11-18T03:46:45Z"
 }
