@@ -2404,3 +2404,7 @@ Profit-booking / exit takeaway: SL history must map to the right trading day, or
 - Cache day-constant signals by bar identity and mirror the small result so a restart does not redo the heavy work.
 - Profit-booking / exit takeaway: every restart drops intraday trail and exit state and leaves UNLOGGED casualties,
   so memory spikes in entry scans directly cost exit quality; heavy entry scans must never share the peak with exits.
+
+### 2026-11-18 daily review: crash loop cost and stops (B-1629)
+Render restarted about every 39 min in market hours. The spike is the tick/bar-sweep OHLC prefetch (+747 MB in one run), not a Python object leak (the gc object count was flat). ASHOKLEY's 15m long (chan_kalman) was stopped 74 min after entry; INFY and UPL exited at the open via the entry-day stop and the B-1486 trail. Equity shorts at Kotak: CNC and NRML are both rejected (re-confirmed).
+Profit-booking / exit takeaway: exits worked as designed at the open; the bigger profit leak today is scan downtime from restarts, so end the crash loop before tuning exits.
