@@ -104411,7 +104411,19 @@
    "prev_state": "assumed resting",
    "new_state": "dead at Kotak (rejected/cancelled, no fill)",
    "detail": "reason: resting stop-loss was no longer live at Kotak; re-protecting the position | --"
+  },
+  {
+   "id": 8702,
+   "ts": 1794979389.915466,
+   "symbol": "ASHOKLEY.NS",
+   "kotak_trading_symbol": "ASHOKLEY-EQ",
+   "leg": "reroute",
+   "event": "moved_to_swing",
+   "order_id": null,
+   "prev_state": "intraday table (no strategy, no SL, no target)",
+   "new_state": "swing table, stop Rs156.53 (from previous resting stop-loss logged for this symbol)",
+   "detail": "reason: orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell"
   }
  ],
- "synced_at_utc": "2026-11-18T05:22:06Z"
+ "synced_at_utc": "2026-11-18T05:23:13Z"
 }
