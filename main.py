@@ -66,6 +66,18 @@ def _trim_native_heap() -> bool:
         return False
 
 
+def _malloc_trim_only() -> bool:
+    """B-1629: glibc malloc_trim(0) without gc.collect (a full collect of ~900k objects holds the GIL; the prefetch
+    spike is native, not Python objects). Silent no-op off glibc. True when it trimmed."""
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        _NATIVE_TRIM_STATE["batch_trims"] = _NATIVE_TRIM_STATE.get("batch_trims", 0) + 1
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
 import os  # noqa: E402
 
 _cap_malloc_arenas()
@@ -1911,7 +1923,7 @@ def pnl():
     already applied in positions. This is a simple summary, not tax/accounting grade."""
     with closing(get_db()) as conn:
         trades_rows = conn.execute(
-            "SELECT symbol, action, qty, price FROM trades ORDER BY id"
+            "SELECT ts, symbol, action, qty, price FROM trades ORDER BY id"
         ).fetchall()
 
     book: dict[str, dict] = {}
@@ -1927,13 +1939,51 @@ def pnl():
             realized += (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
             b["qty"] -= t["qty"]
 
+    try:  # B-1635: dividends earned by long lots held across an ex-date (price-only P&L misses them)
+        _div = _dividend_report([{"symbol": t["symbol"], "side": t["action"], "qty": t["qty"], "ts": t["ts"]}
+                                 for t in trades_rows])
+        div_inr = _div["gross_inr"]
+    except Exception:  # noqa: BLE001
+        div_inr = 0.0
     return {
         "starting_cash": STARTING_CASH,
         "realized_pnl": round(realized, 2),
+        "dividend_inr": div_inr,
+        "realized_pnl_incl_dividends": round(realized + div_inr, 2),
         "open_positions": {k: v for k, v in book.items() if abs(v["qty"]) > 1e-9},
         "note": "Unrealized P&L needs a live price feed — pull latest price per symbol "
                 "and compare to avg_price from /positions to compute it.",
     }
+
+
+def _yahoo_equity_symbol(sym: str) -> str:
+    """B-1635: real_trades / trades symbols are Yahoo style already; a bare NSE name gets .NS."""
+    s = str(sym or "").strip()
+    return s if ("." in s or "=" in s or s.startswith("^") or not s) else f"{s}.NS"
+
+
+def _dividend_report(rows) -> dict:
+    import dividends as _dv
+    return _dv.fifo_dividends(rows, lambda s: _dv.dividend_events(_yahoo_equity_symbol(s)))
+
+
+@app.get("/real-dividends")
+def get_real_dividends(days: int = 365):
+    """B-1635 (user 2026-11-19: count dividends in return/profit). Dividends earned by the bot's REAL long equity lots
+    (confirmed real_trades, FIFO), for ex-dates in the last `days`. Kotak's trade book and P&L never show these (the
+    cash goes to the bank account), so this is the add-back for return-on-capital. Read-only. Holdings bought outside
+    the bot are not in real_trades and are not counted here."""
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT symbol, side, qty, day FROM real_trades WHERE status = 'confirmed' ORDER BY ts, id").fetchall()]
+    rep = _dividend_report(rows)
+    since = (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN) - dt.timedelta(days=max(1, int(days)))).date().isoformat()
+    import dividends as _dv
+    kept = [c for c in rep["credits"] if c["ex_date"] >= since]
+    out = _dv.summarize(kept)
+    out.update(days=int(days), since_ist=since, note="gross = qty x dividend per share for ex-dates the lot was held "
+               "across (bought before ex-date, held at its start); tds_est = 10% once a company's FY total > Rs 5,000")
+    return out
 
 
 NSE_SESSION_OPEN_MINUTE = 9 * 60 + 15
@@ -24354,6 +24404,7 @@ SCHEDULER_INTERVAL_SECONDS = 30
 # daily-loss / position caps cannot race.
 SCAN_PREFETCH_WORKERS = 8
 SCAN_PREFETCH_TIMEOUT_SECONDS = 60
+SCAN_PREFETCH_BATCH_KEYS = 48  # B-1629: keys queued per prefetch batch (6 rounds of the 8 workers), heap trimmed between
 _SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
 _SCHEDULER_TICK_TIMING_KEEP = 20
 
@@ -24419,26 +24470,48 @@ def _prefetch_tick_ohlc_impl(symbols, period: str = "5d", interval: str = "5m",
     # Fixed size (not min(len(syms))): one pool for the process; ThreadPoolExecutor starts threads lazily.
     pool = _prefetch_pool(max(1, int(workers or SCAN_PREFETCH_WORKERS)))
     futs = []
+    batches = 0
+    # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
+    keys = [(s, period, iv) for s in syms for iv in ivs]
+    deadline = t0 + float(timeout or SCAN_PREFETCH_TIMEOUT_SECONDS)
+    batch_n = max(1, int(SCAN_PREFETCH_BATCH_KEYS))
     try:
-        # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
-        keys = [(s, period, iv) for s in syms for iv in ivs]
-        futs = [pool.submit(_prefetch_one_frame, *k) for k in keys]
-        key_of = dict(zip(futs, keys))
-        try:
-            for f in _cf.as_completed(futs, timeout=timeout or SCAN_PREFETCH_TIMEOUT_SECONDS):
-                try:
-                    fetched_at, df = f.result()
-                    ok += 1
-                    if collect is not None:  # B-1419: the bar sweep pins these for its own scan (data_fetch._PINNED_FRAMES)
-                        collect[key_of[f]] = (fetched_at, df)
-                except Exception:  # noqa: BLE001
-                    failed += 1
-        except _cf.TimeoutError:
-            failed += sum(1 for f in futs if not f.done())
+        # B-1629: submit in bounded batches and trim the native heap between them. All ~400 keys of the bar sweep
+        # used to be queued at once, so 8 downloads' Yahoo JSON/pandas temporaries piled up together (tick_prefetch
+        # max_delta 747 MB on /health, 18-Nov oom_suspect restarts with a flat Python heap).
+        for i in range(0, len(keys), batch_n):
+            chunk = keys[i:i + batch_n]
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                failed += len(keys) - i
+                break
+            futs = [pool.submit(_prefetch_one_frame, *k) for k in chunk]
+            key_of = dict(zip(futs, chunk))
+            try:
+                for f in _cf.as_completed(futs, timeout=remaining):
+                    try:
+                        fetched_at, df = f.result()
+                        ok += 1
+                        if collect is not None:  # B-1419: the bar sweep pins these for its own scan (data_fetch._PINNED_FRAMES)
+                            collect[key_of[f]] = (fetched_at, df)
+                    except Exception:  # noqa: BLE001
+                        failed += 1
+            except _cf.TimeoutError:
+                failed += sum(1 for f in futs if not f.done())
+                failed += len(keys) - i - len(chunk)
+                break
+            finally:
+                for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+                    f.cancel()
+                futs = []
+            batches += 1
+            if len(keys) > batch_n:
+                _malloc_trim_only()
     finally:
-        for f in futs:  # B-1447: drop queued work on timeout (the old per-tick pool did this via cancel_futures)
+        for f in futs:
             f.cancel()
-    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "batches": batches,
+            "seconds": round(time.time() - t0, 2)}
 
 
 def _record_tick_timing(entry: dict) -> None:
@@ -33698,6 +33771,10 @@ async def _scheduler_tick():
             await _real_off_loop(_swing_entry_stop_breach_sweep)
         except Exception as e:
             print(f"[REAL SWING] breach sweep failed (non-fatal): {e}")
+        try:  # B-1637: time-exit backstop - every real swing long exits by its expected exit date
+            await _real_off_loop(_swing_time_exit_sweep)
+        except Exception as e:
+            print(f"[REAL SWING] B-1637 time-exit sweep failed (non-fatal): {e}")
         try:
             await _real_off_loop(_retry_pending_real_swing_orders)
         except Exception as e:
@@ -35989,8 +36066,12 @@ def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=No
                     when, basis = t, f"max hold {int(float(mh))} min"
             return {"expected_exit": when.strftime("%Y-%m-%d %H:%M") + " IST", "expected_exit_basis": basis}
         spec = _strategy_hold_spec(tag)
-        if spec is None or not entry_day:
-            return {"expected_exit": None, "expected_exit_basis": "exits by its own rule (no time stop known)"}
+        if not entry_day:
+            return {"expected_exit": None, "expected_exit_basis": "entry day unknown"}
+        if spec is None:  # B-1637 (user 19-Nov: "Those without an exit date, those should be immediate exit")
+            return {"expected_exit": ist_now().date().isoformat(),
+                    "expected_exit_basis": "immediate: no strategy time stop (adopted holding / unknown tag), "
+                                           "closed by the time-exit sweep (B-1637)"}
         n, tf = spec
         if tf == "1w":
             days, unit = n * 5, f"{n} weeks"
@@ -37943,6 +38024,100 @@ def _swing_exit_if_stop_through_market(conn, symbol: str, res: dict) -> bool:
     except Exception as e:  # noqa: BLE001
         print(f"[REAL SWING] B-1520 stop-through-market exit failed for {symbol} (non-fatal): {e}")
         return False
+
+
+def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
+    """B-1637: close ONE real swing long now, the breach-exit way (B-1369 owner rule): (1) Kotak holdings first,
+    (2) read the whole live book and cancel every open sell on the symbol (the resting SL included), (3) market SELL
+    Kotak's held qty through the swing engine's own exit (_maybe_place_real_swing_exit, reason logged). Never sells
+    more than Kotak holds; a failed cancel sends no sell (no double sell)."""
+    _n = ist_now()
+    if _nse_closed_day(_n) or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
+        return {"symbol": symbol, "status": "deferred_outside_session"}
+    row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return {"symbol": symbol, "status": "not_tracked"}
+    import kotak_real_orders
+    trd = row["kotak_trading_symbol"]
+    held = _kotak_holdings_open_by_trdsym()
+    if held is None:
+        _log_real_order_event(conn, symbol, "exit", "time_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="holdings unreadable - retry next pass", reason=why)
+        return {"symbol": symbol, "status": "deferred_holdings_unreadable"}
+    if trd not in held:
+        return {"symbol": symbol, "status": "not_held_at_kotak"}
+    cxl = kotak_real_orders.cancel_all_open_sells(trd)
+    if not cxl.get("ok"):
+        _log_real_order_event(conn, symbol, "exit", "time_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="open sell order(s) not yet cancelled - no market sell sent (no double sell)",
+                              detail=str(cxl)[:200], reason=why)
+        return {"symbol": symbol, "status": "deferred_cancel_pending", "detail": str(cxl)[:200]}
+    if cxl.get("cancelled"):
+        _log_real_order_event(conn, symbol, "sl", "cancelled", kotak_trading_symbol=trd,
+                              order_id=",".join(cxl["cancelled"])[:60], new_state="cancelled before the exit",
+                              reason=why)
+    qty = int(held[trd].get("qty") or 0)
+    conn.execute("UPDATE real_positions_swing SET qty = ?, sl_order_id = NULL WHERE symbol = ?",
+                 (qty or row["qty"], symbol))  # Kotak's held qty wins
+    conn.commit()
+    _maybe_place_real_swing_exit(conn, symbol, reason=why)
+    gone = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone() is None
+    return {"symbol": symbol, "status": "sold" if gone else "sell_failed_still_tracked", "qty": qty}
+
+
+def _swing_time_exit_due(row, today: dt.date | None = None) -> tuple:
+    """B-1637: (due, expected_exit, basis) for one real_positions_swing row. Strategy rows: due the trading day AFTER
+    their own max-hold date (their engine exits on the day itself; this is the backstop). Rows with no strategy time
+    stop (adopted holdings, unknown tags): due immediately (user 2026-11-19)."""
+    today = today or ist_now().date()
+    ex = _expected_exit_for_position("swing", row["strategy"], row["day"], row["opened_at"])
+    exp = ex.get("expected_exit")
+    if not exp:
+        return False, None, ex.get("expected_exit_basis")
+    exp_d = dt.date.fromisoformat(str(exp)[:10])
+    if _strategy_hold_spec(row["strategy"]) is None:
+        return True, exp, ex.get("expected_exit_basis")
+    due = today > exp_d
+    return due, exp, ex.get("expected_exit_basis")
+
+
+def _swing_time_exit_sweep(conn) -> list:
+    """B-1637 (user 2026-11-19: "this tracking of time should not be left behind ever again"): every real swing long
+    has a time exit. 09:20-15:10 IST, each tick: a row past its expected exit is closed via _swing_market_exit_now."""
+    _n = ist_now()
+    if _nse_closed_day(_n) or not (dt.time(9, 20) <= _n.time() < dt.time(15, 10)):
+        return []
+    out = []
+    for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
+        try:
+            due, exp, basis = _swing_time_exit_due(r, _n.date())
+            if due:
+                out.append(_swing_market_exit_now(
+                    conn, r["symbol"], f"time_exit_backstop: expected exit {exp} reached ({basis})"[:300]))
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING] B-1637 time-exit check failed for {r['symbol']} (non-fatal): {e}")
+    return out
+
+
+@app.post("/kotak-neo/exit-swing-holding")
+def kotak_neo_exit_swing_holding(request: Request, symbols: str, reason: str = "manual_exit"):
+    """B-1637 (user 2026-11-19 10:5x IST: "Immediately exit them as of now"): close the named real swing longs now,
+    each the breach-exit way (Kotak holdings -> cancel every open sell -> market sell Kotak's held qty), through the
+    swing engine's own exit. EXPLICIT comma-separated Yahoo symbols only (e.g. CANBK.NS,WIPRO.NS), never "all".
+    Requires ?token=<KOTAK_NEO_API_TOKEN>."""
+    _require_kotak_token(request)
+    syms = [x.strip() for x in str(symbols or "").split(",") if x.strip()]
+    if not syms:
+        raise HTTPException(status_code=400, detail="symbols required")
+    why = f"manual_exit: {reason}"[:300]
+    with closing(get_db()) as conn:
+        res = []
+        for sym in syms:
+            try:
+                res.append(_swing_market_exit_now(conn, sym, why))
+            except Exception as e:  # noqa: BLE001
+                res.append({"symbol": sym, "status": "error", "detail": f"{type(e).__name__}: {e}"[:200]})
+    return _kotak_json_safe({"ok": all(r.get("status") in ("sold", "not_held_at_kotak") for r in res), "results": res})
 
 
 def _swing_entry_stop_breach_sweep(conn) -> list:
