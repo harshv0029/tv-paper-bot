@@ -304,7 +304,7 @@ def _isolate_from_repo_paper_journal(monkeypatch, tmp_path):
 @pytest.fixture(autouse=True)
 def _real_swing_exit_session_open_by_default(request, monkeypatch):
     """B-1645 gates real swing exits to the NSE session; other tests must not depend on the wall clock."""
-    if request.node.fspath.basename == "test_swing_exit_session_gate_b1645.py":
+    if request.node.fspath.basename in ("test_swing_exit_session_gate_b1645.py", "test_swing_short_cover_gate_b1647.py"):
         return
     try:
         import main

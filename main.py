@@ -27660,13 +27660,13 @@ def _real_swing_exit_session_open(ts=None) -> bool:
 _swing_exit_deferred_day: dict = {}
 
 
-def _log_swing_exit_deferred_once(conn, symbol, reason):
+def _log_swing_exit_deferred_once(conn, symbol, reason, leg="exit"):
     today = ist_now().strftime("%Y-%m-%d")
-    if _swing_exit_deferred_day.get(symbol) == today:
+    if _swing_exit_deferred_day.get((leg, symbol)) == today:
         return
-    _swing_exit_deferred_day[symbol] = today
+    _swing_exit_deferred_day[(leg, symbol)] = today
     _log_real_order_event(
-        conn, symbol, "exit", "exit_deferred_off_session", new_state="held with its SL - exit sent at the NSE open",
+        conn, symbol, leg, "exit_deferred_off_session", new_state="held with its SL - exit sent at the NSE open",
         reason=f"B-1645 outside NSE session; deferred: {reason or _REASON_UNSTATED}")
 
 
@@ -31181,6 +31181,28 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
     _log_signal_shadow(conn, strategy, symbol, "short", True, "real short-swing entry placed")
 
 
+def _retry_deferred_swing_short_covers(conn) -> int:
+    """B-1647: a real short-swing row whose paper row is gone is covered only when a paper short exit is on record
+    after the real row opened (short_trades_closed). A missing paper row alone is never an exit decision."""
+    if not _real_swing_exit_session_open():
+        return 0
+    n = 0
+    for row in conn.execute("SELECT symbol, opened_at FROM real_positions_swing_short").fetchall():
+        if conn.execute("SELECT 1 FROM signal_state_swing_short WHERE symbol = ?", (row["symbol"],)).fetchone():
+            continue
+        t = conn.execute("SELECT exit_reason FROM short_trades_closed WHERE symbol = ? AND ts >= ? ORDER BY ts DESC LIMIT 1",
+                         (row["symbol"], float(row["opened_at"] or 0))).fetchone()
+        if not t:
+            continue
+        try:
+            _maybe_place_real_swing_short_exit(
+                conn, row["symbol"], reason=f"retry of paper short-swing exit already recorded: {t['exit_reason'] or 'unstated'}")
+            n += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING SHORT] deferred cover retry failed for {row['symbol']} (non-fatal): {e}")
+    return n
+
+
 def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
     """Buy-to-cover for a short-swing position, called ONLY by the short-swing engine. Cancels the resting BUY-stop
     first, covers the exact row qty, logs the reason. Never gated by the entry switch (closing is always allowed).
@@ -31188,6 +31210,11 @@ def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
     _why = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     row = conn.execute("SELECT * FROM real_positions_swing_short WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
+        return
+    if not _real_swing_exit_session_open():
+        # B-1647 (B-1645 for shorts): off-session the cover is rejected and the stop cancel would leave the short
+        # bare. Keep row + BUY-stop; _retry_deferred_swing_short_covers sends it once NSE opens.
+        _log_swing_exit_deferred_once(conn, symbol, reason, leg="short_cover")
         return
     if _kotak_symbol_still_open_short(row["kotak_trading_symbol"]) is False:
         conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
@@ -41075,6 +41102,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             governance_backfilled_swing.extend(_heal_real_swing_short_sl(conn, order_rows))
         except Exception as e:
             print(f"[reconcile] short-swing SL heal failed (non-fatal): {e}")
+        try:
+            _retry_deferred_swing_short_covers(conn)  # B-1647
+        except Exception as e:  # noqa: BLE001
+            print(f"[reconcile] deferred short-swing cover retry failed (non-fatal): {e}")
 
         conn.commit()
         _sync_real_positions_external(conn)
