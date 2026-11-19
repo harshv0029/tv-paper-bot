@@ -107951,7 +107951,55 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8998,
+   "ts": 1795082392.4205487,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8999,
+   "ts": 1795082392.6261356,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8997,
+   "ts": 1795082392.9223778,
+   "symbol": "GAIL.NS",
+   "kotak_trading_symbol": "GAIL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 9000,
+   "ts": 1795082394.17601,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-19T09:54:37Z"
+ "synced_at_utc": "2026-11-19T10:00:04Z"
 }
