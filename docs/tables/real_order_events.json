@@ -106549,6 +106549,18 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   },
   {
+   "id": 8881,
+   "ts": 1795064895.0066552,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261119000013455",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8880,
    "ts": 1795064903.6867404,
    "symbol": "BANKINDIA.NS",
@@ -106561,5 +106573,5 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs142.63 to Rs142.78 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-19T05:08:25Z"
+ "synced_at_utc": "2026-11-19T05:09:10Z"
 }
