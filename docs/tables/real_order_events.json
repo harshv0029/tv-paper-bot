@@ -106847,7 +106847,19 @@
    "prev_state": "long 1 @ Rs265.80",
    "new_state": "closed",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8905,
+   "ts": 1795067352.343871,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261119000014855",
+   "prev_state": null,
+   "new_state": "cancelled before the exit",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:49:00Z"
+ "synced_at_utc": "2026-11-19T05:49:15Z"
 }
