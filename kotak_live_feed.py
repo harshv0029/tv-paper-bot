@@ -26,6 +26,7 @@ re-resolve tokens, re-subscribe) each time a request wakes the app back
 up, via the same startup event that launches it the first time.
 """
 import asyncio
+import weakref
 import contextlib
 import time
 
@@ -157,18 +158,53 @@ QUEUE_SOFT_CAP = 20000
 queue_stats = {"dropped": 0, "max_seen": 0, "capped_clients": 0}
 
 
+# B-1642 (2026-11-19 14:50 IST: 1,008,000 ticks dropped in 55 min, one queue pinned at the cap): per-queue stats so a
+# lagging live consumer can be told from an orphaned client nobody reads, and an orphan shrinks to ORPHAN_CAP. A queue
+# counts as orphaned when no consumer has taken a tick for ORPHAN_IDLE_SECONDS while ticks keep arriving. Any consumer
+# get() clears it at once, so a live consumer that was only stalled loses nothing but already-stale ticks.
+ORPHAN_IDLE_SECONDS = 120.0
+ORPHAN_CAP = 50
+_live_queues = weakref.WeakSet()
+
+
 class _DropOldestQueue(asyncio.Queue):
-    """asyncio.Queue whose put_nowait never grows past QUEUE_SOFT_CAP: it drops the oldest item first. Never raises
-    QueueFull (the SDK's receive loop calls put_nowait and would die on it)."""
+    """asyncio.Queue whose put_nowait never grows past QUEUE_SOFT_CAP (ORPHAN_CAP once orphaned): it drops the oldest
+    item first. Never raises QueueFull (the SDK's receive loop calls put_nowait and would die on it)."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        now = time.monotonic()
+        self.b1642_created = now
+        self.b1642_last_get = now
+        self.b1642_dropped = 0
+        self.b1642_consumed = 0
+        self.b1642_orphaned = False
+        try:
+            _live_queues.add(self)
+        except Exception:
+            pass
+
+    def get_nowait(self):
+        item = super().get_nowait()
+        self.b1642_last_get = time.monotonic()
+        self.b1642_consumed += 1
+        self.b1642_orphaned = False
+        return item
 
     def put_nowait(self, item):
         try:
-            while self.qsize() >= QUEUE_SOFT_CAP:
-                super().get_nowait()
+            if not self.b1642_orphaned and time.monotonic() - self.b1642_last_get > ORPHAN_IDLE_SECONDS:
+                self.b1642_orphaned = True
+                queue_stats["orphaned_marked"] = queue_stats.get("orphaned_marked", 0) + 1
+                print(f"[live_feed] B-1642 tick queue unread {ORPHAN_IDLE_SECONDS:.0f}s: shrinking to {ORPHAN_CAP}")
+            cap = ORPHAN_CAP if self.b1642_orphaned else QUEUE_SOFT_CAP
+            while self.qsize() >= cap:
+                asyncio.Queue.get_nowait(self)
                 self.task_done()
+                self.b1642_dropped += 1
                 queue_stats["dropped"] += 1
                 if queue_stats["dropped"] % 10000 == 1:
-                    print(f"[live_feed] B-1641 tick queue at cap {QUEUE_SOFT_CAP}: dropped oldest "
+                    print(f"[live_feed] B-1641 tick queue at cap {cap}: dropped oldest "
                           f"({queue_stats['dropped']} total)")
         except Exception:
             pass
@@ -179,6 +215,20 @@ class _DropOldestQueue(asyncio.Queue):
                 queue_stats["max_seen"] = n
         except Exception:
             pass
+
+
+def per_queue_stats() -> list:
+    """B-1642: one row per live capped queue: size, dropped, consumed, seconds since a consumer read it, orphaned."""
+    now = time.monotonic()
+    rows = []
+    try:
+        for q in list(_live_queues):
+            rows.append({"size": q.qsize(), "dropped": q.b1642_dropped, "consumed": q.b1642_consumed,
+                         "idle_s": round(now - q.b1642_last_get, 1), "age_s": round(now - q.b1642_created, 1),
+                         "orphaned": q.b1642_orphaned})
+    except Exception:
+        pass
+    return rows
 
 
 def cap_ws_queue(ws) -> None:

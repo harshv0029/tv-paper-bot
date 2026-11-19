@@ -37481,7 +37481,7 @@ def _feed_queue_stats() -> dict:
     """B-1641: drop-oldest tick-queue counters from kotak_live_feed (cap, drops, deepest backlog seen)."""
     try:
         import kotak_live_feed as _klf
-        return dict(_klf.queue_stats, cap=_klf.QUEUE_SOFT_CAP)
+        return dict(_klf.queue_stats, cap=_klf.QUEUE_SOFT_CAP, queues=_klf.per_queue_stats())  # B-1642
     except Exception as e:  # noqa: BLE001
         return {"error": str(e)[:80]}
 
