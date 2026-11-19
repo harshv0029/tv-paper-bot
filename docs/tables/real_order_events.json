@@ -107663,7 +107663,103 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8973,
+   "ts": 1795081746.1444147,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8974,
+   "ts": 1795081746.1936002,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8975,
+   "ts": 1795081746.2249558,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8976,
+   "ts": 1795081746.690766,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8977,
+   "ts": 1795081746.965045,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8978,
+   "ts": 1795081747.1378617,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8979,
+   "ts": 1795081747.2143066,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 8980,
+   "ts": 1795081747.9172473,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-19T09:49:07Z"
+ "synced_at_utc": "2026-11-19T09:49:19Z"
 }
