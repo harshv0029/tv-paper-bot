@@ -106883,7 +106883,19 @@
    "prev_state": "long 1 @ Rs196.30",
    "new_state": "closed",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8908,
+   "ts": 1795067511.7576184,
+   "symbol": "ATGL.NS",
+   "kotak_trading_symbol": "ATGL-EQ",
+   "leg": "target",
+   "event": "kotak_rejected",
+   "order_id": "261119000372979",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting LIMIT SELL profit target; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product"
   }
  ],
- "synced_at_utc": "2026-11-19T05:49:25Z"
+ "synced_at_utc": "2026-11-19T05:51:54Z"
 }
