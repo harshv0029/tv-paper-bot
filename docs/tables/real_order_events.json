@@ -106859,7 +106859,31 @@
    "prev_state": null,
    "new_state": "cancelled before the exit",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8906,
+   "ts": 1795067353.679785,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs196.30",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8907,
+   "ts": 1795067362.1404846,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261119000369450",
+   "prev_state": "long 1 @ Rs196.30",
+   "new_state": "closed",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:49:15Z"
+ "synced_at_utc": "2026-11-19T05:49:25Z"
 }
