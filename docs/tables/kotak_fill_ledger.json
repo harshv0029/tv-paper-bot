@@ -610,7 +610,31 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1488.0,
-   "updated_at": 1795067014.863866
+   "updated_at": 1795067251.3947756
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "ATGL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 563.85,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795067251.3947756
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "BANKBARODA-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 281.61,
+   "updated_at": 1795067251.3947756
   },
   {
    "day": "2026-11-19",
@@ -622,7 +646,31 @@
    "buy_amt": 1684.8,
    "sell_qty": 1.0,
    "sell_amt": 1686.0,
-   "updated_at": 1795067014.863866
+   "updated_at": 1795067251.3947756
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "CANBK-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 2.0,
+   "sell_amt": 270.22,
+   "updated_at": 1795067251.3947756
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "GROWW-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 224.38,
+   "updated_at": 1795067251.3947756
   },
   {
    "day": "2026-11-19",
@@ -634,7 +682,7 @@
    "buy_amt": 1333.3,
    "sell_qty": 1.0,
    "sell_amt": 1314.1,
-   "updated_at": 1795067014.863866
+   "updated_at": 1795067251.3947756
   },
   {
    "day": "2026-11-19",
@@ -646,8 +694,8 @@
    "buy_amt": 1552.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795067014.863866
+   "updated_at": 1795067251.3947756
   }
  ],
- "synced_at_utc": "2026-11-19T05:46:34Z"
+ "synced_at_utc": "2026-11-19T05:47:38Z"
 }
