@@ -106751,7 +106751,19 @@
    "prev_state": null,
    "new_state": "cancelled before the exit",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8897,
+   "ts": 1795067282.5375462,
+   "symbol": "MARICO.NS",
+   "kotak_trading_symbol": "MARICO-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs905.33",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:48:03Z"
+ "synced_at_utc": "2026-11-19T05:48:12Z"
 }
