@@ -106655,7 +106655,19 @@
    "prev_state": "long 1 @ Rs274.25",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8889,
+   "ts": 1795067212.0443194,
+   "symbol": "BANKBARODA.NS",
+   "kotak_trading_symbol": "BANKBARODA-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261119000366485",
+   "prev_state": "long 1 @ Rs274.25",
+   "new_state": "closed",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:46:52Z"
+ "synced_at_utc": "2026-11-19T05:46:59Z"
 }
