@@ -107087,7 +107087,19 @@
    "prev_state": "resting SELL trigger Rs142.78",
    "new_state": "resting SELL trigger Rs143.41",
    "detail": "reason: order_block_delta trail rule raised the stop from Rs142.78 to Rs143.41 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8925,
+   "ts": 1795078416.0316253,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261119000694637",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs143.41",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-19T08:48:41Z"
+ "synced_at_utc": "2026-11-19T08:53:40Z"
 }
