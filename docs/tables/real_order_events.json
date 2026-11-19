@@ -106463,7 +106463,31 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs1717.20",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 8873,
+   "ts": 1795060467.5268517,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261119000013387",
+   "prev_state": "resting @ Rs1390.2",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 8874,
+   "ts": 1795060467.5373492,
+   "symbol": "ADANIENSOL.NS",
+   "kotak_trading_symbol": "ADANIENSOL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs1434.60",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-19T03:52:51Z"
+ "synced_at_utc": "2026-11-19T03:54:29Z"
 }
