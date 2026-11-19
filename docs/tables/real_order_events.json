@@ -106355,7 +106355,43 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs1333.30",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 8864,
+   "ts": 1795059959.4439342,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261119000018474",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1314.10",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8865,
+   "ts": 1795059959.4953668,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_placed",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "placed",
+   "detail": "reason: trigger queued at 2026-11-19 00:14:18 IST (market closed) passed fresh re-validation at the open; placed by the swing engine with its SL | swing macddiv__line_any__long__1h__atr3_w5__nonovl__v2: confirmed"
+  },
+  {
+   "id": 8866,
+   "ts": 1795059967.9775438,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000019996",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1552.00",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T03:45:58Z"
+ "synced_at_utc": "2026-11-19T03:46:11Z"
 }
