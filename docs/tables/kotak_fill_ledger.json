@@ -602,6 +602,30 @@
   },
   {
    "day": "2026-11-19",
+   "trdsym": "ADANIENSOL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 1488.0,
+   "updated_at": 1795060600.0619202
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "BLUESTARCO-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 1686.0,
+   "updated_at": 1795060600.0619202
+  },
+  {
+   "day": "2026-11-19",
    "trdsym": "HCLTECH-EQ",
    "prod": "CNC",
    "source": "kotak_positions",
@@ -610,7 +634,7 @@
    "buy_amt": 1333.3,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795060293.0313256
+   "updated_at": 1795060600.0619202
   },
   {
    "day": "2026-11-19",
@@ -622,8 +646,8 @@
    "buy_amt": 1552.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795060293.0313256
+   "updated_at": 1795060600.0619202
   }
  ],
- "synced_at_utc": "2026-11-19T03:52:29Z"
+ "synced_at_utc": "2026-11-19T03:57:05Z"
 }
