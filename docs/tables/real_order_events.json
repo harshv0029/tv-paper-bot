@@ -105635,7 +105635,19 @@
    "prev_state": "long 1 @ Rs1434.60",
    "new_state": "still open (exit attempt failed)",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 8804,
+   "ts": 1795059012.2901888,
+   "symbol": "MARKET:MCX",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: MCX market opened (live ticks: 3 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"3 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\", \"SI=F\"], \"count\": 3, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 5.0}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
   }
  ],
- "synced_at_utc": "2026-11-18T18:43:14Z"
+ "synced_at_utc": "2026-11-19T03:30:14Z"
 }
