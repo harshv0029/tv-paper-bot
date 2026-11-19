@@ -17289,6 +17289,9 @@ def _redact_account_ids(obj):
     return obj
 
 
+_sl_after_1515_logged: set = set()  # B-1646
+
+
 def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
                            prev_state=None, new_state=None, detail=None, reason=None):
     """Appends one row to the order state-transition log (real_order_events -
@@ -17307,6 +17310,14 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     stored as a leading "reason: ..." in `detail` so it rides the existing
     Upstash mirror and docs/real_order_log.json (git) with no schema
     change. Every exit path passes it (see _REASON_UNSTATED)."""
+    if event == "failed" and "SL placement after 15:15" in str(detail or ""):
+        # B-1646: the exchange cancels resting SLs at 15:15 IST and no SL may be re-placed after it (by design), so
+        # this is a skip, not a failure: one row per symbol per leg per day instead of one every 5 min.
+        _k = (symbol, leg, ist_now().strftime("%Y-%m-%d"))
+        if _k in _sl_after_1515_logged:
+            return
+        _sl_after_1515_logged.add(_k)
+        event = "skipped_after_1515"
     if not reason:
         reason = _default_order_reason(leg, event)
     if reason:

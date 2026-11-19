@@ -13,15 +13,15 @@ Total rows: 1399 | closed: 995 | not closed: 404
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 54 |
+| OPEN | 53 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 16 |
 | P3 | 9 |
+| BUILT | 9 |
 | UNKNOWN | 8 |
-| BUILT | 8 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
 | OPEN-PARKED | 6 |
 | PARKED | 5 |
@@ -349,7 +349,7 @@ Total rows: 1399 | closed: 995 | not closed: 404
 | B-1589 | P3 | OPEN | 2026-11-15 IST |  |
 | B-1590 | P3 | OPEN | 2026-11-15 IST |  |
 | B-1634 | P3 | OPEN | 2026-11-19 IST |  |
-| B-1646 | P3 | OPEN | 2026-11-19 IST |  |
+| B-1646 | P3 | BUILT | 2026-11-19 IST | awaiting, waiting |
 | B-68 | P? | DEPLOYED | Orphan intraday holdings (no strategy/SL/target) rerouted to swing engine | owed, verify, owner, follow-up |
 | B-894 | P? | P0 | "Checks today, per asset" Last result/Last checked blank: B-892 awaited the swing pass inside the tick, sta... | owed, verify, needs |
 | B-926 | P? | P2 | ready-to-build | needs |
