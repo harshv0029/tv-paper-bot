@@ -299,3 +299,15 @@ def _isolate_from_repo_paper_journal(monkeypatch, tmp_path):
     # point DOCS_TRADE_OUTCOMES_PATH at their own file (test_paper_journal_resurrection does).
     import main
     monkeypatch.setattr(main, "DOCS_TRADE_OUTCOMES_PATH", str(tmp_path / "no_trade_outcomes_log.json"))
+
+
+@pytest.fixture(autouse=True)
+def _real_swing_exit_session_open_by_default(request, monkeypatch):
+    """B-1645 gates real swing exits to the NSE session; other tests must not depend on the wall clock."""
+    if request.node.fspath.basename == "test_swing_exit_session_gate_b1645.py":
+        return
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_real_swing_exit_session_open", lambda ts=None: True)

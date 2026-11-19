@@ -27649,6 +27649,27 @@ def _close_swing_option_leg(conn, symbol, reason):
         print(f"[SWING OPTION] exit failed for {symbol}: {e}")
 
 
+def _real_swing_exit_session_open(ts=None) -> bool:
+    """B-1645: a real swing (CNC) exit is sent only inside the NSE session (09:15-15:30 IST, trading day)."""
+    ts = time.time() if ts is None else ts
+    if not _in_nse_session(ts):
+        return False
+    return is_nse_trading_day((dt.datetime.utcfromtimestamp(float(ts)) + dt.timedelta(hours=5, minutes=30)).date())
+
+
+_swing_exit_deferred_day: dict = {}
+
+
+def _log_swing_exit_deferred_once(conn, symbol, reason):
+    today = ist_now().strftime("%Y-%m-%d")
+    if _swing_exit_deferred_day.get(symbol) == today:
+        return
+    _swing_exit_deferred_day[symbol] = today
+    _log_real_order_event(
+        conn, symbol, "exit", "exit_deferred_off_session", new_state="held with its SL - exit sent at the NSE open",
+        reason=f"B-1645 outside NSE session; deferred: {reason or _REASON_UNSTATED}")
+
+
 def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -27664,6 +27685,12 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper swing trade - nothing to close
+    if not _real_swing_exit_session_open():
+        # B-1645: off-session a market SELL is rejected by Kotak (2026-11-19 00:12 IST ADANIENSOL, stCode 1041)
+        # and the SL cancel before it would leave the holding bare overnight. Keep the row and its SL; the
+        # swing retry pass (_swing_paper_exit_on_record) sends the exit once NSE opens.
+        _log_swing_exit_deferred_once(conn, symbol, reason)
+        return
 
     import kotak_real_orders
 
