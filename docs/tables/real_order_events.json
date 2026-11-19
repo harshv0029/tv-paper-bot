@@ -106499,7 +106499,19 @@
    "prev_state": "long 1 @ Rs1434.60",
    "new_state": "closed",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 8876,
+   "ts": 1795061240.9707098,
+   "symbol": "BLUESTARCO.NS",
+   "kotak_trading_symbol": "BLUESTARCO-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-19T03:54:42Z"
+ "synced_at_utc": "2026-11-19T04:07:23Z"
 }
