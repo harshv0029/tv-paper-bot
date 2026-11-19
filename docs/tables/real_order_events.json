@@ -107015,7 +107015,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs220.50",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8919,
+   "ts": 1795069708.7429228,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000441547",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs367.60",
+   "detail": "reason: swing entry signal from strategy envelope__0d05_fade__long__1h__atr6_h30__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T06:25:19Z"
+ "synced_at_utc": "2026-11-19T06:28:31Z"
 }
