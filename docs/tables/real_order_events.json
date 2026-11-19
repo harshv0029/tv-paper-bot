@@ -106967,7 +106967,19 @@
    "prev_state": "long 1 @ Rs563.85",
    "new_state": "closed, 1 @ Rs563.55",
    "detail": "reason: intraday paper exit: exited_trend_weakened"
+  },
+  {
+   "id": 8915,
+   "ts": 1795069466.1819873,
+   "symbol": "IRFC.NS",
+   "kotak_trading_symbol": "IRFC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000434138",
+   "prev_state": "no position",
+   "new_state": "long 12 @ Rs83.11",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T05:53:14Z"
+ "synced_at_utc": "2026-11-19T06:24:33Z"
 }
