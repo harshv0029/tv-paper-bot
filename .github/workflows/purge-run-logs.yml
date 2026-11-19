@@ -1,0 +1,44 @@
+name: Purge old workflow runs (B-1643 account-id leak)
+
+# B-1643 (user 2026-11-19: "Delete the old diag-curl run logs that contain the account ID" -> yes). Deletes every run
+# of the given workflow created before the cutoff (run + its logs), so printed responses that still carry the
+# unmasked Kotak account id are gone. Deleted runs drop out of the listing, so a re-dispatch resumes where a
+# rate-limited pass stopped (GITHUB_TOKEN: ~1000 API calls/hour).
+on:
+  workflow_dispatch:
+    inputs:
+      workflow:
+        description: "Workflow file name"
+        required: true
+        default: "diag-curl.yml"
+      before:
+        description: "Delete runs created before this UTC time (YYYY-MM-DDTHH:MM:SSZ)"
+        required: true
+      max_deletes:
+        description: "Stop after this many deletes (rate-limit headroom)"
+        required: true
+        default: "900"
+
+permissions:
+  actions: write
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      R: ${{ github.repository }}
+      W: ${{ inputs.workflow }}
+      BEFORE: ${{ inputs.before }}
+      MAX: ${{ inputs.max_deletes }}
+    steps:
+      - name: Delete runs before the cutoff
+        run: |
+          [[ "$W" == "purge-run-logs.yml" ]] && { echo "refusing to purge self"; exit 1; }
+          n=0; fail=0
+          for id in $(gh api --paginate "repos/$R/actions/workflows/$W/runs?per_page=100&created=<$BEFORE" --jq '.workflow_runs[].id'); do
+            if gh api -X DELETE "repos/$R/actions/runs/$id" >/dev/null 2>&1; then n=$((n+1)); else fail=$((fail+1)); fi
+            [[ $n -ge $MAX ]] && break
+          done
+          left=$(gh api "repos/$R/actions/workflows/$W/runs?per_page=1&created=<$BEFORE" --jq '.total_count')
+          echo "deleted=$n failed=$fail remaining_before_cutoff=$left"
