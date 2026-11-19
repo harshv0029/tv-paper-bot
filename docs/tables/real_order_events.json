@@ -106549,7 +106549,7 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   },
   {
-   "id": 8880,
+   "id": 8881,
    "ts": 1795064895.0066552,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -106561,7 +106561,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 8881,
+   "id": 8880,
    "ts": 1795064903.6867404,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -106571,7 +106571,19 @@
    "prev_state": "resting SELL trigger Rs142.63",
    "new_state": "resting SELL trigger Rs142.78",
    "detail": "reason: order_block_delta trail rule raised the stop from Rs142.63 to Rs142.78 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8882,
+   "ts": 1795067196.76198,
+   "symbol": "ATGL.NS",
+   "kotak_trading_symbol": "ATGL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000366252",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs563.85",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T05:46:09Z"
+ "synced_at_utc": "2026-11-19T05:46:38Z"
 }
