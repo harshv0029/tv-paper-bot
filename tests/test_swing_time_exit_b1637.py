@@ -41,9 +41,11 @@ def test_time_exit_due_rules(db):
     assert main._swing_time_exit_due(fresh, dt.date(2026, 11, 19))[0] is True  # no time stop -> immediate
 
 
-def _in_session(monkeypatch):
+def _in_session(monkeypatch, book=None):
+    import kotak_neo
     monkeypatch.setattr(main, "ist_now", lambda: dt.datetime(2026, 11, 19, 11, 0))
     monkeypatch.setattr(main, "_nse_closed_day", lambda n: False)
+    monkeypatch.setattr(kotak_neo, "order_report", lambda *a, **k: {"data": book or []})
 
 
 def test_market_exit_cancels_then_sells_held_qty(db, monkeypatch):
@@ -95,3 +97,31 @@ def test_endpoint_requires_token_and_symbols(monkeypatch):
     monkeypatch.setattr(main, "_require_kotak_token", lambda r: None)
     with pytest.raises(HTTPException):
         main.kotak_neo_exit_swing_holding(None, symbols=" , ")
+
+
+def test_market_exit_never_resells_shares_sold_today(db, monkeypatch):
+    """B-1638 (19-Nov CANBK race): holdings() still lists shares sold today until T+1. A complete delivery sell in
+    the fresh order book that covers the holding closes the row and sends nothing."""
+    import kotak_real_orders as kro
+    _in_session(monkeypatch, book=[{"trdSym": "AAA-EQ", "trnsTp": "S", "ordSt": "complete", "prod": "CNC",
+                                    "fldQty": 2, "qty": 2, "prcTp": "MKT"}])
+    _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17", qty=2)
+    sent = []
+    monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 2, "avg_price": 100}})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: sent.append(("cxl", t)) or {"ok": True})
+    monkeypatch.setattr(kro, "place_real_exit", lambda *a, **k: sent.append(("sell", a)))
+    out = main._swing_market_exit_now(db, "AAA.NS", "time_exit_backstop: test")
+    assert out["status"] == "already_sold_today" and sent == []
+    assert db.execute("SELECT 1 FROM real_positions_swing WHERE symbol='AAA.NS'").fetchone() is None
+
+
+def test_market_exit_defers_when_book_unreadable(db, monkeypatch):
+    import kotak_neo
+    import kotak_real_orders as kro
+    _in_session(monkeypatch)
+    monkeypatch.setattr(kotak_neo, "order_report", lambda *a, **k: {"error": "down"})
+    _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17", qty=2)
+    sent = []
+    monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 2}})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: sent.append(t) or {"ok": True})
+    assert main._swing_market_exit_now(db, "AAA.NS", "x")["status"] == "deferred_book_unreadable" and sent == []

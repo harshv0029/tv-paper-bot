@@ -38046,6 +38046,26 @@ def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
         return {"symbol": symbol, "status": "deferred_holdings_unreadable"}
     if trd not in held:
         return {"symbol": symbol, "status": "not_held_at_kotak"}
+    # B-1638: holdings() lists shares sold today until T+1, so net out today's complete delivery sells (B-1337) from
+    # a FRESH order book; an unreadable book sends nothing. Shares already sold are never sold twice.
+    try:
+        import kotak_neo
+        book = (kotak_neo.order_report() or {}).get("data")
+    except Exception:  # noqa: BLE001
+        book = None
+    if not isinstance(book, list):
+        _log_real_order_event(conn, symbol, "exit", "time_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="order book unreadable - retry next pass", reason=why)
+        return {"symbol": symbol, "status": "deferred_book_unreadable"}
+    sold_today = int(_today_complete_delivery_sells(book, {trd}).get(trd, 0) or 0)
+    qty_left = int(held[trd].get("qty") or 0) - sold_today
+    if qty_left <= 0:
+        conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _log_real_order_event(conn, symbol, "exit", "already_sold_today", kotak_trading_symbol=trd,
+                              prev_state=f"tracked; Kotak holdings {held[trd].get('qty')}, sold today {sold_today}",
+                              new_state="row closed from Kotak's order book, nothing sent", reason=why)
+        return {"symbol": symbol, "status": "already_sold_today"}
     cxl = kotak_real_orders.cancel_all_open_sells(trd)
     if not cxl.get("ok"):
         _log_real_order_event(conn, symbol, "exit", "time_exit_deferred", kotak_trading_symbol=trd,
@@ -38056,9 +38076,9 @@ def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
         _log_real_order_event(conn, symbol, "sl", "cancelled", kotak_trading_symbol=trd,
                               order_id=",".join(cxl["cancelled"])[:60], new_state="cancelled before the exit",
                               reason=why)
-    qty = int(held[trd].get("qty") or 0)
+    qty = qty_left
     conn.execute("UPDATE real_positions_swing SET qty = ?, sl_order_id = NULL WHERE symbol = ?",
-                 (qty or row["qty"], symbol))  # Kotak's held qty wins
+                 (qty, symbol))  # Kotak's held qty (net of today's sells) wins
     conn.commit()
     _maybe_place_real_swing_exit(conn, symbol, reason=why)
     gone = conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone() is None
