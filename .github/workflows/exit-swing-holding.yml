@@ -1,0 +1,40 @@
+name: Exit Real Swing Holdings (manual, explicit symbols)
+
+# B-1637: POST /kotak-neo/exit-swing-holding. Each symbol is closed the breach-exit way: Kotak holdings first,
+# every open sell on it cancelled (resting SL included), then a market SELL of Kotak's held qty via the swing engine.
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Comma-separated Yahoo symbols tracked in real_positions_swing (e.g. CANBK.NS,WIPRO.NS)"
+        required: true
+      reason:
+        description: "Why (goes into the audit log)"
+        required: false
+        default: "manual_exit"
+
+permissions:
+  contents: read
+
+jobs:
+  exit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /kotak-neo/exit-swing-holding
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+          IN_SYMBOLS: ${{ inputs.symbols }}
+          IN_REASON: ${{ inputs.reason }}
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" -o /dev/null || true
+          SYMS=$(python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['IN_SYMBOLS']))")
+          REASON=$(python3 -c "import urllib.parse,os; print(urllib.parse.quote(os.environ['IN_REASON']))")
+          URL="https://tv-paper-bot-gdan.onrender.com/kotak-neo/exit-swing-holding?token=${KOTAK_NEO_API_TOKEN}&symbols=${SYMS}&reason=${REASON}"
+          curl -sS -m 170 -X POST "$URL" -o /tmp/exit.json
+          cat /tmp/exit.json; echo
+          OK=$(jq -r '.ok' /tmp/exit.json)
+          if [[ "$OK" != "true" ]]; then
+            echo "::error::exit-swing-holding did not confirm every symbol sold - see results above"
+            exit 1
+          fi
