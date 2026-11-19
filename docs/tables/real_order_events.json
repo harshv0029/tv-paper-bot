@@ -106439,7 +106439,19 @@
    "prev_state": null,
    "new_state": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: entry bar 2026-11-12 12:15 @ Rs1434.60, stop Rs1390.20",
    "detail": "reason: B-1381: paper swing exit state was lost; rebuilt from the real row and hourly bars so the 1h engine evaluates this cell's own exit rule again (no order placed by the rebuild)"
+  },
+  {
+   "id": 8871,
+   "ts": 1795060354.9085908,
+   "symbol": "BLUESTARCO.NS",
+   "kotak_trading_symbol": "BLUESTARCO-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261119000056911",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs1686.00",
+   "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T03:46:23Z"
+ "synced_at_utc": "2026-11-19T03:52:36Z"
 }
