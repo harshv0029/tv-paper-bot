@@ -161,22 +161,6 @@
    "symbol": "GROWW.NS"
   },
   {
-   "day": "2026-11-19",
-   "entry_order_id": "261119000017199",
-   "entry_price": 1333.3,
-   "first_seen_day": "2026-11-19",
-   "is_short": 0,
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "opened_at": 1795059945.8259277,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1314.1,
-   "source": "position",
-   "stop_loss": 1314.0340701619314,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "HCLTECH.NS"
-  },
-  {
    "day": "2026-11-17",
    "entry_order_id": "261117000185584",
    "entry_price": 390.65,
