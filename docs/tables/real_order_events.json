@@ -106691,7 +106691,19 @@
    "prev_state": "long 1 @ Rs226.32",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8892,
+   "ts": 1795067233.3452687,
+   "symbol": "GROWW.NS",
+   "kotak_trading_symbol": "GROWW-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261119000366816",
+   "prev_state": "long 1 @ Rs226.32",
+   "new_state": "closed",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:47:14Z"
+ "synced_at_utc": "2026-11-19T05:47:21Z"
 }
