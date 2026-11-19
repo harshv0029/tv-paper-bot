@@ -107039,7 +107039,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs338.25",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8921,
+   "ts": 1795075683.6119437,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000615144",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1842.30",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T07:34:12Z"
+ "synced_at_utc": "2026-11-19T08:08:05Z"
 }
