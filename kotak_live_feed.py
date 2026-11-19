@@ -149,10 +149,61 @@ def clear_ws_queues(ws) -> None:
         pass
 
 
+# B-1641 (2026-11-19: OOM restarts 12:07 and 13:03 IST in market hours, peaks 1990/2065 MB of 2048; /memory-breakdown
+# 13:22 IST held 149k SFeedScrip + 298k DepthLevel objects). The SDK's tick queue is unbounded (B-1382); when the
+# event loop lags the backlog grows until Render kills the process. Cap it: past QUEUE_SOFT_CAP the OLDEST tick is
+# dropped (a tick is a price snapshot, the newer one supersedes it; only an already-lagging backlog loses anything).
+QUEUE_SOFT_CAP = 20000
+queue_stats = {"dropped": 0, "max_seen": 0, "capped_clients": 0}
+
+
+class _DropOldestQueue(asyncio.Queue):
+    """asyncio.Queue whose put_nowait never grows past QUEUE_SOFT_CAP: it drops the oldest item first. Never raises
+    QueueFull (the SDK's receive loop calls put_nowait and would die on it)."""
+
+    def put_nowait(self, item):
+        try:
+            while self.qsize() >= QUEUE_SOFT_CAP:
+                super().get_nowait()
+                self.task_done()
+                queue_stats["dropped"] += 1
+                if queue_stats["dropped"] % 10000 == 1:
+                    print(f"[live_feed] B-1641 tick queue at cap {QUEUE_SOFT_CAP}: dropped oldest "
+                          f"({queue_stats['dropped']} total)")
+        except Exception:
+            pass
+        super().put_nowait(item)
+        try:
+            n = self.qsize()
+            if n > queue_stats["max_seen"]:
+                queue_stats["max_seen"] = n
+        except Exception:
+            pass
+
+
+def cap_ws_queue(ws) -> None:
+    """B-1641: swap the SDK client's unbounded tick queue for a drop-oldest one (before any tick arrives). Never
+    raises; a client without the attribute is left as is."""
+    try:
+        q = getattr(ws, "_message_queue", None)
+        if isinstance(q, asyncio.Queue) and not isinstance(q, _DropOldestQueue):
+            nq = _DropOldestQueue()
+            while True:
+                try:
+                    nq.put_nowait(q.get_nowait())
+                except asyncio.QueueEmpty:
+                    break
+            ws._message_queue = nq
+            queue_stats["capped_clients"] += 1
+    except Exception:
+        pass
+
+
 @contextlib.asynccontextmanager
 async def retiring(ws):
     """`async with retiring(client.create_websocket()) as ws:` - the SDK client's own context manager plus
     retire_ws on the way out (before close) and clear_ws_queues after close (B-1432)."""
+    cap_ws_queue(ws)  # B-1641
     try:
         async with ws:
             try:

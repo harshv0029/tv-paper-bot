@@ -37477,6 +37477,15 @@ _MEM_BREAKDOWN_STATE: dict = {"ts": 0.0, "out": None}
 _MEM_BREAKDOWN_LOCK = threading.Lock()
 
 
+def _feed_queue_stats() -> dict:
+    """B-1641: drop-oldest tick-queue counters from kotak_live_feed (cap, drops, deepest backlog seen)."""
+    try:
+        import kotak_live_feed as _klf
+        return dict(_klf.queue_stats, cap=_klf.QUEUE_SOFT_CAP)
+    except Exception as e:  # noqa: BLE001
+        return {"error": str(e)[:80]}
+
+
 def _memory_breakdown() -> dict:
     """B-1382 (live 2026-10-27: OOM restart every ~20 min from 09:15 IST, rss ~600 MB -> 2 GB at ~80 MB/min while the
     worker pool stayed 0-3/80, so not a request pile-up): what is holding memory. Objects by type (count), and every
@@ -37511,6 +37520,7 @@ def _memory_breakdown() -> dict:
         out = {"ts": time.time(), "rss_now_mb": _current_rss_mb(), "gc_objects": n_objs, "dataframes": frames,
                "threads": threading.active_count(), "by_type": by_type, "bounded_caches": _bounded_cache_sizes(),
                "native_trim": dict(_NATIVE_TRIM_STATE),
+               "feed_queue": _feed_queue_stats(),  # B-1641
                "largest_globals": [{"name": n, "len": l, "shallow_bytes": b} for n, l, b in containers[:30]]}
         _MEM_BREAKDOWN_STATE.update(ts=time.time(), out=out)
         return out

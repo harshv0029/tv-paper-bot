@@ -290,3 +290,12 @@ def _b1625_pattern_fresh_cache_reset():
     main._PATTERN_FRESH_CACHE.update(day=None, by_sym={}, dirty=False, restored=False)
     yield
     main._PATTERN_FRESH_CACHE.update(day=None, by_sym={}, dirty=False, restored=False)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_from_repo_paper_journal(monkeypatch, tmp_path):
+    # 2026-11-19: docs/trade_outcomes_log.json is the LIVE paper journal (journal-sync commits it); today's real
+    # session losses in it tripped the daily loss cap in 16 unrelated tests. Tests read an empty journal unless they
+    # point DOCS_TRADE_OUTCOMES_PATH at their own file (test_paper_journal_resurrection does).
+    import main
+    monkeypatch.setattr(main, "DOCS_TRADE_OUTCOMES_PATH", str(tmp_path / "no_trade_outcomes_log.json"))
