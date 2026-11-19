@@ -106811,7 +106811,31 @@
    "prev_state": "long 1 @ Rs164.18",
    "new_state": "closed",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8902,
+   "ts": 1795067327.6780992,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261119000014952",
+   "prev_state": null,
+   "new_state": "cancelled before the exit",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8903,
+   "ts": 1795067329.6461403,
+   "symbol": "TMPV.NS",
+   "kotak_trading_symbol": "TMPV-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs265.80",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:48:41Z"
+ "synced_at_utc": "2026-11-19T05:48:52Z"
 }
