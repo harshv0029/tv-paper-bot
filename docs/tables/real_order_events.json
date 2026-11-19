@@ -106343,7 +106343,19 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_strategy_not_viable: strategy 'volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 8863,
+   "ts": 1795059945.838135,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000017199",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1333.30",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T03:45:44Z"
+ "synced_at_utc": "2026-11-19T03:45:58Z"
 }
