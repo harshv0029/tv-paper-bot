@@ -610,7 +610,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1488.0,
-   "updated_at": 1795061237.122617
+   "updated_at": 1795061540.694423
   },
   {
    "day": "2026-11-19",
@@ -618,11 +618,11 @@
    "prod": "MIS",
    "source": "kotak_positions",
    "seg": "nse_cm",
-   "buy_qty": 0.0,
-   "buy_amt": 0.0,
+   "buy_qty": 1.0,
+   "buy_amt": 1684.8,
    "sell_qty": 1.0,
    "sell_amt": 1686.0,
-   "updated_at": 1795061237.122617
+   "updated_at": 1795061540.694423
   },
   {
    "day": "2026-11-19",
@@ -634,7 +634,7 @@
    "buy_amt": 1333.3,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795061237.122617
+   "updated_at": 1795061540.694423
   },
   {
    "day": "2026-11-19",
@@ -646,8 +646,8 @@
    "buy_amt": 1552.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795061237.122617
+   "updated_at": 1795061540.694423
   }
  ],
- "synced_at_utc": "2026-11-19T04:07:35Z"
+ "synced_at_utc": "2026-11-19T04:13:23Z"
 }
