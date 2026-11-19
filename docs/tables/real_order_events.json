@@ -107065,6 +107065,18 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
+   "id": 8924,
+   "ts": 1795077741.0681932,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261119000292040",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 8923,
    "ts": 1795077759.0995235,
    "symbol": "BANKINDIA.NS",
@@ -107077,5 +107089,5 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs142.78 to Rs143.41 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-19T08:42:48Z"
+ "synced_at_utc": "2026-11-19T08:48:41Z"
 }
