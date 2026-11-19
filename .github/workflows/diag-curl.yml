@@ -43,5 +43,7 @@ jobs:
               URL="${URL}${SEP}token=${KOTAK_NEO_API_TOKEN}"
             fi
           fi
-          curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "$URL"
+          # B-1643: this repo and its Actions logs are public; mask Kotak account ids exactly as main._redact_account_ids does.
+          curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "$URL" \
+            | sed -E 's/\b(account-)[A-Za-z0-9]{3,}\b/\1***/g; s/\b[A-Z0-9]{3,12}-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/***-\1/g'
           echo

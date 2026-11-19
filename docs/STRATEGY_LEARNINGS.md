@@ -2408,3 +2408,12 @@ Profit-booking / exit takeaway: SL history must map to the right trading day, or
 ### 2026-11-18 daily review: crash loop cost and stops (B-1629)
 Render restarted about every 39 min in market hours. The spike is the tick/bar-sweep OHLC prefetch (+747 MB in one run), not a Python object leak (the gc object count was flat). ASHOKLEY's 15m long (chan_kalman) was stopped 74 min after entry; INFY and UPL exited at the open via the entry-day stop and the B-1486 trail. Equity shorts at Kotak: CNC and NRML are both rejected (re-confirmed).
 Profit-booking / exit takeaway: exits worked as designed at the open; the bigger profit leak today is scan downtime from restarts, so end the crash loop before tuning exits.
+
+## 2026-11-19 IST - Daily review: time-exit backstop, off-hours real exit, unlogged intraday entry
+- B-1637 backstop sold 8 dateless holdings in 3 min at 11:16 IST; every one Kotak-confirmed. Holdings with no strategy
+  time stop are now never held open-ended.
+- ADANIENSOL: a 1h max-hold timeout evaluated at 00:13 IST sent a real market SELL with the market shut (rejected, no
+  LTP). An exit decision made off-hours must wait for the open, not hit the broker.
+- HCLTECH: 1h macddiv entry at the open, stopped 56 min later. One day; goes to the exit audit, not a tune.
+- Profit-booking / exit takeaway: an exit rule's timing (max-hold clock) must be evaluated against session hours, and a
+  profit target that cannot rest at Kotak (ATGL, RMS T1) leaves a winner with only the paper signal to exit it.

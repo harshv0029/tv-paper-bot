@@ -157,6 +157,61 @@ app.add_middleware(
 )
 
 
+# B-1643 (2026-11-19 daily review): this repo and its GitHub Actions logs are public, and ~30 workflows curl this app
+# and print the response (/real-pnl-today returned the raw Kotak limits block with the real EntityId). One choke
+# point instead of 30 workflow patches: every JSON response body has Kotak account ids masked exactly as
+# _redact_account_ids does (B-1639). Pure ASGI (no BaseHTTPMiddleware); non-JSON responses stream through untouched.
+# Internal code never goes through HTTP, so order handling still sees the real values.
+_ACCOUNT_ID_RE_B = re.compile(rb"\b(account-)[A-Za-z0-9]{3,}\b")
+_ACCOUNT_PREFIXED_ID_RE_B = re.compile(
+    rb"\b[A-Z0-9]{3,12}-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b")
+
+
+def _redact_account_bytes(body: bytes) -> bytes:
+    return _ACCOUNT_PREFIXED_ID_RE_B.sub(rb"***-\1", _ACCOUNT_ID_RE_B.sub(rb"\1***", body))
+
+
+class _AccountRedactMiddleware:
+    def __init__(self, app):  # starlette passes app= by keyword
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            return await self.app(scope, receive, send)
+        state = {"start": None, "json": False, "chunks": []}
+
+        async def _send(msg):
+            t = msg.get("type")
+            if t == "http.response.start":
+                ctype = b""
+                for k, v in msg.get("headers") or []:
+                    if k.lower() == b"content-type":
+                        ctype = v.lower()
+                if b"json" in ctype:
+                    state["start"], state["json"] = msg, True
+                    return
+                return await send(msg)
+            if t == "http.response.body" and state["json"]:
+                state["chunks"].append(msg.get("body", b""))
+                if msg.get("more_body"):
+                    return
+                try:
+                    body = _redact_account_bytes(b"".join(state["chunks"]))
+                except Exception:  # noqa: BLE001 - never break a response over masking
+                    body = b"".join(state["chunks"])
+                start = dict(state["start"])
+                start["headers"] = [(k, v) for k, v in start.get("headers") or [] if k.lower() != b"content-length"]
+                start["headers"].append((b"content-length", str(len(body)).encode()))
+                await send(start)
+                return await send({"type": "http.response.body", "body": body, "more_body": False})
+            return await send(msg)
+
+        return await self.app(scope, receive, _send)
+
+
+app.add_middleware(_AccountRedactMiddleware)
+
+
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=30)  # swing scan runs on its own thread concurrently with the tick
     conn.row_factory = sqlite3.Row
