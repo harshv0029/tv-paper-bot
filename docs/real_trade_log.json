@@ -86,7 +86,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260910000463945 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260910000463945 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260910000463945\", \"stat\": \"Ok\", \"stCode\": 200}"
   },
   {
@@ -101,7 +101,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260910000741133 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260910000741133 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260910000741133\", \"stat\": \"Ok\", \"stCode\": 200}"
   },
   {
@@ -131,7 +131,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260910000741622 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260910000741622 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260910000741622\", \"stat\": \"Ok\", \"stCode\": 200}"
   },
   {
@@ -146,7 +146,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260910000741997 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260910000741997 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260910000741997\", \"stat\": \"Ok\", \"stCode\": 200}"
   },
   {
@@ -356,7 +356,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000396475 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000396475 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000396475\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -388,7 +388,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000399658 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000399658 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000399658\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -404,7 +404,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000405453 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000405453 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000405453\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -420,7 +420,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000409493 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000409493 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000409493\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -436,7 +436,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000413025 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000413025 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000413025\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -452,7 +452,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000415575 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000415575 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000415575\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -484,7 +484,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000417975 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000417975 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000417975\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -500,7 +500,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000421828 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000421828 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000421828\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -516,7 +516,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000429688 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000429688 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000429688\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -532,7 +532,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000437577 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000437577 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000437577\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -564,7 +564,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000444357 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000444357 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000444357\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -596,7 +596,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000449280 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000449280 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000449280\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -612,7 +612,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000457253 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000457253 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000457253\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },
@@ -644,7 +644,7 @@
     "notional_inr": null,
     "status": "failed",
     "order_id": null,
-    "detail": "order 260924000466864 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "detail": "order 260924000466864 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :1313.50,  Low Price Range:1320.10 High Price Range:1697.90  for entity account-*** across exchange across segment across product ",
     "raw_response": "{\"nOrdNo\": \"260924000466864\", \"stat\": \"Ok\", \"stCode\": 200}",
     "strategy": null
   },

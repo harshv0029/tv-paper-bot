@@ -17218,6 +17218,22 @@ def _real_skip_already_logged(conn, day, symbol, side, status, strategy):
         return False
 
 
+_ACCOUNT_ID_RE = re.compile(r"\b(account-)[A-Za-z0-9]{3,}\b")
+_ACCOUNT_PREFIXED_ID_RE = re.compile(r"\b[A-Z0-9]{3,12}-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b")  # Kotak GuiOrdId/stat: <account>-<uuid>
+
+
+def _redact_account_ids(obj):
+    """B-1639: the repo is PUBLIC and must never hold account identifiers. Kotak RMS reject texts carry the client
+    entity code ("for entity account-XXXXX ..."); mask it in every string (recursing into dicts/lists)."""
+    if isinstance(obj, str):
+        return _ACCOUNT_PREFIXED_ID_RE.sub(r"***-\1", _ACCOUNT_ID_RE.sub(r"\1***", obj))
+    if isinstance(obj, dict):
+        return {k: _redact_account_ids(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_redact_account_ids(v) for v in obj]
+    return obj
+
+
 def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
                            prev_state=None, new_state=None, detail=None, reason=None):
     """Appends one row to the order state-transition log (real_order_events -
@@ -17240,6 +17256,7 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         reason = _default_order_reason(leg, event)
     if reason:
         detail = f"reason: {reason}" + (f" | {detail}" if detail else "")
+    prev_state, new_state, detail = (_redact_account_ids(x) for x in (prev_state, new_state, detail))  # B-1639
     try:  # B-1448: write queued Kotak-send outcomes first; this caller's own row covers its order id
         _flush_pending_kotak_sends(conn, covered_order_id=order_id, commit=False)
     except Exception as e:  # noqa: BLE001
@@ -38803,7 +38820,7 @@ def _git_tier_push_side_branch(name: str) -> bool:
               "pushing the local order log anyway (append-only union with the git copy)")
     try:
         with closing(get_db()) as conn:
-            local = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
+            local = _redact_account_ids([dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()])  # B-1639
         digest = hashlib.sha256(json.dumps(local, sort_keys=True, default=str).encode()).hexdigest()
         if not local or digest == _git_tier_push_last_hash.get(name):
             if digest == _git_tier_push_last_hash.get(name):
@@ -38826,7 +38843,7 @@ def _git_tier_push_side_branch(name: str) -> bool:
             remote = (json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "{}").get("rows") or [])
         elif cur.status_code != 404:
             cur.raise_for_status()
-        rows = _git_tier_merge_rows(name, remote, local)
+        rows = _git_tier_merge_rows(name, _redact_account_ids(remote), local)  # B-1639: the masked git copy dedupes
         body = json.dumps({"rows": rows, "synced_at_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
                           indent=1, default=str)
         payload = {"message": f"{name} {len(rows)} row(s)", "content": base64.b64encode(body.encode()).decode(),

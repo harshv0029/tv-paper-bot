@@ -337,6 +337,7 @@ jobs:
         run: |
           git config user.name "tv-paper-bot journal sync"
           git config user.email "actions@users.noreply.github.com"
+          python3 scripts/redact_account_ids.py docs state || true  # B-1639: no account ids in the public repo
           git add state/open_positions.json state/trading_control.json \
             state/real_trading_control.json state/real_positions.json state/real_trades_today.json \
             state/scheduler_check_counts.json \

@@ -34,7 +34,7 @@
       "order_id": "261021000176471",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S L qty 2 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S L qty 2 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 4,
@@ -106,7 +106,7 @@
       "order_id": "261021000376269",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:52:09 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:52:09 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 10,
@@ -118,7 +118,7 @@
       "order_id": "261021000380156",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:54:50 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:54:50 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 11,
@@ -262,7 +262,7 @@
       "order_id": "261021000179011",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:24 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:24 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 23,
@@ -490,7 +490,7 @@
       "order_id": "261021000180744",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:58 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:58 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 42,
@@ -514,7 +514,7 @@
       "order_id": "261021000231687",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:35:59 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:35:59 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 44,
@@ -526,7 +526,7 @@
       "order_id": "261021000280765",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:07:16 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:07:16 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 45,
@@ -550,7 +550,7 @@
       "order_id": "261021000378886",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:55 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:55 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 47,
@@ -634,7 +634,7 @@
       "order_id": "261021000377674",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:01 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:01 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 54,
@@ -682,7 +682,7 @@
       "order_id": "261021000178282",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:06 S L qty 3 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:06 S L qty 3 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 58,
@@ -778,7 +778,7 @@
       "order_id": "261021000178282",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:06 S L qty 3 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:06 S L qty 3 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 66,
@@ -1078,7 +1078,7 @@
       "order_id": "261021000378886",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:55 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:55 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 91,
@@ -1102,7 +1102,7 @@
       "order_id": "261021000376269",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:52:09 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:52:09 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 93,
@@ -1114,7 +1114,7 @@
       "order_id": "261021000377674",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:01 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:53:01 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 94,
@@ -1150,7 +1150,7 @@
       "order_id": "261021000179011",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:24 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:24 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 97,
@@ -1162,7 +1162,7 @@
       "order_id": "261021000380156",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:54:50 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:54:50 S L qty 20 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 98,
@@ -1282,7 +1282,7 @@
       "order_id": "261021000176471",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S L qty 2 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:10:14 S L qty 2 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 108,
@@ -1294,7 +1294,7 @@
       "order_id": "261021000280765",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:07:16 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 11:07:16 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 109,
@@ -1330,7 +1330,7 @@
       "order_id": "261021000180744",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:58 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:11:58 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 112,
@@ -1462,7 +1462,7 @@
       "order_id": "261021000231687",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:35:59 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:35:59 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across"
     },
     {
       "id": 123,
@@ -1546,7 +1546,7 @@
       "order_id": null,
       "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
       "new_state": "none (placement failed)",
-      "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261022000051586 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261022000051586 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 130,
@@ -1666,7 +1666,7 @@
       "order_id": "261022000050360",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 22-Oct-2026 09:22:04 S SL qty 20 trg 16.22 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchang"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 22-Oct-2026 09:22:04 S SL qty 20 trg 16.22 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchang"
     },
     {
       "id": 140,
@@ -1690,7 +1690,7 @@
       "order_id": "261022000051586",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 22-Oct-2026 09:22:20 S SL qty 20 trg 14.81 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchang"
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 22-Oct-2026 09:22:20 S SL qty 20 trg 14.81 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchang"
     },
     {
       "id": 142,
@@ -2254,7 +2254,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-04b5b194-a2a6-4f67-9de5-e2aedc59dd02| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-04b5b194-a2a6-4f67-9de5-e2aedc59dd02| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 189,
@@ -2266,7 +2266,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-bd309fb7-8507-4b40-adb8-e1bc52eb971d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7fdb09c80010 and pBufHndl : 0x7fdae8d456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-bd309fb7-8507-4b40-adb8-e1bc52eb971d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7fdb09c80010 and pBufHndl : 0x7fdae8d456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 190,
@@ -2278,7 +2278,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-38989500-6c6a-4448-b3f4-94d4bc8833fc| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-38989500-6c6a-4448-b3f4-94d4bc8833fc| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 191,
@@ -2290,7 +2290,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-062a6414-5980-4e7c-b8e0-85b62b04d9bf| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f6f04021010 and pBufHndl : 0x7f6f18d44f00 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-062a6414-5980-4e7c-b8e0-85b62b04d9bf| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f6f04021010 and pBufHndl : 0x7f6f18d44f00 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 192,
@@ -2302,7 +2302,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-a9ce82e1-e8fd-4f0b-8f43-7437a8cd70c2| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-a9ce82e1-e8fd-4f0b-8f43-7437a8cd70c2| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 193,
@@ -3886,7 +3886,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000676772 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :383.55,  Low Price Range:385.00 High Price Range:408.80  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000676772 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :383.55,  Low Price Range:385.00 High Price Range:408.80  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 325,
@@ -7798,7 +7798,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-4f4f9493-25b3-49d8-9e62-fc2e872a9bf8| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-4f4f9493-25b3-49d8-9e62-fc2e872a9bf8| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 651,
@@ -7810,7 +7810,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-d0afd520-8e7e-427d-bab6-0b84fb3d4e4d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f7ddb17f010 and pBufHndl : 0x7f7dbcd456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-d0afd520-8e7e-427d-bab6-0b84fb3d4e4d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f7ddb17f010 and pBufHndl : 0x7f7dbcd456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 652,
@@ -7822,7 +7822,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-7b2beb00-af08-4dc0-bd12-ee527ac3c3fc| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f10aedce010 and pBufHndl : 0x7f111cd45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-7b2beb00-af08-4dc0-bd12-ee527ac3c3fc| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f10aedce010 and pBufHndl : 0x7f111cd45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 653,
@@ -7834,7 +7834,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-284496ff-4d8f-4e1e-b0f1-303c4075de6f| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0101f8e010 and pBufHndl : 0x7f0148d45650 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-284496ff-4d8f-4e1e-b0f1-303c4075de6f| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0101f8e010 and pBufHndl : 0x7f0148d45650 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 654,
@@ -7846,7 +7846,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'ZZ9ZZ-f145972c-39c0-424d-9a17-876904a33d14| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': '***-f145972c-39c0-424d-9a17-876904a33d14| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
     },
     {
       "id": 655,
@@ -8158,7 +8158,7 @@
       "order_id": "261027000016942",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:54 S SL qty 2 trg 64.70 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:54 S SL qty 2 trg 64.70 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-*** across exchange "
     },
     {
       "id": 681,
@@ -8206,7 +8206,7 @@
       "order_id": "261027000015789",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:44 S SL qty 2 trg 398.35 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:44 S SL qty 2 trg 398.35 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-*** across exchange "
     },
     {
       "id": 685,
@@ -8242,7 +8242,7 @@
       "order_id": "261027000016833",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:53 S SL qty 2 trg 64.70 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:53 S SL qty 2 trg 64.70 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-*** across exchange "
     },
     {
       "id": 688,
@@ -8290,7 +8290,7 @@
       "order_id": "261027000014353",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:32 S SL qty 1 trg 175.12 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:32 S SL qty 1 trg 175.12 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 692,
@@ -8302,7 +8302,7 @@
       "order_id": "261027000015685",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:43 S SL qty 2 trg 398.35 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 09:15:43 S SL qty 2 trg 398.35 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:4.00, Available:2.00  for entity account-*** across exchange "
     },
     {
       "id": 693,
@@ -8746,7 +8746,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000709191 rejected: RMS:Rule: Assigned basket  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000709191 rejected: RMS:Rule: Assigned basket  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 730,
@@ -8806,7 +8806,7 @@
       "order_id": "261027000709191",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 14:32:19 B SL qty 2 trg 66.42 status rejected rejRsn RMS:Rule: Assigned basket  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 14:32:19 B SL qty 2 trg 66.42 status rejected rejRsn RMS:Rule: Assigned basket  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 735,
@@ -9646,7 +9646,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000886865 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:127.07 High Price Range:134.91  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000886865 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:127.07 High Price Range:134.91  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 805,
@@ -11086,7 +11086,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000328471 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000328471 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 925,
@@ -11098,7 +11098,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: profit target placement failed | order 261028000328656 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: profit target placement failed | order 261028000328656 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 926,
@@ -11134,7 +11134,7 @@
       "order_id": "261028000328656",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:39:07 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:39:07 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 929,
@@ -11146,7 +11146,7 @@
       "order_id": "261028000328471",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:38:59 S SL qty 1 trg 72.53 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:38:59 S SL qty 1 trg 72.53 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 930,
@@ -11158,7 +11158,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000333841 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000333841 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 931,
@@ -11170,7 +11170,7 @@
       "order_id": "261028000333841",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:44:25 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:44:25 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 932,
@@ -11182,7 +11182,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000341651 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000341651 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 933,
@@ -11194,7 +11194,7 @@
       "order_id": "261028000341651",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:49:44 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:49:44 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 934,
@@ -11206,7 +11206,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000348270 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000348270 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 935,
@@ -11218,7 +11218,7 @@
       "order_id": "261028000348270",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:55:04 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 11:55:04 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 936,
@@ -11230,7 +11230,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000356354 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000356354 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 937,
@@ -11242,7 +11242,7 @@
       "order_id": "261028000356354",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:00:27 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:00:27 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 938,
@@ -11254,7 +11254,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000363431 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000363431 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 939,
@@ -11278,7 +11278,7 @@
       "order_id": "261028000363431",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:05:47 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:05:47 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 941,
@@ -11338,7 +11338,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000384911 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000384911 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 946,
@@ -11350,7 +11350,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000385070 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000385070 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 947,
@@ -11374,7 +11374,7 @@
       "order_id": "261028000385321",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:38 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:38 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 949,
@@ -11386,7 +11386,7 @@
       "order_id": "261028000384911",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:11 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:11 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 950,
@@ -11398,7 +11398,7 @@
       "order_id": "261028000385070",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:22 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:21:22 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 951,
@@ -11410,7 +11410,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000390313 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000390313 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 952,
@@ -11422,7 +11422,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000392624 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000392624 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 953,
@@ -11434,7 +11434,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000396303 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000396303 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 954,
@@ -11446,7 +11446,7 @@
       "order_id": "261028000392624",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:28:20 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:28:20 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 955,
@@ -11458,7 +11458,7 @@
       "order_id": "261028000396303",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:40 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:40 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 956,
@@ -11470,7 +11470,7 @@
       "order_id": "261028000390313",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:26:33 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:26:33 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 957,
@@ -11482,7 +11482,7 @@
       "order_id": null,
       "prev_state": "none",
       "new_state": "none (placement failed)",
-      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000396506 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000396506 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 958,
@@ -11494,7 +11494,7 @@
       "order_id": null,
       "prev_state": "none (retry)",
       "new_state": "none (placement failed again)",
-      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000399241 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000399241 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 959,
@@ -11506,7 +11506,7 @@
       "order_id": "261028000399241",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:34:53 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:34:53 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 960,
@@ -11530,7 +11530,7 @@
       "order_id": "261028000396506",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:54 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:54 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 962,
@@ -14626,7 +14626,7 @@
       "order_id": null,
       "prev_state": "resting SELL trigger Rs192.05",
       "new_state": "unchanged/unknown",
-      "detail": "reason: LTP trail wanted Rs192.13 (peak Rs196.68 - 1R) but the replace failed | order 261030000401652 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: LTP trail wanted Rs192.13 (peak Rs196.68 - 1R) but the replace failed | order 261030000401652 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 1220,
@@ -14638,7 +14638,7 @@
       "order_id": "261030000401652",
       "prev_state": null,
       "new_state": "rejected",
-      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 30-Oct-2026 13:23:16 S SL qty 1 trg 192.13 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-ZZ9ZZ across exchange "
+      "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 30-Oct-2026 13:23:16 S SL qty 1 trg 192.13 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange "
     },
     {
       "id": 1221,
@@ -18394,7 +18394,7 @@
       "order_id": "261104000060466",
       "prev_state": "sent to Kotak",
       "new_state": "rejected",
-      "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-ZZ9ZZ across exchange across segment across product"
+      "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-*** across exchange across segment across product"
     },
     {
       "id": 1534,
@@ -18406,7 +18406,7 @@
       "order_id": null,
       "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
       "new_state": "none (placement failed)",
-      "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261104000060466 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-ZZ9ZZ across exchange across segment across product "
+      "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261104000060466 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:16.00, Available:8.00  for entity account-*** across exchange across segment across product "
     },
     {
       "id": 1535,

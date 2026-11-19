@@ -231,7 +231,7 @@ answers "what are you monitoring, and where does the price come from" -
 lists every symbol in `WATCHLIST` with its `asset_class` (index /
 nse_equity / mcx_commodity_proxy) and `data_source`. As of this writing
 every monitored symbol's `data_source` is `"yahoo_finance"` - Kotak Neo is
-not used for any monitoring/price data yet, only the account-level Phase
+not used for any monitoring/price data yet, only the account-*** Phase
 1/2 endpoints above. This is a different question from `/trade-view`,
 which shows only currently-open positions, not the full scan universe.
 

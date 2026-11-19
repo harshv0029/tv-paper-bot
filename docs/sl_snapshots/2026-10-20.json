@@ -4,7 +4,7 @@
  "symbols": {
   "BANKINDIA-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-4e73420c-cdbf-411b-88a1-d17dee366822",
+    "GuiOrdId": "***-4e73420c-cdbf-411b-88a1-d17dee366822",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -46,7 +46,7 @@
     "ordDtTm": "20-Oct-2026 15:27:09",
     "ordEntTm": "20-Oct-2026 15:27:09",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-4e73420c-cdbf-411b-88a1-d17dee366822",
+    "ordModNo": "***-4e73420c-cdbf-411b-88a1-d17dee366822",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -88,7 +88,7 @@
   },
   "COALINDIA-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-2356cc9f-e240-40b3-b5a1-42224c22de96",
+    "GuiOrdId": "***-2356cc9f-e240-40b3-b5a1-42224c22de96",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -130,7 +130,7 @@
     "ordDtTm": "20-Oct-2026 15:29:13",
     "ordEntTm": "20-Oct-2026 15:29:13",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-2356cc9f-e240-40b3-b5a1-42224c22de96",
+    "ordModNo": "***-2356cc9f-e240-40b3-b5a1-42224c22de96",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -172,7 +172,7 @@
   },
   "GSEC5IETF-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-3bf94cf5-2cd7-4ff3-993f-32f61ce89e66",
+    "GuiOrdId": "***-3bf94cf5-2cd7-4ff3-993f-32f61ce89e66",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -214,7 +214,7 @@
     "ordDtTm": "20-Oct-2026 15:30:16",
     "ordEntTm": "20-Oct-2026 15:30:16",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-3bf94cf5-2cd7-4ff3-993f-32f61ce89e66",
+    "ordModNo": "***-3bf94cf5-2cd7-4ff3-993f-32f61ce89e66",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -256,7 +256,7 @@
   },
   "UNIONBANK-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-b6a16120-5b4c-4f61-b602-a1376b74aca0",
+    "GuiOrdId": "***-b6a16120-5b4c-4f61-b602-a1376b74aca0",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -298,7 +298,7 @@
     "ordDtTm": "20-Oct-2026 15:28:11",
     "ordEntTm": "20-Oct-2026 15:28:11",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-b6a16120-5b4c-4f61-b602-a1376b74aca0",
+    "ordModNo": "***-b6a16120-5b4c-4f61-b602-a1376b74aca0",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -312,7 +312,7 @@
     "refLmtPrc": 0,
     "rejAction": "Scrip Info",
     "rejLongDesc": "Order price Rs.159.67 is outside the valid circuit range (Rs.162.63 \u2013 Rs.198.77). Refer to the Live market snapshot in stock details.",
-    "rejRsn": "RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range:162.63 High Price Range:198.77  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "rejRsn": "RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range:162.63 High Price Range:198.77  for entity account-*** across exchange across segment across product ",
     "rejShortDesc": "Price Outside Allowed Range",
     "reqId": "1",
     "rmk": "--",

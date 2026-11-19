@@ -150,6 +150,7 @@ jobs:
         run: |
           git config user.name "tv-paper-bot Kotak reconciliation"
           git config user.email "actions@users.noreply.github.com"
+          python3 scripts/redact_account_ids.py docs state || true  # B-1639: no account ids in the public repo
           git add docs/real_reconcile_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit"

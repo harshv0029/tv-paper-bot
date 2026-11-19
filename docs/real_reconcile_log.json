@@ -583,7 +583,7 @@
         "target": 138.26,
         "qty": 4,
         "sl_placed": false,
-        "sl_failure_detail": "order 260908000625351 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "sl_failure_detail": "order 260908000625351 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "AARTIIND.NS",
@@ -765,7 +765,7 @@
         "target": 300.13,
         "qty": 3,
         "target_placed": false,
-        "target_failure_detail": "order 260909000226232 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000226232 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -798,7 +798,7 @@
         "target": 300.13,
         "qty": 3,
         "target_placed": false,
-        "target_failure_detail": "order 260909000240135 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000240135 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "SILVERCASE.NS",
@@ -807,7 +807,7 @@
         "target": 24.31,
         "qty": 7,
         "target_placed": false,
-        "target_failure_detail": "order 260909000240238 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000240238 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -836,7 +836,7 @@
         "target": 300.13,
         "qty": 3,
         "target_placed": false,
-        "target_failure_detail": "order 260909000256699 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000256699 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "SILVERCASE.NS",
@@ -845,7 +845,7 @@
         "target": 24.31,
         "qty": 7,
         "target_placed": false,
-        "target_failure_detail": "order 260909000256842 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000256842 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -880,7 +880,7 @@
         "target": 300.13,
         "qty": 3,
         "target_placed": false,
-        "target_failure_detail": "order 260909000273953 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000273953 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "SILVERCASE.NS",
@@ -889,7 +889,7 @@
         "target": 24.31,
         "qty": 7,
         "target_placed": false,
-        "target_failure_detail": "order 260909000274122 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000274122 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "DCMSIL.NS",
@@ -898,7 +898,7 @@
         "target": 72.81,
         "qty": 2,
         "target_placed": false,
-        "target_failure_detail": "order 260909000274314 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000274314 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "GROWWSLVR.NS",
@@ -907,7 +907,7 @@
         "target": 23.58,
         "qty": 5,
         "target_placed": false,
-        "target_failure_detail": "order 260909000274464 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000274464 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -942,7 +942,7 @@
         "target": 24.31,
         "qty": 7,
         "target_placed": false,
-        "target_failure_detail": "order 260909000399594 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000399594 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "JGCHEM.NS",
@@ -951,7 +951,7 @@
         "target": 646.11,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 260909000399786 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000399786 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "KANPRPLA.NS",
@@ -960,7 +960,7 @@
         "target": 254.11,
         "qty": 3,
         "target_placed": false,
-        "target_failure_detail": "order 260909000399989 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260909000399989 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -1026,9 +1026,9 @@
         "target": 23.73,
         "qty": 20,
         "sl_placed": false,
-        "sl_failure_detail": "order 260910000433615 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+        "sl_failure_detail": "order 260910000433615 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product ",
         "target_placed": false,
-        "target_failure_detail": "order 260910000433733 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260910000433733 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -1069,9 +1069,9 @@
         "target": 82.19,
         "qty": 3,
         "sl_placed": false,
-        "sl_failure_detail": "order 260910000739032 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-ZZ9ZZ across exchange across segment across product ",
+        "sl_failure_detail": "order 260910000739032 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-*** across exchange across segment across product ",
         "target_placed": false,
-        "target_failure_detail": "order 260910000739092 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260910000739092 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -1205,7 +1205,7 @@
         "target": 177.16,
         "qty": 5,
         "target_placed": false,
-        "target_failure_detail": "order 260917000078043 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260917000078043 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -1541,7 +1541,7 @@
         "sl_order_id": "260930000273730",
         "sl_placed": true,
         "target_placed": false,
-        "target_failure_detail": "order 260930000273826 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260930000273826 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "HYUNDAI.NS",
@@ -1550,7 +1550,7 @@
         "target": 2115.52,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 260930000273965 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 260930000273965 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ]
   },
@@ -2376,7 +2376,7 @@
         "target": 271.97,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 261021000231687 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 261021000231687 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ],
     "governance_backfilled_short_count": 0,
@@ -2459,7 +2459,7 @@
         "target": 271.97,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 261021000376269 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 261021000376269 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "JIOFIN.NS",
@@ -2468,7 +2468,7 @@
         "target": 222.07,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 261021000377674 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 261021000377674 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "WIPRO.NS",
@@ -2477,7 +2477,7 @@
         "target": 194.42,
         "qty": 1,
         "target_placed": false,
-        "target_failure_detail": "order 261021000378886 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 261021000378886 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       },
       {
         "symbol": "YESBANK.NS",
@@ -2486,7 +2486,7 @@
         "target": 16.86,
         "qty": 20,
         "target_placed": false,
-        "target_failure_detail": "order 261021000380156 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-ZZ9ZZ across exchange across segment across product "
+        "target_failure_detail": "order 261021000380156 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-*** across exchange across segment across product "
       }
     ],
     "governance_backfilled_short_count": 0,

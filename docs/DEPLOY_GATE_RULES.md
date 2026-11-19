@@ -35,7 +35,7 @@ needed - these should never legitimately fail and catch an obvious bug or
 scope slip before it costs anything:
 
 1. Every `WATCHLIST` entry's `risk_pct`/`stop_pct` (or `daily_risk_pct`/
-   `risk_per_trade_pct` where used) is <= 2.0 - the standing account-wide
+   `risk_per_trade_pct` where used) is <= 2.0 - the standing account-***
    ceiling (`docs/TRADING_CONSTRAINTS.md`). A number above this is either a
    typo or a policy violation, either way a hard stop.
 2. Every `WATCHLIST` symbol is NSE/BSE (`.NS`, `^NSEI`/`^NSEBANK`/`^BSESN`)

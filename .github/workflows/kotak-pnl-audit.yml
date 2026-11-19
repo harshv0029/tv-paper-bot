@@ -185,6 +185,7 @@ jobs:
           python3 scripts/kotak_sl_snapshot.py https://tv-paper-bot-gdan.onrender.com "$KOTAK_NEO_API_TOKEN"
           git config user.name "tv-paper-bot sl snapshot"
           git config user.email "actions@users.noreply.github.com"
+          python3 scripts/redact_account_ids.py docs state || true  # B-1639: no account ids in the public repo
           git add docs/sl_snapshots
           if git diff --cached --quiet; then echo "nothing to commit"; else
             git commit -m "SL snapshot $(TZ=Asia/Kolkata date +%Y-%m-%d) (audit run) [skip render]"

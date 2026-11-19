@@ -4,7 +4,7 @@
  "symbols": {
   "BANKINDIA-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-db1febe4-2e79-4046-98bb-b7b311228c12",
+    "GuiOrdId": "***-db1febe4-2e79-4046-98bb-b7b311228c12",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -46,7 +46,7 @@
     "ordDtTm": "29-Oct-2026 18:17:16",
     "ordEntTm": "29-Oct-2026 18:17:16",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-db1febe4-2e79-4046-98bb-b7b311228c12",
+    "ordModNo": "***-db1febe4-2e79-4046-98bb-b7b311228c12",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -89,7 +89,7 @@
   },
   "SUZLON-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-4dd527af-6ce8-4046-925d-defac8b65ea0",
+    "GuiOrdId": "***-4dd527af-6ce8-4046-925d-defac8b65ea0",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -131,7 +131,7 @@
     "ordDtTm": "29-Oct-2026 18:19:27",
     "ordEntTm": "29-Oct-2026 18:19:27",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-4dd527af-6ce8-4046-925d-defac8b65ea0",
+    "ordModNo": "***-4dd527af-6ce8-4046-925d-defac8b65ea0",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -174,7 +174,7 @@
   },
   "UNIONBANK-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-0654904d-8d13-415d-84e9-5f7b9f028e90",
+    "GuiOrdId": "***-0654904d-8d13-415d-84e9-5f7b9f028e90",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -216,7 +216,7 @@
     "ordDtTm": "29-Oct-2026 18:18:48",
     "ordEntTm": "29-Oct-2026 18:18:48",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-0654904d-8d13-415d-84e9-5f7b9f028e90",
+    "ordModNo": "***-0654904d-8d13-415d-84e9-5f7b9f028e90",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
@@ -230,7 +230,7 @@
     "refLmtPrc": 0,
     "rejAction": "Scrip Info",
     "rejLongDesc": "Order price Rs.165.18 is outside the valid circuit range (Rs.167.85 \u2013 Rs.205.15). Refer to the Live market snapshot in stock details.",
-    "rejRsn": "RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :165.18,  Low Price Range:167.85 High Price Range:205.15  for entity account-ZZ9ZZ across exchange across segment across product ",
+    "rejRsn": "RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :165.18,  Low Price Range:167.85 High Price Range:205.15  for entity account-*** across exchange across segment across product ",
     "rejShortDesc": "Price Outside Allowed Range",
     "reqId": "1",
     "rmk": "--",
@@ -259,7 +259,7 @@
   },
   "WIPRO-EQ": {
    "latest_sl": {
-    "GuiOrdId": "ZZ9ZZ-2b4169ff-ee94-4773-a4c6-8d0c231e5395",
+    "GuiOrdId": "***-2b4169ff-ee94-4773-a4c6-8d0c231e5395",
     "algCat": "NA",
     "algId": "99999",
     "algSeqNo": "NA",
@@ -301,7 +301,7 @@
     "ordDtTm": "29-Oct-2026 15:26:59",
     "ordEntTm": "29-Oct-2026 15:26:59",
     "ordGenTp": "NA",
-    "ordModNo": "ZZ9ZZ-2b4169ff-ee94-4773-a4c6-8d0c231e5395",
+    "ordModNo": "***-2b4169ff-ee94-4773-a4c6-8d0c231e5395",
     "ordSrc": "ADMINCPPAPI_NEOTRADEAPI",
     "ordSt": "rejected",
     "ordValDt": "NA",
