@@ -1923,7 +1923,7 @@ def pnl():
     already applied in positions. This is a simple summary, not tax/accounting grade."""
     with closing(get_db()) as conn:
         trades_rows = conn.execute(
-            "SELECT symbol, action, qty, price FROM trades ORDER BY id"
+            "SELECT ts, symbol, action, qty, price FROM trades ORDER BY id"
         ).fetchall()
 
     book: dict[str, dict] = {}
@@ -1939,13 +1939,51 @@ def pnl():
             realized += (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
             b["qty"] -= t["qty"]
 
+    try:  # B-1635: dividends earned by long lots held across an ex-date (price-only P&L misses them)
+        _div = _dividend_report([{"symbol": t["symbol"], "side": t["action"], "qty": t["qty"], "ts": t["ts"]}
+                                 for t in trades_rows])
+        div_inr = _div["gross_inr"]
+    except Exception:  # noqa: BLE001
+        div_inr = 0.0
     return {
         "starting_cash": STARTING_CASH,
         "realized_pnl": round(realized, 2),
+        "dividend_inr": div_inr,
+        "realized_pnl_incl_dividends": round(realized + div_inr, 2),
         "open_positions": {k: v for k, v in book.items() if abs(v["qty"]) > 1e-9},
         "note": "Unrealized P&L needs a live price feed — pull latest price per symbol "
                 "and compare to avg_price from /positions to compute it.",
     }
+
+
+def _yahoo_equity_symbol(sym: str) -> str:
+    """B-1635: real_trades / trades symbols are Yahoo style already; a bare NSE name gets .NS."""
+    s = str(sym or "").strip()
+    return s if ("." in s or "=" in s or s.startswith("^") or not s) else f"{s}.NS"
+
+
+def _dividend_report(rows) -> dict:
+    import dividends as _dv
+    return _dv.fifo_dividends(rows, lambda s: _dv.dividend_events(_yahoo_equity_symbol(s)))
+
+
+@app.get("/real-dividends")
+def get_real_dividends(days: int = 365):
+    """B-1635 (user 2026-11-19: count dividends in return/profit). Dividends earned by the bot's REAL long equity lots
+    (confirmed real_trades, FIFO), for ex-dates in the last `days`. Kotak's trade book and P&L never show these (the
+    cash goes to the bank account), so this is the add-back for return-on-capital. Read-only. Holdings bought outside
+    the bot are not in real_trades and are not counted here."""
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT symbol, side, qty, day FROM real_trades WHERE status = 'confirmed' ORDER BY ts, id").fetchall()]
+    rep = _dividend_report(rows)
+    since = (dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN) - dt.timedelta(days=max(1, int(days)))).date().isoformat()
+    import dividends as _dv
+    kept = [c for c in rep["credits"] if c["ex_date"] >= since]
+    out = _dv.summarize(kept)
+    out.update(days=int(days), since_ist=since, note="gross = qty x dividend per share for ex-dates the lot was held "
+               "across (bought before ex-date, held at its start); tds_est = 10% once a company's FY total > Rs 5,000")
+    return out
 
 
 NSE_SESSION_OPEN_MINUTE = 9 * 60 + 15
