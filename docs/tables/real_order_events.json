@@ -107327,7 +107327,43 @@
    "prev_state": "resting SELL trigger Rs143.41",
    "new_state": "resting SELL trigger Rs143.52",
    "detail": "reason: order_block_delta trail rule raised the stop from Rs143.41 to Rs143.52 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 8945,
+   "ts": 1795081729.371671,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8946,
+   "ts": 1795081729.3864033,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 8947,
+   "ts": 1795081729.3956563,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-19T09:23:07Z"
+ "synced_at_utc": "2026-11-19T09:48:51Z"
 }
