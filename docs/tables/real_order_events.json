@@ -106991,7 +106991,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs80.91",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 8917,
+   "ts": 1795069499.6123474,
+   "symbol": "JIOFIN.NS",
+   "kotak_trading_symbol": "JIOFIN-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261119000435284",
+   "prev_state": "no position",
+   "new_state": "long 5 @ Rs225.30",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-19T06:24:46Z"
+ "synced_at_utc": "2026-11-19T06:25:01Z"
 }
