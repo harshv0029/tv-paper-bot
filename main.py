@@ -34225,6 +34225,30 @@ def _flush_kotak_sends_on_shutdown():
             sync_generic_tables_external(only=("real_order_events",))
     except Exception as e:  # noqa: BLE001 - shutdown must never raise
         print(f"[order_log] shutdown flush of pending Kotak sends failed (non-fatal): {e}")
+    _push_order_log_on_shutdown()
+
+
+ORDER_LOG_SHUTDOWN_PUSH_S = 20.0
+
+
+def _push_order_log_on_shutdown(timeout_s: float = None) -> bool:
+    """B-1644: the order log is git-tier (no Upstash copy), so rows written by an instance Render stops right after
+    (deploy overlap: ATGL entry + SL 19-Nov 11:16 IST, old instance stopped before its 60 s push) were lost. Push it
+    once now (append-only union, safe with the new instance's pushes), bounded so shutdown never hangs."""
+    timeout_s = ORDER_LOG_SHUTDOWN_PUSH_S if timeout_s is None else timeout_s
+    done = {}
+
+    def _run():
+        try:
+            done["ok"] = bool(_git_tier_push_side_branch("real_order_events"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[order_log] shutdown git push failed (non-fatal): {e}")
+    t = threading.Thread(target=_run, daemon=True, name="order-log-shutdown-push")
+    t.start()
+    t.join(timeout_s)
+    if t.is_alive():
+        print(f"[order_log] shutdown git push still running after {timeout_s:.0f}s; leaving it")
+    return bool(done.get("ok"))
 
 
 @app.on_event("startup")

@@ -311,3 +311,15 @@ def _real_swing_exit_session_open_by_default(request, monkeypatch):
     except Exception:
         return
     monkeypatch.setattr(main, "_real_swing_exit_session_open", lambda ts=None: True)
+
+
+@pytest.fixture(autouse=True)
+def _no_order_log_git_push_on_shutdown(request, monkeypatch):
+    """B-1644: the shutdown hook pushes the order log to GitHub; tests never reach the network."""
+    if request.node.fspath.basename == "test_order_log_shutdown_push_b1644.py":
+        return
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_push_order_log_on_shutdown", lambda timeout_s=None: False)
