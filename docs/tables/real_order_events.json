@@ -107291,7 +107291,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs228.88",
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 8942,
+   "ts": 1795078438.449381,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261119000013834",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs415.20",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-19T08:53:58Z"
+ "synced_at_utc": "2026-11-19T08:54:17Z"
 }
