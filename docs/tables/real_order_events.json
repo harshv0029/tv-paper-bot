@@ -106799,7 +106799,19 @@
    "prev_state": "long 1 @ Rs164.18",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
+  },
+  {
+   "id": 8901,
+   "ts": 1795067314.6413555,
+   "symbol": "MOTHERSON.NS",
+   "kotak_trading_symbol": "MOTHERSON-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261119000368240",
+   "prev_state": "long 1 @ Rs164.18",
+   "new_state": "closed",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-19 reached (immediate: no strategy time stop (adopted holding / unknown tag), closed by the time-exit sweep (B-1637))"
   }
  ],
- "synced_at_utc": "2026-11-19T05:48:31Z"
+ "synced_at_utc": "2026-11-19T05:48:41Z"
 }
