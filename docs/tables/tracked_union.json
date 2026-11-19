@@ -369,6 +369,22 @@
    "symbol": "NHPC.NS"
   },
   {
+   "day": "2026-11-19",
+   "entry_order_id": "261119000019996",
+   "entry_price": 1552.0,
+   "first_seen_day": "2026-11-19",
+   "is_short": 0,
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "opened_at": 1795059967.9590077,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1501.2,
+   "source": "position",
+   "stop_loss": 1501.1162970014561,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "PIDILITIND.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000822429",
    "entry_price": 131.87,
