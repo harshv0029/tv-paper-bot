@@ -106535,7 +106535,19 @@
    "prev_state": "short 1",
    "new_state": "no position",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 8879,
+   "ts": 1795063284.8063767,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261119000018474",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs1314.10",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-19T04:07:39Z"
+ "synced_at_utc": "2026-11-19T04:41:38Z"
 }
