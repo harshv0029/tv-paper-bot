@@ -203,7 +203,7 @@
    "owner": "swing",
    "qty": 12,
    "sl_trigger_price": 80.91,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 80.91344046662961,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "IRFC.NS"
@@ -219,7 +219,7 @@
    "owner": "swing",
    "qty": 5,
    "sl_trigger_price": 220.5,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 220.50091356254586,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "JIOFIN.NS"
@@ -251,7 +251,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1792.3,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 1792.2711182578487,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "MAZDOCK.NS"
@@ -299,7 +299,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1501.2,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 1501.1162970014561,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "PIDILITIND.NS"
@@ -347,7 +347,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 338.25,
-   "source": "position",
+   "source": "holding",
    "stop_loss": 324.9357430594308,
    "strategy": "envelope__0d05_fade__long__1h__atr6_h30__v1",
    "symbol": "VAML.NS"
