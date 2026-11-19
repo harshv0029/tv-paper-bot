@@ -106511,7 +106511,31 @@
    "prev_state": "short 1",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 8877,
+   "ts": 1795061244.0807548,
+   "symbol": "BLUESTARCO.NS",
+   "kotak_trading_symbol": "BLUESTARCO-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261119000057970",
+   "prev_state": "resting @ Rs1717.2",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 8878,
+   "ts": 1795061251.1905446,
+   "symbol": "BLUESTARCO.NS",
+   "kotak_trading_symbol": "BLUESTARCO-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261119000118415",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-19T04:07:23Z"
+ "synced_at_utc": "2026-11-19T04:07:39Z"
 }
