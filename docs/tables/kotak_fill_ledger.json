@@ -599,7 +599,31 @@
    "sell_qty": 1.0,
    "sell_amt": 541.8,
    "updated_at": 1795026349.831746
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "HCLTECH-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1333.3,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795060293.0313256
+  },
+  {
+   "day": "2026-11-19",
+   "trdsym": "PIDILITIND-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1552.0,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795060293.0313256
   }
  ],
- "synced_at_utc": "2026-11-18T18:26:02Z"
+ "synced_at_utc": "2026-11-19T03:52:29Z"
 }
