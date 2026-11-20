@@ -24018,6 +24018,26 @@ def _news_monitor_stats(rows: list) -> dict:
             "exit_hold": grp(lambda r: r["kind"] == "exit" and r["action"] == "hold")}
 
 
+def _news_real_attempt_for(conn, t: dict) -> dict:
+    """B-1656: the real-money outcome of a news trade's open, from real_trades (the order-attempt log): the first row
+    for the news tag on this symbol within 15 min of the paper open. real_attempt_status is 'confirmed' (a real share
+    was bought), a skipped_* / failed status (no real order, with the reason) or None (no real attempt logged: shorts
+    after 14:30, adds, or rows older than the attempt log). Read-only; never raises."""
+    try:
+        tag = NEWS_TRADE_TAGS.get(t.get("direction"))
+        ts = float(t.get("opened_ts") or 0)
+        if not tag or not ts:
+            return {"real_attempt_status": None, "real_attempt_detail": None}
+        r = conn.execute(
+            "SELECT status, detail FROM real_trades WHERE strategy = ? AND symbol = ? AND ts >= ? AND ts <= ? "
+            "ORDER BY (status = 'confirmed') DESC, ts LIMIT 1", (tag, t.get("symbol"), ts - 60, ts + 900)).fetchone()
+        if not r:
+            return {"real_attempt_status": None, "real_attempt_detail": None}
+        return {"real_attempt_status": r["status"], "real_attempt_detail": (r["detail"] or "")[:300]}
+    except Exception:
+        return {"real_attempt_status": None, "real_attempt_detail": None}
+
+
 @app.get("/news-monitor")
 def news_monitor_view(days: int = 30):
     """B-1539 View 5 feed (no token, read-only, no Kotak call): every news verdict logged at a fired entry trigger or
@@ -24029,6 +24049,8 @@ def news_monitor_view(days: int = 30):
             rows = [dict(r) for r in conn.execute(
                 "SELECT * FROM news_signal_events WHERE day >= ? ORDER BY ts DESC", (cutoff,)).fetchall()]
             trades = [dict(r) for r in conn.execute("SELECT * FROM news_trades ORDER BY opened_ts DESC LIMIT 300").fetchall()]
+            for t in trades:  # B-1656: what happened to the real 1-share attempt, so View 5 never reads as a real holding
+                t.update(_news_real_attempt_for(conn, t))
         _ist = lambda t: (dt.datetime.utcfromtimestamp(float(t)) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M") if t else None
         def _ev(x):
             try:

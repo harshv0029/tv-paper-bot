@@ -13,13 +13,13 @@ Total rows: 1407 | closed: 996 | not closed: 411
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 53 |
+| OPEN | 52 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 16 |
-| BUILT | 14 |
+| BUILT | 15 |
 | P3 | 9 |
 | UNKNOWN | 8 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
@@ -339,7 +339,7 @@ Total rows: 1407 | closed: 996 | not closed: 411
 | B-1640 | P2 | BUILT | 2026-11-19 IST | owed, awaiting, waiting |
 | B-1647 | P2 | BUILT | 2026-11-20 IST | needs, follow-up, awaiting, waiting |
 | B-1654 | P2 | PARKED | 2026-11-20 IST | blocked |
-| B-1656 | P2 | OPEN | 2026-11-20 IST | awaiting, waiting |
+| B-1656 | P2 | BUILT | 2026-11-20 IST | blocked, awaiting, waiting |
 | B-1456 | P3 | PARKED | 2026-11-03 00:35 IST |  |
 | B-1457 | P3 | FROM | 2026-11-03 00:35 IST | owed, needs |
 | B-1503 | P3 | OPEN | 2026-11-06 | owed, follow-up |
