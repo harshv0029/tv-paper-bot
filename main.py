@@ -16854,6 +16854,20 @@ def _real_today_spent_inr(conn) -> float:
 
 _T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection uses
 _target_backfill_t1_rejected: set = set()  # B-1329: (symbol, IST day) whose backfill target Kotak T1-rejected
+
+
+def _target_fail_event(symbol: str, target_result: dict) -> str:
+    """B-1640: a target Kotak rejects under its T1-holdings rule (the resting SL already reserves the shares,
+    ATGL 19-Nov 11:21 IST) is expected, not a failure: log it `skipped_t1_holdings` and mark (symbol, IST day) so
+    the governance backfill does not resend the same doomed order. Profit booking stays with the per-tick target
+    poll, exactly as before; no exit decision changes."""
+    if _T1_HOLDINGS_MARKER not in str((target_result or {}).get("detail") or ""):
+        return "failed"
+    day = ist_now().strftime("%Y-%m-%d")
+    for _old in [k for k in _target_backfill_t1_rejected if k[1] != day]:
+        _target_backfill_t1_rejected.discard(_old)
+    _target_backfill_t1_rejected.add((symbol, day))
+    return "skipped_t1_holdings"
 # Found live 2026-09-09 (MEDICAMEQ.NS - Medicamen Biotech Ltd, actually a
 # regulatory Trade-to-Trade/T2T-segment stock, not just Kotak's own T1-
 # holdings RMS check): the SAME same-day-sell restriction can surface
@@ -18318,7 +18332,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     (round(target_leg_price, 2), symbol),
                 )
                 _log_real_order_event(
-                    conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
+                    conn, symbol, "target", _target_fail_event(symbol, target_result), kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
                 )
                 # NOT a _flag_if_t1_restricted call, on purpose (2026-09-22
@@ -18894,7 +18908,8 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
         else:
             conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
             _log_real_order_event(
-                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                conn, symbol, "target", _target_fail_event(symbol, target_result),
+                kotak_trading_symbol=row["kotak_trading_symbol"],
                 prev_state="advancing to next staged leg",
                 new_state="none (placement failed)", detail=target_result.get("detail"),
             )
@@ -22875,12 +22890,12 @@ def _real_open_positions_build():
                     target_status, target_status_detail = "blocked", t1_row["detail"]
                 else:
                     fail_row = conn2.execute(
-                        "SELECT detail FROM real_order_events WHERE symbol = ? AND leg = 'target' "
-                        "AND event = 'failed' ORDER BY ts DESC LIMIT 1",
+                        "SELECT event, detail FROM real_order_events WHERE symbol = ? AND leg = 'target' "
+                        "AND event IN ('failed','skipped_t1_holdings') ORDER BY ts DESC LIMIT 1",
                         (r["symbol"],),
                     ).fetchone()
-                    if fail_row:
-                        target_status, target_status_detail = "failed", fail_row["detail"]
+                    if fail_row:  # B-1640: a T1 skip shows as its own status (profit booked by the tick poll)
+                        target_status, target_status_detail = fail_row["event"], fail_row["detail"]
                     else:
                         target_status = "not_yet_attempted"
         # strategy fallback (2026-09-30, explicit user instruction, asked
