@@ -16500,6 +16500,18 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     return _viability_verdict(strategy_tag, check_switch)[0]
 
 
+def _viability_once_switch():
+    """B-1655: for DISPLAY loops over every tag. Reads the ALL TRADING switch once and returns tag -> bool with the same
+    verdict as _is_strategy_viable_for_real_money(tag) (an unreadable switch counts as on, exactly as there). Never used
+    on the real-entry path, which keeps its own per-call read."""
+    try:
+        with closing(get_db()) as _kc:
+            _on = bool(is_trading_enabled(_kc))
+    except Exception:
+        _on = True
+    return lambda tag: bool(_on and _is_strategy_viable_for_real_money(tag, check_switch=False))
+
+
 def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> tuple:
     """(allowed, reason) behind _is_strategy_viable_for_real_money. B-1390 (user 2026-10-27: what does "rejected by
     another rule" mean?): the reason is stamped on every skipped_strategy_not_viable row so View 4 shows why, not a
@@ -34691,7 +34703,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
     check_counts_today_rows = []
     try:  # B-1278: denominator for "x of N strategies tested" (wired viable tags; no per-symbol filter yet)
-        _viable_tags = {t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t)}
+        _vv = _viability_once_switch()  # B-1655
+        _viable_tags = {t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _vv(t)}
         _wired_viable_n = len(_viable_tags)
     except Exception:
         _viable_tags, _wired_viable_n = set(), None
@@ -36707,11 +36720,14 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             return "Currency derivative"
         return "Equity"
 
+    # B-1655: read the ALL TRADING switch once per build, not once per tag (2,028 sqlite connections per call made
+    # /strategy-symbol-matrix time out at 30 s on Render). Same verdict: an unreadable switch never blocked here.
+    _vv = _viability_once_switch()
     rows = []
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
-        if not _is_strategy_viable_for_real_money(tag):
+        if not _vv(tag):
             continue
-        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        strat = _registry_entry(registry_name)
         rows.append({
             "strategy_tag": tag,
             "registry_name": registry_name,
@@ -36749,7 +36765,7 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             if e["name"] in seen:
                 continue
             seen.add(e["name"])
-            strat = next((x for x in sr.REGISTRY if x.name == e["name"]), None)
+            strat = _registry_entry(e["name"])
             m = strat.metrics if strat else None
             rows.append({
                 "strategy_tag": e["name"], "registry_name": e["name"],
@@ -36768,7 +36784,7 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             })
             if e["name"] == "gap_and_go_swing" and m and m.avg_held_hrs is None:
                 # legacy 52-symbol row has no hold/win recorded; display from its full-universe successor (B-413), registry entry untouched
-                _succ = next((x for x in sr.REGISTRY if x.name == "gap_and_go__swing__long__1d__hold30__v1"), None)
+                _succ = _registry_entry("gap_and_go__swing__long__1d__hold30__v1")
                 if _succ and _succ.metrics:
                     rows[-1]["avg_held_hrs"] = round(_succ.metrics.avg_held_hrs, 1) if _succ.metrics.avg_held_hrs is not None else None
                     rows[-1]["entry_confidence_pct"] = sr.edge_confidence_pct(_succ.metrics)
@@ -36776,9 +36792,9 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
                 rows[-1]["sl_rule"] = "stop per backtest cell (see tag/registry)"
     # wired + scanning today but the viability gate is closed right now: still shown, so scanning is visible
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
-        if _strategy_scan_counts.get(tag, 0) <= 0 or _is_strategy_viable_for_real_money(tag):
+        if _strategy_scan_counts.get(tag, 0) <= 0 or _vv(tag):
             continue
-        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        strat = _registry_entry(registry_name)
         cats = [c.value for c in strat.categories] if strat else []
         rows.append({
             "strategy_tag": tag, "registry_name": registry_name, "categories": cats,
@@ -36938,7 +36954,7 @@ def _pfnet_doc_and_backtest(registry_name):
     from a replay that called the real main.py functions; otherwise None ("not replayed through main.py yet")."""
     try:
         import strategy_registry as _sr
-        d = next((x for x in _sr.REGISTRY if x.name == registry_name), None)
+        d = _registry_entry(registry_name)
         if d is None:
             return None, None
         ref = (d.metrics.run_ref or "").lower()
