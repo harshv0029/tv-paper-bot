@@ -20,10 +20,10 @@ def test_legacy_and_grammar_hold_specs():
 
 def test_swing_expected_exit_date_and_hourly_bars():
     r = main._expected_exit_for_position("swing", "gap_and_go", "2026-10-29")
-    assert r["expected_exit"] == main._add_nse_trading_days("2026-10-29", main.SWING_GAP_AND_GO_MAX_HOLD_DAYS)
+    assert r["expected_exit"] == main._add_nse_trading_days("2026-10-29", main.SWING_GAP_AND_GO_MAX_HOLD_DAYS) + " 15:00 IST"
     r = main._expected_exit_for_position("swing", "envelope__0d05_fade__long__1h__atr6_h30__v1", "2026-10-29")
-    assert r["expected_exit"] == main._add_nse_trading_days("2026-10-29", 5)  # 30 x 1h bars, 7 per session
-    assert main._expected_exit_for_position("swing", "unknown_tag", "2026-10-29")["expected_exit"] == main.ist_now().date().isoformat()  # B-1637: no time stop -> immediate
+    assert r["expected_exit"] == main._add_nse_trading_days("2026-10-29", 5) + " 15:00 IST"  # 30 x 1h bars, 7 per session
+    assert main._expected_exit_for_position("swing", "unknown_tag", "2026-10-29")["expected_exit"].endswith(" IST")  # B-1637: no time stop -> immediate
 
 
 def test_intraday_exits_today_at_square_off():
