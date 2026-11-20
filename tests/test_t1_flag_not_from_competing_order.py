@@ -91,7 +91,7 @@ def test_entry_flow_target_rejection_does_not_blacklist_while_sl_is_resting():
                 "SELECT leg, event FROM real_order_events WHERE symbol = 'TESTSTOCK.NS' ORDER BY id"
             ).fetchall()
             # Still visibly logged as a failure - just not escalated to a permanent ban.
-            assert ("target", "failed") in [(e["leg"], e["event"]) for e in events]
+            assert ("target", "skipped_t1_holdings") in [(e["leg"], e["event"]) for e in events]  # B-1640
     finally:
         del os.environ["REAL_TRADING_ENABLED"]
 

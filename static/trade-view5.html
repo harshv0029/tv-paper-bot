@@ -67,15 +67,21 @@
 <div class="sub">The latest market and sector headlines the module read, newest first. "Counted towards" shows which score each one fed. Stock-specific items appear under "news items read" inside each decision row above.</div>
 <div class="wrap"><table><thead><tr><th>Time (IST)</th><th>Headline</th><th>Publisher</th><th class="num">Score</th><th>Hard event</th><th>Counted towards</th></tr></thead><tbody id="feed"></tbody></table></div>
 
-<h2>5 · News trades (real: 1 share on good news; shorts and adds paper): buy or add on good news, short on bad news, held until the sentiment weakens</h2>
+<h2>5 · News trades: buy or add on good news, short on bad news, held until the sentiment weakens</h2>
+<div class="sub">Every row is a PAPER trade. A REAL badge means Kotak also filled a real share (good news: 1 share long; bad news: 1 share intraday short). "Real order" says what happened to that real attempt, for example "skipped: not enough money".</div>
 <div class="sub" id="ntstats"></div>
-<div class="wrap"><table><thead><tr><th>Opened (IST)</th><th>Symbol</th><th>Side</th><th>Status</th><th class="num">Units</th><th class="num">Entry</th><th class="num">Stop</th><th class="num">Score now / peak</th><th class="num">P&amp;L after costs</th><th>Closed (IST)</th><th>Why opened</th><th>Why closed</th></tr></thead><tbody id="nt"></tbody></table></div>
+<div class="wrap"><table><thead><tr><th>Opened (IST)</th><th>Symbol</th><th>Side</th><th>Money</th><th>Real order</th><th>Status</th><th class="num">Units</th><th class="num">Entry</th><th class="num">Stop</th><th class="num">Score now / peak</th><th class="num">P&amp;L after costs</th><th>Closed (IST)</th><th>Why opened</th><th>Why closed</th></tr></thead><tbody id="nt"></tbody></table></div>
 
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num = (v, d = 2) => v == null ? '<span class="dim">–</span>' : Number(v).toFixed(d);
 const signed = (v, unit = "%") => v == null ? '<span class="dim">pending</span>' : `<span class="${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}${Number(v).toFixed(2)}${unit}</span>`;
+const RA = {confirmed: "bought 1 real share", skipped_low_balance: "skipped: not enough money", skipped_already_open: "skipped: another strategy already holds it",
+  skipped_after_entry_cutoff: "skipped: after the 14:30 IST short cutoff", skipped_not_eligible_asset_class: "skipped: not an intraday-shortable symbol"};
+const realAttempt = t => { const s = t.real_attempt_status; if (!s) return '<span class="dim">no real attempt logged</span>';
+  const label = RA[s] || (s.startsWith("skipped_") ? "skipped: " + s.slice(8).replace(/_/g, " ") : s.replace(/_/g, " "));
+  return `${esc(label)}${t.real_attempt_detail ? `<div class="dim">${esc(t.real_attempt_detail)}</div>` : ""}`; };
 const PILL = {allow: "g", hold: "g", caution: "a", avoid: "r", tighten: "r", exit: "r"};
 let data = null;
 const link = (t, u) => /^https:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>` : esc(t);
@@ -134,8 +140,8 @@ async function load() {
     const f = (k, g) => `${k}: ${g.open} open, ${g.closed} closed` + (g.closed ? `, ${g.win_pct}% wins, PFnet ${g.pfnet ?? "n/a"}, total ${g.total_pnl_pct}%` : "");
     $("feed").innerHTML = (d.feed || []).map(f => `<tr><td class="mono">${esc(f.ts_ist)}</td><td>${link(f.title, f.link)}</td><td class="why">${esc(f.source)}</td><td class="num mono ${f.score > 0 ? "up" : f.score < 0 ? "down" : "dim"}">${num(f.score)}</td><td>${(f.hard || []).length ? `<span class="pill r">${esc(f.hard.join(", "))}</span>` : ""}</td><td class="why">${esc((f.scopes || []).join(", ") || "not counted")}</td></tr>`).join("") || '<tr><td colspan="6" class="empty">No headlines read yet.</td></tr>';
     const ns_ = d.news_trade_stats || {};
-    $("ntstats").textContent = "Paper only: no real order. Real money opens for these only once the measured PFnet is above 1.00. " + (ns_.long ? f("Long", ns_.long) + " · " + f("Short", ns_.short) : "");
-    $("nt").innerHTML = (d.news_trades || []).map(t => `<tr><td class="mono">${esc(t.opened_ist)}</td><td class="mono">${esc(t.symbol)}</td><td>${esc(t.direction)}${t.mode === "real" ? ' <span class="pill g">real</span>' : ' <span class="dim">paper</span>'}</td><td>${esc(t.status)}</td><td class="num mono">${t.units}</td><td class="num mono">${num(t.entry_price)}</td><td class="num mono">${num(t.stop_price)}</td><td class="num mono">${num(t.last_score)} / ${num(t.peak_score)}</td><td class="num mono">${t.status === "closed" ? signed(t.pnl_pct) : (t.open_move_pct == null ? '<span class="dim">open</span>' : signed(t.open_move_pct) + ' <span class="dim">open</span>')}</td><td class="mono">${esc(t.closed_ist || "")}</td><td class="why">${esc(t.open_reason)}${chain(t.evidence)}</td><td class="why">${esc(t.close_reason || "")}</td></tr>`).join("") || '<tr><td colspan="12" class="empty">No news trade yet. One opens when two or more trusted publishers confirm a hard event on a watchlist stock and a live tick exists.</td></tr>';
+    $("ntstats").textContent = "Paper results of the news rule (real shares are separate, see the Money column). " + (ns_.long ? f("Long", ns_.long) + " · " + f("Short", ns_.short) : "");
+    $("nt").innerHTML = (d.news_trades || []).map(t => `<tr><td class="mono">${esc(t.opened_ist)}</td><td class="mono">${esc(t.symbol)}</td><td>${esc(t.direction)}</td><td>${t.mode === "real" ? '<span class="pill g"><b>REAL</b></span>' : '<span class="pill m"><b>PAPER</b></span>'}</td><td class="why">${realAttempt(t)}</td><td>${esc(t.status)}</td><td class="num mono">${t.units}</td><td class="num mono">${num(t.entry_price)}</td><td class="num mono">${num(t.stop_price)}</td><td class="num mono">${num(t.last_score)} / ${num(t.peak_score)}</td><td class="num mono">${t.status === "closed" ? signed(t.pnl_pct) : (t.open_move_pct == null ? '<span class="dim">open</span>' : signed(t.open_move_pct) + ' <span class="dim">open</span>')}</td><td class="mono">${esc(t.closed_ist || "")}</td><td class="why">${esc(t.open_reason)}${chain(t.evidence)}</td><td class="why">${esc(t.close_reason || "")}</td></tr>`).join("") || '<tr><td colspan="14" class="empty">No news trade yet. One opens when two or more trusted publishers confirm a hard event on a watchlist stock and a live tick exists.</td></tr>';
   } catch (e) { $("err").textContent = "Could not load /news-monitor: " + e.message; }
 }
 ["fkind", "fact"].forEach(id => $(id).onchange = paint); $("fsym").oninput = paint;

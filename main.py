@@ -125,6 +125,8 @@ from data_fetch import fetch_ohlc, get_fx_to_inr, _DATA_CACHE, _CACHE_TTL_SECOND
 import data_fetch  # B-1419: _PINNED_FRAMES / cache_entry_time for the bar sweep
 import sentiment_signals
 import news_signals
+import instance_lease  # B-1648: one sending instance across a deploy overlap
+instance_lease.configure(lambda: (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN))
 from options_pricing import (
     _norm_cdf, bs_price, parse_legs, run_options_backtest, _bs_delta,
     select_option_contract, _requote_contract,
@@ -16498,6 +16500,18 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     return _viability_verdict(strategy_tag, check_switch)[0]
 
 
+def _viability_once_switch():
+    """B-1655: for DISPLAY loops over every tag. Reads the ALL TRADING switch once and returns tag -> bool with the same
+    verdict as _is_strategy_viable_for_real_money(tag) (an unreadable switch counts as on, exactly as there). Never used
+    on the real-entry path, which keeps its own per-call read."""
+    try:
+        with closing(get_db()) as _kc:
+            _on = bool(is_trading_enabled(_kc))
+    except Exception:
+        _on = True
+    return lambda tag: bool(_on and _is_strategy_viable_for_real_money(tag, check_switch=False))
+
+
 def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> tuple:
     """(allowed, reason) behind _is_strategy_viable_for_real_money. B-1390 (user 2026-10-27: what does "rejected by
     another rule" mean?): the reason is stamped on every skipped_strategy_not_viable row so View 4 shows why, not a
@@ -16852,6 +16866,20 @@ def _real_today_spent_inr(conn) -> float:
 
 _T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection uses
 _target_backfill_t1_rejected: set = set()  # B-1329: (symbol, IST day) whose backfill target Kotak T1-rejected
+
+
+def _target_fail_event(symbol: str, target_result: dict) -> str:
+    """B-1640: a target Kotak rejects under its T1-holdings rule (the resting SL already reserves the shares,
+    ATGL 19-Nov 11:21 IST) is expected, not a failure: log it `skipped_t1_holdings` and mark (symbol, IST day) so
+    the governance backfill does not resend the same doomed order. Profit booking stays with the per-tick target
+    poll, exactly as before; no exit decision changes."""
+    if _T1_HOLDINGS_MARKER not in str((target_result or {}).get("detail") or ""):
+        return "failed"
+    day = ist_now().strftime("%Y-%m-%d")
+    for _old in [k for k in _target_backfill_t1_rejected if k[1] != day]:
+        _target_backfill_t1_rejected.discard(_old)
+    _target_backfill_t1_rejected.add((symbol, day))
+    return "skipped_t1_holdings"
 # Found live 2026-09-09 (MEDICAMEQ.NS - Medicamen Biotech Ltd, actually a
 # regulatory Trade-to-Trade/T2T-segment stock, not just Kotak's own T1-
 # holdings RMS check): the SAME same-day-sell restriction can surface
@@ -17289,6 +17317,9 @@ def _redact_account_ids(obj):
     return obj
 
 
+_sl_after_1515_logged: set = set()  # B-1646
+
+
 def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
                            prev_state=None, new_state=None, detail=None, reason=None):
     """Appends one row to the order state-transition log (real_order_events -
@@ -17307,6 +17338,14 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     stored as a leading "reason: ..." in `detail` so it rides the existing
     Upstash mirror and docs/real_order_log.json (git) with no schema
     change. Every exit path passes it (see _REASON_UNSTATED)."""
+    if event == "failed" and "SL placement after 15:15" in str(detail or ""):
+        # B-1646: the exchange cancels resting SLs at 15:15 IST and no SL may be re-placed after it (by design), so
+        # this is a skip, not a failure: one row per symbol per leg per day instead of one every 5 min.
+        _k = (symbol, leg, ist_now().strftime("%Y-%m-%d"))
+        if _k in _sl_after_1515_logged:
+            return
+        _sl_after_1515_logged.add(_k)
+        event = "skipped_after_1515"
     if not reason:
         reason = _default_order_reason(leg, event)
     if reason:
@@ -18305,7 +18344,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     (round(target_leg_price, 2), symbol),
                 )
                 _log_real_order_event(
-                    conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
+                    conn, symbol, "target", _target_fail_event(symbol, target_result), kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
                 )
                 # NOT a _flag_if_t1_restricted call, on purpose (2026-09-22
@@ -18881,7 +18920,8 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
         else:
             conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
             _log_real_order_event(
-                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                conn, symbol, "target", _target_fail_event(symbol, target_result),
+                kotak_trading_symbol=row["kotak_trading_symbol"],
                 prev_state="advancing to next staged leg",
                 new_state="none (placement failed)", detail=target_result.get("detail"),
             )
@@ -22862,12 +22902,12 @@ def _real_open_positions_build():
                     target_status, target_status_detail = "blocked", t1_row["detail"]
                 else:
                     fail_row = conn2.execute(
-                        "SELECT detail FROM real_order_events WHERE symbol = ? AND leg = 'target' "
-                        "AND event = 'failed' ORDER BY ts DESC LIMIT 1",
+                        "SELECT event, detail FROM real_order_events WHERE symbol = ? AND leg = 'target' "
+                        "AND event IN ('failed','skipped_t1_holdings') ORDER BY ts DESC LIMIT 1",
                         (r["symbol"],),
                     ).fetchone()
-                    if fail_row:
-                        target_status, target_status_detail = "failed", fail_row["detail"]
+                    if fail_row:  # B-1640: a T1 skip shows as its own status (profit booked by the tick poll)
+                        target_status, target_status_detail = fail_row["event"], fail_row["detail"]
                     else:
                         target_status = "not_yet_attempted"
         # strategy fallback (2026-09-30, explicit user instruction, asked
@@ -23978,6 +24018,26 @@ def _news_monitor_stats(rows: list) -> dict:
             "exit_hold": grp(lambda r: r["kind"] == "exit" and r["action"] == "hold")}
 
 
+def _news_real_attempt_for(conn, t: dict) -> dict:
+    """B-1656: the real-money outcome of a news trade's open, from real_trades (the order-attempt log): the first row
+    for the news tag on this symbol within 15 min of the paper open. real_attempt_status is 'confirmed' (a real share
+    was bought), a skipped_* / failed status (no real order, with the reason) or None (no real attempt logged: shorts
+    after 14:30, adds, or rows older than the attempt log). Read-only; never raises."""
+    try:
+        tag = NEWS_TRADE_TAGS.get(t.get("direction"))
+        ts = float(t.get("opened_ts") or 0)
+        if not tag or not ts:
+            return {"real_attempt_status": None, "real_attempt_detail": None}
+        r = conn.execute(
+            "SELECT status, detail FROM real_trades WHERE strategy = ? AND symbol = ? AND ts >= ? AND ts <= ? "
+            "ORDER BY (status = 'confirmed') DESC, ts LIMIT 1", (tag, t.get("symbol"), ts - 60, ts + 900)).fetchone()
+        if not r:
+            return {"real_attempt_status": None, "real_attempt_detail": None}
+        return {"real_attempt_status": r["status"], "real_attempt_detail": (r["detail"] or "")[:300]}
+    except Exception:
+        return {"real_attempt_status": None, "real_attempt_detail": None}
+
+
 @app.get("/news-monitor")
 def news_monitor_view(days: int = 30):
     """B-1539 View 5 feed (no token, read-only, no Kotak call): every news verdict logged at a fired entry trigger or
@@ -23989,6 +24049,8 @@ def news_monitor_view(days: int = 30):
             rows = [dict(r) for r in conn.execute(
                 "SELECT * FROM news_signal_events WHERE day >= ? ORDER BY ts DESC", (cutoff,)).fetchall()]
             trades = [dict(r) for r in conn.execute("SELECT * FROM news_trades ORDER BY opened_ts DESC LIMIT 300").fetchall()]
+            for t in trades:  # B-1656: what happened to the real 1-share attempt, so View 5 never reads as a real holding
+                t.update(_news_real_attempt_for(conn, t))
         _ist = lambda t: (dt.datetime.utcfromtimestamp(float(t)) + dt.timedelta(hours=5, minutes=30)).strftime("%d-%b %H:%M") if t else None
         def _ev(x):
             try:
@@ -27461,11 +27523,23 @@ async def _scheduler_loop():
     global _scheduler_last_error
     while True:
         try:
+            if await asyncio.to_thread(_lease_standby_now):  # B-1648: another instance holds the send lease
+                await asyncio.sleep(instance_lease.STANDBY_RECHECK_S)
+                continue
             await _scheduler_tick()
         except Exception as e:
             _scheduler_last_error = f"TICK CRASHED (recovered): {e}"
             print(f"[scheduler] tick crashed, would have killed the whole loop before this fix: {e}")
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+
+
+def _lease_standby_now() -> bool:
+    """B-1648: True only on a positive read that another instance holds the send lease (fail-open otherwise)."""
+    try:
+        return instance_lease.role() == "standby"
+    except Exception as e:  # noqa: BLE001
+        print(f"[lease] B-1648 role check failed (non-fatal, ticking): {e}")
+        return False
 
 
 def _swing_real_entry_session_open() -> bool:
@@ -27649,6 +27723,27 @@ def _close_swing_option_leg(conn, symbol, reason):
         print(f"[SWING OPTION] exit failed for {symbol}: {e}")
 
 
+def _real_swing_exit_session_open(ts=None) -> bool:
+    """B-1645: a real swing (CNC) exit is sent only inside the NSE session (09:15-15:30 IST, trading day)."""
+    ts = time.time() if ts is None else ts
+    if not _in_nse_session(ts):
+        return False
+    return is_nse_trading_day((dt.datetime.utcfromtimestamp(float(ts)) + dt.timedelta(hours=5, minutes=30)).date())
+
+
+_swing_exit_deferred_day: dict = {}
+
+
+def _log_swing_exit_deferred_once(conn, symbol, reason, leg="exit"):
+    today = ist_now().strftime("%Y-%m-%d")
+    if _swing_exit_deferred_day.get((leg, symbol)) == today:
+        return
+    _swing_exit_deferred_day[(leg, symbol)] = today
+    _log_real_order_event(
+        conn, symbol, leg, "exit_deferred_off_session", new_state="held with its SL - exit sent at the NSE open",
+        reason=f"B-1645 outside NSE session; deferred: {reason or _REASON_UNSTATED}")
+
+
 def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -27664,6 +27759,12 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper swing trade - nothing to close
+    if not _real_swing_exit_session_open():
+        # B-1645: off-session a market SELL is rejected by Kotak (2026-11-19 00:12 IST ADANIENSOL, stCode 1041)
+        # and the SL cancel before it would leave the holding bare overnight. Keep the row and its SL; the
+        # swing retry pass (_swing_paper_exit_on_record) sends the exit once NSE opens.
+        _log_swing_exit_deferred_once(conn, symbol, reason)
+        return
 
     import kotak_real_orders
 
@@ -31154,6 +31255,28 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
     _log_signal_shadow(conn, strategy, symbol, "short", True, "real short-swing entry placed")
 
 
+def _retry_deferred_swing_short_covers(conn) -> int:
+    """B-1647: a real short-swing row whose paper row is gone is covered only when a paper short exit is on record
+    after the real row opened (short_trades_closed). A missing paper row alone is never an exit decision."""
+    if not _real_swing_exit_session_open():
+        return 0
+    n = 0
+    for row in conn.execute("SELECT symbol, opened_at FROM real_positions_swing_short").fetchall():
+        if conn.execute("SELECT 1 FROM signal_state_swing_short WHERE symbol = ?", (row["symbol"],)).fetchone():
+            continue
+        t = conn.execute("SELECT exit_reason FROM short_trades_closed WHERE symbol = ? AND ts >= ? ORDER BY ts DESC LIMIT 1",
+                         (row["symbol"], float(row["opened_at"] or 0))).fetchone()
+        if not t:
+            continue
+        try:
+            _maybe_place_real_swing_short_exit(
+                conn, row["symbol"], reason=f"retry of paper short-swing exit already recorded: {t['exit_reason'] or 'unstated'}")
+            n += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING SHORT] deferred cover retry failed for {row['symbol']} (non-fatal): {e}")
+    return n
+
+
 def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
     """Buy-to-cover for a short-swing position, called ONLY by the short-swing engine. Cancels the resting BUY-stop
     first, covers the exact row qty, logs the reason. Never gated by the entry switch (closing is always allowed).
@@ -31161,6 +31284,11 @@ def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
     _why = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     row = conn.execute("SELECT * FROM real_positions_swing_short WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
+        return
+    if not _real_swing_exit_session_open():
+        # B-1647 (B-1645 for shorts): off-session the cover is rejected and the stop cancel would leave the short
+        # bare. Keep row + BUY-stop; _retry_deferred_swing_short_covers sends it once NSE opens.
+        _log_swing_exit_deferred_once(conn, symbol, reason, leg="short_cover")
         return
     if _kotak_symbol_still_open_short(row["kotak_trading_symbol"]) is False:
         conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
@@ -33847,6 +33975,10 @@ async def _scheduler_tick():
             await _real_off_loop(_swing_time_exit_sweep)
         except Exception as e:
             print(f"[REAL SWING] B-1637 time-exit sweep failed (non-fatal): {e}")
+        try:  # B-1651: exit-time tracking for every position due today (read-only)
+            await _real_off_loop(_exit_timing_sweep)
+        except Exception as e:
+            print(f"[EXIT TIMING] B-1651 sweep failed (non-fatal): {e}")
         try:
             await _real_off_loop(_retry_pending_real_swing_orders)
         except Exception as e:
@@ -34171,6 +34303,34 @@ def _flush_kotak_sends_on_shutdown():
             sync_generic_tables_external(only=("real_order_events",))
     except Exception as e:  # noqa: BLE001 - shutdown must never raise
         print(f"[order_log] shutdown flush of pending Kotak sends failed (non-fatal): {e}")
+    try:  # B-1648: hand the send lease over now instead of after its TTL (stops this instance's sends too)
+        print(f"[lease] B-1648 released on shutdown: {instance_lease.release()}")
+    except Exception as e:  # noqa: BLE001 - shutdown must never raise
+        print(f"[lease] B-1648 release failed (non-fatal; lease lapses in {instance_lease.TTL_S}s): {e}")
+    _push_order_log_on_shutdown()
+
+
+ORDER_LOG_SHUTDOWN_PUSH_S = 20.0
+
+
+def _push_order_log_on_shutdown(timeout_s: float = None) -> bool:
+    """B-1644: the order log is git-tier (no Upstash copy), so rows written by an instance Render stops right after
+    (deploy overlap: ATGL entry + SL 19-Nov 11:16 IST, old instance stopped before its 60 s push) were lost. Push it
+    once now (append-only union, safe with the new instance's pushes), bounded so shutdown never hangs."""
+    timeout_s = ORDER_LOG_SHUTDOWN_PUSH_S if timeout_s is None else timeout_s
+    done = {}
+
+    def _run():
+        try:
+            done["ok"] = bool(_git_tier_push_side_branch("real_order_events"))
+        except Exception as e:  # noqa: BLE001
+            print(f"[order_log] shutdown git push failed (non-fatal): {e}")
+    t = threading.Thread(target=_run, daemon=True, name="order-log-shutdown-push")
+    t.start()
+    t.join(timeout_s)
+    if t.is_alive():
+        print(f"[order_log] shutdown git push still running after {timeout_s:.0f}s; leaving it")
+    return bool(done.get("ok"))
 
 
 @app.on_event("startup")
@@ -34294,6 +34454,13 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[swing_skipped] startup restore skipped (non-fatal): {e}")
     try:
+        _n_et = await asyncio.wait_for(asyncio.to_thread(hydrate_exit_timing_from_external),
+                                       timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+        if _n_et:
+            print(f"[EXIT TIMING] restored {_n_et} row(s) from Upstash")
+    except Exception as e:
+        print(f"[EXIT TIMING] startup restore skipped (non-fatal): {e}")
+    try:
         await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[VIABLE-STACK] startup merge skipped (non-fatal, retried on first read): {e}")
@@ -34343,6 +34510,11 @@ async def _start_scheduler():
             _scheduler_check_counts_day = _ext_day
             print(f"[check_counts_external] restored {len(_ext_counts)} symbol check-count(s) from Upstash")
     reconcile_scheduler_check_counts_from_journal()
+    try:  # B-1648: newest instance takes the send lease; the old one stands down at its next check
+        print(f"[lease] B-1648 startup claim: {await asyncio.to_thread(instance_lease.claim_at_startup)} "
+              f"({instance_lease.INSTANCE_ID})")
+    except Exception as e:  # noqa: BLE001 - fail-open
+        print(f"[lease] B-1648 startup claim failed (non-fatal, trading as before): {e}")
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_bar_sweep_loop())  # B-1419 option A
     asyncio.create_task(_tracked_union_memory_loop())
@@ -34553,7 +34725,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
     check_counts_today_rows = []
     try:  # B-1278: denominator for "x of N strategies tested" (wired viable tags; no per-symbol filter yet)
-        _viable_tags = {t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t)}
+        _vv = _viability_once_switch()  # B-1655
+        _viable_tags = {t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _vv(t)}
         _wired_viable_n = len(_viable_tags)
     except Exception:
         _viable_tags, _wired_viable_n = set(), None
@@ -36217,6 +36390,7 @@ def real_positions_sl_today():
                 "entry_day": r.get("day"), "entry_day_sl": eday_sl, "entry_day_sl_source": eday_src,
                 **_expected_exit_for_position(category, tag, r.get("sed") or r.get("day"), r.get("opened_at"),
                                               _wl_by_sym.get(r["symbol"])),
+                "exit_timing": _exit_timing_for(category, r["symbol"]),  # B-1651
             })
 
         def _rows(sql):
@@ -36568,11 +36742,14 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             return "Currency derivative"
         return "Equity"
 
+    # B-1655: read the ALL TRADING switch once per build, not once per tag (2,028 sqlite connections per call made
+    # /strategy-symbol-matrix time out at 30 s on Render). Same verdict: an unreadable switch never blocked here.
+    _vv = _viability_once_switch()
     rows = []
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
-        if not _is_strategy_viable_for_real_money(tag):
+        if not _vv(tag):
             continue
-        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        strat = _registry_entry(registry_name)
         rows.append({
             "strategy_tag": tag,
             "registry_name": registry_name,
@@ -36610,7 +36787,7 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             if e["name"] in seen:
                 continue
             seen.add(e["name"])
-            strat = next((x for x in sr.REGISTRY if x.name == e["name"]), None)
+            strat = _registry_entry(e["name"])
             m = strat.metrics if strat else None
             rows.append({
                 "strategy_tag": e["name"], "registry_name": e["name"],
@@ -36629,7 +36806,7 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             })
             if e["name"] == "gap_and_go_swing" and m and m.avg_held_hrs is None:
                 # legacy 52-symbol row has no hold/win recorded; display from its full-universe successor (B-413), registry entry untouched
-                _succ = next((x for x in sr.REGISTRY if x.name == "gap_and_go__swing__long__1d__hold30__v1"), None)
+                _succ = _registry_entry("gap_and_go__swing__long__1d__hold30__v1")
                 if _succ and _succ.metrics:
                     rows[-1]["avg_held_hrs"] = round(_succ.metrics.avg_held_hrs, 1) if _succ.metrics.avg_held_hrs is not None else None
                     rows[-1]["entry_confidence_pct"] = sr.edge_confidence_pct(_succ.metrics)
@@ -36637,9 +36814,9 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
                 rows[-1]["sl_rule"] = "stop per backtest cell (see tag/registry)"
     # wired + scanning today but the viability gate is closed right now: still shown, so scanning is visible
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
-        if _strategy_scan_counts.get(tag, 0) <= 0 or _is_strategy_viable_for_real_money(tag):
+        if _strategy_scan_counts.get(tag, 0) <= 0 or _vv(tag):
             continue
-        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        strat = _registry_entry(registry_name)
         cats = [c.value for c in strat.categories] if strat else []
         rows.append({
             "strategy_tag": tag, "registry_name": registry_name, "categories": cats,
@@ -36799,7 +36976,7 @@ def _pfnet_doc_and_backtest(registry_name):
     from a replay that called the real main.py functions; otherwise None ("not replayed through main.py yet")."""
     try:
         import strategy_registry as _sr
-        d = next((x for x in _sr.REGISTRY if x.name == registry_name), None)
+        d = _registry_entry(registry_name)
         if d is None:
             return None, None
         ref = (d.metrics.run_ref or "").lower()
@@ -37605,7 +37782,8 @@ async def health():
             "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
             "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM),
             "upstash_stale_db": dict(_UPSTASH_STALE_DB),  # B-1574
-            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")}}
+            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")},
+            "instance_lease": instance_lease.status()}  # B-1648
 
 
 @app.get("/watchlist")
@@ -38167,10 +38345,17 @@ def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
     return {"symbol": symbol, "status": "sold" if gone else "sell_failed_still_tracked", "qty": qty}
 
 
-def _swing_time_exit_due(row, today: dt.date | None = None) -> tuple:
-    """B-1637: (due, expected_exit, basis) for one real_positions_swing row. Strategy rows: due the trading day AFTER
-    their own max-hold date (their engine exits on the day itself; this is the backstop). Rows with no strategy time
-    stop (adopted holdings, unknown tags): due immediately (user 2026-11-19)."""
+SWING_TIME_EXIT_SAME_DAY_AT = dt.time(15, 0)  # B-1652 (user 20-Nov "Ok"): backstop closes on the exit day itself
+
+
+def _swing_time_exit_due(row, today: dt.date | None = None, now_time: dt.time | None = None) -> tuple:
+    """B-1637: (due, expected_exit, basis) for one real_positions_swing row. Strategy rows: due from
+    SWING_TIME_EXIT_SAME_DAY_AT (15:00 IST) ON their own max-hold date (B-1652, user 2026-11-20: their engine should
+    have exited by then; was the next trading day 09:20), and any later day. Rows with no strategy time stop (adopted
+    holdings, unknown tags): due immediately (user 2026-11-19). A caller passing `today` without `now_time` is treated
+    as the start of that day."""
+    if now_time is None:
+        now_time = ist_now().time() if today is None else dt.time(0, 0)
     today = today or ist_now().date()
     ex = _expected_exit_for_position("swing", row["strategy"], row["day"], row["opened_at"])
     exp = ex.get("expected_exit")
@@ -38179,7 +38364,7 @@ def _swing_time_exit_due(row, today: dt.date | None = None) -> tuple:
     exp_d = dt.date.fromisoformat(str(exp)[:10])
     if _strategy_hold_spec(row["strategy"]) is None:
         return True, exp, ex.get("expected_exit_basis")
-    due = today > exp_d
+    due = today > exp_d or (today == exp_d and now_time >= SWING_TIME_EXIT_SAME_DAY_AT)
     return due, exp, ex.get("expected_exit_basis")
 
 
@@ -38192,13 +38377,291 @@ def _swing_time_exit_sweep(conn) -> list:
     out = []
     for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
         try:
-            due, exp, basis = _swing_time_exit_due(r, _n.date())
+            due, exp, basis = _swing_time_exit_due(r, _n.date(), _n.time())
             if due:
                 out.append(_swing_market_exit_now(
                     conn, r["symbol"], f"time_exit_backstop: expected exit {exp} reached ({basis})"[:300]))
         except Exception as e:  # noqa: BLE001
             print(f"[REAL SWING] B-1637 time-exit check failed for {r['symbol']} (non-fatal): {e}")
     return out
+
+
+# B-1651 (user 2026-11-20: "For those positions which has exit date today should also maintain the exit time stamp.
+# View 4. And also keep tracking that they are being exited on time or not"). Every real position whose expected exit
+# (_expected_exit_for_position, the same number View 4 shows) falls today or earlier is tracked here with an exit
+# deadline timestamp; the tick sweep stamps when it actually left Kotak and whether that was on time. Read-only:
+# nothing here sends or changes an order (the B-1637 swing backstop and each engine's own exits do that).
+EXIT_TIMING_INTRADAY_GRACE_MIN = 5      # intraday: square-off / max-hold minute + 5 min before "overdue"
+EXIT_TIMING_SWING_DEADLINE = dt.time(15, 10)  # swing: by 15:10 IST on the exit day (before the 15:15 order purge)
+_EXIT_TIMING_REDIS_KEY = "tv_paper_bot:exit_timing_today:v1"
+_exit_timing: dict = {"day": "", "rows": {}}
+_exit_timing_lock = threading.Lock()
+
+
+def _exit_timing_deadline(category, ex: dict):
+    """(deadline naive-IST datetime, grace minutes) from an _expected_exit_for_position result; None if unknown."""
+    exp = (ex or {}).get("expected_exit")
+    if not exp:
+        return None
+    exp = str(exp).replace(" IST", "").strip()
+    if category in ("buy", "short_sell"):
+        try:
+            return dt.datetime.strptime(exp[:16], "%Y-%m-%d %H:%M"), EXIT_TIMING_INTRADAY_GRACE_MIN
+        except ValueError:
+            return None
+    try:
+        return dt.datetime.combine(dt.date.fromisoformat(exp[:10]), EXIT_TIMING_SWING_DEADLINE), 0
+    except ValueError:
+        return None
+
+
+def _exit_timing_open_rows(conn) -> list:
+    """Every open real position (buy, short, swing, swing short) with its expected exit, as View 4 computes it."""
+    wl = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    out = []
+    for cat, sql in (
+            ("buy", "SELECT p.* FROM real_positions p"),
+            ("short_sell", "SELECT p.* FROM real_positions_short p"),
+            ("swing", "SELECT p.*, s.entry_day AS sed FROM real_positions_swing p "
+                      "LEFT JOIN signal_state_swing s ON s.symbol = p.symbol"),
+            ("swing_short", "SELECT p.*, s.entry_day AS sed FROM real_positions_swing_short p "
+                            "LEFT JOIN signal_state_swing_short s ON s.symbol = p.symbol")):
+        try:
+            rows = [dict(x) for x in conn.execute(sql).fetchall()]
+        except Exception:  # noqa: BLE001 - a missing table is simply no rows
+            rows = []
+        for r in rows:
+            ex = _expected_exit_for_position(cat, r.get("strategy"), r.get("sed") or r.get("day"), r.get("opened_at"),
+                                             wl.get(r["symbol"]))
+            out.append({"category": cat, "symbol": r["symbol"], "strategy": r.get("strategy"), "qty": r.get("qty"),
+                        "expected_exit": ex.get("expected_exit"), "expected_exit_basis": ex.get("expected_exit_basis"),
+                        "deadline": _exit_timing_deadline(cat, ex)})
+    try:
+        fo_rows = [dict(x) for x in conn.execute("SELECT * FROM real_fo_positions").fetchall()]
+    except Exception:  # noqa: BLE001
+        fo_rows = []
+    for r in fo_rows:
+        try:
+            out.append(_exit_timing_fo_row(conn, r))
+        except Exception as e:  # noqa: BLE001
+            print(f"[EXIT TIMING] F&O row {r.get('leg_key')} skipped (non-fatal): {e}")
+    return out
+
+
+EXIT_TIMING_FO_HOLD_GRACE_MIN = 10   # F&O hold window: checked by the 5-min governance pass, so allow two passes
+EXIT_TIMING_MCX_DEADLINE = dt.time(23, 20)  # MCX evening session ends 23:30 IST
+_exit_timing_hold_cache: dict = {}  # (leg_key, opened_at, hold) -> deadline datetime
+
+
+def _nse_add_market_hours(start: dt.datetime, hours: float) -> dt.datetime:
+    """Inverse of _nse_market_hours_between: the naive-IST moment `hours` NSE session hours after start."""
+    left, day = float(hours), start.date()
+    for _ in range(400):
+        if is_nse_trading_day(day):
+            sp = nse_special_session(day)
+            o = dt.datetime.combine(day, dt.time(*divmod(sp[0], 60)) if sp else dt.time(9, 15))
+            c = dt.datetime.combine(day, dt.time(*divmod(sp[1], 60)) if sp else dt.time(15, 30))
+            lo = max(o, start)
+            if c > lo:
+                avail = (c - lo).total_seconds() / 3600.0
+                if avail >= left:
+                    return lo + dt.timedelta(hours=left)
+                left -= avail
+        day += dt.timedelta(days=1)
+    return dt.datetime.combine(day, dt.time(15, 30))
+
+
+def _exit_timing_fo_row(conn, r) -> dict:
+    """B-1651 F&O / MCX leg: deadline = the earlier of (a) the expiry side - a physically settled stock contract is
+    force-closed from expiry - PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY days, a cash-settled one by its expiry
+    day - and (b) for a single_leg_swing_ option, entry + the owning swing strategy's hold hours (B-1386)."""
+    import nse_fo_chain
+    seg = str(r.get("exchange_segment") or "").lower()
+    cat = "commodity" if "mcx" in seg else ("options" if r.get("strike") else "futures")
+    eod = EXIT_TIMING_MCX_DEADLINE if cat == "commodity" else EXIT_TIMING_SWING_DEADLINE
+    cands = []
+    if r.get("expiry"):
+        exp = dt.date.fromisoformat(str(r["expiry"])[:10])
+        if nse_fo_chain.is_physically_settled(r.get("underlying")):
+            d = exp - dt.timedelta(days=nse_fo_chain.PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY)
+            while not is_nse_trading_day(d) and d < exp:
+                d += dt.timedelta(days=1)
+            cands.append((dt.datetime.combine(d, eod), 0, f"force close before physical settlement (expiry {exp})"))
+        else:
+            cands.append((dt.datetime.combine(exp, eod), 0, f"expiry day {exp}"))
+    if str(r.get("strategy_tag") or "").startswith("single_leg_swing_") and r.get("opened_at"):
+        st = conn.execute("SELECT strategy FROM signal_state_swing WHERE symbol = ?",
+                          (f"{r['underlying']}.NS",)).fetchone()
+        hold = _strategy_hold_hours(st["strategy"]) if st else None
+        if hold:
+            ck = (r["leg_key"], float(r["opened_at"]), float(hold))
+            if ck not in _exit_timing_hold_cache:
+                opened = dt.datetime.utcfromtimestamp(float(r["opened_at"])) + dt.timedelta(minutes=IST_OFFSET_MIN)
+                _exit_timing_hold_cache[ck] = _nse_add_market_hours(opened, hold)
+            cands.append((_exit_timing_hold_cache[ck], EXIT_TIMING_FO_HOLD_GRACE_MIN,
+                          f"strategy hold {hold:.1f} market hours (B-1386)"))
+    best = min(cands, key=lambda c: c[0]) if cands else None
+    return {"category": cat, "symbol": r["leg_key"], "strategy": r.get("strategy_tag"), "qty": r.get("qty"),
+            "display": r.get("kotak_trading_symbol"),
+            "expected_exit": best[0].strftime("%Y-%m-%d %H:%M") + " IST" if best else None,
+            "expected_exit_basis": best[2] if best else "no expiry or hold window on record",
+            "deadline": (best[0], best[1]) if best else None}
+
+
+def _exit_timing_actual_exit_ts(conn, symbol, since_ts):
+    """Time of the app's own exit for symbol since since_ts (confirmed beats intent); None when it left another way
+    (exchange SL / target fill, manual), in which case the sweep's detection time is used."""
+    try:
+        row = conn.execute(
+            "SELECT MAX(ts) AS t FROM real_order_events WHERE symbol = ? AND ts >= ? AND leg IN ('exit','short_cover') "
+            "AND event = 'confirmed'", (symbol, since_ts)).fetchone()
+        if row and row["t"]:
+            return float(row["t"]), "exit order confirmed"
+        row = conn.execute(
+            "SELECT MAX(ts) AS t FROM real_order_events WHERE symbol = ? AND ts >= ? AND leg IN ('exit','short_cover') "
+            "AND event = 'intent'", (symbol, since_ts)).fetchone()
+        if row and row["t"]:
+            return float(row["t"]), "exit order sent"
+    except Exception:  # noqa: BLE001
+        pass
+    try:  # F&O / MCX legs log to real_fo_trades (symbol = leg_key)
+        row = conn.execute(
+            "SELECT ts, status FROM real_fo_trades WHERE leg_key = ? AND ts >= ? AND side = 'S' "
+            "AND status IN ('confirmed','closed_per_kotak') ORDER BY ts DESC LIMIT 1", (symbol, since_ts)).fetchone()
+        if row:
+            return float(row["ts"]), ("exit order confirmed" if row["status"] == "confirmed"
+                                      else "closed per Kotak (SL fill or closed at Kotak)")
+    except Exception:  # noqa: BLE001
+        pass
+    return None, None
+
+
+def _et_ist_str(ts_or_dt) -> str:
+    if isinstance(ts_or_dt, dt.datetime):
+        return ts_or_dt.strftime("%Y-%m-%d %H:%M:%S IST")
+    return (dt.datetime.utcfromtimestamp(float(ts_or_dt)) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime(
+        "%Y-%m-%d %H:%M:%S IST")
+
+
+def _exit_timing_push() -> None:
+    try:
+        if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN and _exit_timing.get("day"):
+            _upstash_set(_EXIT_TIMING_REDIS_KEY, json.dumps(_exit_timing, separators=(",", ":"), default=str))
+    except Exception as e:  # noqa: BLE001
+        print(f"[EXIT TIMING] Upstash push failed (non-fatal): {e}")
+
+
+def hydrate_exit_timing_from_external() -> int:
+    """Restore today's exit-timing rows at startup (an earlier IST day is ignored). Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_EXIT_TIMING_REDIS_KEY)
+        data = json.loads(raw) if raw else None
+        day = ist_now().strftime("%Y-%m-%d")
+        if not isinstance(data, dict) or data.get("day") != day or not isinstance(data.get("rows"), dict):
+            return 0
+        with _exit_timing_lock:
+            if _exit_timing.get("day") != day:
+                _exit_timing["day"], _exit_timing["rows"] = day, {}
+            n = 0
+            for k, v in data["rows"].items():
+                if k not in _exit_timing["rows"]:
+                    _exit_timing["rows"][k] = v
+                    n += 1
+        return n
+    except Exception as e:  # noqa: BLE001
+        print(f"[EXIT TIMING] restore failed (non-fatal): {e}")
+        return 0
+
+
+def _exit_timing_sweep(conn, now=None) -> dict:
+    """B-1651: register every open position due today (or earlier), stamp exits, flag overdue. Returns counts."""
+    now = now or ist_now()
+    day = now.strftime("%Y-%m-%d")
+    changed = False
+    with _exit_timing_lock:
+        if _exit_timing.get("day") != day:
+            _exit_timing["day"], _exit_timing["rows"] = day, {}
+            changed = True
+        rows = _exit_timing["rows"]
+        open_now = _exit_timing_open_rows(conn)
+        open_keys = set()
+        for r in open_now:
+            dl = r["deadline"]
+            if not dl or dl[0].date() > now.date():
+                continue
+            key = f"{r['category']}|{r['symbol']}"
+            open_keys.add(key)
+            deadline, grace = dl
+            if key not in rows:
+                rows[key] = {"symbol": r.get("display") or r["symbol"], "key_symbol": r["symbol"],
+                             "category": r["category"], "strategy": r["strategy"],
+                             "qty": r["qty"], "expected_exit": r["expected_exit"],
+                             "expected_exit_basis": r["expected_exit_basis"],
+                             "exit_deadline_ist": _et_ist_str(deadline), "grace_min": grace,
+                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": time.time(),
+                             "status": "pending", "exited_at_ist": None, "exit_source": None, "late_min": None}
+                changed = True
+            e = rows[key]
+            if e["status"] in ("exited_on_time", "exited_late"):  # re-entered after an exit: track afresh
+                e.update(status="pending", exited_at_ist=None, exit_source=None, late_min=None,
+                         first_seen_ts=time.time(), first_seen_ist=_et_ist_str(now))
+                changed = True
+            over = (now - deadline).total_seconds() / 60.0
+            if over > grace and e["status"] != "overdue":
+                e["status"], e["late_min"] = "overdue", round(over, 1)
+                changed = True
+                msg = (f"B-1651 exit OVERDUE: {r['category']} {r['symbol']} still open at {_et_ist_str(now)}, "
+                       f"deadline {e['exit_deadline_ist']} ({r['expected_exit_basis']})")
+                print(f"[EXIT TIMING] {msg}")
+                try:  # the order-log row (journaled + mirrored) only in session, so a night rollover adds none
+                    if not _nse_closed_day(now) and dt.time(9, 15) <= now.time() <= dt.time(15, 30):
+                            _log_real_order_event(conn, r["symbol"], "audit", "exit_overdue", detail=msg[:300],
+                                              reason="exit_timing_check")
+                except Exception:  # noqa: BLE001
+                    pass
+            elif e["status"] == "overdue":
+                e["late_min"] = round(over, 1)
+        for key, e in rows.items():
+            if key in open_keys or e["status"] not in ("pending", "overdue"):
+                continue
+            ts, src = _exit_timing_actual_exit_ts(conn, e.get("key_symbol") or e["symbol"], float(e.get("first_seen_ts") or 0) - 86400)
+            exited = (dt.datetime.utcfromtimestamp(ts) + dt.timedelta(minutes=IST_OFFSET_MIN)) if ts else now
+            deadline = dt.datetime.strptime(e["exit_deadline_ist"][:19], "%Y-%m-%d %H:%M:%S")
+            late = (exited - deadline).total_seconds() / 60.0
+            on_time = late <= float(e.get("grace_min") or 0)
+            e.update(status="exited_on_time" if on_time else "exited_late", exited_at_ist=_et_ist_str(exited),
+                     exit_source=src or "detected closed at Kotak (SL/target fill or other)",
+                     late_min=None if on_time else round(late, 1))
+            changed = True
+        counts = {}
+        for e in rows.values():
+            counts[e["status"]] = counts.get(e["status"], 0) + 1
+    if changed:
+        _exit_timing_push()
+    return counts
+
+
+def _exit_timing_for(category, symbol):
+    e = (_exit_timing.get("rows") or {}).get(f"{category}|{symbol}")
+    return dict(e) if e else None
+
+
+@app.get("/exit-timing-today")
+def exit_timing_today():
+    """B-1651 (View 4): positions whose exit is due today (or overdue): deadline timestamp, actual exit timestamp and
+    whether it was on time. No token: symbols, times and statuses only."""
+    rows = sorted((dict(v) for v in (_exit_timing.get("rows") or {}).values()),
+                  key=lambda r: (r.get("exit_deadline_ist") or "", r.get("symbol") or ""))
+    for r in rows:
+        r.pop("first_seen_ts", None)
+    counts = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {"day": _exit_timing.get("day"), "counts": counts, "positions": rows,
+            "rules": {"intraday": f"square-off / max-hold minute + {EXIT_TIMING_INTRADAY_GRACE_MIN} min grace",
+                      "swing": f"by {EXIT_TIMING_SWING_DEADLINE.strftime('%H:%M')} IST on the expected exit day"}}
 
 
 @app.post("/kotak-neo/exit-swing-holding")
@@ -41048,6 +41511,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             governance_backfilled_swing.extend(_heal_real_swing_short_sl(conn, order_rows))
         except Exception as e:
             print(f"[reconcile] short-swing SL heal failed (non-fatal): {e}")
+        try:
+            _retry_deferred_swing_short_covers(conn)  # B-1647
+        except Exception as e:  # noqa: BLE001
+            print(f"[reconcile] deferred short-swing cover retry failed (non-fatal): {e}")
 
         conn.commit()
         _sync_real_positions_external(conn)

@@ -208,6 +208,7 @@ import threading
 import time
 
 import kotak_neo
+import instance_lease  # noqa: E402  B-1648
 
 # Shared by cancel_existing_resting_sl/cancel_existing_resting_target - an
 # order in any of these statuses is already done (filled/dead), nothing to
@@ -417,6 +418,14 @@ def _records_send(leg: str, purpose: str):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             first = args[0] if args else (kwargs.get("kotak_trading_symbol") or kwargs.get("order_id"))
+            try:  # B-1648: only the lease-holding instance sends (deploy overlap ran two senders)
+                block = instance_lease.order_block_reason()
+            except Exception as e:  # noqa: BLE001 - fail-open, as before B-1648
+                block = None
+                print(f"[REAL] B-1648 lease check failed (non-fatal, sending): {e}")
+            if block:
+                print(f"[REAL] {leg} {first}: {block}")
+                return {"ok": False, "detail": block, "standby_instance": True}
             skip = _outage_backoff_result(leg, first)
             if skip is not None:
                 return skip

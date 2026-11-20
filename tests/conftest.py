@@ -299,3 +299,39 @@ def _isolate_from_repo_paper_journal(monkeypatch, tmp_path):
     # point DOCS_TRADE_OUTCOMES_PATH at their own file (test_paper_journal_resurrection does).
     import main
     monkeypatch.setattr(main, "DOCS_TRADE_OUTCOMES_PATH", str(tmp_path / "no_trade_outcomes_log.json"))
+
+
+@pytest.fixture(autouse=True)
+def _real_swing_exit_session_open_by_default(request, monkeypatch):
+    """B-1645 gates real swing exits to the NSE session; other tests must not depend on the wall clock."""
+    if request.node.fspath.basename in ("test_swing_exit_session_gate_b1645.py", "test_swing_short_cover_gate_b1647.py"):
+        return
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_real_swing_exit_session_open", lambda ts=None: True)
+
+
+@pytest.fixture(autouse=True)
+def _no_order_log_git_push_on_shutdown(request, monkeypatch):
+    """B-1644: the shutdown hook pushes the order log to GitHub; tests never reach the network."""
+    if request.node.fspath.basename == "test_order_log_shutdown_push_b1644.py":
+        return
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_push_order_log_on_shutdown", lambda timeout_s=None: False)
+
+
+@pytest.fixture(autouse=True)
+def _instance_lease_unset_by_default(request, monkeypatch):
+    """B-1648: the send lease talks to Upstash; outside its own tests it reads as unset (fail-open, no HTTP), so a
+    test that mocks requests.post never sees lease commands."""
+    if request.node.fspath.basename == "test_instance_lease_b1648.py":
+        return
+    import instance_lease
+    monkeypatch.setattr(instance_lease, "_creds", lambda: (None, None))
+    monkeypatch.setattr(instance_lease, "_state", {"role": "unknown", "holder": None, "checked_at": 0.0,
+                                                   "error": None, "claims": 0})
