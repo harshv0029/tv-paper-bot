@@ -108947,7 +108947,19 @@
    "prev_state": "resting SELL trigger Rs189.57",
    "new_state": "resting SELL trigger Rs190.38",
    "detail": "reason: order_block_delta trail rule raised the stop from Rs189.57 to Rs190.38 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 9080,
+   "ts": 1795162420.7226355,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261120000529272",
+   "prev_state": "resting SELL trigger Rs190.38",
+   "new_state": "resting SELL trigger Rs190.63",
+   "detail": "reason: order_block_delta trail rule raised the stop from Rs190.38 to Rs190.63 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-20T07:54:54Z"
+ "synced_at_utc": "2026-11-20T08:13:50Z"
 }
