@@ -108839,7 +108839,19 @@
    "prev_state": "tracked open (stale), long 1 @ Rs2093.60",
    "new_state": "cleared - Kotak already shows this closed",
    "detail": "reason: intraday paper exit: exited_stop_hit"
+  },
+  {
+   "id": 9071,
+   "ts": 1795148134.1675754,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261120000063356",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs2050.50",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-20T04:12:56Z"
+ "synced_at_utc": "2026-11-20T04:16:25Z"
 }
