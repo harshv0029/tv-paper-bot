@@ -38391,7 +38391,76 @@ def _exit_timing_open_rows(conn) -> list:
             out.append({"category": cat, "symbol": r["symbol"], "strategy": r.get("strategy"), "qty": r.get("qty"),
                         "expected_exit": ex.get("expected_exit"), "expected_exit_basis": ex.get("expected_exit_basis"),
                         "deadline": _exit_timing_deadline(cat, ex)})
+    try:
+        fo_rows = [dict(x) for x in conn.execute("SELECT * FROM real_fo_positions").fetchall()]
+    except Exception:  # noqa: BLE001
+        fo_rows = []
+    for r in fo_rows:
+        try:
+            out.append(_exit_timing_fo_row(conn, r))
+        except Exception as e:  # noqa: BLE001
+            print(f"[EXIT TIMING] F&O row {r.get('leg_key')} skipped (non-fatal): {e}")
     return out
+
+
+EXIT_TIMING_FO_HOLD_GRACE_MIN = 10   # F&O hold window: checked by the 5-min governance pass, so allow two passes
+EXIT_TIMING_MCX_DEADLINE = dt.time(23, 20)  # MCX evening session ends 23:30 IST
+_exit_timing_hold_cache: dict = {}  # (leg_key, opened_at, hold) -> deadline datetime
+
+
+def _nse_add_market_hours(start: dt.datetime, hours: float) -> dt.datetime:
+    """Inverse of _nse_market_hours_between: the naive-IST moment `hours` NSE session hours after start."""
+    left, day = float(hours), start.date()
+    for _ in range(400):
+        if is_nse_trading_day(day):
+            sp = nse_special_session(day)
+            o = dt.datetime.combine(day, dt.time(*divmod(sp[0], 60)) if sp else dt.time(9, 15))
+            c = dt.datetime.combine(day, dt.time(*divmod(sp[1], 60)) if sp else dt.time(15, 30))
+            lo = max(o, start)
+            if c > lo:
+                avail = (c - lo).total_seconds() / 3600.0
+                if avail >= left:
+                    return lo + dt.timedelta(hours=left)
+                left -= avail
+        day += dt.timedelta(days=1)
+    return dt.datetime.combine(day, dt.time(15, 30))
+
+
+def _exit_timing_fo_row(conn, r) -> dict:
+    """B-1651 F&O / MCX leg: deadline = the earlier of (a) the expiry side - a physically settled stock contract is
+    force-closed from expiry - PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY days, a cash-settled one by its expiry
+    day - and (b) for a single_leg_swing_ option, entry + the owning swing strategy's hold hours (B-1386)."""
+    import nse_fo_chain
+    seg = str(r.get("exchange_segment") or "").lower()
+    cat = "commodity" if "mcx" in seg else ("options" if r.get("strike") else "futures")
+    eod = EXIT_TIMING_MCX_DEADLINE if cat == "commodity" else EXIT_TIMING_SWING_DEADLINE
+    cands = []
+    if r.get("expiry"):
+        exp = dt.date.fromisoformat(str(r["expiry"])[:10])
+        if nse_fo_chain.is_physically_settled(r.get("underlying")):
+            d = exp - dt.timedelta(days=nse_fo_chain.PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY)
+            while not is_nse_trading_day(d) and d < exp:
+                d += dt.timedelta(days=1)
+            cands.append((dt.datetime.combine(d, eod), 0, f"force close before physical settlement (expiry {exp})"))
+        else:
+            cands.append((dt.datetime.combine(exp, eod), 0, f"expiry day {exp}"))
+    if str(r.get("strategy_tag") or "").startswith("single_leg_swing_") and r.get("opened_at"):
+        st = conn.execute("SELECT strategy FROM signal_state_swing WHERE symbol = ?",
+                          (f"{r['underlying']}.NS",)).fetchone()
+        hold = _strategy_hold_hours(st["strategy"]) if st else None
+        if hold:
+            ck = (r["leg_key"], float(r["opened_at"]), float(hold))
+            if ck not in _exit_timing_hold_cache:
+                opened = dt.datetime.utcfromtimestamp(float(r["opened_at"])) + dt.timedelta(minutes=IST_OFFSET_MIN)
+                _exit_timing_hold_cache[ck] = _nse_add_market_hours(opened, hold)
+            cands.append((_exit_timing_hold_cache[ck], EXIT_TIMING_FO_HOLD_GRACE_MIN,
+                          f"strategy hold {hold:.1f} market hours (B-1386)"))
+    best = min(cands, key=lambda c: c[0]) if cands else None
+    return {"category": cat, "symbol": r["leg_key"], "strategy": r.get("strategy_tag"), "qty": r.get("qty"),
+            "display": r.get("kotak_trading_symbol"),
+            "expected_exit": best[0].strftime("%Y-%m-%d %H:%M") + " IST" if best else None,
+            "expected_exit_basis": best[2] if best else "no expiry or hold window on record",
+            "deadline": (best[0], best[1]) if best else None}
 
 
 def _exit_timing_actual_exit_ts(conn, symbol, since_ts):
@@ -38408,6 +38477,15 @@ def _exit_timing_actual_exit_ts(conn, symbol, since_ts):
             "AND event = 'intent'", (symbol, since_ts)).fetchone()
         if row and row["t"]:
             return float(row["t"]), "exit order sent"
+    except Exception:  # noqa: BLE001
+        pass
+    try:  # F&O / MCX legs log to real_fo_trades (symbol = leg_key)
+        row = conn.execute(
+            "SELECT ts, status FROM real_fo_trades WHERE leg_key = ? AND ts >= ? AND side = 'S' "
+            "AND status IN ('confirmed','closed_per_kotak') ORDER BY ts DESC LIMIT 1", (symbol, since_ts)).fetchone()
+        if row:
+            return float(row["ts"]), ("exit order confirmed" if row["status"] == "confirmed"
+                                      else "closed per Kotak (SL fill or closed at Kotak)")
     except Exception:  # noqa: BLE001
         pass
     return None, None
@@ -38472,7 +38550,8 @@ def _exit_timing_sweep(conn, now=None) -> dict:
             open_keys.add(key)
             deadline, grace = dl
             if key not in rows:
-                rows[key] = {"symbol": r["symbol"], "category": r["category"], "strategy": r["strategy"],
+                rows[key] = {"symbol": r.get("display") or r["symbol"], "key_symbol": r["symbol"],
+                             "category": r["category"], "strategy": r["strategy"],
                              "qty": r["qty"], "expected_exit": r["expected_exit"],
                              "expected_exit_basis": r["expected_exit_basis"],
                              "exit_deadline_ist": _et_ist_str(deadline), "grace_min": grace,
@@ -38502,7 +38581,7 @@ def _exit_timing_sweep(conn, now=None) -> dict:
         for key, e in rows.items():
             if key in open_keys or e["status"] not in ("pending", "overdue"):
                 continue
-            ts, src = _exit_timing_actual_exit_ts(conn, e["symbol"], float(e.get("first_seen_ts") or 0) - 86400)
+            ts, src = _exit_timing_actual_exit_ts(conn, e.get("key_symbol") or e["symbol"], float(e.get("first_seen_ts") or 0) - 86400)
             exited = (dt.datetime.utcfromtimestamp(ts) + dt.timedelta(minutes=IST_OFFSET_MIN)) if ts else now
             deadline = dt.datetime.strptime(e["exit_deadline_ist"][:19], "%Y-%m-%d %H:%M:%S")
             late = (exited - deadline).total_seconds() / 60.0

@@ -12,7 +12,7 @@ def _setup(monkeypatch, now):
     monkeypatch.setattr(main, "_exit_timing_push", lambda: None)
     main._exit_timing.update(day="", rows={})
     with closing(main.get_db()) as c:
-        for t in ("real_positions", "real_positions_short", "real_positions_swing", "real_positions_swing_short"):
+        for t in ("real_positions", "real_positions_short", "real_positions_swing", "real_positions_swing_short", "real_fo_positions"):
             c.execute(f"DELETE FROM {t}")
         c.execute("DELETE FROM real_order_events")
         c.commit()
@@ -107,3 +107,52 @@ def test_restore_on_wipe_from_upstash(monkeypatch):
     store[main._EXIT_TIMING_REDIS_KEY] = json.dumps({"day": "2026-11-19", "rows": {"swing|Q.NS": row}})
     main._exit_timing.update(day="", rows={})
     assert main.hydrate_exit_timing_from_external() == 0  # an earlier IST day is ignored
+
+
+def _open_fo(leg, underlying, expiry, strike=100.0, seg="nse_fo", tag="fo_test", opened_at=None):
+    with closing(main.get_db()) as c:
+        c.execute("DELETE FROM real_fo_positions")
+        c.execute("INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, "
+                  "instrument_token, exchange_segment, expiry, strike, lot_size, qty, entry_price, opened_at, day) "
+                  "VALUES (?, ?, ?, ?, '1', ?, ?, ?, 1, 1, 10.0, ?, '2026-11-20')",
+                  (leg, underlying, tag, leg + "TS", seg, expiry, strike, opened_at or time.time()))
+        c.commit()
+
+
+def test_fo_cash_settled_option_due_on_expiry_day(monkeypatch):
+    now = dt.datetime.combine(dt.date(2026, 11, 24), dt.time(11, 0))
+    _setup(monkeypatch, now)
+    _open_fo("NIFTY:CALL", "NIFTY", "2026-11-24")
+    with closing(main.get_db()) as c:
+        main._exit_timing_sweep(c, now)
+    e = main._exit_timing_for("options", "NIFTY:CALL")
+    assert e["exit_deadline_ist"] == "2026-11-24 15:10:00 IST" and e["symbol"] == "NIFTY:CALLTS"
+    with closing(main.get_db()) as c:
+        c.execute("DELETE FROM real_fo_positions")
+        c.commit()
+        main._exit_timing_sweep(c, now + dt.timedelta(minutes=5))
+    assert main._exit_timing_for("options", "NIFTY:CALL")["status"] == "exited_on_time"
+
+
+def test_fo_physically_settled_stock_due_two_days_before_expiry_and_mcx_evening(monkeypatch):
+    import nse_fo_chain
+    now = dt.datetime.combine(dt.date(2026, 11, 24), dt.time(10, 0))
+    _setup(monkeypatch, now)
+    monkeypatch.setattr(nse_fo_chain, "is_physically_settled", lambda u: u == "RELIANCE")
+    monkeypatch.setattr(main, "is_nse_trading_day", lambda d=None: d is None or d.weekday() < 5)
+    with closing(main.get_db()) as c:
+        r = main._exit_timing_fo_row(c, {"leg_key": "RELIANCE:CALL", "underlying": "RELIANCE", "expiry": "2026-11-26",
+                                         "strike": 1300.0, "exchange_segment": "nse_fo", "strategy_tag": "x"})
+        assert r["deadline"] == (dt.datetime(2026, 11, 24, 15, 10), 0) and r["category"] == "options"
+        m = main._exit_timing_fo_row(c, {"leg_key": "CRUDEOIL:FUT", "underlying": "CRUDEOIL", "expiry": "2026-11-24",
+                                         "strike": None, "exchange_segment": "mcx_fo", "strategy_tag": "x"})
+        assert m["deadline"] == (dt.datetime(2026, 11, 24, 23, 20), 0) and m["category"] == "commodity"
+
+
+def test_nse_add_market_hours_inverts_market_hours_between(monkeypatch):
+    monkeypatch.setattr(main, "is_nse_trading_day", lambda d=None: d is None or d.weekday() < 5)
+    monkeypatch.setattr(main, "nse_special_session", lambda d: None)
+    start = dt.datetime(2026, 11, 20, 14, 0)  # Friday
+    end = main._nse_add_market_hours(start, 6.25)
+    assert end == dt.datetime(2026, 11, 23, 14, 0)  # 1.5 h Fri + 4.75 h Mon
+    assert abs(main._nse_market_hours_between(start, end) - 6.25) < 1e-9

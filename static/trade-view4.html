@@ -500,7 +500,7 @@
 
 
   // B-1402: active positions with SL type and whether today's SL matches the strategy's own stop rule.
-  const SLCAT = {buy: "Buy (intraday)", short_sell: "Short sell", swing: "Swing", swing_short: "Swing short"};
+  const SLCAT = {buy: "Buy (intraday)", short_sell: "Short sell", swing: "Swing", swing_short: "Swing short", options: "Options", futures: "Futures", commodity: "MCX commodity"};
   // B-1476: calendar days since entry (IST), non-trading days included, same day = 1.
   function slDaysHeld(day) {
     if (!day) return null;
