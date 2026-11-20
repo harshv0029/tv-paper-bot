@@ -36295,6 +36295,19 @@ def _add_nse_trading_days(day: str, n: int) -> str:
     return d.isoformat()
 
 
+def _swing_immediate_exit_stamp() -> str:
+    """B-1657 (user 2026-11-20: Expected exit on View 4 "has to keep time stamp"): when the time-exit sweep
+    (09:20-15:10 IST, NSE trading days) closes a row with no strategy time stop: now inside the window, else the next
+    09:20 IST. Today's date is kept while the window is open so the sweep and exit-timing checks read it as due today."""
+    n = ist_now()
+    d, t = n.date(), n.time()
+    if is_nse_trading_day(d) and t < dt.time(15, 10):
+        when = max(t, dt.time(9, 20))
+        return f"{d.isoformat()} {when.hour:02d}:{when.minute:02d} IST"
+    d = dt.date.fromisoformat(_add_nse_trading_days(d.isoformat(), 1))
+    return f"{d.isoformat()} 09:20 IST"
+
+
 def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=None) -> dict:
     """{expected_exit, expected_exit_basis}: intraday rows exit today by the square-off (or sooner by max-hold minutes);
     swing rows by entry day + the strategy's max hold in NSE trading days (bars converted per session)."""
@@ -36314,7 +36327,7 @@ def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=No
         if not entry_day:
             return {"expected_exit": None, "expected_exit_basis": "entry day unknown"}
         if spec is None:  # B-1637 (user 19-Nov: "Those without an exit date, those should be immediate exit")
-            return {"expected_exit": ist_now().date().isoformat(),
+            return {"expected_exit": _swing_immediate_exit_stamp(),
                     "expected_exit_basis": "immediate: no strategy time stop (adopted holding / unknown tag), "
                                            "closed by the time-exit sweep (B-1637)"}
         n, tf = spec
@@ -36324,8 +36337,8 @@ def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=No
             per = _BARS_PER_SESSION.get(tf, 1)
             days = max(1, -(-int(n) // per))
             unit = f"{n} trading days" if per == 1 else f"{n} x {tf} bars (~{days} trading days)"
-        return {"expected_exit": _add_nse_trading_days(entry_day, days),
-                "expected_exit_basis": f"max hold {unit}; earlier on stop/target/rule exit"}
+        return {"expected_exit": _add_nse_trading_days(entry_day, days) + " 15:00 IST",  # B-1657: the B-1652 sweep time
+                "expected_exit_basis": f"max hold {unit}; closed 15:00 IST that day if still open; earlier on stop/target/rule exit"}
     except Exception as e:
         return {"expected_exit": None, "expected_exit_basis": f"unavailable ({type(e).__name__})"}
 

@@ -34,7 +34,7 @@ def test_time_exit_due_rules(db):
     assert due and exp
     own = _add(db, "BBB.NS", "order_block_delta", "2026-10-08")
     exp_own = main._expected_exit_for_position("swing", "order_block_delta", "2026-10-08")["expected_exit"]
-    d = dt.date.fromisoformat(exp_own)
+    d = dt.date.fromisoformat(exp_own[:10])
     assert main._swing_time_exit_due(own, d)[0] is False  # own engine exits on the day itself
     # B-1652: from 15:00 IST on the exit day itself the backstop closes it (was the next trading day)
     assert main._swing_time_exit_due(own, d, dt.time(14, 59))[0] is False
