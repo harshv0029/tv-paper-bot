@@ -108827,7 +108827,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs227.65",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 9070,
+   "ts": 1795147973.5236063,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "exit",
+   "event": "skipped_duplicate",
+   "order_id": null,
+   "prev_state": "tracked open (stale), long 1 @ Rs2093.60",
+   "new_state": "cleared - Kotak already shows this closed",
+   "detail": "reason: intraday paper exit: exited_stop_hit"
   }
  ],
- "synced_at_utc": "2026-11-20T04:03:33Z"
+ "synced_at_utc": "2026-11-20T04:12:56Z"
 }
