@@ -2425,3 +2425,10 @@ Profit-booking / exit takeaway: exits worked as designed at the open; the bigger
   exit = the app's confirmed exit order time, else the time the position was seen gone from Kotak-aligned tables.
 - Profit-booking / exit takeaway: a time exit that slips a day is held risk with no edge left in it; measuring the
   slip per position is how we learn whether the max-hold clock is being honoured before tuning the hold itself.
+
+## 2026-11-20 IST - Daily review: no restarts, slow ticks, unlogged UNIONBANK sell
+- First full session with no Render restart since the OOM loop (B-1641 held). Day -Rs24.80 on Rs911 deployed.
+- Two intraday chan_kalman entries (APLAPOLLO 5m, VEDL 15m) both exited within ~1 h; APLAPOLLO stopped in 22 min.
+- The tick holding each 15-min bar sweep runs ~450 s, so exits and trails can wait ~7.5 min (B-1650).
+- Profit-booking / exit takeaway: an exit is only as good as the loop that sends it; a 7-minute scheduler stall can
+  turn a planned stop or a 5m exit into a worse fill, so loop latency comes before tuning exit rules.
