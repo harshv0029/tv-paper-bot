@@ -814,8 +814,20 @@
    "buy_amt": 2093.6,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795147220.0020409
+   "updated_at": 1795147524.8085942
+  },
+  {
+   "day": "2026-11-20",
+   "trdsym": "VEDL-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 5.0,
+   "buy_amt": 1166.75,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795147524.8085942
   }
  ],
- "synced_at_utc": "2026-11-20T04:00:53Z"
+ "synced_at_utc": "2026-11-20T04:06:01Z"
 }
