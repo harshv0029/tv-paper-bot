@@ -108925,6 +108925,18 @@
    "detail": "reason: intraday paper exit: exited_state_exit"
   },
   {
+   "id": 9079,
+   "ts": 1795161199.3202393,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261120000020554",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 9078,
    "ts": 1795161208.237041,
    "symbol": "UNIONBANK.NS",
@@ -108937,5 +108949,5 @@
    "detail": "reason: order_block_delta trail rule raised the stop from Rs189.57 to Rs190.38 | daily order_block_delta stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-20T07:53:31Z"
+ "synced_at_utc": "2026-11-20T07:54:54Z"
 }
