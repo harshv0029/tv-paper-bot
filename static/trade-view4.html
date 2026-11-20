@@ -183,6 +183,11 @@
     <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th title="If the live Kotak SL fills: (Kotak SL trigger - entry) x qty (shorts: entry - SL). Gross; net deducts ~0.8% round-trip cost on entry value.">Close at SL</th><th title="Calendar days since entry, non-trading days included (same day = 1)">Days held</th><th title="Profit / calendar days held: INR per day (% per day)">Return/day</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
     <tbody id="slRows"><tr><td colspan="16" class="dim">loading…</td></tr></tbody></table>
   <div class="dim mono" id="slNote" style="font-size:10.5px;margin-top:4px"></div></div>
+<div class="box" id="etBox" style="margin:12px 0;overflow-x:auto"><h2>Exits due today · deadline vs actual (IST) <span class="n mono" id="etN"></span></h2>
+  <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
+    <th>Position</th><th>Category</th><th>Exit deadline</th><th>Exited at</th><th>On time?</th></tr></thead>
+    <tbody id="etRows"><tr><td colspan="5" class="dim">loading…</td></tr></tbody></table>
+  <div class="dim mono" id="etNote" style="font-size:10.5px;margin-top:4px"></div></div>
 <div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
 
 <div class="box" id="dtBox" style="margin-top:12px"><h2>Decision tree (live) · where each symbol's latest check stopped <span class="n mono" id="dtN"></span></h2>
@@ -196,7 +201,7 @@
 <div class="box" id="viaListBox" style="margin-top:12px"><h2>Viable strategies (active definition) <span class="n mono" id="viaListN"></span></h2>
   <div class="mono" id="viaList" style="font-size:10.5px;line-height:1.6;word-break:break-word">loading…</div></div>
 
-<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails), <span class="mono">/entry-funnel</span> 30s (entry reject flags: viability / money / other), <span class="mono">/roc-kpis</span> 60s (return on deployed capital from the durable Kotak fill ledger), <span class="mono">/upstash-usage</span> 60s (Upstash bandwidth used this month vs the 10 GB free-tier limit), <span class="mono">/restart-history</span> 60s (Render restarts today, IST; red when any was not a deploy). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
+<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails), <span class="mono">/entry-funnel</span> 30s (entry reject flags: viability / money / other), <span class="mono">/exit-timing-today</span> 30s (exits due today: deadline vs actual exit time), <span class="mono">/roc-kpis</span> 60s (return on deployed capital from the durable Kotak fill ledger), <span class="mono">/upstash-usage</span> 60s (Upstash bandwidth used this month vs the 10 GB free-tier limit), <span class="mono">/restart-history</span> 60s (Render restarts today, IST; red when any was not a deploy). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
 
 <script>
   const $ = id => document.getElementById(id);
@@ -523,6 +528,28 @@
     th.style.cursor = "pointer"; th.title = (th.title ? th.title + " · " : "") + "click to sort";
     th.addEventListener("click", () => { slSort = {col: i, dir: slSort.col === i ? -slSort.dir : 1}; slSortApply(); });
   });
+  // B-1651: exit due today - deadline timestamp and whether the exit happened on time.
+  const ETL = {pending: ["dim", "due"], overdue: ["down", "OVERDUE"], exited_on_time: ["up", "exited on time"], exited_late: ["down", "exited LATE"]};
+  function etCell(t) {
+    if (!t) return "";
+    const [c, l] = ETL[t.status] || ["dim", t.status];
+    return `<div class="${c}" style="font-size:10px">${l} · deadline ${esc((t.exit_deadline_ist || "").slice(11, 16))} IST${t.late_min != null ? " · " + esc(t.late_min) + " min late" : ""}</div>`;
+  }
+  async function pollExitTiming() {
+    try {
+      const d = await getJSON("/exit-timing-today"), ps = d.positions || [];
+      $("etN").textContent = ps.length ? String(ps.length) : "";
+      $("etRows").innerHTML = ps.map(p => {
+        const [c, l] = ETL[p.status] || ["dim", p.status];
+        return `<tr style="border-bottom:1px solid #8882"><td>${esc(p.symbol)} <span class="dim">${esc(p.strategy || "")}</span></td><td>${esc(SLCAT[p.category] || p.category)}</td>` +
+          `<td>${esc(p.exit_deadline_ist || "-")}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td>` +
+          `<td>${esc(p.exited_at_ist || "-")}<div class="dim" style="font-size:10px">${esc(p.exit_source || "")}</div></td>` +
+          `<td class="${c}">${l}${p.late_min != null ? " (" + esc(p.late_min) + " min)" : ""}</td></tr>`;
+      }).join("") || '<tr><td colspan="5" class="dim">no position has its exit due today</td></tr>';
+      const r = d.rules || {};
+      $("etNote").textContent = `On time = intraday: ${r.intraday || ""}; swing: ${r.swing || ""}. Times IST.`;
+    } catch (e) {}
+  }
   async function pollSlTable() {
     try {
       const d = await getJSON("/real-positions-sl-today");
@@ -553,7 +580,7 @@
           `<td data-v="${rpd ?? ""}" class="${pc}">${rpd == null ? "-" : (rpd < 0 ? "-₹" : "₹") + Math.abs(rpd).toFixed(2) + " INR/day" + (rpdPct == null ? "" : ` (${(rpdPct > 0 ? "+" : "") + rpdPct.toFixed(3)}% /day)`)}</td>` +
           `<td title="${esc(p.sl_rule || "")}">${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td>` +
           // B-1425: the strategy's time stop (latest exit date); it can exit sooner on stop, target or its rule.
-          `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td></tr>`;
+          `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div>${etCell(p.exit_timing)}</td></tr>`;
       }).join("") || '<tr><td colspan="16" class="dim">no active real positions</td></tr>';
       slSortApply();
       $("slNote").textContent = d.note || "";
@@ -842,6 +869,7 @@
   setInterval(pollProtection, 5000);
   setInterval(pollPositions, 20000);
   pollSlTable(); setInterval(pollSlTable, 15000);
+  pollExitTiming(); setInterval(pollExitTiming, 30000);
   pollHealth(); setInterval(pollHealth, 5000);
   pollRestarts(); setInterval(pollRestarts, 60000);
   pollUpstash(); setInterval(pollUpstash, 60000);

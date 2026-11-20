@@ -2417,3 +2417,11 @@ Profit-booking / exit takeaway: exits worked as designed at the open; the bigger
 - HCLTECH: 1h macddiv entry at the open, stopped 56 min later. One day; goes to the exit audit, not a tune.
 - Profit-booking / exit takeaway: an exit rule's timing (max-hold clock) must be evaluated against session hours, and a
   profit target that cannot rest at Kotak (ATGL, RMS T1) leaves a winner with only the paper signal to exit it.
+
+## 2026-11-20 IST - Exit timing: deadline timestamp and on-time check (B-1651)
+- User asked that positions with their exit due today show an exit timestamp on View 4 and be checked for exiting on
+  time. Before B-1651 View 4 showed a swing exit date only, and nothing compared the actual exit time with it.
+- Deadline: intraday = square-off or max-hold minute (+5 min grace); swing = 15:10 IST on the expected exit day. Actual
+  exit = the app's confirmed exit order time, else the time the position was seen gone from Kotak-aligned tables.
+- Profit-booking / exit takeaway: a time exit that slips a day is held risk with no edge left in it; measuring the
+  slip per position is how we learn whether the max-hold clock is being honoured before tuning the hold itself.

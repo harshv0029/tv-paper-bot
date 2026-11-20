@@ -33941,6 +33941,10 @@ async def _scheduler_tick():
             await _real_off_loop(_swing_time_exit_sweep)
         except Exception as e:
             print(f"[REAL SWING] B-1637 time-exit sweep failed (non-fatal): {e}")
+        try:  # B-1651: exit-time tracking for every position due today (read-only)
+            await _real_off_loop(_exit_timing_sweep)
+        except Exception as e:
+            print(f"[EXIT TIMING] B-1651 sweep failed (non-fatal): {e}")
         try:
             await _real_off_loop(_retry_pending_real_swing_orders)
         except Exception as e:
@@ -34415,6 +34419,13 @@ async def _start_scheduler():
             print(f"[swing_skipped] restored {_n_sk} skipped symbol(s) from Upstash")
     except Exception as e:
         print(f"[swing_skipped] startup restore skipped (non-fatal): {e}")
+    try:
+        _n_et = await asyncio.wait_for(asyncio.to_thread(hydrate_exit_timing_from_external),
+                                       timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+        if _n_et:
+            print(f"[EXIT TIMING] restored {_n_et} row(s) from Upstash")
+    except Exception as e:
+        print(f"[EXIT TIMING] startup restore skipped (non-fatal): {e}")
     try:
         await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
@@ -36344,6 +36355,7 @@ def real_positions_sl_today():
                 "entry_day": r.get("day"), "entry_day_sl": eday_sl, "entry_day_sl_source": eday_src,
                 **_expected_exit_for_position(category, tag, r.get("sed") or r.get("day"), r.get("opened_at"),
                                               _wl_by_sym.get(r["symbol"])),
+                "exit_timing": _exit_timing_for(category, r["symbol"]),  # B-1651
             })
 
         def _rows(sql):
@@ -38327,6 +38339,205 @@ def _swing_time_exit_sweep(conn) -> list:
         except Exception as e:  # noqa: BLE001
             print(f"[REAL SWING] B-1637 time-exit check failed for {r['symbol']} (non-fatal): {e}")
     return out
+
+
+# B-1651 (user 2026-11-20: "For those positions which has exit date today should also maintain the exit time stamp.
+# View 4. And also keep tracking that they are being exited on time or not"). Every real position whose expected exit
+# (_expected_exit_for_position, the same number View 4 shows) falls today or earlier is tracked here with an exit
+# deadline timestamp; the tick sweep stamps when it actually left Kotak and whether that was on time. Read-only:
+# nothing here sends or changes an order (the B-1637 swing backstop and each engine's own exits do that).
+EXIT_TIMING_INTRADAY_GRACE_MIN = 5      # intraday: square-off / max-hold minute + 5 min before "overdue"
+EXIT_TIMING_SWING_DEADLINE = dt.time(15, 10)  # swing: by 15:10 IST on the exit day (before the 15:15 order purge)
+_EXIT_TIMING_REDIS_KEY = "tv_paper_bot:exit_timing_today:v1"
+_exit_timing: dict = {"day": "", "rows": {}}
+_exit_timing_lock = threading.Lock()
+
+
+def _exit_timing_deadline(category, ex: dict):
+    """(deadline naive-IST datetime, grace minutes) from an _expected_exit_for_position result; None if unknown."""
+    exp = (ex or {}).get("expected_exit")
+    if not exp:
+        return None
+    exp = str(exp).replace(" IST", "").strip()
+    if category in ("buy", "short_sell"):
+        try:
+            return dt.datetime.strptime(exp[:16], "%Y-%m-%d %H:%M"), EXIT_TIMING_INTRADAY_GRACE_MIN
+        except ValueError:
+            return None
+    try:
+        return dt.datetime.combine(dt.date.fromisoformat(exp[:10]), EXIT_TIMING_SWING_DEADLINE), 0
+    except ValueError:
+        return None
+
+
+def _exit_timing_open_rows(conn) -> list:
+    """Every open real position (buy, short, swing, swing short) with its expected exit, as View 4 computes it."""
+    wl = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    out = []
+    for cat, sql in (
+            ("buy", "SELECT p.* FROM real_positions p"),
+            ("short_sell", "SELECT p.* FROM real_positions_short p"),
+            ("swing", "SELECT p.*, s.entry_day AS sed FROM real_positions_swing p "
+                      "LEFT JOIN signal_state_swing s ON s.symbol = p.symbol"),
+            ("swing_short", "SELECT p.*, s.entry_day AS sed FROM real_positions_swing_short p "
+                            "LEFT JOIN signal_state_swing_short s ON s.symbol = p.symbol")):
+        try:
+            rows = [dict(x) for x in conn.execute(sql).fetchall()]
+        except Exception:  # noqa: BLE001 - a missing table is simply no rows
+            rows = []
+        for r in rows:
+            ex = _expected_exit_for_position(cat, r.get("strategy"), r.get("sed") or r.get("day"), r.get("opened_at"),
+                                             wl.get(r["symbol"]))
+            out.append({"category": cat, "symbol": r["symbol"], "strategy": r.get("strategy"), "qty": r.get("qty"),
+                        "expected_exit": ex.get("expected_exit"), "expected_exit_basis": ex.get("expected_exit_basis"),
+                        "deadline": _exit_timing_deadline(cat, ex)})
+    return out
+
+
+def _exit_timing_actual_exit_ts(conn, symbol, since_ts):
+    """Time of the app's own exit for symbol since since_ts (confirmed beats intent); None when it left another way
+    (exchange SL / target fill, manual), in which case the sweep's detection time is used."""
+    try:
+        row = conn.execute(
+            "SELECT MAX(ts) AS t FROM real_order_events WHERE symbol = ? AND ts >= ? AND leg IN ('exit','short_cover') "
+            "AND event = 'confirmed'", (symbol, since_ts)).fetchone()
+        if row and row["t"]:
+            return float(row["t"]), "exit order confirmed"
+        row = conn.execute(
+            "SELECT MAX(ts) AS t FROM real_order_events WHERE symbol = ? AND ts >= ? AND leg IN ('exit','short_cover') "
+            "AND event = 'intent'", (symbol, since_ts)).fetchone()
+        if row and row["t"]:
+            return float(row["t"]), "exit order sent"
+    except Exception:  # noqa: BLE001
+        pass
+    return None, None
+
+
+def _et_ist_str(ts_or_dt) -> str:
+    if isinstance(ts_or_dt, dt.datetime):
+        return ts_or_dt.strftime("%Y-%m-%d %H:%M:%S IST")
+    return (dt.datetime.utcfromtimestamp(float(ts_or_dt)) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime(
+        "%Y-%m-%d %H:%M:%S IST")
+
+
+def _exit_timing_push() -> None:
+    try:
+        if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN and _exit_timing.get("day"):
+            _upstash_set(_EXIT_TIMING_REDIS_KEY, json.dumps(_exit_timing, separators=(",", ":"), default=str))
+    except Exception as e:  # noqa: BLE001
+        print(f"[EXIT TIMING] Upstash push failed (non-fatal): {e}")
+
+
+def hydrate_exit_timing_from_external() -> int:
+    """Restore today's exit-timing rows at startup (an earlier IST day is ignored). Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_EXIT_TIMING_REDIS_KEY)
+        data = json.loads(raw) if raw else None
+        day = ist_now().strftime("%Y-%m-%d")
+        if not isinstance(data, dict) or data.get("day") != day or not isinstance(data.get("rows"), dict):
+            return 0
+        with _exit_timing_lock:
+            if _exit_timing.get("day") != day:
+                _exit_timing["day"], _exit_timing["rows"] = day, {}
+            n = 0
+            for k, v in data["rows"].items():
+                if k not in _exit_timing["rows"]:
+                    _exit_timing["rows"][k] = v
+                    n += 1
+        return n
+    except Exception as e:  # noqa: BLE001
+        print(f"[EXIT TIMING] restore failed (non-fatal): {e}")
+        return 0
+
+
+def _exit_timing_sweep(conn, now=None) -> dict:
+    """B-1651: register every open position due today (or earlier), stamp exits, flag overdue. Returns counts."""
+    now = now or ist_now()
+    day = now.strftime("%Y-%m-%d")
+    changed = False
+    with _exit_timing_lock:
+        if _exit_timing.get("day") != day:
+            _exit_timing["day"], _exit_timing["rows"] = day, {}
+            changed = True
+        rows = _exit_timing["rows"]
+        open_now = _exit_timing_open_rows(conn)
+        open_keys = set()
+        for r in open_now:
+            dl = r["deadline"]
+            if not dl or dl[0].date() > now.date():
+                continue
+            key = f"{r['category']}|{r['symbol']}"
+            open_keys.add(key)
+            deadline, grace = dl
+            if key not in rows:
+                rows[key] = {"symbol": r["symbol"], "category": r["category"], "strategy": r["strategy"],
+                             "qty": r["qty"], "expected_exit": r["expected_exit"],
+                             "expected_exit_basis": r["expected_exit_basis"],
+                             "exit_deadline_ist": _et_ist_str(deadline), "grace_min": grace,
+                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": time.time(),
+                             "status": "pending", "exited_at_ist": None, "exit_source": None, "late_min": None}
+                changed = True
+            e = rows[key]
+            if e["status"] in ("exited_on_time", "exited_late"):  # re-entered after an exit: track afresh
+                e.update(status="pending", exited_at_ist=None, exit_source=None, late_min=None,
+                         first_seen_ts=time.time(), first_seen_ist=_et_ist_str(now))
+                changed = True
+            over = (now - deadline).total_seconds() / 60.0
+            if over > grace and e["status"] != "overdue":
+                e["status"], e["late_min"] = "overdue", round(over, 1)
+                changed = True
+                msg = (f"B-1651 exit OVERDUE: {r['category']} {r['symbol']} still open at {_et_ist_str(now)}, "
+                       f"deadline {e['exit_deadline_ist']} ({r['expected_exit_basis']})")
+                print(f"[EXIT TIMING] {msg}")
+                try:  # the order-log row (journaled + mirrored) only in session, so a night rollover adds none
+                    if not _nse_closed_day(now) and dt.time(9, 15) <= now.time() <= dt.time(15, 30):
+                            _log_real_order_event(conn, r["symbol"], "audit", "exit_overdue", detail=msg[:300],
+                                              reason="exit_timing_check")
+                except Exception:  # noqa: BLE001
+                    pass
+            elif e["status"] == "overdue":
+                e["late_min"] = round(over, 1)
+        for key, e in rows.items():
+            if key in open_keys or e["status"] not in ("pending", "overdue"):
+                continue
+            ts, src = _exit_timing_actual_exit_ts(conn, e["symbol"], float(e.get("first_seen_ts") or 0) - 86400)
+            exited = (dt.datetime.utcfromtimestamp(ts) + dt.timedelta(minutes=IST_OFFSET_MIN)) if ts else now
+            deadline = dt.datetime.strptime(e["exit_deadline_ist"][:19], "%Y-%m-%d %H:%M:%S")
+            late = (exited - deadline).total_seconds() / 60.0
+            on_time = late <= float(e.get("grace_min") or 0)
+            e.update(status="exited_on_time" if on_time else "exited_late", exited_at_ist=_et_ist_str(exited),
+                     exit_source=src or "detected closed at Kotak (SL/target fill or other)",
+                     late_min=None if on_time else round(late, 1))
+            changed = True
+        counts = {}
+        for e in rows.values():
+            counts[e["status"]] = counts.get(e["status"], 0) + 1
+    if changed:
+        _exit_timing_push()
+    return counts
+
+
+def _exit_timing_for(category, symbol):
+    e = (_exit_timing.get("rows") or {}).get(f"{category}|{symbol}")
+    return dict(e) if e else None
+
+
+@app.get("/exit-timing-today")
+def exit_timing_today():
+    """B-1651 (View 4): positions whose exit is due today (or overdue): deadline timestamp, actual exit timestamp and
+    whether it was on time. No token: symbols, times and statuses only."""
+    rows = sorted((dict(v) for v in (_exit_timing.get("rows") or {}).values()),
+                  key=lambda r: (r.get("exit_deadline_ist") or "", r.get("symbol") or ""))
+    for r in rows:
+        r.pop("first_seen_ts", None)
+    counts = {}
+    for r in rows:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {"day": _exit_timing.get("day"), "counts": counts, "positions": rows,
+            "rules": {"intraday": f"square-off / max-hold minute + {EXIT_TIMING_INTRADAY_GRACE_MIN} min grace",
+                      "swing": f"by {EXIT_TIMING_SWING_DEADLINE.strftime('%H:%M')} IST on the expected exit day"}}
 
 
 @app.post("/kotak-neo/exit-swing-holding")
