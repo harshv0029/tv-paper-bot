@@ -109667,7 +109667,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 9140,
+   "ts": 1795194750.7544384,
+   "symbol": "BPCL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_expired",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "expired",
+   "detail": "reason: queued trigger was not placed before its session ended | swing order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_session_ended: session 2026-11-19 ended unplaced; last: never replayed"
   }
  ],
- "synced_at_utc": "2026-11-20T17:11:25Z"
+ "synced_at_utc": "2026-11-20T17:12:32Z"
 }
