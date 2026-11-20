@@ -38307,10 +38307,17 @@ def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
     return {"symbol": symbol, "status": "sold" if gone else "sell_failed_still_tracked", "qty": qty}
 
 
-def _swing_time_exit_due(row, today: dt.date | None = None) -> tuple:
-    """B-1637: (due, expected_exit, basis) for one real_positions_swing row. Strategy rows: due the trading day AFTER
-    their own max-hold date (their engine exits on the day itself; this is the backstop). Rows with no strategy time
-    stop (adopted holdings, unknown tags): due immediately (user 2026-11-19)."""
+SWING_TIME_EXIT_SAME_DAY_AT = dt.time(15, 0)  # B-1652 (user 20-Nov "Ok"): backstop closes on the exit day itself
+
+
+def _swing_time_exit_due(row, today: dt.date | None = None, now_time: dt.time | None = None) -> tuple:
+    """B-1637: (due, expected_exit, basis) for one real_positions_swing row. Strategy rows: due from
+    SWING_TIME_EXIT_SAME_DAY_AT (15:00 IST) ON their own max-hold date (B-1652, user 2026-11-20: their engine should
+    have exited by then; was the next trading day 09:20), and any later day. Rows with no strategy time stop (adopted
+    holdings, unknown tags): due immediately (user 2026-11-19). A caller passing `today` without `now_time` is treated
+    as the start of that day."""
+    if now_time is None:
+        now_time = ist_now().time() if today is None else dt.time(0, 0)
     today = today or ist_now().date()
     ex = _expected_exit_for_position("swing", row["strategy"], row["day"], row["opened_at"])
     exp = ex.get("expected_exit")
@@ -38319,7 +38326,7 @@ def _swing_time_exit_due(row, today: dt.date | None = None) -> tuple:
     exp_d = dt.date.fromisoformat(str(exp)[:10])
     if _strategy_hold_spec(row["strategy"]) is None:
         return True, exp, ex.get("expected_exit_basis")
-    due = today > exp_d
+    due = today > exp_d or (today == exp_d and now_time >= SWING_TIME_EXIT_SAME_DAY_AT)
     return due, exp, ex.get("expected_exit_basis")
 
 
@@ -38332,7 +38339,7 @@ def _swing_time_exit_sweep(conn) -> list:
     out = []
     for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
         try:
-            due, exp, basis = _swing_time_exit_due(r, _n.date())
+            due, exp, basis = _swing_time_exit_due(r, _n.date(), _n.time())
             if due:
                 out.append(_swing_market_exit_now(
                     conn, r["symbol"], f"time_exit_backstop: expected exit {exp} reached ({basis})"[:300]))
