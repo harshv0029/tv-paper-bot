@@ -108215,7 +108215,43 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"SI=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 6.4}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 9019,
+   "ts": 1795146325.1811655,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261120000020534",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs329.05",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs329.05 (target stop Rs326.80); strategy stop Rs326.80 is outside the day's price band, so the stop rests at the band floor Rs329.05"
+  },
+  {
+   "id": 9020,
+   "ts": 1795146325.1918004,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261120000020533",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs146.15",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs146.15 (target stop Rs143.52); strategy stop Rs143.52 is outside the day's price band, so the stop rests at the band floor Rs146.15"
+  },
+  {
+   "id": 9021,
+   "ts": 1795146325.1991405,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261120000020729",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs139.78",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs139.78 (target stop Rs130.52); strategy stop Rs130.52 is outside the day's price band, so the stop rests at the band floor Rs139.78"
   }
  ],
- "synced_at_utc": "2026-11-20T03:30:15Z"
+ "synced_at_utc": "2026-11-20T03:45:27Z"
 }
