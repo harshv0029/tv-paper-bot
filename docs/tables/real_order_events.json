@@ -109619,7 +109619,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 9136,
+   "ts": 1795169419.1644208,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261120000671998",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 20-Nov-2026 15:28:03 S MKT qty 1 trg 0.00 status complete rejRsn --"
   }
  ],
- "synced_at_utc": "2026-11-20T09:59:31Z"
+ "synced_at_utc": "2026-11-20T10:10:59Z"
 }
