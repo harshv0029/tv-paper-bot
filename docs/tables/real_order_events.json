@@ -108803,7 +108803,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs2050.50",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 9068,
+   "ts": 1795147397.0423381,
+   "symbol": "VEDL.NS",
+   "kotak_trading_symbol": "VEDL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261120000095406",
+   "prev_state": "no position",
+   "new_state": "long 5 @ Rs233.35",
+   "detail": "reason: paper long entry signal from strategy chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-20T03:53:53Z"
+ "synced_at_utc": "2026-11-20T04:03:19Z"
 }
