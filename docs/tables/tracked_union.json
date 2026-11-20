@@ -33,22 +33,6 @@
    "symbol": "ADANIGREEN.NS"
   },
   {
-   "day": "2026-11-20",
-   "entry_order_id": "261120000062196",
-   "entry_price": 2093.6,
-   "first_seen_day": "2026-11-20",
-   "is_short": 0,
-   "kotak_trading_symbol": "APLAPOLLO-EQ",
-   "opened_at": 1795146803.2757688,
-   "owner": "intraday",
-   "qty": 1,
-   "sl_trigger_price": 2050.5,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "symbol": "APLAPOLLO.NS"
-  },
-  {
    "day": "2026-10-09",
    "entry_order_id": "261009000196477",
    "entry_price": 134.39,
