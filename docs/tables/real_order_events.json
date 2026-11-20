@@ -108887,7 +108887,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs885.65",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs885.65 already covers the position (target stop Rs885.61), adopted, nothing placed"
+  },
+  {
+   "id": 9075,
+   "ts": 1795151233.693743,
+   "symbol": "VEDL.NS",
+   "kotak_trading_symbol": "VEDL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 5 @ Rs233.35",
+   "new_state": "cancel resting SL/target, then market SELL to be sent to Kotak",
+   "detail": "reason: intraday paper exit: exited_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-20T04:51:22Z"
+ "synced_at_utc": "2026-11-20T05:07:15Z"
 }
