@@ -803,7 +803,19 @@
    "sell_qty": 1.0,
    "sell_amt": 183.05,
    "updated_at": 1795112754.8177853
+  },
+  {
+   "day": "2026-11-20",
+   "trdsym": "APLAPOLLO-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 2093.6,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795146918.3782332
   }
  ],
- "synced_at_utc": "2026-11-19T21:17:20Z"
+ "synced_at_utc": "2026-11-20T03:56:24Z"
 }
