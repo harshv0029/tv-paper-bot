@@ -108779,7 +108779,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"111 nse symbols printed new trades today within 120s\", \"symbols\": [\"ADANIPOWER.NS\", \"ASHOKLEY.NS\", \"AXISBANK.NS\", \"BAJFINANCE.NS\", \"BANKBARODA.NS\", \"BEL.NS\", \"BHARTIARTL.NS\", \"BHEL.NS\", \"BSE.NS\", \"CANBK.NS\"], \"count\": 111, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 29.8}, \"replay\": {\"placed\": 0, \"dropped\": 0, \"requeued\": 0, \"considered\": 0}}"
+  },
+  {
+   "id": 9066,
+   "ts": 1795146803.7840047,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261120000062196",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs2093.60",
+   "detail": "reason: paper long entry signal from strategy chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-20T03:45:40Z"
+ "synced_at_utc": "2026-11-20T03:53:28Z"
 }
