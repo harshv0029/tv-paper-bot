@@ -275,7 +275,31 @@
       "pnl_inr": -3.5,
       "exit_reason": "short_swing_rule_exit",
       "strategy": "reversal__island_px20_tfs__short__1d__atr4_within8__nonovl__v2"
+    },
+    {
+      "id": 24,
+      "ts": 1795159900.6272056,
+      "symbol": "HINDALCO.NS",
+      "qty": 1.0,
+      "entry_price": 919.3499755859375,
+      "exit_price": 925.3499755859375,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -6.0,
+      "exit_reason": "short_swing_rule_exit",
+      "strategy": "reversal__island_px20_tfs__short__1d__atr4_within8__nonovl__v2"
+    },
+    {
+      "id": 25,
+      "ts": 1795161145.9406092,
+      "symbol": "BAJFINANCE.NS",
+      "qty": 1.0,
+      "entry_price": 1091.75,
+      "exit_price": 1115.7492367071486,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -23.99923670714861,
+      "exit_reason": "short_swing_stop_hit",
+      "strategy": "swingminrr__brk20_gate__short__1h__atr3_rr4__v1"
     }
   ],
-  "synced_at_utc": "2026-11-18T10:50:48Z"
+  "synced_at_utc": "2026-11-20T10:41:52Z"
 }
