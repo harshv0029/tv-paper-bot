@@ -108851,7 +108851,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs2050.50",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 9072,
+   "ts": 1795150250.5982168,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261120000207212",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs911.35",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-20T04:16:25Z"
+ "synced_at_utc": "2026-11-20T04:50:58Z"
 }
