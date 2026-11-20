@@ -337,22 +337,6 @@
    "symbol": "PNB.NS"
   },
   {
-   "day": "2026-10-08",
-   "entry_order_id": "261008000123602",
-   "entry_price": 172.65,
-   "first_seen_day": "2026-10-08",
-   "is_short": 0,
-   "kotak_trading_symbol": "UNIONBANK-EQ",
-   "opened_at": 1791432981.9336588,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 190.63,
-   "source": "holding",
-   "stop_loss": 164.8,
-   "strategy": "order_block_delta",
-   "symbol": "UNIONBANK.NS"
-  },
-  {
    "day": "2026-11-19",
    "entry_order_id": "261119000441547",
    "entry_price": 367.6,
