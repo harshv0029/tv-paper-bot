@@ -108791,7 +108791,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs2093.60",
    "detail": "reason: paper long entry signal from strategy chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
+  },
+  {
+   "id": 9067,
+   "ts": 1795146826.1141677,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261120000063356",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs2050.50",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-20T03:53:28Z"
+ "synced_at_utc": "2026-11-20T03:53:53Z"
 }
