@@ -123,7 +123,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 885.65,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 885.611472026624,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "HINDALCO.NS"
