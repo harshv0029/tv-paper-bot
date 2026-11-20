@@ -108203,7 +108203,19 @@
    "prev_state": "queued at open",
    "new_state": "expired",
    "detail": "reason: queued trigger was not placed before its session ended | swing order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_session_ended: session 2026-11-19 ended unplaced; last: never replayed"
+  },
+  {
+   "id": 9018,
+   "ts": 1795145413.7316124,
+   "symbol": "MARKET:MCX",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"SI=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 6.4}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
   }
  ],
- "synced_at_utc": "2026-11-19T21:20:54Z"
+ "synced_at_utc": "2026-11-20T03:30:15Z"
 }
