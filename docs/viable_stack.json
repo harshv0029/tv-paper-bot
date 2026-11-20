@@ -2,7 +2,7 @@
   "size": 10,
   "stack": [
     {
-      "id": 46,
+      "id": 53,
       "created_at": 1795193560.7204034,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.23,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 3\",\"enabled\":true,\"pf_min\":1.72,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":450.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -3108,7 +3108,7 @@
       ]
     },
     {
-      "id": 45,
+      "id": 52,
       "created_at": 1795193558.2412035,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.23,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 3\",\"enabled\":true,\"pf_min\":1.72,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":450.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -6214,7 +6214,7 @@
       ]
     },
     {
-      "id": 44,
+      "id": 51,
       "created_at": 1795193533.5409522,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.23,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0},{\"name\":\"Slot 3\",\"enabled\":true,\"pf_min\":1.72,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":450.0}]",
       "criteria": null,
@@ -9320,7 +9320,7 @@
       ]
     },
     {
-      "id": 43,
+      "id": 50,
       "created_at": 1794904187.7457228,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.1,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -14708,7 +14708,7 @@
       ]
     },
     {
-      "id": 42,
+      "id": 49,
       "created_at": 1794904179.263023,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.1,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -20096,7 +20096,7 @@
       ]
     },
     {
-      "id": 41,
+      "id": 48,
       "created_at": 1794904159.0061102,
       "label": "slots:[{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":1.1,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -25484,7 +25484,7 @@
       ]
     },
     {
-      "id": 40,
+      "id": 47,
       "created_at": 1794903969.2467458,
       "label": "pfnet(1.10-100), min(1), maxhold(140)",
       "criteria": {
@@ -30403,7 +30403,7 @@
       ]
     },
     {
-      "id": 39,
+      "id": 46,
       "created_at": 1794903946.375443,
       "label": "pfnet(1.10-100), min(1), maxhold(140)",
       "criteria": {
@@ -35322,7 +35322,7 @@
       ]
     },
     {
-      "id": 38,
+      "id": 45,
       "created_at": 1794547173.4301581,
       "label": "slots:[{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
@@ -38517,7 +38517,7 @@
       ]
     },
     {
-      "id": 37,
+      "id": 44,
       "created_at": 1794547166.078621,
       "label": "slots:[{\"name\":\"Slot 1\",\"enabled\":true,\"pf_min\":1.04,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":140.0},{\"name\":\"Slot 2\",\"enabled\":true,\"pf_min\":2.0,\"pf_max\":100.0,\"min_trades\":1,\"max_hold_hrs\":750.0}]",
       "criteria": null,
