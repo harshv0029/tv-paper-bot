@@ -108875,7 +108875,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs885.65",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 9074,
+   "ts": 1795150268.860361,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261120000207873",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs885.65",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs885.65 already covers the position (target stop Rs885.61), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-20T04:51:09Z"
+ "synced_at_utc": "2026-11-20T04:51:22Z"
 }
