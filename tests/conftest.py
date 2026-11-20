@@ -323,3 +323,15 @@ def _no_order_log_git_push_on_shutdown(request, monkeypatch):
     except Exception:
         return
     monkeypatch.setattr(main, "_push_order_log_on_shutdown", lambda timeout_s=None: False)
+
+
+@pytest.fixture(autouse=True)
+def _instance_lease_unset_by_default(request, monkeypatch):
+    """B-1648: the send lease talks to Upstash; outside its own tests it reads as unset (fail-open, no HTTP), so a
+    test that mocks requests.post never sees lease commands."""
+    if request.node.fspath.basename == "test_instance_lease_b1648.py":
+        return
+    import instance_lease
+    monkeypatch.setattr(instance_lease, "_creds", lambda: (None, None))
+    monkeypatch.setattr(instance_lease, "_state", {"role": "unknown", "holder": None, "checked_at": 0.0,
+                                                   "error": None, "claims": 0})

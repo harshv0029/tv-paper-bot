@@ -13,14 +13,14 @@ Total rows: 1399 | closed: 995 | not closed: 404
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 94 |
 | BLOCKED | 58 |
-| OPEN | 53 |
+| OPEN | 52 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 16 |
+| BUILT | 10 |
 | P3 | 9 |
-| BUILT | 9 |
 | UNKNOWN | 8 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
 | OPEN-PARKED | 6 |
@@ -295,7 +295,7 @@ Total rows: 1399 | closed: 995 | not closed: 404
 | B-1643 | P1 | BUILT | 2026-11-19 IST | needs |
 | B-1644 | P1 | BUILT | 2026-11-19 IST | awaiting, waiting |
 | B-1645 | P1 | BUILT | 2026-11-19 IST | awaiting, waiting |
-| B-1648 | P1 | OPEN | 2026-11-20 IST |  |
+| B-1648 | P1 | BUILT | 2026-11-20 IST | awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |

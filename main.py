@@ -125,6 +125,8 @@ from data_fetch import fetch_ohlc, get_fx_to_inr, _DATA_CACHE, _CACHE_TTL_SECOND
 import data_fetch  # B-1419: _PINNED_FRAMES / cache_entry_time for the bar sweep
 import sentiment_signals
 import news_signals
+import instance_lease  # B-1648: one sending instance across a deploy overlap
+instance_lease.configure(lambda: (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN))
 from options_pricing import (
     _norm_cdf, bs_price, parse_legs, run_options_backtest, _bs_delta,
     select_option_contract, _requote_contract,
@@ -27472,11 +27474,23 @@ async def _scheduler_loop():
     global _scheduler_last_error
     while True:
         try:
+            if await asyncio.to_thread(_lease_standby_now):  # B-1648: another instance holds the send lease
+                await asyncio.sleep(instance_lease.STANDBY_RECHECK_S)
+                continue
             await _scheduler_tick()
         except Exception as e:
             _scheduler_last_error = f"TICK CRASHED (recovered): {e}"
             print(f"[scheduler] tick crashed, would have killed the whole loop before this fix: {e}")
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+
+
+def _lease_standby_now() -> bool:
+    """B-1648: True only on a positive read that another instance holds the send lease (fail-open otherwise)."""
+    try:
+        return instance_lease.role() == "standby"
+    except Exception as e:  # noqa: BLE001
+        print(f"[lease] B-1648 role check failed (non-fatal, ticking): {e}")
+        return False
 
 
 def _swing_real_entry_session_open() -> bool:
@@ -34236,6 +34250,10 @@ def _flush_kotak_sends_on_shutdown():
             sync_generic_tables_external(only=("real_order_events",))
     except Exception as e:  # noqa: BLE001 - shutdown must never raise
         print(f"[order_log] shutdown flush of pending Kotak sends failed (non-fatal): {e}")
+    try:  # B-1648: hand the send lease over now instead of after its TTL (stops this instance's sends too)
+        print(f"[lease] B-1648 released on shutdown: {instance_lease.release()}")
+    except Exception as e:  # noqa: BLE001 - shutdown must never raise
+        print(f"[lease] B-1648 release failed (non-fatal; lease lapses in {instance_lease.TTL_S}s): {e}")
     _push_order_log_on_shutdown()
 
 
@@ -34432,6 +34450,11 @@ async def _start_scheduler():
             _scheduler_check_counts_day = _ext_day
             print(f"[check_counts_external] restored {len(_ext_counts)} symbol check-count(s) from Upstash")
     reconcile_scheduler_check_counts_from_journal()
+    try:  # B-1648: newest instance takes the send lease; the old one stands down at its next check
+        print(f"[lease] B-1648 startup claim: {await asyncio.to_thread(instance_lease.claim_at_startup)} "
+              f"({instance_lease.INSTANCE_ID})")
+    except Exception as e:  # noqa: BLE001 - fail-open
+        print(f"[lease] B-1648 startup claim failed (non-fatal, trading as before): {e}")
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_bar_sweep_loop())  # B-1419 option A
     asyncio.create_task(_tracked_union_memory_loop())
@@ -37694,7 +37717,8 @@ async def health():
             "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
             "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM),
             "upstash_stale_db": dict(_UPSTASH_STALE_DB),  # B-1574
-            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")}}
+            "upstash_slot": {k: _UPSTASH_SLOT_STATE[k] for k in ("slots", "active", "chosen_by", "switches")},
+            "instance_lease": instance_lease.status()}  # B-1648
 
 
 @app.get("/watchlist")
