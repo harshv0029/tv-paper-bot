@@ -10,12 +10,23 @@ _FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest
 _REF = "macd-divergence-research.yml run 38188472624 (2026-10-12 IST, 15m/1h/1d, cost 0.8%)"
 
 
+_FN4 = os.path.join(os.path.dirname(_FN), "macddiv_4h_run_44926740738.json")
+_REF4 = "macd-divergence-research.yml run 44926740738 (2026-11-21 IST, 4h = 1h resampled, 730d, 2455 of 2763 fetched, cost 0.8%; B-1598)"
+
+
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
-    try:
-        rows = json.load(open(_FN))["rows"]
-    except Exception:
-        return out
+    for fn, ref in ((_FN, _REF), (_FN4, _REF4)):
+        try:
+            rows = json.load(open(fn))["rows"]
+        except Exception:
+            continue
+        out.extend(_rows(rows, ref, seen))
+    return out
+
+
+def _rows(rows, _REF, seen):
+    out = []
     for r in rows:
         try:
             tag = r["tag"]
