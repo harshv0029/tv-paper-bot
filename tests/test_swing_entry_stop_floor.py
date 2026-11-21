@@ -68,7 +68,7 @@ def test_breached_stop_reads_book_cancels_all_sells_then_market_sells():
         _row(c)
         with patch("main._kotak_holdings_open_by_trdsym", return_value={"X-EQ": {"qty": 8}}), \
                 patch("kotak_real_orders.cancel_all_open_sells",
-                      side_effect=lambda t: calls.append("cancel") or {"ok": True, "cancelled": ["OLD1"]}), \
+                      side_effect=lambda t, **k: calls.append("cancel") or {"ok": True, "cancelled": ["OLD1"]}), \
                 patch("main._maybe_place_real_swing_exit",
                       side_effect=lambda conn, sym, reason=None: calls.append(("sell", reason))), \
                 patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 9, 15, 5)):

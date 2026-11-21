@@ -143,6 +143,13 @@ def place_real_fo_exit(kotak_trading_symbol: str, exchange_segment: str, qty: in
     kotak_real_orders.place_real_exit: closing an already-open position
     must never be blocked by any switch, including this module's own
     reason for existing."""
+    # B-1663: sent under the symbol's stop lock with the in-flight close note (B-1581), so no stop placement
+    # can interleave with it and a stop pass that reads the book before this exit shows still counts it.
+    return _kro._close_with_in_flight_note(
+        kotak_trading_symbol, "S", qty, lambda: _send_fo_market_sell(kotak_trading_symbol, exchange_segment, qty, product))
+
+
+def _send_fo_market_sell(kotak_trading_symbol: str, exchange_segment: str, qty: int, product: str) -> dict:
     try:
         client = kotak_neo.login()
     except Exception as e:
@@ -242,6 +249,64 @@ def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qt
     _ok, _why, trigger, limit_price = option_sl_precheck(trigger_price)
     if not _ok:
         return {"ok": False, "detail": f"precheck failed: {_why}"}
+    with _kro._sl_symbol_lock(kotak_trading_symbol):
+        qty, skip = fo_remaining_long_qty(kotak_trading_symbol, qty)
+        if skip is not None:
+            return skip
+        return _send_fo_sell_sl(kotak_trading_symbol, exchange_segment, qty, trigger, limit_price, product)
+
+
+def fo_remaining_long_qty(kotak_trading_symbol: str, qty: int):
+    """B-1663 (F&O/MCX/currency mirror of B-1581's _position_already_closed): before any NEW SELL SL, read Kotak.
+    Returns (qty_to_protect, skip_result). Nothing closed today (complete SELL, working market SELL, or this
+    process's in-flight exit) -> (qty, None) with one order-book read. Otherwise remaining = positions() net long
+    - closes still working; remaining <= 0 -> a skip result (a stray SELL SL on a closed future/MCX leg would open
+    a short when it triggers); 0 < remaining < qty -> protect only the remainder (a partial exit leg). Fails OPEN
+    (qty, None) whenever Kotak cannot be read: protecting a held position beats skipping it."""
+    try:
+        client = kotak_neo.login()
+        rows = _kro.order_rows_from_report(client.order_report())
+    except Exception:  # noqa: BLE001
+        return qty, None
+    if rows is None:
+        return qty, None
+    _opened, closed = _kro.today_open_close_qty(rows, kotak_trading_symbol, "S")
+    in_flight = _kro._in_flight_close_qty(rows, kotak_trading_symbol, "S")
+    if closed + in_flight <= 0:
+        return qty, None
+    try:
+        pos = client.positions()
+        prow = pos.get("data") if isinstance(pos, dict) else None
+        if not isinstance(prow, list):
+            return qty, None
+    except Exception:  # noqa: BLE001
+        return qty, None
+    net = 0.0
+    for r in prow:
+        if isinstance(r, dict) and r.get("trdSym") == kotak_trading_symbol:
+            net += _to_float(r.get("flBuyQty")) or 0.0
+            net -= _to_float(r.get("flSellQty")) or 0.0
+    working = 0  # market SELLs not yet filled: positions() does not show them
+    for r in rows:
+        if (isinstance(r, dict) and r.get("trdSym") == kotak_trading_symbol and str(r.get("trnsTp", "")).upper() == "S"
+                and str(r.get("prcTp", "")).upper() in ("MKT", "MARKET")
+                and str(r.get("ordSt", r.get("stat", ""))).strip().lower() not in _kro._TERMINAL_ORDER_STATUSES):
+            try:
+                working += max(int(float(r.get("qty") or 0)) - int(float(r.get("fldQty") or 0)), 0)
+            except (TypeError, ValueError):
+                continue
+    remaining = int(net) - working - in_flight
+    if remaining <= 0:
+        return qty, {"ok": False, "order_id": None, "action": "skipped_position_closed",
+                     "detail": (f"B-1663: Kotak shows {kotak_trading_symbol} already sold/exiting today (positions net "
+                                f"{int(net)} - working market sells {working} - in-flight exit {in_flight} = "
+                                f"{remaining}; asked qty {qty}); no new stop on a closed position"),
+                     "raw_response": None}
+    return min(int(qty), remaining), None
+
+
+def _send_fo_sell_sl(kotak_trading_symbol: str, exchange_segment: str, qty: int, trigger: float,
+                     limit_price: float, product: str) -> dict:
     try:
         client = kotak_neo.login()
     except Exception as e:
@@ -325,6 +390,8 @@ def ensure_option_trailing_sl(kotak_trading_symbol: str, exchange_segment: str, 
         if res.get("ok"):
             res["action"] = "replaced"
             return res
+        if res.get("action") == "skipped_position_closed":
+            return res  # B-1663: the leg is closed at Kotak; restoring the old stop would be the same stray order
         restore = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, best["trigger"])
         res["action"] = "replace_failed"
         if restore.get("ok"):
@@ -332,5 +399,5 @@ def ensure_option_trailing_sl(kotak_trading_symbol: str, exchange_segment: str, 
             res["restored_trigger"] = restore["trigger_price"]
         return res
     res = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, desired)
-    res["action"] = "placed"
+    res.setdefault("action", "placed")
     return res

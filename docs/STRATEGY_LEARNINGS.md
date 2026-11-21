@@ -2445,3 +2445,23 @@ both real_positions restore paths re-inserted the row without that column. The 1
 swing-owned and the holding moved to the swing engine, so a 40-bar intraday strategy became an unplanned overnight hold.
 Any field an ownership or exit rule reads must survive every restore path; the restore tests now check `strategy`.
 Profit-booking / exit takeaway: an exit the strategy wanted but the app refused is an unplanned hold with no edge behind it; ownership tags must survive restarts or the exit plan silently changes owner.
+
+## 2026-11-21 IST - DP charge priced into swing viability (B-1659)
+A flat Rs23.60 DP charge per delivery sell is a percentage cost that grows as the position shrinks. Re-pricing each
+strategy's pooled PFnet at 0.8% + 23.60/notional (derived exactly from pfgross, pfnet and win rate) gives a break-even
+position size per strategy: ~Rs6,900 for macddiv hist 1h (PFnet 1.138), ~Rs200 for O'Neil leaders 1w (PFnet 2.669).
+Thin-edge, high-frequency swing cells cannot be traded profitably at 1-share sizes on a ~Rs26k account.
+Profit-booking / exit takeaway: every delivery exit pays a fixed Rs23.60, so fewer, larger swing exits beat many 1-share exits; thin-edge cells need a position size that makes the fixed exit cost small.
+
+### B-1581 (2026-11-21 IST): an exit and a stop placement on the same stock must take turns
+UPL (18-Nov 09:15) and CANBK (19-Nov 11:16 IST): the exit sweep cancelled the stop and sent a market SELL; a separate
+protect pass, working from an order book read a few seconds earlier, saw "no live SL" and sent a new one. Kotak rejected
+it ("Check T1 holdings"), which raised a false SL-failure alarm and a T1 flag. Kotak's book lags this process's own
+orders by seconds, so the process must remember its own close (in-flight note, 120 s) and serialise close and stop per
+symbol, while still deriving "how much is left" from Kotak so a partial close keeps the rest protected.
+Profit-booking / exit takeaway: an exit is only clean when nothing re-protects the shares being sold; a stop re-placed on
+sold shares is noise at best, and on futures/MCX it could open an unintended short (B-1663).
+
+### 2026-11-21 IST: Kotak "Net" vs ledger (B-1664, closed not-a-bug)
+Kotak `limits()['Net']` already deducts the day's unsettled net buy obligation; the Daily Margin Statement ledger does not until T+1. Reconciling account value against the ledger alone double-counts that day's buys (they are already in positions at market). Contract notes 12-20 Nov matched every bot exit qty and value exactly.
+Profit-booking / exit takeaway: realised exits are recorded at Kotak's true fill values, so per-trade P&L in View 4 can be trusted for exit-rule research; the overall loss vs deposits is mostly pre-2-Nov history, not recent exits.

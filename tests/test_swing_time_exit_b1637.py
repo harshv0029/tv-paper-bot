@@ -57,7 +57,7 @@ def test_market_exit_cancels_then_sells_held_qty(db, monkeypatch):
     _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17", qty=5)
     calls = []
     monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 7, "avg_price": 100}})
-    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: calls.append(("cxl", t)) or {"ok": True, "cancelled": ["SL1"]})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t, **k: calls.append(("cxl", t)) or {"ok": True, "cancelled": ["SL1"]})
     monkeypatch.setattr(main, "_kotak_swing_symbol_still_held", lambda t: True)
     monkeypatch.setattr(kro, "place_real_exit", lambda t, q, **k: calls.append(("sell", t, q)) or {
         "ok": True, "qty": q, "fill_price": 101.0, "fill_price_confirmed": True, "order_id": "X1", "raw_response": None})
@@ -72,7 +72,7 @@ def test_market_exit_no_sell_when_cancel_fails(db, monkeypatch):
     _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17")
     sold = []
     monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 5}})
-    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: {"ok": False})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t, **k: {"ok": False})
     monkeypatch.setattr(kro, "place_real_exit", lambda *a, **k: sold.append(a))
     assert main._swing_market_exit_now(db, "AAA.NS", "x")["status"] == "deferred_cancel_pending"
     assert sold == []
@@ -111,7 +111,7 @@ def test_market_exit_never_resells_shares_sold_today(db, monkeypatch):
     _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17", qty=2)
     sent = []
     monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 2, "avg_price": 100}})
-    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: sent.append(("cxl", t)) or {"ok": True})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t, **k: sent.append(("cxl", t)) or {"ok": True})
     monkeypatch.setattr(kro, "place_real_exit", lambda *a, **k: sent.append(("sell", a)))
     out = main._swing_market_exit_now(db, "AAA.NS", "time_exit_backstop: test")
     assert out["status"] == "already_sold_today" and sent == []
@@ -126,5 +126,5 @@ def test_market_exit_defers_when_book_unreadable(db, monkeypatch):
     _add(db, "AAA.NS", "holding_atr_stop", "2026-11-17", qty=2)
     sent = []
     monkeypatch.setattr(main, "_kotak_holdings_open_by_trdsym", lambda: {"AAA-EQ": {"qty": 2}})
-    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t: sent.append(t) or {"ok": True})
+    monkeypatch.setattr(kro, "cancel_all_open_sells", lambda t, **k: sent.append(t) or {"ok": True})
     assert main._swing_market_exit_now(db, "AAA.NS", "x")["status"] == "deferred_book_unreadable" and sent == []

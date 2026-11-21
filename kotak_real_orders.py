@@ -622,7 +622,38 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, prod
     }
 
 
+def _close_with_in_flight_note(kotak_trading_symbol: str, close_side: str, qty: int, send) -> dict:
+    """B-1581: a market close is sent under the symbol's stop lock with the in-flight note set first, so no stop
+    placement can interleave with it; the note keeps the order id on success and is dropped on any failure."""
+    with _sl_symbol_lock(kotak_trading_symbol):
+        note_exit_in_flight(kotak_trading_symbol, close_side, qty)
+        try:
+            res = send()
+        except Exception:
+            clear_exit_in_flight(kotak_trading_symbol, close_side)
+            raise
+        if res.get("ok") and res.get("order_id"):
+            note_exit_in_flight(kotak_trading_symbol, close_side, qty, res["order_id"])
+        else:
+            clear_exit_in_flight(kotak_trading_symbol, close_side)
+        return res
+
+
+def _marks_close_in_flight(close_side: str):
+    """Decorator form of _close_with_in_flight_note (keeps the order body, and its source, in the public function)."""
+    import functools
+
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(kotak_trading_symbol, qty, *a, **k):
+            return _close_with_in_flight_note(kotak_trading_symbol, close_side, qty,
+                                              lambda: fn(kotak_trading_symbol, qty, *a, **k))
+        return wrapper
+    return deco
+
+
 @_records_send("short_cover", "real market BUY-to-cover short exit")
+@_marks_close_in_flight("B")
 def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "MIS") -> dict:
     """Places a REAL market BUY-TO-COVER to close a real short position,
     MIS, on nse_cm - the short mirror of place_real_exit. Same never-
@@ -669,6 +700,7 @@ def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "
 
 
 @_records_send("exit", "real market SELL exit")
+@_marks_close_in_flight("S")
 def place_real_exit(kotak_trading_symbol: str, qty: int, product: str = "CNC") -> dict:
     """Places a REAL market SELL to close a real position, CNC, on
     nse_cm. Same never-raises / rejection-confirmed discipline as
@@ -772,7 +804,21 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
     return {"cancelled": cancelled, "detail": None}
 
 
-def cancel_all_open_sells(kotak_trading_symbol: str) -> dict:
+def cancel_all_open_sells(kotak_trading_symbol: str, exit_qty: int = 0) -> dict:
+    """B-1581: with exit_qty (the market close the caller sends next), runs under the symbol's stop lock and marks
+    the close in flight first, so a concurrent protect pass cannot re-place a stop between this cancel and the
+    close; the mark is dropped when the cancel fails (the caller then defers the close)."""
+    if not exit_qty:
+        return _cancel_all_open_sells(kotak_trading_symbol)
+    with _sl_symbol_lock(kotak_trading_symbol):
+        note_exit_in_flight(kotak_trading_symbol, "S", exit_qty)
+        res = _cancel_all_open_sells(kotak_trading_symbol)
+        if not res.get("ok"):
+            clear_exit_in_flight(kotak_trading_symbol, "S")
+        return res
+
+
+def _cancel_all_open_sells(kotak_trading_symbol: str) -> dict:
     """B-1369 (2026-10-26, owner: "read whole book which is active on Kotak, then cancel current SL for that symbol,
     then place market order to close"): step 1 + 2 of a stop-breach close. Reads Kotak's live order book, cancels
     EVERY non-terminal SELL on the symbol (SL, SL-M and plain limit: a converted stop or target also reserves the
@@ -1442,6 +1488,46 @@ def _sl_symbol_lock(kotak_trading_symbol: str) -> "threading.RLock":
         return _SL_SYMBOL_LOCKS.setdefault(kotak_trading_symbol, threading.RLock())
 
 
+EXIT_IN_FLIGHT_WINDOW_S = 120.0  # B-1581: covers Kotak's order-book lag after this process sends an exit
+_EXIT_IN_FLIGHT: dict = {}  # (trdSym, close_side) -> {"qty", "order_id", "ts"}
+_EXIT_IN_FLIGHT_GUARD = threading.Lock()
+
+
+def note_exit_in_flight(kotak_trading_symbol: str, close_side: str, qty: int, order_id=None) -> None:
+    """B-1581 (UPL 18-Nov 09:15, CANBK 19-Nov 11:16 IST, live): an exit sweep cancelled the stop and sent a market
+    close while another protect pass, holding an order book read before that exit existed, sent a fresh stop seconds
+    later; Kotak rejected it "Check T1 holdings". This process records its own close the moment one starts, so
+    _position_already_closed counts it even before Kotak's order book shows it."""
+    with _EXIT_IN_FLIGHT_GUARD:
+        _EXIT_IN_FLIGHT[(kotak_trading_symbol, close_side)] = {
+            "qty": int(qty or 0), "order_id": str(order_id) if order_id else None, "ts": time.time()}
+
+
+def clear_exit_in_flight(kotak_trading_symbol: str, close_side: str) -> None:
+    """The close did not go out (cancel failed, send failed or rejected): protection resumes at once."""
+    with _EXIT_IN_FLIGHT_GUARD:
+        _EXIT_IN_FLIGHT.pop((kotak_trading_symbol, close_side), None)
+
+
+def _exit_in_flight(kotak_trading_symbol: str, close_side: str):
+    with _EXIT_IN_FLIGHT_GUARD:
+        e = _EXIT_IN_FLIGHT.get((kotak_trading_symbol, close_side))
+        if e and time.time() - e["ts"] > EXIT_IN_FLIGHT_WINDOW_S:
+            _EXIT_IN_FLIGHT.pop((kotak_trading_symbol, close_side), None)
+            return None
+        return dict(e) if e else None
+
+
+def _in_flight_close_qty(rows, kotak_trading_symbol: str, close_side: str) -> int:
+    """Qty of this process's own close not yet visible in `rows` (no order id yet, or its id absent from the book)."""
+    e = _exit_in_flight(kotak_trading_symbol, close_side)
+    if not e:
+        return 0
+    if e["order_id"] and any(isinstance(r, dict) and str(r.get("nOrdNo")) == e["order_id"] for r in rows or []):
+        return 0  # the book already shows it; today_open_close_qty counted it
+    return e["qty"]
+
+
 def _before_equity_open() -> bool:
     """B-1380: before 09:15 IST NSE cash takes no SL order (pre-open is limit-only), so Kotak rejects every one with
     '16387: Security is not allowed to trade in this market' (17 rejects 07:37-08:55 IST on 2026-10-27)."""
@@ -1514,6 +1600,7 @@ def _position_already_closed(kotak_trading_symbol: str, qty: int, close_side: st
         if rows is None:
             return None
     opened, closed = today_open_close_qty(rows, kotak_trading_symbol, close_side)
+    closed += _in_flight_close_qty(rows, kotak_trading_symbol, close_side)
     if closed <= 0:
         return None  # nothing closed today: the common case, no extra Kotak call
     start = 0
@@ -1538,7 +1625,8 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
         return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
                 "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
     with _sl_symbol_lock(kotak_trading_symbol):
-        if not getattr(_CLOSED_CHECKED, "on", False):  # ensure_resting_sl already checked this same book
+        if not getattr(_CLOSED_CHECKED, "on", False) or _exit_in_flight(kotak_trading_symbol, "S"):
+            # ensure_resting_sl already checked this same book - unless a close started since (B-1581)
             skip = _position_already_closed(kotak_trading_symbol, qty, "S")
             if skip is not None:
                 skip["trigger_price"] = trigger_price
