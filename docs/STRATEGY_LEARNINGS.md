@@ -2470,3 +2470,7 @@ Profit-booking / exit takeaway: realised exits are recorded at Kotak's true fill
 - Full NSE universe, 730d of 4h bars, 0.8% cost, both directions, ATR sweep: 300 tags, 19,640 symbol-fetches with data, 0 pass (pooled PFnet > 1.00). Best adx_bell__ring_bell_ema13__long__4h__atr3_pts3__v1 PFnet 0.803 (n=28,858); top 5 are all ring_bell_ema13 long. Same family led at 1h (0.714), so 4h helps it but not past cost.
 - Elder indicators now fail on every candle size tested (5m, 15m, 1h, 4h); the 4h-fetch bug (B-1598) did not hide a winner here.
 - Profit-booking / exit takeaway: the longer bar lifts PFnet by about 0.09 because fewer, larger moves absorb the 0.8% cost better, but the max-hold timeout still closes most trades before they reach their target; any further attempt should test a trailing exit on ring_bell_ema13 longs rather than a tighter stop.
+
+### 2026-11-21 IST: Elder batch3 at 4h (run 44912888789)
+402 new 4h tags on the full NSE harness universe (15,006 symbols fetched, 730d, 0.8% cost). Only 4 pass, all the RSI 80/20 oscillator reversal: long atr3 PFnet 1.130 (n=7329), long atr2 1.054, long atr1d5 1.013, short atr3 1.012. Structure, channel, sizing, breadth and ORB families all fail at 4h. Wider ATR stops help the reversal edge monotonically (1.5 < 2 < 3), so the edge needs room to work. The 1d breadth "passes" (n=1-13) are not evidence. Port + main.py replay owed (B-1665).
+Profit-booking / exit takeaway: the reversal edge grows with a wider stop, so test an ATR-3 trailing exit (not a tight fixed target) on the main.py replay before wiring.
