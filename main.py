@@ -36442,6 +36442,32 @@ def real_positions_sl_today():
             "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
 
 
+_FUND_FLOWS_CACHE: dict = {}
+
+
+def _real_fund_flows() -> dict:
+    """B-1658: deposits and payouts between the bank and Kotak (docs/real_fund_flows.json, git-tracked, no account ids),
+    cached by file mtime. Kotak's API has no funds-ledger history, so the file is the record; display only."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "real_fund_flows.json")
+    empty = {"deposits_inr": 0.0, "payouts_inr": 0.0, "net_deposited_inr": 0.0, "last_date": None}
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return empty
+    if _FUND_FLOWS_CACHE.get("mtime") == mt:
+        return _FUND_FLOWS_CACHE["value"]
+    try:
+        rows = json.load(open(path)).get("flows") or []
+        dep = round(sum(float(r["amount_inr"]) for r in rows if r.get("type") == "deposit"), 2)
+        pay = round(sum(float(r["amount_inr"]) for r in rows if r.get("type") == "payout"), 2)
+        val = {"deposits_inr": dep, "payouts_inr": pay, "net_deposited_inr": round(dep - pay, 2),
+               "last_date": max((r.get("date") for r in rows if r.get("date")), default=None)}
+    except (OSError, ValueError, TypeError, KeyError):
+        return empty
+    _FUND_FLOWS_CACHE.update(mtime=mt, value=val)
+    return val
+
+
 def _capital_split(positions) -> dict:
     """B-1420 (View 4, read-only): free cash = scheduler_capital_inr (Kotak live free balance, the capital new positions
     are sized to) vs capital tied in open real positions (sum of entry price x qty over every active row: buy, short,
@@ -36460,7 +36486,29 @@ def _capital_split(positions) -> dict:
         free = None
     total = round(free + tied, 2) if free is not None else None
     tied_pct = round(100 * tied / total, 2) if total else None
+    # B-1658 (user 2026-11-21): value the open positions at the live price and compare with the money actually put in.
+    mkt, unpriced = 0.0, 0
+    for p in positions or []:
+        try:
+            q, e = int(p["qty"]), float(p["entry_price"])
+            c = p.get("current_price")
+            if c is None:
+                unpriced += 1
+                c = e
+            c = float(c)
+            mkt += (e * q + (e - c) * q) if "short" in str(p.get("category") or p.get("side") or "").lower() else c * q
+        except (KeyError, TypeError, ValueError):
+            pass
+    mkt = round(mkt, 2)
+    total_mkt = round(free + mkt, 2) if free is not None else None
+    flows = _real_fund_flows()
+    net_dep = flows["net_deposited_inr"]
+    gain = round(total_mkt - net_dep, 2) if (total_mkt is not None and net_dep) else None
     return {"free_cash_inr": free, "tied_inr": tied, "total_inr": total, "tied_pct": tied_pct,
+            "market_value_inr": mkt, "total_market_inr": total_mkt, "unpriced_positions": unpriced,
+            "net_deposited_inr": net_dep, "deposits_inr": flows["deposits_inr"], "payouts_inr": flows["payouts_inr"],
+            "fund_flows_last_date": flows["last_date"], "gain_vs_deposits_inr": gain,
+            "gain_vs_deposits_pct": round(100 * gain / net_dep, 2) if (gain is not None and net_dep) else None,
             "open_positions": len(positions or []),
             "free_cash_source": "kotak_neo_real_account" if free is not None else "not_yet_fetched",
             "free_cash_fetched_at_utc": _real_capital_cache.get("fetched_at") or None}
@@ -38588,6 +38636,11 @@ def hydrate_exit_timing_from_external() -> int:
         return 0
 
 
+def _ist_naive_to_ts(d) -> float:
+    """Naive IST datetime -> epoch seconds (first_seen_ts follows the sweep clock, not the wall clock)."""
+    return (d - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
 def _exit_timing_sweep(conn, now=None) -> dict:
     """B-1651: register every open position due today (or earlier), stamp exits, flag overdue. Returns counts."""
     now = now or ist_now()
@@ -38613,13 +38666,13 @@ def _exit_timing_sweep(conn, now=None) -> dict:
                              "qty": r["qty"], "expected_exit": r["expected_exit"],
                              "expected_exit_basis": r["expected_exit_basis"],
                              "exit_deadline_ist": _et_ist_str(deadline), "grace_min": grace,
-                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": time.time(),
+                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": _ist_naive_to_ts(now),
                              "status": "pending", "exited_at_ist": None, "exit_source": None, "late_min": None}
                 changed = True
             e = rows[key]
             if e["status"] in ("exited_on_time", "exited_late"):  # re-entered after an exit: track afresh
                 e.update(status="pending", exited_at_ist=None, exit_source=None, late_min=None,
-                         first_seen_ts=time.time(), first_seen_ist=_et_ist_str(now))
+                         first_seen_ts=_ist_naive_to_ts(now), first_seen_ist=_et_ist_str(now))
                 changed = True
             over = (now - deadline).total_seconds() / 60.0
             if over > grace and e["status"] != "overdue":

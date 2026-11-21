@@ -1,0 +1,15 @@
+{
+  "note": "B-1658: money moved between the bank and the Kotak trading account (from Kotak's weekly ledger 'Receipt'/'Payment' vouchers and fund-transfer emails). Amounts in INR; deposit = into Kotak, payout = back to the bank. No account identifiers. Add a row for every new deposit or payout.",
+  "flows": [
+    {"date": "2026-09-04", "type": "deposit", "amount_inr": 2000.00},
+    {"date": "2026-09-17", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-10-15", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-10-17", "type": "payout", "amount_inr": 7849.12, "detail": "Kotak's automatic SEBI quarterly running-account settlement (voucher PYSEBPY)"},
+    {"date": "2026-10-19", "type": "deposit", "amount_inr": 7849.12},
+    {"date": "2026-11-09", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-11-11", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-11-13", "type": "payout", "amount_inr": 5000.00, "detail": "requested payout"},
+    {"date": "2026-11-16", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-11-17", "type": "deposit", "amount_inr": 5000.00}
+  ]
+}
