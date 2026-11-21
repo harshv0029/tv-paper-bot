@@ -13,7 +13,7 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 93 |
 | BLOCKED | 58 |
-| OPEN | 48 |
+| OPEN | 47 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
@@ -32,11 +32,11 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | USER | 4 |
 | RESEARCH | 4 |
 | DEPLOYED | 3 |
+| BUILT | 3 |
 | TODO | 2 |
 | DISPATCH-READY | 2 |
 | P0 | 2 |
 | BUILT-ON-BRANCH | 2 |
-| BUILT | 2 |
 | WEEKLY | 2 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
@@ -282,7 +282,7 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | B-1632 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1633 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1659 | P1 | BUILT | 2026-11-21 IST |  |
-| B-1663 | P1 | OPEN | 2026-11-21 IST |  |
+| B-1663 | P1 | BUILT | 2026-11-21 IST | remaining, verify |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |

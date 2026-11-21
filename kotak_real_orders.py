@@ -622,7 +622,6 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, prod
     }
 
 
-@_records_send("short_cover", "real market BUY-to-cover short exit")
 def _close_with_in_flight_note(kotak_trading_symbol: str, close_side: str, qty: int, send) -> dict:
     """B-1581: a market close is sent under the symbol's stop lock with the in-flight note set first, so no stop
     placement can interleave with it; the note keeps the order id on success and is dropped on any failure."""
@@ -653,6 +652,7 @@ def _marks_close_in_flight(close_side: str):
     return deco
 
 
+@_records_send("short_cover", "real market BUY-to-cover short exit")
 @_marks_close_in_flight("B")
 def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "MIS") -> dict:
     """Places a REAL market BUY-TO-COVER to close a real short position,
