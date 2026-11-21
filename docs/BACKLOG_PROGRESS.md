@@ -20,9 +20,9 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | SUPERSEDED | 18 |
 | DONE-PENDING-VERIFY | 16 |
 | P3 | 9 |
+| UNKNOWN | 8 |
 | PARKED | 7 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
-| UNKNOWN | 7 |
 | OPEN-PARKED | 6 |
 | FROM | 5 |
 | OWNER-ACTION | 4 |
@@ -32,11 +32,11 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | USER | 4 |
 | RESEARCH | 4 |
 | DEPLOYED | 3 |
-| BUILT | 3 |
 | TODO | 2 |
 | DISPATCH-READY | 2 |
 | P0 | 2 |
 | BUILT-ON-BRANCH | 2 |
+| F | 2 |
 | WEEKLY | 2 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
@@ -49,7 +49,6 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | REAL | 1 |
 | ITC | 1 |
 | SWING | 1 |
-| F | 1 |
 | B-1388 | 1 |
 | WATCHDOG | 1 |
 | O | 1 |
@@ -59,6 +58,7 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | OPEN-RECURRING | 1 |
 | DONE-CODE | 1 |
 | TICK | 1 |
+| COST | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -274,15 +274,15 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | B-1485 | P1 | UNKNOWN | 2026-11-05 | owed, pending, needs |
 | B-1516 | P1 | KOTAK | 2026-11-09 | pending |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
-| B-1581 | P1 | BUILT | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify, awaiting, waiting |
+| B-1581 | P1 | UNKNOWN | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify, awaiting, waiting |
 | B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
 | B-1600 | P1 | PARTIAL | 2026-11-15 IST | owed, needs |
 | B-1630 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1631 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1632 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1633 | P1 | OPEN | 2026-11-18 IST | verify |
-| B-1659 | P1 | BUILT | 2026-11-21 IST |  |
-| B-1663 | P1 | BUILT | 2026-11-21 IST | remaining, verify |
+| B-1659 | P1 | COST | 2026-11-21 IST | verify |
+| B-1663 | P1 | F | 2026-11-21 IST | remaining, verify |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |
