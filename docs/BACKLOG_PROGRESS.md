@@ -56,7 +56,7 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | KOTAK | 1 |
 | DAILY | 1 |
 | OPEN-RECURRING | 1 |
-| DONE-CODE | 1 |
+| BUG | 1 |
 | TICK | 1 |
 | COST | 1 |
 
@@ -275,7 +275,7 @@ Total rows: 1415 | closed: 1023 | not closed: 392
 | B-1516 | P1 | KOTAK | 2026-11-09 | pending |
 | B-1564 | P1 | PARTIAL | 2026-11-12 IST | owed, open:, needs |
 | B-1581 | P1 | UNKNOWN | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify, awaiting, waiting |
-| B-1598 | P1 | DONE-CODE | 2026-11-15 IST | owed |
+| B-1598 | P1 | BUG | 2026-11-15 IST | owed, blocked |
 | B-1600 | P1 | PARTIAL | 2026-11-15 IST | owed, needs |
 | B-1630 | P1 | OPEN | 2026-11-18 IST | verify |
 | B-1631 | P1 | OPEN | 2026-11-18 IST | verify |
