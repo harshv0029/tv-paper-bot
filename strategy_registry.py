@@ -3144,6 +3144,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_cgtf.build())
         import strategy_registry_ei_tf as _eitf  # elder-indicators intraday/4h runs
         REGISTRY.extend(_eitf.build())
+        import strategy_registry_b1598_4h as _b1598  # B-1598 4h re-runs: overlay, tri-desc, island
+        REGISTRY.extend(_b1598.build())
         import strategy_registry_island_tf as _istf  # B-1090 island candle/dir sweep, main.py functions
         REGISTRY.extend(_istf.build())
         import strategy_registry_chan_shape_tf as _cstf  # B-1180 chan_shape candle/dir sweep run 43696407370

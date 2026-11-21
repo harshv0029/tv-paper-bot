@@ -52,7 +52,7 @@ def test_short_sell_has_no_viable_strategy_today_and_shows_none():
     # viable-only leaderboard must show an empty list, never pad it with
     # non-viable rows just to have something to display.
     result = main.strategy_leaderboard()
-    assert all((lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n) and '__short__' in n) or '_tfs__short__' in n or ('_seg' in n and n.endswith('__v3')))(r["name"]) for r in result["short_sell"])  # 2026-11-15 B-850: ge11 IS/OOS/bull/bear SEGMENT rows (research harness; pooled shorts all fail)  # 2026-11-15 B-1600  # 2026-10-10 B-336
+    assert all((lambda n: ('__short__4h__' in n and n.startswith(('consol__tri_desc__', 'reversal__island_', 'pfovl__'))) or n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n) and '__short__' in n) or '_tfs__short__' in n or ('_seg' in n and n.endswith('__v3')))(r["name"]) for r in result["short_sell"])  # 2026-11-15 B-850: ge11 IS/OOS/bull/bear SEGMENT rows (research harness; pooled shorts all fail)  # 2026-11-15 B-1600  # 2026-10-10 B-336  # 2026-11-21 B-1598/B-1668: tri_desc 4h main.py-replay shorts, research-only, wiring awaits user review
 
 
 def test_every_row_returned_anywhere_is_actually_viable():
