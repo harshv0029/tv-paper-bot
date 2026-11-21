@@ -2452,3 +2452,12 @@ strategy's pooled PFnet at 0.8% + 23.60/notional (derived exactly from pfgross, 
 position size per strategy: ~Rs6,900 for macddiv hist 1h (PFnet 1.138), ~Rs200 for O'Neil leaders 1w (PFnet 2.669).
 Thin-edge, high-frequency swing cells cannot be traded profitably at 1-share sizes on a ~Rs26k account.
 Profit-booking / exit takeaway: every delivery exit pays a fixed Rs23.60, so fewer, larger swing exits beat many 1-share exits; thin-edge cells need a position size that makes the fixed exit cost small.
+
+### B-1581 (2026-11-21 IST): an exit and a stop placement on the same stock must take turns
+UPL (18-Nov 09:15) and CANBK (19-Nov 11:16 IST): the exit sweep cancelled the stop and sent a market SELL; a separate
+protect pass, working from an order book read a few seconds earlier, saw "no live SL" and sent a new one. Kotak rejected
+it ("Check T1 holdings"), which raised a false SL-failure alarm and a T1 flag. Kotak's book lags this process's own
+orders by seconds, so the process must remember its own close (in-flight note, 120 s) and serialise close and stop per
+symbol, while still deriving "how much is left" from Kotak so a partial close keeps the rest protected.
+Profit-booking / exit takeaway: an exit is only clean when nothing re-protects the shares being sold; a stop re-placed on
+sold shares is noise at best, and on futures/MCX it could open an unintended short (B-1663).

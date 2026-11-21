@@ -38410,7 +38410,7 @@ def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float, label:
         return True
     if trd not in held:
         return False  # Kotak shows nothing held; the reconcile clears the row
-    cxl = kotak_real_orders.cancel_all_open_sells(trd)  # step 2: whole book read, every open sell cancelled
+    cxl = kotak_real_orders.cancel_all_open_sells(trd, exit_qty=int(held[trd].get("qty") or row["qty"] or 0))  # step 2
     if not cxl.get("ok"):
         _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
                               new_state="open sell order(s) not yet cancelled - no market sell sent (no double sell)",
@@ -38489,7 +38489,7 @@ def _swing_market_exit_now(conn, symbol: str, why: str) -> dict:
                               prev_state=f"tracked; Kotak holdings {held[trd].get('qty')}, sold today {sold_today}",
                               new_state="row closed from Kotak's order book, nothing sent", reason=why)
         return {"symbol": symbol, "status": "already_sold_today"}
-    cxl = kotak_real_orders.cancel_all_open_sells(trd)
+    cxl = kotak_real_orders.cancel_all_open_sells(trd, exit_qty=qty_left)  # B-1581: close marked in flight
     if not cxl.get("ok"):
         _log_real_order_event(conn, symbol, "exit", "time_exit_deferred", kotak_trading_symbol=trd,
                               new_state="open sell order(s) not yet cancelled - no market sell sent (no double sell)",
