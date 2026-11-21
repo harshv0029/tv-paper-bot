@@ -587,7 +587,12 @@
       // B-1420: capital card from the same poll
       const cp = d.capital || {}, inr = v => v == null ? "-" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
       $("capLine").innerHTML = `Free cash ${inr(cp.free_cash_inr)} · Tied in ${esc(cp.open_positions ?? 0)} open ${inr(cp.tied_inr)} · Total ${inr(cp.total_inr)} · Tied ${cp.tied_pct == null ? "-" : Number(cp.tied_pct).toFixed(1) + "%"}` +
-        (cp.free_cash_inr == null ? ' <span class="dim">(free cash not yet fetched from Kotak)</span>' : "");
+        (cp.free_cash_inr == null ? ' <span class="dim">(free cash not yet fetched from Kotak)</span>' : "") +
+        // B-1658: the same account at live prices, against the money actually put in (deposits - payouts)
+        (cp.total_market_inr != null ? `<br>At market: positions ${inr(cp.market_value_inr)} · <b>Total ${inr(cp.total_market_inr)}</b>` +
+          (cp.net_deposited_inr ? ` · Net deposited ${inr(cp.net_deposited_inr)} <span class="dim">(in ${inr(cp.deposits_inr)} − out ${inr(cp.payouts_inr)}, to ${esc(cp.fund_flows_last_date || "-")})</span>` +
+            ` · <b style="color:${cp.gain_vs_deposits_inr < 0 ? "#d33" : "#2a2"}">${cp.gain_vs_deposits_inr < 0 ? "Loss" : "Gain"} ${inr(Math.abs(cp.gain_vs_deposits_inr))} (${Number(cp.gain_vs_deposits_pct).toFixed(2)}%)</b>` : "") +
+          (cp.unpriced_positions ? ` <span class="dim">(${cp.unpriced_positions} position(s) at entry price: no live price)</span>` : "") : "");
     } catch (e) {}
   }
 

@@ -382,13 +382,14 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product, strategy) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
                      pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
-                     pos.get("protection_degraded_since"), pos.get("product")),  # B-1578
+                     pos.get("protection_degraded_since"), pos.get("product"),  # B-1578
+                     pos.get("strategy")),  # B-1661: keep buy-engine ownership across a restart
                 )
                 restored += 1
             if restored:
@@ -24486,11 +24487,12 @@ def reconcile_real_positions_from_journal():
             conn.execute(
                 "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                 "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                "target_order_id, target_price, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "target_order_id, target_price, product, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                  pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                  pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product")),  # B-1578
+                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product"),  # B-1578
+                 pos.get("strategy")),  # B-1661
             )
             restored += 1
         conn.commit()
@@ -24659,7 +24661,8 @@ def _record_tick_timing(entry: dict) -> None:
 def _tick_timing_summary() -> dict:
     rec = [r for r in _SCHEDULER_TICK_TIMING["recent"] if r.get("tick_seconds") is not None]
     avg = round(sum(r["tick_seconds"] for r in rec) / len(rec), 1) if rec else None
-    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec)}
+    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec),
+            "phase_max_today": dict(sorted(_TICK_PHASES["max"].items(), key=lambda kv: -kv[1]["seconds"])[:12])}
 
 
 def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
@@ -33500,7 +33503,45 @@ async def _real_off_loop(fn, *args, **kwargs):
     def _run():
         with closing(get_db()) as _c:
             return fn(_c, *args, **kwargs)
-    return await asyncio.to_thread(_run)
+    _t0 = time.time()
+    try:
+        return await asyncio.to_thread(_run)
+    finally:
+        _note_tick_phase(getattr(fn, "__name__", "fn"), time.time() - _t0)
+
+
+async def _timed_aw(aw, name: str):
+    """B-1650: await aw (e.g. asyncio.to_thread(fn)) and note its wall time as tick phase name."""
+    _t0 = time.time()
+    try:
+        return await aw
+    finally:
+        _note_tick_phase(name, time.time() - _t0)
+
+
+_TICK_PHASES: dict = {"day": "", "max": {}, "current": {}}  # B-1650: wall seconds per tick phase
+
+
+def _note_tick_phase(name: str, secs: float) -> None:
+    """B-1650: per-phase wall time - this tick's phases and today's slowest run of each (IST), for /scheduler-status."""
+    try:
+        secs = round(float(secs), 2)
+        day = ist_now().strftime("%Y-%m-%d")
+        if _TICK_PHASES["day"] != day:
+            _TICK_PHASES.update(day=day, max={})
+        cur = _TICK_PHASES["current"]
+        cur[name] = round(cur.get(name, 0.0) + secs, 2)
+        m = _TICK_PHASES["max"].get(name)
+        if m is None or secs > m["seconds"]:
+            _TICK_PHASES["max"][name] = {"seconds": secs, "at_ist": ist_now().strftime("%H:%M:%S IST")}
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _tick_phases_take_top(n: int = 6) -> list:
+    """B-1650: the n slowest phases of the tick that just ended, then reset for the next tick."""
+    cur, _TICK_PHASES["current"] = _TICK_PHASES["current"], {}
+    return sorted(cur.items(), key=lambda kv: -kv[1])[:n]
 
 
 _SCAN_SECTION_STATS: dict = {}  # section -> {"n", "wall", "cpu"} over the current window (B-1419 timing)
@@ -34199,7 +34240,7 @@ async def _scheduler_tick():
     global _scheduler_tick_count
     _scheduler_tick_count += 1
     try:
-        await asyncio.to_thread(_flush_funnel_pending)  # B-1514: before the mirror push so it rides this pass
+        await _timed_aw(asyncio.to_thread(_flush_funnel_pending), "_flush_funnel_pending")  # B-1514: before the mirror push so it rides this pass
     except Exception as e:
         print(f"[entry_funnel] tick flush failed (non-fatal): {e}")
     try:
@@ -34207,10 +34248,10 @@ async def _scheduler_tick():
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
     try:
-        await asyncio.to_thread(_maybe_sync_fo_option_candles_external)
+        await _timed_aw(asyncio.to_thread(_maybe_sync_fo_option_candles_external), "_maybe_sync_fo_option_candles_external")
     except Exception as e:
         print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
-    await asyncio.to_thread(_upstash_usage_persist)  # B-1342: daily Upstash budget guard (never raises)
+    await _timed_aw(asyncio.to_thread(_upstash_usage_persist), "_upstash_usage_persist")  # B-1342: daily Upstash budget guard (never raises)
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0 or \
             time.time() - _MEMORY_TICK_HOUSEKEEP["last_ts"] >= _MEMORY_TICK_HOUSEKEEP_MAX_GAP_S:
         _MEMORY_TICK_HOUSEKEEP["last_ts"] = time.time()  # B-1619: wall-clock floor, slow ticks no longer starve it
@@ -34244,7 +34285,7 @@ async def _scheduler_tick():
         try:
             # B-1424: off the event loop. The pass reads Kotak holdings and places SLs (the watchdog caught 18-21 s
             # freezes here); serialized with the per-symbol scans by _SCAN_DECISION_LOCK.
-            await asyncio.to_thread(_swing_ltp_trail_on_thread)
+            await _timed_aw(asyncio.to_thread(_swing_ltp_trail_on_thread), "_swing_ltp_trail_on_thread")
         except Exception as e:
             print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
     # 2026-10-08 thumb rule (B-315): the exchange wipes every resting order
@@ -34261,7 +34302,7 @@ async def _scheduler_tick():
             # B-1340: in a worker thread, still awaited (same ordering as before), so a slow Kotak/Upstash call cannot
             # freeze the event loop: on 22 Oct an inline stall starved the entry scan (260 symbol checks vs 3992 the day
             # before) and Render answered 502.
-            await asyncio.to_thread(_unprotected_backcheck_once)
+            await _timed_aw(asyncio.to_thread(_unprotected_backcheck_once), "_unprotected_backcheck_once")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
         # B-1349: the order-log git push now has its own thread (_git_tier_push_loop), not this tick block.
@@ -34269,13 +34310,14 @@ async def _scheduler_tick():
     # 2026-10-08: trailing SL / heal for every open real single-strike option
     # (Kotak read first inside). Runs every tick; reuses the F&O switch.
     try:
-        await asyncio.wait_for(asyncio.to_thread(_fo_tick_steps), timeout=120)
+        await asyncio.wait_for(_timed_aw(asyncio.to_thread(_fo_tick_steps), "_fo_tick_steps"), timeout=120)
     except Exception as e:
         print(f"[REAL F&O] option SL tick failed or timed out (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
     _tick_seconds = round(_scheduler_last_tick_ts - _tick_t0, 2)
     _record_tick_timing({
+        "slowest_phases": _tick_phases_take_top(),
         "ended_ist": ist_now().strftime("%H:%M:%S IST"), "tick_seconds": _tick_seconds,
         "symbols": len(symbols_this_tick), "rr_batch": len(rr_batch),
         "prefetch": _prefetch, "equity_scan_seconds": _scan_seconds,
@@ -36442,6 +36484,32 @@ def real_positions_sl_today():
             "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
 
 
+_FUND_FLOWS_CACHE: dict = {}
+
+
+def _real_fund_flows() -> dict:
+    """B-1658: deposits and payouts between the bank and Kotak (docs/real_fund_flows.json, git-tracked, no account ids),
+    cached by file mtime. Kotak's API has no funds-ledger history, so the file is the record; display only."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "real_fund_flows.json")
+    empty = {"deposits_inr": 0.0, "payouts_inr": 0.0, "net_deposited_inr": 0.0, "last_date": None}
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return empty
+    if _FUND_FLOWS_CACHE.get("mtime") == mt:
+        return _FUND_FLOWS_CACHE["value"]
+    try:
+        rows = json.load(open(path)).get("flows") or []
+        dep = round(sum(float(r["amount_inr"]) for r in rows if r.get("type") == "deposit"), 2)
+        pay = round(sum(float(r["amount_inr"]) for r in rows if r.get("type") == "payout"), 2)
+        val = {"deposits_inr": dep, "payouts_inr": pay, "net_deposited_inr": round(dep - pay, 2),
+               "last_date": max((r.get("date") for r in rows if r.get("date")), default=None)}
+    except (OSError, ValueError, TypeError, KeyError):
+        return empty
+    _FUND_FLOWS_CACHE.update(mtime=mt, value=val)
+    return val
+
+
 def _capital_split(positions) -> dict:
     """B-1420 (View 4, read-only): free cash = scheduler_capital_inr (Kotak live free balance, the capital new positions
     are sized to) vs capital tied in open real positions (sum of entry price x qty over every active row: buy, short,
@@ -36460,7 +36528,29 @@ def _capital_split(positions) -> dict:
         free = None
     total = round(free + tied, 2) if free is not None else None
     tied_pct = round(100 * tied / total, 2) if total else None
+    # B-1658 (user 2026-11-21): value the open positions at the live price and compare with the money actually put in.
+    mkt, unpriced = 0.0, 0
+    for p in positions or []:
+        try:
+            q, e = int(p["qty"]), float(p["entry_price"])
+            c = p.get("current_price")
+            if c is None:
+                unpriced += 1
+                c = e
+            c = float(c)
+            mkt += (e * q + (e - c) * q) if "short" in str(p.get("category") or p.get("side") or "").lower() else c * q
+        except (KeyError, TypeError, ValueError):
+            pass
+    mkt = round(mkt, 2)
+    total_mkt = round(free + mkt, 2) if free is not None else None
+    flows = _real_fund_flows()
+    net_dep = flows["net_deposited_inr"]
+    gain = round(total_mkt - net_dep, 2) if (total_mkt is not None and net_dep) else None
     return {"free_cash_inr": free, "tied_inr": tied, "total_inr": total, "tied_pct": tied_pct,
+            "market_value_inr": mkt, "total_market_inr": total_mkt, "unpriced_positions": unpriced,
+            "net_deposited_inr": net_dep, "deposits_inr": flows["deposits_inr"], "payouts_inr": flows["payouts_inr"],
+            "fund_flows_last_date": flows["last_date"], "gain_vs_deposits_inr": gain,
+            "gain_vs_deposits_pct": round(100 * gain / net_dep, 2) if (gain is not None and net_dep) else None,
             "open_positions": len(positions or []),
             "free_cash_source": "kotak_neo_real_account" if free is not None else "not_yet_fetched",
             "free_cash_fetched_at_utc": _real_capital_cache.get("fetched_at") or None}
@@ -38588,6 +38678,11 @@ def hydrate_exit_timing_from_external() -> int:
         return 0
 
 
+def _ist_naive_to_ts(d) -> float:
+    """Naive IST datetime -> epoch seconds (first_seen_ts follows the sweep clock, not the wall clock)."""
+    return (d - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
 def _exit_timing_sweep(conn, now=None) -> dict:
     """B-1651: register every open position due today (or earlier), stamp exits, flag overdue. Returns counts."""
     now = now or ist_now()
@@ -38613,13 +38708,13 @@ def _exit_timing_sweep(conn, now=None) -> dict:
                              "qty": r["qty"], "expected_exit": r["expected_exit"],
                              "expected_exit_basis": r["expected_exit_basis"],
                              "exit_deadline_ist": _et_ist_str(deadline), "grace_min": grace,
-                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": time.time(),
+                             "first_seen_ist": _et_ist_str(now), "first_seen_ts": _ist_naive_to_ts(now),
                              "status": "pending", "exited_at_ist": None, "exit_source": None, "late_min": None}
                 changed = True
             e = rows[key]
             if e["status"] in ("exited_on_time", "exited_late"):  # re-entered after an exit: track afresh
                 e.update(status="pending", exited_at_ist=None, exit_source=None, late_min=None,
-                         first_seen_ts=time.time(), first_seen_ist=_et_ist_str(now))
+                         first_seen_ts=_ist_naive_to_ts(now), first_seen_ist=_et_ist_str(now))
                 changed = True
             over = (now - deadline).total_seconds() / 60.0
             if over > grace and e["status"] != "overdue":

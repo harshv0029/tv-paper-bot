@@ -2432,3 +2432,16 @@ Profit-booking / exit takeaway: exits worked as designed at the open; the bigger
 - The tick holding each 15-min bar sweep runs ~450 s, so exits and trails can wait ~7.5 min (B-1650).
 - Profit-booking / exit takeaway: an exit is only as good as the loop that sends it; a 7-minute scheduler stall can
   turn a planned stop or a 5m exit into a worse fill, so loop latency comes before tuning exit rules.
+
+## 2026-11-21 IST - Account reconcile: DP charges eat small delivery trades (B-1658, B-1659)
+- Net deposited since 1 Sep is Rs27,000 (deposits Rs39,849.12 less payouts Rs12,849.12, one of them Kotak's automatic SEBI quarterly settlement). Account value at market Rs26,208.88 -> loss Rs791 (2.9%) in about 11 weeks.
+- Kotak's ledger shows Rs424.80 of DP transaction charges to 14-Nov (Rs23.60 per scrip per sell-day out of holdings): over half the loss. The 0.8% cost model never counted it.
+- Since the fill ledger began (2-Nov) the bot itself is +Rs21 realised and +Rs394 unrealised before DP charges, so the strategies are roughly break-even; the leak is fixed per-trade costs on tiny (often 1-share) delivery positions.
+- Profit-booking / exit takeaway: a delivery exit costs a flat Rs23.60 on top of the % costs, so on a Rs200 position the exit alone needs a +12% move to break even; size delivery trades so the flat charge stays small (about Rs4,700+ for 0.5%), or prefer same-day (MIS) exits for small positions.
+
+## 2026-11-21 IST - Restart dropped buy-engine ownership; exit refused, position rerouted to swing (B-1661, B-1567)
+ASHOKLEY (chan_kalman 15m long, entered 18-Nov 09:39 IST) lost its `strategy` tag when Render restarted at 10:16 IST:
+both real_positions restore paths re-inserted the row without that column. The 10:33 IST state exit was then refused as
+swing-owned and the holding moved to the swing engine, so a 40-bar intraday strategy became an unplanned overnight hold.
+Any field an ownership or exit rule reads must survive every restore path; the restore tests now check `strategy`.
+Profit-booking / exit takeaway: an exit the strategy wanted but the app refused is an unplanned hold with no edge behind it; ownership tags must survive restarts or the exit plan silently changes owner.
