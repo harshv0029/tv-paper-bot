@@ -24659,7 +24659,8 @@ def _record_tick_timing(entry: dict) -> None:
 def _tick_timing_summary() -> dict:
     rec = [r for r in _SCHEDULER_TICK_TIMING["recent"] if r.get("tick_seconds") is not None]
     avg = round(sum(r["tick_seconds"] for r in rec) / len(rec), 1) if rec else None
-    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec)}
+    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec),
+            "phase_max_today": dict(sorted(_TICK_PHASES["max"].items(), key=lambda kv: -kv[1]["seconds"])[:12])}
 
 
 def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
@@ -33500,7 +33501,45 @@ async def _real_off_loop(fn, *args, **kwargs):
     def _run():
         with closing(get_db()) as _c:
             return fn(_c, *args, **kwargs)
-    return await asyncio.to_thread(_run)
+    _t0 = time.time()
+    try:
+        return await asyncio.to_thread(_run)
+    finally:
+        _note_tick_phase(getattr(fn, "__name__", "fn"), time.time() - _t0)
+
+
+async def _timed_aw(aw, name: str):
+    """B-1650: await aw (e.g. asyncio.to_thread(fn)) and note its wall time as tick phase name."""
+    _t0 = time.time()
+    try:
+        return await aw
+    finally:
+        _note_tick_phase(name, time.time() - _t0)
+
+
+_TICK_PHASES: dict = {"day": "", "max": {}, "current": {}}  # B-1650: wall seconds per tick phase
+
+
+def _note_tick_phase(name: str, secs: float) -> None:
+    """B-1650: per-phase wall time - this tick's phases and today's slowest run of each (IST), for /scheduler-status."""
+    try:
+        secs = round(float(secs), 2)
+        day = ist_now().strftime("%Y-%m-%d")
+        if _TICK_PHASES["day"] != day:
+            _TICK_PHASES.update(day=day, max={})
+        cur = _TICK_PHASES["current"]
+        cur[name] = round(cur.get(name, 0.0) + secs, 2)
+        m = _TICK_PHASES["max"].get(name)
+        if m is None or secs > m["seconds"]:
+            _TICK_PHASES["max"][name] = {"seconds": secs, "at_ist": ist_now().strftime("%H:%M:%S IST")}
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _tick_phases_take_top(n: int = 6) -> list:
+    """B-1650: the n slowest phases of the tick that just ended, then reset for the next tick."""
+    cur, _TICK_PHASES["current"] = _TICK_PHASES["current"], {}
+    return sorted(cur.items(), key=lambda kv: -kv[1])[:n]
 
 
 _SCAN_SECTION_STATS: dict = {}  # section -> {"n", "wall", "cpu"} over the current window (B-1419 timing)
@@ -34199,7 +34238,7 @@ async def _scheduler_tick():
     global _scheduler_tick_count
     _scheduler_tick_count += 1
     try:
-        await asyncio.to_thread(_flush_funnel_pending)  # B-1514: before the mirror push so it rides this pass
+        await _timed_aw(asyncio.to_thread(_flush_funnel_pending), "_flush_funnel_pending")  # B-1514: before the mirror push so it rides this pass
     except Exception as e:
         print(f"[entry_funnel] tick flush failed (non-fatal): {e}")
     try:
@@ -34207,10 +34246,10 @@ async def _scheduler_tick():
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
     try:
-        await asyncio.to_thread(_maybe_sync_fo_option_candles_external)
+        await _timed_aw(asyncio.to_thread(_maybe_sync_fo_option_candles_external), "_maybe_sync_fo_option_candles_external")
     except Exception as e:
         print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
-    await asyncio.to_thread(_upstash_usage_persist)  # B-1342: daily Upstash budget guard (never raises)
+    await _timed_aw(asyncio.to_thread(_upstash_usage_persist), "_upstash_usage_persist")  # B-1342: daily Upstash budget guard (never raises)
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0 or \
             time.time() - _MEMORY_TICK_HOUSEKEEP["last_ts"] >= _MEMORY_TICK_HOUSEKEEP_MAX_GAP_S:
         _MEMORY_TICK_HOUSEKEEP["last_ts"] = time.time()  # B-1619: wall-clock floor, slow ticks no longer starve it
@@ -34244,7 +34283,7 @@ async def _scheduler_tick():
         try:
             # B-1424: off the event loop. The pass reads Kotak holdings and places SLs (the watchdog caught 18-21 s
             # freezes here); serialized with the per-symbol scans by _SCAN_DECISION_LOCK.
-            await asyncio.to_thread(_swing_ltp_trail_on_thread)
+            await _timed_aw(asyncio.to_thread(_swing_ltp_trail_on_thread), "_swing_ltp_trail_on_thread")
         except Exception as e:
             print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
     # 2026-10-08 thumb rule (B-315): the exchange wipes every resting order
@@ -34261,7 +34300,7 @@ async def _scheduler_tick():
             # B-1340: in a worker thread, still awaited (same ordering as before), so a slow Kotak/Upstash call cannot
             # freeze the event loop: on 22 Oct an inline stall starved the entry scan (260 symbol checks vs 3992 the day
             # before) and Render answered 502.
-            await asyncio.to_thread(_unprotected_backcheck_once)
+            await _timed_aw(asyncio.to_thread(_unprotected_backcheck_once), "_unprotected_backcheck_once")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
         # B-1349: the order-log git push now has its own thread (_git_tier_push_loop), not this tick block.
@@ -34269,13 +34308,14 @@ async def _scheduler_tick():
     # 2026-10-08: trailing SL / heal for every open real single-strike option
     # (Kotak read first inside). Runs every tick; reuses the F&O switch.
     try:
-        await asyncio.wait_for(asyncio.to_thread(_fo_tick_steps), timeout=120)
+        await asyncio.wait_for(_timed_aw(asyncio.to_thread(_fo_tick_steps), "_fo_tick_steps"), timeout=120)
     except Exception as e:
         print(f"[REAL F&O] option SL tick failed or timed out (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
     _tick_seconds = round(_scheduler_last_tick_ts - _tick_t0, 2)
     _record_tick_timing({
+        "slowest_phases": _tick_phases_take_top(),
         "ended_ist": ist_now().strftime("%H:%M:%S IST"), "tick_seconds": _tick_seconds,
         "symbols": len(symbols_this_tick), "rr_batch": len(rr_batch),
         "prefetch": _prefetch, "equity_scan_seconds": _scan_seconds,
