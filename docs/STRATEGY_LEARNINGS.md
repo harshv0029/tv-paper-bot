@@ -2445,3 +2445,10 @@ both real_positions restore paths re-inserted the row without that column. The 1
 swing-owned and the holding moved to the swing engine, so a 40-bar intraday strategy became an unplanned overnight hold.
 Any field an ownership or exit rule reads must survive every restore path; the restore tests now check `strategy`.
 Profit-booking / exit takeaway: an exit the strategy wanted but the app refused is an unplanned hold with no edge behind it; ownership tags must survive restarts or the exit plan silently changes owner.
+
+## 2026-11-21 IST - DP charge priced into swing viability (B-1659)
+A flat Rs23.60 DP charge per delivery sell is a percentage cost that grows as the position shrinks. Re-pricing each
+strategy's pooled PFnet at 0.8% + 23.60/notional (derived exactly from pfgross, pfnet and win rate) gives a break-even
+position size per strategy: ~Rs6,900 for macddiv hist 1h (PFnet 1.138), ~Rs200 for O'Neil leaders 1w (PFnet 2.669).
+Thin-edge, high-frequency swing cells cannot be traded profitably at 1-share sizes on a ~Rs26k account.
+Profit-booking / exit takeaway: every delivery exit pays a fixed Rs23.60, so fewer, larger swing exits beat many 1-share exits; thin-edge cells need a position size that makes the fixed exit cost small.

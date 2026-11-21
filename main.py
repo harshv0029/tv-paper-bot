@@ -17203,7 +17203,7 @@ def _real_qty_skip_status(max_by_capital) -> str:
 # reject flags, so no trigger is ever missed silently: (1) viability (the user's View 1 definition / PFnet floor),
 # (2) money (what Kotak's free cash can buy), (3) other rule conditions (sector cap on invested + available, cutoffs,
 # ticks, tolerance, duplicates, ...).
-_REJECT_FLAG_VIABILITY = frozenset({"skipped_strategy_not_viable"})
+_REJECT_FLAG_VIABILITY = frozenset({"skipped_strategy_not_viable", "skipped_dp_charge_drag"})  # + B-1659
 _REJECT_FLAG_MONEY = frozenset({REAL_LOW_BALANCE_STATUS, "skipped_insufficient_real_qty", "skipped_capital_unavailable",
                                 "skipped_over_daily_cap", "skipped_margin_unaffordable",
                                 "skipped_only_one_leg_affordable"})
@@ -27988,6 +27988,60 @@ def _real_swing_qty_by_risk(conn, symbol, ltp: float, stop_loss, short: bool = F
     return _real_one_share_floor(int(math.floor(qty)), capital, ltp, dist, usable)  # B-1509
 
 
+DP_CHARGE_PER_SELL_INR = 23.60  # B-1659: Kotak DP charge per scrip per delivery-sell day (ledger JV, incl. GST)
+
+
+def _pfnet_with_extra_cost(m, extra_pct: float):
+    """B-1659: the strategy's pooled PFnet re-priced with an extra per-trade cost (% of notional). The backtest gives
+    pfgross, pfnet (at ROUND_TRIP_COST_PCT per trade) and win rate over the same trades; with cost c taken off every
+    trade, pfnet = (G - c*w)/(L + c*(1-w)) per trade, so the average gross loss share L = c*(w + pfnet*(1-w)) /
+    (pfgross - pfnet) and G = pfgross*L. Returns None when the run lacks pfgross / win rate (cannot be derived)."""
+    try:
+        pfg, pfn, w = float(m.pfgross or 0), float(m.pfnet), float(m.win_rate_pct) / 100.0
+    except (TypeError, ValueError, AttributeError):
+        return None
+    if pfg <= 0 or pfg <= pfn or not 0 < w < 1:
+        return None
+    c = ROUND_TRIP_COST_PCT
+    loss = c * (w + pfn * (1 - w)) / (pfg - pfn)
+    gain = pfg * loss
+    c2 = c + max(0.0, float(extra_pct))
+    return round((gain - c2 * w) / (loss + c2 * (1 - w)), 3)
+
+
+def _dp_charge_verdict(strategy, qty, price) -> dict | None:
+    """B-1659 (user 2026-11-21 IST "Yes"): a delivery (CNC) swing long pays DP_CHARGE_PER_SELL_INR when it is sold,
+    whatever its size, so a small position carries a larger cost %. The entry stays viable only while the strategy's
+    PFnet re-priced with 0.8% + this position's DP % stays above 1.00 (the same strict wiring condition). None = no
+    check possible (no registry metrics, explorer override, or a run without pfgross) - the entry proceeds as before."""
+    try:
+        notional = float(qty) * float(price)
+    except (TypeError, ValueError):
+        return None
+    if notional <= 0:
+        return None
+    name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy or "")
+    strat = _registry_entry(name) if name else None
+    if strat is None or strat.metrics is None:
+        return None
+    import strategy_registry as sr
+    if name in sr.VIABLE_OVERRIDES:
+        return None  # user override: "without any restriction"
+    try:
+        if strat.metrics.pfnet is None or float(strat.metrics.pfnet) <= 1.0:
+            return None  # not viable at base cost: _is_strategy_viable_for_real_money owns that rejection
+    except (TypeError, ValueError):
+        return None
+    dp_pct = round(100.0 * DP_CHARGE_PER_SELL_INR / notional, 3)
+    pf2 = _pfnet_with_extra_cost(strat.metrics, dp_pct)
+    if pf2 is None:
+        return None
+    return {"ok": pf2 > 1.0, "dp_pct": dp_pct, "pfnet_with_dp": pf2,
+            "detail": f"DP charge Rs{DP_CHARGE_PER_SELL_INR:.2f} on Rs{notional:.2f} = {dp_pct:.2f}% extra; "
+                      f"PFnet {strat.metrics.pfnet} at {ROUND_TRIP_COST_PCT}% -> {pf2} at "
+                      f"{ROUND_TRIP_COST_PCT + dp_pct:.2f}% (needs > 1.00)"}
+
+
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
     """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
     every gate holds. Called from _run_swing_scan right after the paper
@@ -28162,6 +28216,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     if _cap_block:
         _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", kotak_trading_symbol=kotak_symbol,
                           price_est=ltp, strategy=strategy, detail=_cap_block)
+        return
+
+    _dp = _dp_charge_verdict(strategy, qty, ltp)  # B-1659 (user 2026-11-21 "Yes"): flat DP charge per delivery sell
+    if _dp and not _dp["ok"]:
+        _log_real_attempt(conn, symbol, "B", "skipped_dp_charge_drag", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy, detail=_dp["detail"])
         return
 
     # Same joint (equity + F&O + swing) real daily-loss cap as every other
