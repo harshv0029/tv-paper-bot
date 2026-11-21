@@ -382,13 +382,14 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since, product, strategy) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
                      pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
-                     pos.get("protection_degraded_since"), pos.get("product")),  # B-1578
+                     pos.get("protection_degraded_since"), pos.get("product"),  # B-1578
+                     pos.get("strategy")),  # B-1661: keep buy-engine ownership across a restart
                 )
                 restored += 1
             if restored:
@@ -24486,11 +24487,12 @@ def reconcile_real_positions_from_journal():
             conn.execute(
                 "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                 "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                "target_order_id, target_price, product) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "target_order_id, target_price, product, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                  pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                  pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product")),  # B-1578
+                 pos.get("target_order_id"), pos.get("target_price"), pos.get("product"),  # B-1578
+                 pos.get("strategy")),  # B-1661
             )
             restored += 1
         conn.commit()
