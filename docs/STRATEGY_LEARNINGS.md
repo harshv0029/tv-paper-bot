@@ -2461,3 +2461,7 @@ orders by seconds, so the process must remember its own close (in-flight note, 1
 symbol, while still deriving "how much is left" from Kotak so a partial close keeps the rest protected.
 Profit-booking / exit takeaway: an exit is only clean when nothing re-protects the shares being sold; a stop re-placed on
 sold shares is noise at best, and on futures/MCX it could open an unintended short (B-1663).
+
+### 2026-11-21 IST: Kotak "Net" vs ledger (B-1664, closed not-a-bug)
+Kotak `limits()['Net']` already deducts the day's unsettled net buy obligation; the Daily Margin Statement ledger does not until T+1. Reconciling account value against the ledger alone double-counts that day's buys (they are already in positions at market). Contract notes 12-20 Nov matched every bot exit qty and value exactly.
+Profit-booking / exit takeaway: realised exits are recorded at Kotak's true fill values, so per-trade P&L in View 4 can be trusted for exit-rule research; the overall loss vs deposits is mostly pre-2-Nov history, not recent exits.
