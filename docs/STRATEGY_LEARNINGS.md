@@ -2465,3 +2465,8 @@ sold shares is noise at best, and on futures/MCX it could open an unintended sho
 ### 2026-11-21 IST: Kotak "Net" vs ledger (B-1664, closed not-a-bug)
 Kotak `limits()['Net']` already deducts the day's unsettled net buy obligation; the Daily Margin Statement ledger does not until T+1. Reconciling account value against the ledger alone double-counts that day's buys (they are already in positions at market). Contract notes 12-20 Nov matched every bot exit qty and value exactly.
 Profit-booking / exit takeaway: realised exits are recorded at Kotak's true fill values, so per-trade P&L in View 4 can be trusted for exit-rule research; the overall loss vs deposits is mostly pre-2-Nov history, not recent exits.
+
+### 2026-11-21 IST: Elder indicators at 4h (B-1598 re-run, run 44910415485)
+- Full NSE universe, 730d of 4h bars, 0.8% cost, both directions, ATR sweep: 300 tags, 19,640 symbol-fetches with data, 0 pass (pooled PFnet > 1.00). Best adx_bell__ring_bell_ema13__long__4h__atr3_pts3__v1 PFnet 0.803 (n=28,858); top 5 are all ring_bell_ema13 long. Same family led at 1h (0.714), so 4h helps it but not past cost.
+- Elder indicators now fail on every candle size tested (5m, 15m, 1h, 4h); the 4h-fetch bug (B-1598) did not hide a winner here.
+- Profit-booking / exit takeaway: the longer bar lifts PFnet by about 0.09 because fewer, larger moves absorb the 0.8% cost better, but the max-hold timeout still closes most trades before they reach their target; any further attempt should test a trailing exit on ring_bell_ema13 longs rather than a tighter stop.
