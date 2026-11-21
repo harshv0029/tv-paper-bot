@@ -12,12 +12,26 @@ _FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest
 _REF = "elder-macd-dirgap-research.yml run 38208431466 (2026-10-12 IST, 1d, cost 0.8%, 7059 fetched summed over families)"
 
 
+_FN4 = os.path.join(os.path.dirname(_FN), "elder_macd_dirgap_4h_run_44922538831.json")
+_REF4 = ("elder-macd-dirgap-research.yml run 44922538831 (2026-11-21 IST, 4h = 1h resampled, 730d, cost 0.8%, "
+         "7365 fetched summed over families; B-1598)")
+_FILES = ((_FN, "1d", sr.TRADING_HOURS_PER_DAY, _REF, "7059 fetched summed over families (broad NSE+ETF harness universe)"),
+          (_FN4, "4h", 4.0, _REF4, "7365 fetched summed over families (harness universe, about 2.8k symbols per family; B-1666)"))
+
+
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
-    try:
-        rows = json.load(open(_FN))["rows"]
-    except Exception:
-        return out
+    for fn, tf, hrs, ref, uni in _FILES:
+        try:
+            rows = json.load(open(fn))["rows"]
+        except Exception:
+            continue
+        out.extend(_rows(rows, tf, hrs, ref, uni, seen))
+    return out
+
+
+def _rows(rows, tf, hrs, _REF, uni, seen):
+    out = []
     for r in rows:
         try:
             tag = r["tag"]
@@ -26,12 +40,12 @@ def build():
             seen.add(tag)
             cat = sr.TradeCategory.SHORT_SELL if "__short__" in tag else sr.TradeCategory.SWING
             out.append(sr.StrategyDef(
-                name=tag, asset_class=sr.AssetClass.EQUITY_SWING, categories=(cat,), timeframe="1d",
+                name=tag, asset_class=sr.AssetClass.EQUITY_SWING, categories=(cat,), timeframe=tf,
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
-                    universe="7059 fetched summed over families (broad NSE+ETF harness universe)", run_ref=_REF),
+                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * hrs,
+                    universe=uni, run_ref=_REF),
                 source="scripts/elder_macd_dirgap_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']} (gross {r.get('pf_gross')}), win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_ret_pct')}%, MFE {r.get('avg_mfe_r')}R MAE {r.get('avg_mae_r')}R, losers reaching 0.5R {r.get('losers_reached_half_r_pct')}% / 1R {r.get('losers_reached_1r_pct')}%; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",
                 notes="Elder MACD/directional-system/gap cell (overlapping signals inflate n, esp. macd__ and dirsys__ cells with n up to 250k; non-overlap FIFO + IS/OOS owed before wiring, B-850); SL is part of every cell. Viability derived from PFnet vs PFNET_LIVE_FLOOR."))
