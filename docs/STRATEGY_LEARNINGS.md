@@ -2465,3 +2465,24 @@ sold shares is noise at best, and on futures/MCX it could open an unintended sho
 ### 2026-11-21 IST: Kotak "Net" vs ledger (B-1664, closed not-a-bug)
 Kotak `limits()['Net']` already deducts the day's unsettled net buy obligation; the Daily Margin Statement ledger does not until T+1. Reconciling account value against the ledger alone double-counts that day's buys (they are already in positions at market). Contract notes 12-20 Nov matched every bot exit qty and value exactly.
 Profit-booking / exit takeaway: realised exits are recorded at Kotak's true fill values, so per-trade P&L in View 4 can be trusted for exit-rule research; the overall loss vs deposits is mostly pre-2-Nov history, not recent exits.
+
+### 2026-11-21 IST: Elder indicators at 4h (B-1598 re-run, run 44910415485)
+- Full NSE universe, 730d of 4h bars, 0.8% cost, both directions, ATR sweep: 300 tags, 19,640 symbol-fetches with data, 0 pass (pooled PFnet > 1.00). Best adx_bell__ring_bell_ema13__long__4h__atr3_pts3__v1 PFnet 0.803 (n=28,858); top 5 are all ring_bell_ema13 long. Same family led at 1h (0.714), so 4h helps it but not past cost.
+- Elder indicators now fail on every candle size tested (5m, 15m, 1h, 4h); the 4h-fetch bug (B-1598) did not hide a winner here.
+- Profit-booking / exit takeaway: the longer bar lifts PFnet by about 0.09 because fewer, larger moves absorb the 0.8% cost better, but the max-hold timeout still closes most trades before they reach their target; any further attempt should test a trailing exit on ring_bell_ema13 longs rather than a tighter stop.
+
+### 2026-11-21 IST: Elder batch3 at 4h (run 44912888789)
+402 new 4h tags on the full NSE harness universe (15,006 symbols fetched, 730d, 0.8% cost). Only 4 pass, all the RSI 80/20 oscillator reversal: long atr3 PFnet 1.130 (n=7329), long atr2 1.054, long atr1d5 1.013, short atr3 1.012. Structure, channel, sizing, breadth and ORB families all fail at 4h. Wider ATR stops help the reversal edge monotonically (1.5 < 2 < 3), so the edge needs room to work. The 1d breadth "passes" (n=1-13) are not evidence. Port + main.py replay owed (B-1665).
+Profit-booking / exit takeaway: the reversal edge grows with a wider stop, so test an ATR-3 trailing exit (not a tight fixed target) on the main.py replay before wiring.
+
+### 2026-11-21 IST: Elder MACD/dirgap and swing min-RR at 4h (runs 44922538831, 44923936618)
+Dirgap 4h: 120 tags, none pass (best gaps common_fade long atr3_nb4 0.991, n=10,587); MACD and directional-system cells all fail at 4h as at 1d. Swing min-RR 4h: 162 tags, only brk20 with ATR-3 stop and RR4 passes, short 1.461 (n=450) beats long 1.231 (n=571), the same short-over-long ordering seen at 1d and 1h; order_block and volume_profile fail. The brk20 RR4 edge holds across 1d/1h/4h, so it is the most robust candidate here. Port + main.py replay owed (B-1667). The dirgap harness universe (about 2.8k per family) needs a full-universe check (B-1666).
+Profit-booking / exit takeaway: a fixed 4R target only works with a wide ATR-3 stop; tighter stops fail, so on the replay compare the RR4 target against a trail that lets winners run past 4R.
+
+### 2026-11-21 IST: Douglas trade-management and MACD divergence at 4h (runs 44925787905, 44926740738)
+Douglas 4h: 504 tags, 6 pass, all brk20 min-RR long: atr3_rr4 3.556 (n=585), rr3 2.087, rr2d5 1.536, rr2 1.225, atr2_rr4 1.195, atr3_rr1d5 1.088 (n=7,288). PFnet rises steadily with the reward:risk target, and only the wide ATR-3 stop survives the smaller targets. This independently confirms the swing min-RR 4h brk20 result. MACD divergence 4h: 36 tags, all fail (0.615-0.77). Harness universes: docs/nse_universe.json is 2,763 symbols, so "summed over families" counts (5,526 / 7,365 / 8,289) are multiples of the full universe, not partial runs (B-1666 closed).
+Profit-booking / exit takeaway: the bigger the target, the higher the PFnet, at the cost of fewer trades. On the main.py replay (B-1667), rank RR4 against RR3 and a trail by return per day, not by PFnet alone.
+
+### 2026-11-21 IST: Portfolio overlay, descending triangle and island reversal at 4h (runs 44928192937, 44928195720, 44928797980)
+Overlay 4h: 768 tags, 27 pass (brk20_year long y2023 atr3 2.792, dip_month long m4 1.742 at n=15,248). The script stamped __1d__ in tags for a 4h run (fixed: merge --interval). Tri-desc 4h on main.py functions: 33 of 48 pass, but n is only 42-162. Island 4h: 66 of 102 pass, but the strongest in-sample cell (gap05 long ~2.89) drops to 0.93-0.98 out of sample; turn1cr long holds 1.26-1.30 out of sample (n~2,030), so it is the real candidate. In-sample-only strength is not evidence: check the segoos twin first.
+Profit-booking / exit takeaway: on tri-desc the 0.5R trail beats wider trails at 4h (1.596 vs 1.476), so take profit early on triangle breakdowns and breakouts at this candle size.

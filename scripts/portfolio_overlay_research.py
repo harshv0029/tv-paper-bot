@@ -58,6 +58,7 @@ from portfolio_ledger_research import correlation_screen  # noqa: E402
 
 COST = er.COST_ROUND_TRIP
 TF = "1d"
+_MERGE_TF = TF  # B-1598: merge --interval overrides (tags were stamped 1d even for 4h runs)
 
 
 # ------------------------------------------------------------------ collect stage
@@ -356,7 +357,7 @@ def merge(path, json_out=None, idx_df=None):
     rows = []
 
     def add(base, direction, am, overlay, params, st, extra=None):
-        tag = er.make_tag("pfovl", f"{base}_{overlay}", direction, TF, {**params, "atr": float(am)})
+        tag = er.make_tag("pfovl", f"{base}_{overlay}", direction, _MERGE_TF, {**params, "atr": float(am)})
         rows.append({"tag": tag, **st, **(extra or {}), "universe": universe})
 
     for key, tr in sorted(streams.items()):
@@ -439,6 +440,8 @@ def merge(path, json_out=None, idx_df=None):
 
 
 def _merge_main(args):
+    global _MERGE_TF
+    _MERGE_TF = getattr(args, "interval", None) or TF
     sys.path.insert(0, ".")
     idx = None
     try:
@@ -463,6 +466,7 @@ def main(argv=None):
     m_ = sub.add_parser("merge")
     m_.add_argument("--dir", required=True)
     m_.add_argument("--json")
+    m_.add_argument("--interval", default="1d", help="B-1598: candle size of the collected shards (tags carry it; was hardcoded 1d)")
     args = ap.parse_args(argv)
     if args.cmd == "collect":
         _collect_main(args)

@@ -12,7 +12,7 @@ scripts/elder_patterns_research.d_island, copied so filters can be added) with t
     | gap05 (both gaps >= 0.5 ATR) | liq_gap (px20+turn1cr+gap05)
   * both directions via the reciprocal-price mirror (short = separate tag), ATR sweep 1.5/2/3
   * one position per symbol per cell (er.simulate's free-slot rule), i.e. non-overlapping
-  * candle size via --interval/--period (bar-count constants change meaning; 4h owed: needs 1h resample)
+  * candle size via --interval/--period (bar-count constants change meaning; 4h = 1h resampled per NSE session via research_interval, B-1598)
 B-815 adds, for the long cells >= 1.1 (filters none/px20/turn1cr/gap05 x ATR 1.5/2/3): strict-FIFO tags
 <old minus __v1>__nonovl__v2 plus IS/OOS split tags <old minus __v1>__segis__v2 / __segoos__v2 (split by entry date).
 Tags: reversal__island_<filter>__<dir>__<tf>__atr<m>_within8__v1 (old unfiltered tag stays untouched).
@@ -223,7 +223,7 @@ def main(argv=None):
     r = sub.add_parser("run")
     r.add_argument("--shard", type=int, default=0)
     r.add_argument("--nshards", type=int, default=4)
-    r.add_argument("--interval", default="1d", choices=("1d", "1h", "15m", "5m"))
+    r.add_argument("--interval", default="1d", choices=("1d", "4h", "1h", "15m", "5m"))
     r.add_argument("--period", default="5y")
     r.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
     r.add_argument("--split_frac", type=float, default=0.6)

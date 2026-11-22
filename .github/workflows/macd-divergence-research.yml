@@ -4,9 +4,14 @@ name: MACD divergence research (B-808 B-809 B-810)
 # swept over candle size (15m/1h/1d via matrix) x ATR stop 1.5/2/3 (inside the script). 3 intervals x 8
 # shards = 24 jobs: dispatch only when no Deploy Gate / safety run is queued (urgency order rule).
 # Port of elder_macd_dirgap_research.v_macd_div (no main.py equivalent). Stop on every trade, cost 0.8%.
-# Research only, no live wiring. 4h needs a 1h resample (owed). Results: one small merged artifact.
+# Research only, no live wiring. 4h via the intervals input (1h resampled, B-1598). Results: one small merged artifact.
 on:
   workflow_dispatch:
+    inputs:
+      intervals:
+        description: "JSON list of candle sizes (B-1598: e.g. [\"4h\"]; 4h = 1h resampled per NSE session)"
+        required: false
+        default: '["1d", "1h", "15m"]'
 
 jobs:
   research:
@@ -14,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        interval: ["1d", "1h", "15m"]
+        interval: ${{ fromJSON(inputs.intervals || '["1d", "1h", "15m"]') }}
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
     steps:
       - uses: actions/checkout@v4

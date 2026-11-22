@@ -60,7 +60,7 @@ jobs:
       - name: Apply overlays and print per-tag table
         run: |
           set -o pipefail
-          python3 scripts/portfolio_overlay_research.py merge --dir shards --json pfovl_results.json | tee pfovl_table.txt
+          python3 scripts/portfolio_overlay_research.py merge --dir shards --interval ${{ github.event.inputs.interval || '1d' }} --json pfovl_results.json | tee pfovl_table.txt
       - name: B-743 marked-to-market Vince ledger per stream
         run: |
           set -o pipefail

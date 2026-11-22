@@ -12,7 +12,7 @@ def test_entry_funnel_counts_skip_reasons_without_details(monkeypatch):
     monkeypatch.setattr(main, "strategy_scan_activity", lambda include_unwired=False: {"strategies": [
         {"strategy_tag": "t1", "categories": ["swing"], "status": "live_wired", "scans_today": 5, "successful_entries_today": 1}]})
     conn = main.get_db()
-    main._log_real_attempt(conn, "AAA.NS", "B", "skipped_insufficient_real_qty", detail="capital Rs1234 secret", strategy="t1")
+    main._log_real_attempt(conn, "AAA.NS", "B", "skipped_insufficient_real_qty", detail="capital Rs98765431 secret", strategy="t1")
     main._log_real_attempt(conn, "BBB.NS", "B", "skipped_insufficient_real_qty", strategy="t1")
     conn.close()
     d = main.entry_funnel()["categories"]
@@ -20,7 +20,7 @@ def test_entry_funnel_counts_skip_reasons_without_details(monkeypatch):
     assert sw["attempts"][0]["status"] == "skipped_insufficient_real_qty" and sw["attempts"][0]["attempts"] == 2
     assert sw["scans_today"] == 5 and sw["paper_entries_today"] == 1 and sw["blocked"] == 2
     assert "no viable" in d["buy"]["verdict"] and d["buy"]["attempts"] == []
-    assert "secret" not in str(d) and "1234" not in str(d)
+    assert "secret" not in str(d) and "98765431" not in str(d)
 
 
 def test_entry_funnel_attempts_total_includes_failed(monkeypatch):
