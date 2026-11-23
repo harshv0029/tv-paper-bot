@@ -110555,7 +110555,19 @@
    "prev_state": "long 1 @ Rs1220.00",
    "new_state": "closed",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 9214,
+   "ts": 1795426231.4546776,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261123000014822",
+   "prev_state": null,
+   "new_state": "cancelled before the exit",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-23 15:00 IST reached (max hold 30 trading days; closed 15:00 IST that day if still open; earlier on stop/target/rule exit)"
   }
  ],
- "synced_at_utc": "2026-11-23T09:27:02Z"
+ "synced_at_utc": "2026-11-23T09:30:34Z"
 }
