@@ -2524,3 +2524,12 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 - No backtest is possible yet (no free intraday option-premium history); View 6 says so instead of showing a number.
 - Profit-booking / exit takeaway: a high-theta contract loses premium every minute it is held, so the entry filter (theta
   cap, delta band) matters as much as the 2% trail; test exits only on contracts the filter would admit.
+
+
+### B-1684 / B-1685 paper data durability and the rolling 15-min change (2026-11-23 IST)
+- The 12:33 BANKNIFTY PE paper row was still open at 19:42 IST: its 15:15 close never reached Upstash, so the 17:44
+  reboot restored the 12:33 copy. A paper strategy whose exits are not durable gives a false record, and a false record
+  can never justify real-money wiring. Now: no write before the restore, an off-window EOD sweep, and pass health.
+- The 15-min change is rolling (now vs exactly 15 min ago), not a fixed 15-min block.
+- Profit-booking / exit takeaway: single-leg options move fast, so an exit that silently fails to record (or fire) is the
+  costliest loose end; every exit path needs a backstop that runs even when the normal pass did not.
