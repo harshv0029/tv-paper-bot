@@ -110267,7 +110267,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"7 nse symbols printed new trades today within 120s\", \"symbols\": [\"MARUTI.NS\", \"MFSL.NS\", \"NESTLEIND.NS\", \"NMDC.NS\", \"PAYTM.NS\", \"PFC.NS\", \"PREMIERENE.NS\"], \"count\": 7, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 37.9}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
+  },
+  {
+   "id": 9190,
+   "ts": 1795405635.4266763,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261123000031453",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs400.40",
+   "detail": "reason: swing entry signal from strategy reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-23T03:45:50Z"
+ "synced_at_utc": "2026-11-23T03:47:17Z"
 }
