@@ -110519,7 +110519,31 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs1301.30",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1301.30 already covers the position (target stop Rs1301.27), adopted, nothing placed"
+  },
+  {
+   "id": 9211,
+   "ts": 1795426006.8509831,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261123000015971",
+   "prev_state": "resting @ Rs1184.5",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 9212,
+   "ts": 1795426006.857761,
+   "symbol": "360ONE.NS",
+   "kotak_trading_symbol": "360ONE-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs1220.00",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-23T08:49:44Z"
+ "synced_at_utc": "2026-11-23T09:26:48Z"
 }
