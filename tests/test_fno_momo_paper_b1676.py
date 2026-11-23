@@ -415,3 +415,32 @@ def test_new_columns_mirror_and_restore(db):
     cols = {r[1] for r in db.execute("PRAGMA table_info(fno_momo_paper_trades)")}
     assert {"stop_at_exit", "observed_exit_price", "observed_net_pct"} <= cols
     main.init_db()  # migration is idempotent
+
+
+def test_chain_failure_is_cached_and_reported(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main, "_nse_opener", lambda *a, **k: ("op", {}))
+    monkeypatch.setattr(main, "_nse_get_json", lambda *a, **k: calls.append(a[2]) or (_ for _ in ()).throw(
+        TimeoutError("timed out")))
+    assert main._fno_chain_fetch("FINNIFTY") == []
+    assert main._fno_chain_fetch("FINNIFTY") == [] and len(calls) == 1  # cached failure: no refetch inside 120 s
+    assert "TimeoutError" in main._FNO_CHAIN_CACHE[("FINNIFTY", "")]["error"]
+    monkeypatch.setattr(main, "_FNO_BY_INDEX_CACHE", {"ts": 0.0, "data": None})
+    nifty = [_r("NIFTY", 25500 + 100 * i, "CE", 900 - i, 1.0, 50.0) for i in range(6)]
+    monkeypatch.setattr(main, "_fno_most_active_fetch", lambda *a, **k: {"lists": {"index_calls": nifty}, "errors": {}})
+    monkeypatch.setattr(main, "_fno_index_day_changes", lambda: {})
+    snap = REAL_SNAP()
+    assert "TimeoutError" in snap["errors"]["chain_FINNIFTY"] and "chain_BANKNIFTY" in snap["errors"]
+
+
+def test_chain_v3_path_used_with_nearest_expiry(monkeypatch):
+    paths = []
+    monkeypatch.setattr(main, "_nse_opener", lambda *a, **k: ("op", {}))
+
+    def fake(op, hdrs, path, *a, **k):
+        paths.append(path)
+        return {"expiryDates": ["30-Dec-2026", "27-Jan-2027"]} if "contract-info" in path else V3
+    monkeypatch.setattr(main, "_nse_get_json", fake)
+    rows = main._fno_chain_fetch("FINNIFTY")
+    assert len(rows) == 2 and "option-chain-v3?type=Indices&symbol=FINNIFTY&expiry=30-Dec-2026" in paths[1]
+    assert main._FNO_CHAIN_CACHE[("FINNIFTY", "")]["error"] is None

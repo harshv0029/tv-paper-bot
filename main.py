@@ -42400,10 +42400,10 @@ def _nse_opener(page="https://www.nseindia.com/option-chain"):
     return opener, dict(hdrs, Accept="application/json, text/plain, */*", Referer=page)
 
 
-def _nse_get_json(opener, hdrs, path, cap=4_000_000):
+def _nse_get_json(opener, hdrs, path, cap=4_000_000, timeout=8):
     import json as _json
     import urllib.request
-    with opener.open(urllib.request.Request("https://www.nseindia.com" + path, headers=hdrs), timeout=12) as resp:
+    with opener.open(urllib.request.Request("https://www.nseindia.com" + path, headers=hdrs), timeout=timeout) as resp:
         return _json.loads(resp.read(cap).decode("utf-8", "replace"))
 
 
@@ -42450,8 +42450,8 @@ def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
     hit = _FNO_CHAIN_CACHE.get(key)
     ttl = FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S
     if hit and now - hit["ts"] < ttl:
-        return hit["rows"]
-    rows = []
+        return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
+    rows, err = [], None
     try:
         op, hdrs = opener or _nse_opener()
         exp = expiry
@@ -42463,15 +42463,19 @@ def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
             import urllib.parse as _up
             rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-v3?type=Indices&symbol=" + underlying
                                                  + "&expiry=" + _up.quote(str(exp))), underlying, exp)
+        else:
+            err = "no expiryDates in option-chain-contract-info"
         if not rows:  # legacy endpoint (all expiries) as the fallback
-            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying),
-                                   underlying, exp)
+            payload = _nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying)
+            rows = _fno_chain_rows(payload, underlying, exp)
+            if not rows:
+                err = (err or "") + " | empty chain; keys " + ",".join(sorted(payload)[:6] if isinstance(payload, dict) else ["?"])
     except Exception as e:
-        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {str(e)[:160]}")
-    if rows:
-        if len(_FNO_CHAIN_CACHE) > 12:
-            _FNO_CHAIN_CACHE.clear()
-        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows}
+        err = (err + " | " if err else "") + type(e).__name__ + ": " + str(e)[:160]
+        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err}")
+    if len(_FNO_CHAIN_CACHE) > 12:
+        _FNO_CHAIN_CACHE.clear()
+    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
     return rows
 
 
@@ -42540,6 +42544,9 @@ def _fno_by_index_snapshot() -> dict:
         opener = _nse_opener() if cold else None  # one cookie handshake for every index that needs a chain fetch
         for u in short:
             chain = _fno_chain_fetch(u, None, opener)
+            cerr = (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("error")
+            if cerr:
+                raw.setdefault("errors", {})["chain_" + u] = cerr  # B-1678 fix: never a silent empty index
             if chain:
                 merged = _fno_group_by_index((groups.get(u) or []) + chain, 50).get(u) or []
                 groups[u] = merged
