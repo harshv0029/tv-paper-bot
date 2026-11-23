@@ -2495,3 +2495,8 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 - The user asked for a stricter sentiment check. Rather than replace v1, a second immutable tag runs beside it on the same data, so the gate's value is measured, not assumed: same pick, same exits, only the entry filter differs (move >= 0.25%, index beyond its open, NIFTY breadth >= 1.5x, VIX not spiking for CEs).
 - Expect fewer trades; the question is whether net % per trade and per day rise enough to offset the lost count.
 - Profit-booking / exit takeaway: exits are identical (2% trail from peak, top-3 or sentiment loss, 15:15 IST), so any difference in net comes from entry quality alone; if strict wins mostly through fewer 2% trail stop-outs, the trail is the next thing to test, not the gate.
+
+### 2026-11-23 IST: B-1676 first live paper trades, the 2% trail on an expiry-day premium (B-1679)
+- BANKNIFTY 63000 PE (expiry day, +168% on the day) entered 12:07 IST at 169.75 and was next seen at 117.25: -31.73% net on a 2% trail. Re-entered 12:17 IST at 117.60, exited 127.55 on the trail: +7.66%. Today: 2 trades, 1 win, -24.07% summed.
+- The paper exit only sees a 60 s-cached, 1-3 min delayed snapshot, so on expiry-day gamma the trail level is gapped through between samples; the paper loss is the observed gap, not what a resting SL-M would fill at (that would slip too, but by less).
+- Profit-booking / exit takeaway: a 2% trail only means something with tick-level prices and a resting stop; with minute-level sampling report both the trail-level exit and the observed exit, and test skipping expiry-day contracts, where premiums move 30% between samples.
