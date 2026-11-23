@@ -110327,7 +110327,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs672.15",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 9195,
+   "ts": 1795406125.944156,
+   "symbol": "COCHINSHIP.NS",
+   "kotak_trading_symbol": "COCHINSHIP-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261123000015995",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs1120.60",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-23T03:54:02Z"
+ "synced_at_utc": "2026-11-23T03:56:26Z"
 }
