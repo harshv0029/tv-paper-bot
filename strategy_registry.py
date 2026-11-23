@@ -3256,6 +3256,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_b1472o.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_b1676 as _b1676  # B-1676 paper forward test (no metrics yet, never wired)
+        REGISTRY.extend(_b1676.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
