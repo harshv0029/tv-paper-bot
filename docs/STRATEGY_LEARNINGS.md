@@ -2540,3 +2540,8 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
   real `_fno_momo_step`, the only honest 5m backtest of this strategy. Until then, no threshold is tuned.
 - Profit-booking / exit takeaway: the tape keeps every minute's premium, so the replay can measure the 2% trail
   against wider trails and peak-vs-exit give-back on real intraday paths, not daily bars.
+
+### 2026-11-23 IST: B-1688 tape widened to ATM +-10 strikes of every index chain, plus India VIX
+- The most-active list only shows contracts that already traded heavily, so a replay could never ask "what would a strike two away from ATM have done". Storing the whole ATM +-10 window (CE and PE, nearest expiry) every minute lets the backtest test strike choice (ATM vs 1-3 OTM), not only the top-3-by-volume rule.
+- VIX is stored per minute so the strict gate's VIX +5% CE block can be replayed and swept (3/5/8%) instead of taken on faith.
+- Profit-booking / exit takeaway: with the full strike ladder per minute, the trailing-SL sweep can be run per moneyness bucket; expect OTM legs to need a wider trail than ATM (higher % noise), so do not carry one trail % across strikes without testing it.

@@ -82,6 +82,7 @@ import os  # noqa: E402
 
 _cap_malloc_arenas()
 import base64
+import zlib
 import array
 import bisect
 import collections
@@ -42452,12 +42453,13 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
     return out
 
 
-def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
-    """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S. [] on failure."""
+def _fno_chain_fetch(underlying, expiry=None, opener=None, ttl=None) -> list:
+    """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S (or ttl,
+    B-1688 tape: 60 s). [] on failure."""
     key = (underlying, expiry or "")
     now = time.time()
     hit = _FNO_CHAIN_CACHE.get(key)
-    ttl = FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S
+    ttl = ttl or (FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S)
     if hit and now - hit["ts"] < ttl:
         return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
     rows, err = [], None
@@ -42664,13 +42666,18 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
 # one Upstash key per minute (EX 3 days, so a Render wipe loses nothing) + a daily git journal
 # (fno-tape-journal.yml -> docs/fno_tape/<day>.json.gz, from /fno-tape?fill=1). Research only: never a real entry/SL.
 FNO_TAPE_PER_INDEX = 15
-FNO_TAPE_UPSTASH_PREFIX = "fno_tape_v1"
+FNO_TAPE_UPSTASH_PREFIX = "fno_tape_v2"  # B-1688: v2 payload (ATM +-10 chain window + VIX), zlib+b64 in Upstash
+# B-1688 (user 2026-11-23 "storing data for +-10 strikes for ATM of all index option chain"): every index, nearest
+# expiry, the 21 strikes around ATM (strike nearest the spot), CE and PE. An index whose chain fails falls back to
+# its top FNO_TAPE_PER_INDEX most-active rows (src "most_active"), never an empty index.
+FNO_TAPE_ATM_STRIKES = 10
+FNO_TAPE_CHAIN_S = 60
 FNO_TAPE_UPSTASH_EX_S = 3 * 86400
 FNO_TAPE_KEEP_DAYS = 3
 FNO_TAPE_COLS = ("contract", "lastPrice", "pChange", "numberOfContractsTraded", "openInterest",
                  "changeinOpenInterest", "impliedVolatility", "underlyingValue")
 _FNO_TAPE_STATE = {"last_minute": None, "rows_today": 0, "day": None, "upstash_ok": 0, "upstash_fail": 0,
-                   "skipped_budget": 0, "last_error": None}
+                   "skipped_budget": 0, "last_error": None, "atm_indices": []}
 
 
 def _fno_tape_window(now=None) -> bool:
@@ -42684,12 +42691,79 @@ def _fno_tape_ensure(conn) -> None:
                  " PRIMARY KEY (day, minute))")
 
 
-def _fno_tape_payload(groups: dict, index_pct: dict) -> dict:
+def _fno_expiry_key(e):
+    try:
+        return dt.datetime.strptime(str(e), "%d-%b-%Y")
+    except (TypeError, ValueError):
+        return dt.datetime.max
+
+
+def _fno_atm_window(rows, n: int = FNO_TAPE_ATM_STRIKES) -> tuple:
+    """(rows, atm_strike): the nearest expiry's legs within +-n strikes of ATM (the strike nearest the spot),
+    sorted by strike then CE/PE. ([], None) when the chain has no usable strike or spot."""
+    rows = [r for r in rows or [] if isinstance(r, dict) and r.get("contract") and _fno_num(r.get("strikePrice")) > 0]
+    if not rows:
+        return [], None
+    exp = min({r.get("expiryDate") for r in rows}, key=_fno_expiry_key)
+    rows = [r for r in rows if r.get("expiryDate") == exp]
+    spots = sorted(_fno_num(r.get("underlyingValue")) for r in rows if _fno_num(r.get("underlyingValue")) > 0)
+    if not spots:
+        return [], None
+    spot = spots[len(spots) // 2]
+    strikes = sorted({_fno_num(r.get("strikePrice")) for r in rows})
+    i = min(range(len(strikes)), key=lambda j: abs(strikes[j] - spot))
+    keep = set(strikes[max(0, i - n): i + n + 1])
+    out = sorted((r for r in rows if _fno_num(r.get("strikePrice")) in keep),
+                 key=lambda r: (_fno_num(r.get("strikePrice")), str(r.get("optionType"))))
+    return out, strikes[i]
+
+
+def _fno_tape_chains() -> dict:
+    """{index: (atm_rows, atm_strike)} for every index whose chain answers; one NSE cookie handshake. Never raises."""
     out = {}
-    for u, rows in (groups or {}).items():
-        out[u] = [[r.get(c) if c == "contract" else round(_fno_num(r.get(c)), 2) for c in FNO_TAPE_COLS]
-                  for r in (rows or [])[:FNO_TAPE_PER_INDEX] if r.get("contract")]
-    return {"cols": list(FNO_TAPE_COLS), "rows": out, "index_pct": dict(index_pct or {})}
+    try:
+        cold = any(time.time() - (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("ts", 0.0) >= FNO_TAPE_CHAIN_S
+                   for u in _FNO_INDEX_UNDERLYINGS if u != "SENSEX")
+        opener = _nse_opener() if cold else None
+    except Exception as e:  # noqa: BLE001
+        opener = None
+        _FNO_TAPE_STATE["last_error"] = f"opener: {str(e)[:120]}"
+    for u in _FNO_INDEX_UNDERLYINGS:
+        try:
+            w, atm = _fno_atm_window(_fno_chain_fetch(u, None, opener, ttl=FNO_TAPE_CHAIN_S))
+        except Exception as e:  # noqa: BLE001
+            w, atm = [], None
+            _FNO_TAPE_STATE["last_error"] = f"chain {u}: {str(e)[:120]}"
+        if w:
+            out[u] = (w, atm)
+    return out
+
+
+def _fno_tape_payload(groups: dict, index_pct: dict, chains: dict = None, index_detail: dict = None) -> dict:
+    def pack(rs):
+        return [[r.get(c) if c == "contract" else round(_fno_num(r.get(c)), 2) for c in FNO_TAPE_COLS]
+                for r in rs if r.get("contract")]
+    out, src, atm = {}, {}, {}
+    chains = chains or {}
+    for u in list(_FNO_INDEX_UNDERLYINGS) + [k for k in (groups or {}) if k not in _FNO_INDEX_UNDERLYINGS]:
+        if u in chains:
+            out[u], src[u], atm[u] = pack(chains[u][0]), "atm_chain", chains[u][1]
+        elif (groups or {}).get(u):
+            out[u], src[u] = pack(groups[u][:FNO_TAPE_PER_INDEX]), "most_active"
+    pct = dict(index_pct or {})
+    vd = (index_detail or {}).get("INDIAVIX") or {}
+    vix = {"last": vd.get("last"), "pct": pct.get("INDIAVIX")}
+    return {"cols": list(FNO_TAPE_COLS), "rows": out, "src": src, "atm": atm, "index_pct": pct, "vix": vix}
+
+
+def _fno_tape_pack(payload: str) -> str:
+    return "z:" + base64.b64encode(zlib.compress(payload.encode("utf-8"), 9)).decode("ascii")
+
+
+def _fno_tape_unpack(raw: str) -> dict:
+    if raw.startswith("z:"):
+        raw = zlib.decompress(base64.b64decode(raw[2:])).decode("utf-8")
+    return json.loads(raw)
 
 
 def _fno_tape_upstash_set(key: str, value: str) -> None:
@@ -42700,7 +42774,7 @@ def _fno_tape_upstash_set(key: str, value: str) -> None:
     resp.raise_for_status()
 
 
-def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None) -> bool:
+def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None, index_detail=None, chains=None) -> bool:
     """One tape row per IST minute (first fresh snapshot of the minute wins). Never raises."""
     try:
         now = now or ist_now()
@@ -42709,7 +42783,11 @@ def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None) -> bool
         day, minute = now.strftime("%Y-%m-%d"), now.strftime("%H:%M")
         if _FNO_TAPE_STATE["last_minute"] == (day, minute):
             return False
-        payload = json.dumps(_fno_tape_payload(groups, index_pct), separators=(",", ":"))
+        _FNO_TAPE_STATE["last_minute"] = (day, minute)  # claimed first: a slow chain fetch is never repeated
+        if chains is None:
+            chains = _fno_tape_chains()
+        _FNO_TAPE_STATE["atm_indices"] = sorted(chains)
+        payload = json.dumps(_fno_tape_payload(groups, index_pct, chains, index_detail), separators=(",", ":"))
         own = conn is None
         c = conn or get_db()
         try:
@@ -42730,7 +42808,8 @@ def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None) -> bool
                 _FNO_TAPE_STATE["skipped_budget"] += 1
             else:
                 try:
-                    _fno_tape_upstash_set(f"{FNO_TAPE_UPSTASH_PREFIX}:{day}:{minute.replace(':', '')}", payload)
+                    _fno_tape_upstash_set(f"{FNO_TAPE_UPSTASH_PREFIX}:{day}:{minute.replace(':', '')}",
+                                          _fno_tape_pack(payload))
                     _FNO_TAPE_STATE["upstash_ok"] += 1
                 except Exception as e:  # noqa: BLE001
                     _FNO_TAPE_STATE["upstash_fail"] += 1
@@ -42773,7 +42852,7 @@ def _fno_tape_export(day: str, fill: bool = False, conn=None) -> dict:
                 fill_err = str(e)[:120]
                 break
             if raw:
-                rows[m] = json.loads(raw)
+                rows[m] = _fno_tape_unpack(raw)
                 filled += 1
     return {"day": day, "minutes": len(rows), "local": local, "filled_from_upstash": filled, "fill_error": fill_err,
             "expected_minutes": len(_fno_tape_minutes(day)),
@@ -42854,7 +42933,7 @@ def _fno_by_index_snapshot() -> dict:
     if data["ok"]:
         c.update(ts=now, data=data)
         _fno_hist_record(groups, now)
-        _fno_tape_record(groups, data["index_pct"])  # B-1687 (b): once per IST minute, never raises
+        _fno_tape_record(groups, data["index_pct"], index_detail=data["index_detail"])  # B-1687/B-1688, never raises
     return dict(data, cached=False)
 
 
@@ -42915,7 +42994,9 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
                            for r in rows[:n]],
                   "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active"),
                   "error": (snap.get("errors") or {}).get("chain_" + u)}
+    vd = (snap.get("index_detail") or {}).get("INDIAVIX") or {}
     return {"indices": out, "positive_only": bool(positive_only),
+            "india_vix": {"last": vd.get("last"), "pct": pct.get("INDIAVIX")},  # B-1688: VIX beside the Greeks
             "per_index": n, "fetched_ist": snap.get("fetched_ist"), "cached": snap.get("cached", False),
             "ok": snap.get("ok", False), "age_s": snap.get("age_s"), "loading": snap.get("loading", False),
             "errors": snap.get("errors", {}),

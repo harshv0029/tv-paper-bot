@@ -57,6 +57,7 @@ def env(monkeypatch):
     monkeypatch.setattr(main, "_upstash_pause_check", lambda k: None)
     monkeypatch.setattr(main, "_upstash_db_is_stale", lambda *a, **k: False)
     monkeypatch.setattr(main, "_upstash_meter", lambda *a, **k: None)
+    monkeypatch.setattr(main, "_fno_tape_chains", lambda: {})  # B-1688: no network
     yield fake
     os.remove(path)
 
@@ -80,7 +81,7 @@ def test_one_row_per_minute_and_upstash_key(env):
     assert t0["minute"] == "10:00" and t0["index_pct"] == {"NIFTY": 0.4}
     row = t0["rows"]["NIFTY"][0]
     assert dict(zip(t0["cols"], row))["lastPrice"] == 100.0 and row[0] == "NIFTY 25500 CE 27-Nov-2026"
-    assert set(env.kv) == {"fno_tape_v1:2026-11-23:1000", "fno_tape_v1:2026-11-23:1001"}
+    assert set(env.kv) == {"fno_tape_v2:2026-11-23:1000", "fno_tape_v2:2026-11-23:1001"}
     assert all(u.endswith(f"?EX={main.FNO_TAPE_UPSTASH_EX_S}") for u in env.urls)
 
 
