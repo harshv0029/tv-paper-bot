@@ -1,0 +1,228 @@
+"""B-1676 PAPER most-active index option momentum: pick, sentiment gate, trailing / confidence / 15:15 exits, cost math,
+no Kotak or real-order path, Upstash mirror + restore on wipe, tick hook never raises. No network."""
+import datetime as dt
+import os
+import tempfile
+from contextlib import closing
+
+import pytest
+
+import kotak_real_fo_orders
+import kotak_real_orders
+import main
+import strategy_registry as sr
+
+REAL_SYNC = main.sync_generic_tables_external
+SYNCED = []
+MON = dt.datetime(2026, 11, 23, 10, 0)
+T0 = 1_800_000_000.0
+
+
+def _r(u, k, ot, n, pc, px):
+    r = {"underlying": u, "strikePrice": k, "optionType": "Call" if ot == "CE" else "Put", "expiryDate": "27-Nov-2026",
+         "lastPrice": px, "pChange": pc, "numberOfContractsTraded": n}
+    r["contract"] = main._fno_label(r)
+    return r
+
+
+def _snap(rows, pct):
+    return {"ok": True, "groups": main._fno_group_by_index(rows, 50), "index_pct": pct}
+
+
+BASE = [_r("NIFTY", 25500, "CE", 900, 12.0, 100.0), _r("NIFTY", 25400, "PE", 800, -5.0, 50.0),
+        _r("NIFTY", 25600, "CE", 700, 3.0, 40.0), _r("NIFTY", 25700, "CE", 100, 80.0, 5.0),  # rank 4: ignored
+        _r("BANKNIFTY", 52000, "PE", 500, 30.0, 200.0), _r("BANKNIFTY", 52500, "CE", 400, 8.0, 150.0)]
+CE_NAME = "NIFTY 25500 CE 27-Nov-2026"
+
+
+@pytest.fixture(autouse=True)
+def db(monkeypatch):
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    monkeypatch.setattr(main, "DB_PATH", path)
+    main.init_db()
+    SYNCED.clear()
+    monkeypatch.setattr(main, "sync_generic_tables_external", lambda only=None: SYNCED.append(only) or 0)
+    monkeypatch.setitem(main._FNO_MOMO_STATE, "last_scan_ts", 0.0)
+    monkeypatch.setitem(main._FNO_MOMO_STATE, "last_scan", None)
+    # PAPER ONLY: any Kotak/real-order call fails the test
+    for mod in (kotak_real_orders, kotak_real_fo_orders):
+        for name in dir(mod):
+            if name.startswith(("place_", "cancel_", "modify_")) and callable(getattr(mod, name)):
+                monkeypatch.setattr(mod, name, lambda *a, **k: pytest.fail("real order path called"))
+    monkeypatch.setattr(main, "_fno_most_active_fetch", lambda *a, **k: pytest.fail("network called"))
+    with closing(main.get_db()) as c:
+        yield c
+
+
+def _open(db):
+    return db.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open'").fetchone()
+
+
+def test_tag_and_trail_constant_registered_paper_only():
+    assert main.FNO_MOMO_TAG == "fno_mostactive_momo__top3_max_gain__long_opt__5m__trail2__v1"
+    assert main.FNO_MOMO_TRAIL_PCT == 0.02
+    d = [x for x in sr.REGISTRY if x.name == main.FNO_MOMO_TAG]
+    assert len(d) == 1 and d[0].status == sr.StrategyStatus.RESEARCH and d[0].metrics is None
+    assert d[0].categories == (sr.TradeCategory.OPTIONS,) and not d[0].is_wired()
+
+
+def test_pick_largest_positive_change_among_top3_per_index():
+    g = main._fno_group_by_index(BASE, 50)
+    p = main._fno_momo_pick(g)
+    assert p["contract"] == "BANKNIFTY 52000 PE 27-Nov-2026" and p["option_type"] == "PE" and p["rank"] == 1
+    g["BANKNIFTY"] = []
+    assert main._fno_momo_pick(g)["contract"] == CE_NAME  # NIFTY rank-4 +80% is outside the top 3
+    assert main._fno_momo_pick({"NIFTY": [_r("NIFTY", 1, "CE", 1, -1.0, 5.0)]}) is None
+
+
+@pytest.mark.parametrize("ot,idx,nifty,want", [
+    ("CE", 0.5, 0.2, True), ("CE", 0.5, -0.1, False), ("CE", -0.5, 0.3, False),
+    ("PE", -0.5, -0.2, True), ("PE", -0.5, 0.1, False), ("PE", 0.4, -0.2, False),
+    ("CE", None, 0.2, None), ("PE", -0.1, None, None)])
+def test_sentiment_gate(ot, idx, nifty, want):
+    assert main._fno_momo_sentiment(ot, idx, nifty) is want
+
+
+def test_entry_needs_agreeing_sentiment(db):
+    rows = [r for r in BASE if r["underlying"] == "NIFTY"]
+    assert main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": -0.3}), now_ts=T0) == []
+    assert _open(db) is None and main._FNO_MOMO_STATE["last_scan"]["skip"] == "skipped_sentiment_disagrees"
+    acts = main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 300)
+    o = _open(db)
+    assert acts[0]["action"] == "entry" and o["contract"] == CE_NAME and o["entry_price"] == 100.0
+    assert o["stop_price"] == 98.0 and o["tag"] == main.FNO_MOMO_TAG and SYNCED[-1] == ("fno_momo_paper_trades",)
+    # one position at a time: no second entry while open
+    main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 600)
+    assert db.execute("SELECT COUNT(*) FROM fno_momo_paper_trades").fetchone()[0] == 1
+
+
+def test_scan_throttled_to_5_min_and_window(db):
+    rows = [r for r in BASE if r["underlying"] == "NIFTY"]
+    main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": -0.3}), now_ts=T0)
+    main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 60)
+    assert _open(db) is None  # next scan only after 5 min
+    late = MON.replace(hour=14, minute=31)
+    main._fno_momo_step(db, now=late, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 900)
+    assert _open(db) is None
+    hol = dt.datetime(2026, 11, 24, 10, 0)
+    assert main._fno_momo_step(db, now=hol, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 1200) == []
+
+
+def _enter(db):
+    rows = [r for r in BASE if r["underlying"] == "NIFTY"]
+    main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0)
+    assert _open(db) is not None
+    return rows
+
+
+def _with_price(rows, px):
+    return [dict(r, lastPrice=px) if r["contract"] == CE_NAME else r for r in rows]
+
+
+def test_trailing_sl_2pct_from_peak(db):
+    rows = _enter(db)
+    main._fno_momo_step(db, now=MON, snapshot=_snap(_with_price(rows, 120.0), {"NIFTY": 0.3}), now_ts=T0 + 30)
+    o = _open(db)
+    assert o["peak_price"] == 120.0 and o["stop_price"] == pytest.approx(117.6)
+    main._fno_momo_step(db, now=MON, snapshot=_snap(_with_price(rows, 118.0), {"NIFTY": 0.3}), now_ts=T0 + 60)
+    assert _open(db) is not None  # exits checked every call (every tick), not only every 5 min
+    acts = main._fno_momo_step(db, now=MON, snapshot=_snap(_with_price(rows, 117.5), {"NIFTY": 0.3}), now_ts=T0 + 90)
+    assert acts[0]["reason"] == "trailing_sl" and _open(db) is None
+    t = db.execute("SELECT * FROM fno_momo_paper_trades").fetchone()
+    assert t["close_price"] == 117.5 and t["net_pct"] == pytest.approx(17.5 - main.ROUND_TRIP_COST_PCT)
+
+
+def test_confidence_loss_out_of_top3(db):
+    rows = _enter(db)
+    rows = [dict(r, numberOfContractsTraded=1) if r["contract"] == CE_NAME else r for r in rows]
+    acts = main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0 + 30)
+    assert acts[0]["reason"] == "confidence_lost_top3"
+
+
+def test_confidence_loss_sentiment_flip(db):
+    rows = _enter(db)
+    acts = main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {"NIFTY": -0.05}), now_ts=T0 + 30)
+    assert acts[0]["reason"] == "confidence_lost_sentiment"
+
+
+def test_unknown_sentiment_does_not_exit(db):
+    rows = _enter(db)
+    assert main._fno_momo_step(db, now=MON, snapshot=_snap(rows, {}), now_ts=T0 + 30) == []
+    assert _open(db) is not None
+
+
+def test_forced_exit_1515(db):
+    rows = _enter(db)
+    acts = main._fno_momo_step(db, now=MON.replace(hour=15, minute=15), snapshot=_snap(rows, {"NIFTY": 0.3}),
+                               now_ts=T0 + 30)
+    assert acts[0]["reason"] == "forced_exit_1515"
+    assert main._fno_momo_due(MON.replace(hour=15, minute=16)) and not main._fno_momo_due(MON.replace(hour=15, minute=25))
+
+
+def test_stale_open_from_previous_day_is_closed(db):
+    _enter(db)
+    nxt = dt.datetime(2026, 11, 25, 9, 20)
+    acts = main._fno_momo_step(db, now=nxt, snapshot={"ok": False}, now_ts=T0 + 90000)
+    assert acts[0]["reason"] == "stale_prev_day_close" and _open(db) is None
+
+
+def test_cost_math():
+    assert main.ROUND_TRIP_COST_PCT == 0.8
+    assert main._fno_momo_net_pct(100.0, 100.0) == -0.8
+    assert main._fno_momo_net_pct(50.0, 55.0) == pytest.approx(9.2)
+
+
+def test_route_reports_open_trades_and_totals(db, monkeypatch):
+    from fastapi.testclient import TestClient
+    monkeypatch.setattr(main, "ist_now", lambda: MON)
+    rows = _enter(db)
+    main._fno_momo_step(db, now=MON, snapshot=_snap(_with_price(rows, 90.0), {"NIFTY": 0.3}), now_ts=T0 + 30)
+    j = TestClient(main.app).get("/fno-momo-paper").json()
+    assert j["mode"] == "paper" and j["open"] is None and j["trail_pct"] == 2.0
+    assert j["category"] == "options" and j["category_label"] == "Single leg option"
+    assert j["today"]["n"] == 1 and j["today"]["net_pct_sum"] == pytest.approx(-10.8)
+    assert j["trades"][0]["opened_ist"].endswith("IST") and j["trades"][0]["close_reason"] == "trailing_sl"
+
+
+def test_tick_hook_swallows_errors(monkeypatch):
+    monkeypatch.setattr(main, "_fno_momo_step", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+    main._fno_momo_tick_hook()  # must not raise
+    monkeypatch.setattr(main, "get_db", lambda: (_ for _ in ()).throw(RuntimeError("db gone")))
+    main._fno_momo_tick_hook()
+
+
+def test_tick_wires_the_hook():
+    import inspect
+    src = inspect.getsource(main._scheduler_tick)
+    assert "_fno_momo_tick_hook" in src and "_fno_momo_due()" in src
+
+
+def test_mirrored_and_restored_after_wipe(monkeypatch):
+    store = {}
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "http://fake")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    monkeypatch.setattr(main, "_upstash_get", lambda k: store.get(k))
+    monkeypatch.setattr(main, "_upstash_set", lambda k, v: store.__setitem__(k, v))
+    monkeypatch.setattr(main, "sync_generic_tables_external", REAL_SYNC)
+    main._generic_mirror_hydrated.clear()
+    main._generic_mirror_last_hash.clear()
+    assert "fno_momo_paper_trades" in main._GENERIC_MIRROR_TABLES
+    assert "fno_momo_paper_trades" in main._GENERIC_MIRROR_UPSTASH_TABLES
+    for _ in range(2):
+        fd, path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        monkeypatch.setattr(main, "DB_PATH", path)
+        main.init_db()
+        main._generic_mirror_hydrated.clear()
+        main.hydrate_generic_tables_from_external(only=("fno_momo_paper_trades",))
+        with closing(main.get_db()) as c:
+            if not c.execute("SELECT 1 FROM fno_momo_paper_trades").fetchone():
+                main._FNO_MOMO_STATE["last_scan_ts"] = 0.0
+                rows = [r for r in BASE if r["underlying"] == "NIFTY"]
+                main._fno_momo_step(c, now=MON, snapshot=_snap(rows, {"NIFTY": 0.3}), now_ts=T0)  # entry -> push
+            else:
+                r = c.execute("SELECT contract, status, tag FROM fno_momo_paper_trades").fetchone()
+                assert tuple(r) == (CE_NAME, "open", main.FNO_MOMO_TAG)
+                return
+    pytest.fail("open paper position was not restored after the wipe")
