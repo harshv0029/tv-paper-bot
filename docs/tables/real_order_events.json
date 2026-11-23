@@ -110303,7 +110303,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs362.40",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 9193,
+   "ts": 1795406024.0171244,
+   "symbol": "KALYANKJIL.NS",
+   "kotak_trading_symbol": "KALYANKJIL-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261123000068465",
+   "prev_state": "no position",
+   "new_state": "short 3 @ Rs665.10",
+   "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-23T03:48:47Z"
+ "synced_at_utc": "2026-11-23T03:53:46Z"
 }
