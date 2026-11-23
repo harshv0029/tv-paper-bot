@@ -2513,3 +2513,14 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
   BOTH net columns before any real-money discussion.
 - Profit-booking / exit takeaway: a tight 2% trail only means 2% if the stop rests at the exchange; any exit checked by
   polling must be priced at the observed print, so real options exits must always be resting SL-M orders, never polled.
+
+## 2026-11-23 B-1681: OI + Greeks for option-buying entries (research read + prior rules)
+- OI grid (broker/education sources): premium up + OI up = long buildup; premium up + OI down = short covering; down + up =
+  short buildup; down + down = long unwinding. Every source warns these are descriptive, not signals, and that intraday and
+  expiry-rollover OI moves are noisy. So OI is used only as a filter (skip short covering), never as the trigger.
+- Greeks are computed from the premium's own Black-Scholes implied vol (no IV feed needed). For an ATM option theta/premium
+  is about 1/(2 x days to expiry), so a theta cap is really a days-to-expiry floor: 15%/day allows ~3.3+ days for ATM and
+  rejects most OTM weeklies on their last days, the exact contracts that gapped through the 2% stop today.
+- No backtest is possible yet (no free intraday option-premium history); View 6 says so instead of showing a number.
+- Profit-booking / exit takeaway: a high-theta contract loses premium every minute it is held, so the entry filter (theta
+  cap, delta band) matters as much as the 2% trail; test exits only on contracts the filter would admit.

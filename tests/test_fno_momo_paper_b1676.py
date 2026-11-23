@@ -279,7 +279,7 @@ def test_strict_variant_has_own_position_and_tag(db):
     assert tags == sorted([main.FNO_MOMO_TAG, main.FNO_MOMO_STRICT_TAG])
     out = main.fno_momo_paper(tag=main.FNO_MOMO_STRICT_TAG)
     assert out["gate"] == "strict" and out["open"]["tag"] == main.FNO_MOMO_STRICT_TAG
-    assert set(out["variants"]) == {main.FNO_MOMO_TAG, main.FNO_MOMO_STRICT_TAG}
+    assert set(out["variants"]) == {v["tag"] for v in main.FNO_MOMO_VARIANTS}
 
 
 def test_strict_registered_single_leg_option_never_wired():
@@ -292,7 +292,7 @@ def test_tick_hook_runs_every_variant(monkeypatch):
     seen = []
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
     main._fno_momo_tick_hook()
-    assert seen == ["basic", "strict"]
+    assert seen == ["basic", "strict", "oigreeks"]
 
 
 # ---- B-1678 / B-1679 (d) / B-1680 (user 2026-11-23) ------------------------------------------------------------------
@@ -368,7 +368,7 @@ def test_snapshot_fills_crowded_out_indices_from_their_chain(monkeypatch):
     monkeypatch.setattr(main, "_fno_chain_fetch", lambda u, e=None, o=None: asked.append(u) or (
         main._fno_chain_rows(V3, u, "30-Dec-2026") if u == "FINNIFTY" else []))
     snap = REAL_SNAP()
-    assert asked == ["BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50"]  # NIFTY already has 5+ rows
+    assert asked == ["BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50", "SENSEX"]  # NIFTY already has 5+ rows
     assert snap["sources"]["FINNIFTY"] == "option_chain" and snap["sources"]["NIFTY"] == "most_active"
     assert snap["groups"]["FINNIFTY"][0]["contract"] == "FINNIFTY 23000 PE 30-Dec-2026"  # 7000 > 5000 traded
     assert len(snap["groups"]["NIFTY"]) == 6 and main._FNO_PX_HIST  # 15-min samples recorded
@@ -401,7 +401,7 @@ def test_tick_hook_passes_the_fresh_quote(monkeypatch):
     seen = []
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, quote=None, **k: seen.append(quote))
     main._fno_momo_tick_hook()
-    assert seen == [main._fno_contract_ltp, main._fno_contract_ltp]
+    assert seen == [main._fno_contract_ltp] * len(main.FNO_MOMO_VARIANTS)
 
 
 def test_contract_ltp_reads_its_own_expiry_chain(monkeypatch):
@@ -415,3 +415,131 @@ def test_new_columns_mirror_and_restore(db):
     cols = {r[1] for r in db.execute("PRAGMA table_info(fno_momo_paper_trades)")}
     assert {"stop_at_exit", "observed_exit_price", "observed_net_pct"} <= cols
     main.init_db()  # migration is idempotent
+
+
+def test_chain_failure_is_cached_and_reported(monkeypatch):
+    calls = []
+    monkeypatch.setattr(main, "_nse_opener", lambda *a, **k: ("op", {}))
+    monkeypatch.setattr(main, "_nse_get_json", lambda *a, **k: calls.append(a[2]) or (_ for _ in ()).throw(
+        TimeoutError("timed out")))
+    assert main._fno_chain_fetch("FINNIFTY") == []
+    assert main._fno_chain_fetch("FINNIFTY") == [] and len(calls) == 1  # cached failure: no refetch inside 120 s
+    assert "TimeoutError" in main._FNO_CHAIN_CACHE[("FINNIFTY", "")]["error"]
+    monkeypatch.setattr(main, "_FNO_BY_INDEX_CACHE", {"ts": 0.0, "data": None})
+    nifty = [_r("NIFTY", 25500 + 100 * i, "CE", 900 - i, 1.0, 50.0) for i in range(6)]
+    monkeypatch.setattr(main, "_fno_most_active_fetch", lambda *a, **k: {"lists": {"index_calls": nifty}, "errors": {}})
+    monkeypatch.setattr(main, "_fno_index_day_changes", lambda: {})
+    snap = REAL_SNAP()
+    assert "TimeoutError" in snap["errors"]["chain_FINNIFTY"] and "chain_BANKNIFTY" in snap["errors"]
+
+
+def test_chain_v3_path_used_with_nearest_expiry(monkeypatch):
+    paths = []
+    monkeypatch.setattr(main, "_nse_opener", lambda *a, **k: ("op", {}))
+
+    def fake(op, hdrs, path, *a, **k):
+        paths.append(path)
+        return {"expiryDates": ["30-Dec-2026", "27-Jan-2027"]} if "contract-info" in path else V3
+    monkeypatch.setattr(main, "_nse_get_json", fake)
+    rows = main._fno_chain_fetch("FINNIFTY")
+    assert len(rows) == 2 and "option-chain-v3?type=Indices&symbol=FINNIFTY&expiry=30-Dec-2026" in paths[1]
+    assert main._FNO_CHAIN_CACHE[("FINNIFTY", "")]["error"] is None
+
+
+# ---- B-1681: OI + Greeks gate, SENSEX via BSE, merge-restore of the paper table -------------------------------------
+OIG = next(v for v in main.FNO_MOMO_VARIANTS if v["gate"] == "oigreeks")
+
+
+def test_black_scholes_round_trip_and_greeks():
+    S, K, T = 25000.0, 25000.0, 7 / 365
+    px = main._bs_price(S, K, T, 0.15, "CE")
+    assert main._bs_implied_vol(px, S, K, T, "CE") == pytest.approx(0.15, abs=1e-4)
+    g = main._bs_greeks(S, K, T, 0.15, "CE")
+    assert 0.5 < g["delta"] < 0.56 and g["theta_per_day"] < 0 and g["gamma"] > 0 and g["vega_per_vol_pt"] > 0
+    assert main._bs_greeks(S, K, T, 0.15, "PE")["delta"] == pytest.approx(g["delta"] - 1.0, abs=1e-6)
+    assert main._bs_implied_vol(100.0, S, 20000.0, T, "CE") is None  # below intrinsic (5000)
+
+
+def _orow(pc=10.0, oi_chg=500, px=150.0, k=25000, spot=25000.0, ot="CE", exp="27-Nov-2026"):
+    r = {"underlying": "NIFTY", "strikePrice": k, "optionType": "Call" if ot == "CE" else "Put",
+         "expiryDate": exp, "lastPrice": px, "pChange": pc, "numberOfContractsTraded": 900,
+         "openInterest": 10000, "changeinOpenInterest": oi_chg, "underlyingValue": spot}
+    r["contract"] = main._fno_label(r)
+    return r
+
+
+@pytest.mark.parametrize("row,want,skip", [
+    (_orow(), True, None),
+    (_orow(oi_chg=-500), False, "skipped_oi_short_covering"),
+    (_orow(oi_chg=None), None, "skipped_oi_greeks_unknown"),
+    (_orow(k=26000, px=2.0), False, "skipped_delta_out_of_band"),   # deep OTM lottery ticket
+    (_orow(exp="24-Nov-2026", px=80.0), False, "skipped_theta_burden"),  # ATM 1.2 days out: ~40%/day decay
+])
+def test_oi_greeks_gate(row, want, skip):
+    m = main._fno_option_metrics(row, MON)
+    assert main._fno_momo_oi_greeks_gate(m) == (want, skip)
+
+
+def test_oigreeks_variant_enters_with_why_and_meta(db):
+    good = _orow()
+    main._fno_momo_step(db, now=MON, snapshot=_snap([good], {"NIFTY": 0.3}), now_ts=T0, variant=OIG)
+    t = db.execute("SELECT * FROM fno_momo_paper_trades WHERE tag = ?", (OIG["tag"],)).fetchone()
+    assert t is not None and "long_buildup" in t["open_reason"] and "delta" in t["open_reason"]
+    import json
+    meta = json.loads(t["entry_meta"])
+    assert meta["gate"] == "oigreeks" and meta["metrics"]["oi_build"] == "long_buildup"
+    j = main.fno_momo_paper(tag=OIG["tag"])
+    assert j["open"]["entry_meta"]["metrics"]["delta"] > 0 and j["backtest"]["status"] == "none"
+    assert "OI" in j["backtest"]["rule"]
+
+
+def test_oigreeks_variant_skips_short_covering(db):
+    main._fno_momo_step(db, now=MON, snapshot=_snap([_orow(oi_chg=-1)], {"NIFTY": 0.3}), now_ts=T0, variant=OIG)
+    assert db.execute("SELECT COUNT(*) FROM fno_momo_paper_trades").fetchone()[0] == 0
+    assert main._FNO_MOMO_STATES[OIG["tag"]]["last_scan"]["skip"] == "skipped_oi_short_covering"
+
+
+def test_oigreeks_registered_never_wired():
+    d = next(x for x in sr.REGISTRY if x.name == OIG["tag"])
+    assert d.categories == (sr.TradeCategory.OPTIONS,) and d.metrics is None and not d.is_wired()
+
+
+def test_bse_sensex_rows_sniff_keys():
+    payload = {"Table": [{"Strike_Price1": "85000", "C_Ltp": "210.5", "C_NetChange": "10.5", "C_Vol_Traded": "4000",
+                          "C_Open_Interest": "900", "C_Absolute_Change_OI": "50", "P_Ltp": "0", "P_Vol_Traded": "0",
+                          "UlaValue": "85100"}]}
+    rows = main._bse_sensex_rows(payload, "27-Nov-2026")
+    assert len(rows) == 1 and rows[0]["contract"] == "SENSEX 85000 CE 27-Nov-2026"
+    assert rows[0]["pChange"] == pytest.approx(5.25) and rows[0]["numberOfContractsTraded"] == 4000
+    assert main._bse_sensex_rows({}, "x") == [] and main._bse_sensex_rows(None, "x") == []
+
+
+def test_sensex_routes_to_bse_and_reports_errors(monkeypatch):
+    monkeypatch.setattr(main, "_bse_sensex_chain", lambda expiry=None: ([], "HTTPError: 403"))
+    assert main._fno_chain_fetch("SENSEX") == []
+    assert main._FNO_CHAIN_CACHE[("SENSEX", "")]["error"] == "HTTPError: 403"
+
+
+def test_paper_table_merges_on_restore_never_skips():
+    assert main._GENERIC_MIRROR_MERGE_LOG_TABLES["fno_momo_paper_trades"] == ("tag", "opened_ts", "contract")
+
+
+def test_restore_after_an_early_local_entry_keeps_remote_history(db):
+    # the 12:32 IST incident: a new local row exists before the boot restore; remote history must survive
+    db.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, opened_ts, "
+               "entry_price, peak_price, stop_price) VALUES ('t', '2026-11-23', 'open', 'NEW', 'NIFTY', 'CE', 3, 1, 1, 1)")
+    db.commit()
+    remote = [{"id": 1, "tag": "t", "day": "2026-11-23", "status": "closed", "contract": "OLD", "underlying": "NIFTY",
+               "option_type": "PE", "opened_ts": 1, "entry_price": 1, "peak_price": 1, "stop_price": 1}]
+    cols = main._generic_mirror_table_columns(db, "fno_momo_paper_trades")
+    main._generic_merge_log_table(db, "fno_momo_paper_trades", remote, cols)
+    assert sorted(r[0] for r in db.execute("SELECT contract FROM fno_momo_paper_trades")) == ["NEW", "OLD"]
+
+
+def test_view6_rows_carry_oi_and_greeks(monkeypatch):
+    from fastapi.testclient import TestClient
+    g = main._fno_group_by_index([_orow()], 50)
+    monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: {"ok": True, "groups": g, "index_pct": {}})
+    monkeypatch.setattr(main, "ist_now", lambda: MON)
+    r = TestClient(main.app).get("/fno-most-active-by-index").json()["indices"]["NIFTY"]["rows"][0]
+    assert r["oi_build"] == "long_buildup" and r["iv_pct"] > 0 and 0.3 < r["delta"] < 0.65

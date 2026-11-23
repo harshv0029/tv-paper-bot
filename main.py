@@ -1036,7 +1036,8 @@ def init_db():
             )
             """
         )
-        for _col in ("stop_at_exit REAL", "observed_exit_price REAL", "observed_net_pct REAL"):
+        for _col in ("stop_at_exit REAL", "observed_exit_price REAL", "observed_net_pct REAL",
+                     "entry_meta TEXT"):  # B-1681: JSON of the OI / Greeks / sentiment inputs at entry
             try:  # B-1679: a DB restored from before these columns existed
                 conn.execute("ALTER TABLE fno_momo_paper_trades ADD COLUMN " + _col)
             except Exception:
@@ -25446,6 +25447,10 @@ _GENERIC_MIRROR_MERGE_LOG_TABLES = {
     # every P&L refresh, so a capture before the boot restore left the table non-empty, the restore was skipped and
     # the next push replaced the whole remote ledger with today's rows. Merged on its primary key now.
     "kotak_fill_ledger": ("day", "trdsym", "prod", "source"),
+    # B-1681 root cause (2026-11-23: the morning's 2 closed paper trades vanished after the 12:32 restart): the paper
+    # tick entered a trade before the boot restore reached this table, the restore saw a non-empty table and skipped,
+    # and the next push replaced the remote copy. Merged on its natural key now (same fix as kotak_fill_ledger).
+    "fno_momo_paper_trades": ("tag", "opened_ts", "contract"),
 }
 # Local rows that are only valid when the remote copy is empty: the ledger's one-time 'opening' rows are seeded on the
 # "first ever capture", which a pre-restore capture wrongly thinks it is; with a remote history they would double-count.
@@ -42285,12 +42290,13 @@ def fno_most_active(lists: str = "contracts,index_calls,index_puts,stock_calls,s
 
 
 # ---- B-1675 View 6: most-traded index options per index -------------------------------------------------------
-_FNO_INDEX_UNDERLYINGS = ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50")
+_FNO_INDEX_UNDERLYINGS = ("NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50", "SENSEX")  # SENSEX: B-1681, BSE
 # NSE allIndices names -> F&O underlying symbols (for the index day change used by the B-1676 sentiment gate)
 _FNO_INDEX_NAME_MAP = {"NIFTY 50": "NIFTY", "NIFTY BANK": "BANKNIFTY", "NIFTY FINANCIAL SERVICES": "FINNIFTY",
                        "NIFTY MIDCAP SELECT": "MIDCPNIFTY", "NIFTY NEXT 50": "NIFTYNXT50"}
 _FNO_VIEW6_FIELDS = ("contract", "underlying", "optionType", "lastPrice", "pChange", "numberOfContractsTraded",
-                     "openInterest", "underlyingValue")
+                     "openInterest", "underlyingValue", "changeinOpenInterest", "pchangeinOpenInterest",
+                     "strikePrice", "expiryDate", "impliedVolatility")  # B-1681: OI change + Greeks inputs
 _FNO_BY_INDEX_CACHE = {"ts": 0.0, "data": None}  # one small slot (<= 100 slim rows), 60 s
 _FNO_INDEX_PCT_CACHE = {"ts": 0.0, "data": None}
 _FNO_INDEX_DETAIL_CACHE = {"data": {}}  # B-1677: {underlying: {last, open, advances, declines}} from the same fetch
@@ -42400,10 +42406,10 @@ def _nse_opener(page="https://www.nseindia.com/option-chain"):
     return opener, dict(hdrs, Accept="application/json, text/plain, */*", Referer=page)
 
 
-def _nse_get_json(opener, hdrs, path, cap=4_000_000):
+def _nse_get_json(opener, hdrs, path, cap=4_000_000, timeout=8):
     import json as _json
     import urllib.request
-    with opener.open(urllib.request.Request("https://www.nseindia.com" + path, headers=hdrs), timeout=12) as resp:
+    with opener.open(urllib.request.Request("https://www.nseindia.com" + path, headers=hdrs), timeout=timeout) as resp:
         return _json.loads(resp.read(cap).decode("utf-8", "replace"))
 
 
@@ -42437,6 +42443,9 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
             r = {"underlying": underlying, "strikePrice": leg.get("strikePrice", item.get("strikePrice")),
                  "optionType": ot, "expiryDate": exp, "lastPrice": px, "pChange": _fno_num(pc),
                  "numberOfContractsTraded": n, "openInterest": leg.get("openInterest"),
+                 "changeinOpenInterest": leg.get("changeinOpenInterest"),
+                 "pchangeinOpenInterest": leg.get("pchangeinOpenInterest"),
+                 "impliedVolatility": leg.get("impliedVolatility"),
                  "underlyingValue": leg.get("underlyingValue", under_val)}
             r["contract"] = _fno_label(r)
             out.append(r)
@@ -42450,8 +42459,12 @@ def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
     hit = _FNO_CHAIN_CACHE.get(key)
     ttl = FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S
     if hit and now - hit["ts"] < ttl:
-        return hit["rows"]
-    rows = []
+        return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
+    rows, err = [], None
+    if underlying == "SENSEX":  # B-1681: a BSE index; NSE never lists it
+        rows, err = _bse_sensex_chain(expiry)
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
+        return rows
     try:
         op, hdrs = opener or _nse_opener()
         exp = expiry
@@ -42463,16 +42476,105 @@ def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
             import urllib.parse as _up
             rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-v3?type=Indices&symbol=" + underlying
                                                  + "&expiry=" + _up.quote(str(exp))), underlying, exp)
+        else:
+            err = "no expiryDates in option-chain-contract-info"
         if not rows:  # legacy endpoint (all expiries) as the fallback
-            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying),
-                                   underlying, exp)
+            payload = _nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying)
+            rows = _fno_chain_rows(payload, underlying, exp)
+            if not rows:
+                err = (err or "") + " | empty chain; keys " + ",".join(sorted(payload)[:6] if isinstance(payload, dict) else ["?"])
     except Exception as e:
-        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {str(e)[:160]}")
-    if rows:
-        if len(_FNO_CHAIN_CACHE) > 12:
-            _FNO_CHAIN_CACHE.clear()
-        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows}
+        err = (err + " | " if err else "") + type(e).__name__ + ": " + str(e)[:160]
+        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err}")
+    if len(_FNO_CHAIN_CACHE) > 12:
+        _FNO_CHAIN_CACHE.clear()
+    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
     return rows
+
+
+def _bse_key(row: dict, side: str, *needles, exclude=()):
+    """First key of a BSE chain row for side 'C'/'P' whose lowercase name holds every needle (BSE spells these
+    C_Open_Interest, C_Ltp, P_Vol_Traded, ...). None when absent."""
+    pre = side.lower() + "_"
+    for k in row:
+        lk = str(k).lower()
+        if lk.startswith(pre) and all(n in lk for n in needles) and not any(x in lk for x in exclude):
+            return k
+    return None
+
+
+def _bse_sensex_rows(payload, expiry_label: str) -> list:
+    """B-1681: BSE SENSEX option chain JSON -> slim View 6 rows. Key names are sniffed (BSE does not document this
+    API), so a shape change gives [] and the caller reports the keys it saw."""
+    table = []
+    if isinstance(payload, dict):
+        table = next((v for v in payload.values() if isinstance(v, list) and v and isinstance(v[0], dict)), [])
+    elif isinstance(payload, list):
+        table = payload
+    out = []
+    for item in table:
+        k_strike = next((k for k in item if "strike" in str(k).lower()), None)
+        strike = _fno_num(item.get(k_strike)) if k_strike else 0.0
+        if strike <= 0:
+            continue
+        for side, ot in (("C", "CE"), ("P", "PE")):
+            g = lambda *n, exclude=(): item.get(_bse_key(item, side, *n, exclude=exclude))  # noqa: E731
+            px = _fno_num(g("ltp") or g("last"))
+            n = _fno_num(g("vol"))
+            if px <= 0 or n <= 0:
+                continue
+            ch = _fno_num(g("netchange") or g("chng", exclude=("interest", "oi")))
+            r = {"underlying": "SENSEX", "strikePrice": strike, "optionType": ot, "expiryDate": expiry_label,
+                 "lastPrice": px, "pChange": round(ch / (px - ch) * 100.0, 2) if px - ch > 0 else 0.0,
+                 "numberOfContractsTraded": n, "openInterest": _fno_num(g("open_interest", exclude=("chng",))),
+                 "changeinOpenInterest": _fno_num(g("chng", "interest")) if g("chng", "interest") is not None else None,
+                 "impliedVolatility": _fno_num(g("iv")) or None,
+                 "underlyingValue": _fno_num(item.get("UlaValue") or item.get("Underlying_Value")) or None}
+            r["contract"] = _fno_label(r)
+            out.append(r)
+    return out
+
+
+def _bse_sensex_chain(expiry=None):
+    """B-1681: nearest-expiry SENSEX option chain from BSE's public site API (undocumented: endpoints taken from the
+    BSE website's own calls; unverified until the first live call, errors are surfaced as errors.chain_SENSEX).
+    Returns (rows, error). Research/paper only."""
+    import json as _json
+    import urllib.parse as _up
+    import urllib.request
+    hdrs = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/120.0 Safari/537.36", "Accept": "application/json, text/plain, */*",
+            "Referer": "https://www.bseindia.com/", "Origin": "https://www.bseindia.com"}
+    base = "https://api.bseindia.com/BseIndiaAPI/api/"
+
+    def _get(path):
+        with urllib.request.urlopen(urllib.request.Request(base + path, headers=hdrs), timeout=8) as resp:
+            return _json.loads(resp.read(4_000_000).decode("utf-8", "replace"))
+    try:
+        exp = None
+        if expiry:
+            exp = dt.datetime.strptime(str(expiry), "%d-%b-%Y").strftime("%d %b %Y")
+        else:
+            info = _get("ddlExpiry_IV/w?ProductType=IO&scrip_cd=1")
+            lst = next((v for v in (info.values() if isinstance(info, dict) else []) if isinstance(v, list) and v), [])
+            if lst:
+                first = lst[0]
+                exp = str(first.get("ExpiryDate") or next(iter(first.values()))) if isinstance(first, dict) else str(first)
+        if not exp:
+            return [], "no SENSEX expiry from ddlExpiry_IV; keys " + ",".join(sorted(info)[:6] if isinstance(info, dict) else ["?"])
+        payload = _get("DerivOptionChain_IV/w?Expiry=" + _up.quote(exp) + "&scrip_cd=1&strprice=0")
+        try:
+            label = dt.datetime.strptime(exp.strip()[:11], "%d %b %Y").strftime("%d-%b-%Y")
+        except ValueError:
+            label = exp.replace(" ", "-")
+        rows = _bse_sensex_rows(payload, label)
+        if rows:
+            return rows, None
+        first = next((v[0] for v in (payload.values() if isinstance(payload, dict) else []) if isinstance(v, list) and v
+                      and isinstance(v[0], dict)), {})
+        return [], "SENSEX chain parsed 0 rows; row keys " + ",".join(sorted(first)[:20])
+    except Exception as e:
+        return [], type(e).__name__ + ": " + str(e)[:160]
 
 
 def _fno_contract_ltp(contract: str, underlying: str):
@@ -42540,6 +42642,9 @@ def _fno_by_index_snapshot() -> dict:
         opener = _nse_opener() if cold else None  # one cookie handshake for every index that needs a chain fetch
         for u in short:
             chain = _fno_chain_fetch(u, None, opener)
+            cerr = (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("error")
+            if cerr:
+                raw.setdefault("errors", {})["chain_" + u] = cerr  # B-1678 fix: never a silent empty index
             if chain:
                 merged = _fno_group_by_index((groups.get(u) or []) + chain, 50).get(u) or []
                 groups[u] = merged
@@ -42570,9 +42675,12 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
         rows = (snap.get("groups") or {}).get(u, [])
         if positive_only:
             rows = [r for r in rows if _fno_num(r.get("pChange")) > 0]
-        out[u] = {"rows": [dict(r, chg15_pct=_fno_chg15(r.get("contract"), r.get("lastPrice"), now_ts))
+        now_ist = ist_now()
+        out[u] = {"rows": [dict(r, chg15_pct=_fno_chg15(r.get("contract"), r.get("lastPrice"), now_ts),
+                                **_fno_option_metrics(r, now_ist))  # B-1681: OI build-up, IV, Greeks
                            for r in rows[:n]],
-                  "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active")}
+                  "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active"),
+                  "error": (snap.get("errors") or {}).get("chain_" + u)}
     return {"indices": out, "positive_only": bool(positive_only),
             "per_index": n, "fetched_ist": snap.get("fetched_ist"), "cached": snap.get("cached", False),
             "ok": snap.get("ok", False), "errors": snap.get("errors", {}),
@@ -42614,8 +42722,10 @@ FNO_MOMO_STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt_
 FNO_MOMO_STRICT_MIN_PCT = 0.25
 FNO_MOMO_STRICT_BREADTH = 1.5
 FNO_MOMO_STRICT_VIX_MAX_UP = 5.0
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic"}, {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict"})
-_FNO_MOMO_STATES = {FNO_MOMO_TAG: _FNO_MOMO_STATE, FNO_MOMO_STRICT_TAG: {"last_scan_ts": 0.0, "last_scan": None}}
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic"}, {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict"},
+                     {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1", "gate": "oigreeks"})
+_FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
+                    for v in FNO_MOMO_VARIANTS}
 
 
 def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict):
@@ -42642,6 +42752,115 @@ def _fno_momo_is_expiry_day(contract: str, day: str) -> bool:
         return False
 
 
+# ---- B-1681: OI + Greeks entry gate (user 2026-11-23 "It should be using OI and Greeks too for deciding trade entry")
+# Read-up: price up with OI up = long buildup (fresh buyers), price up with OI down = short covering (sellers leaving,
+# weaker); sources stress both are descriptive, not signals on their own. Greeks come from Black-Scholes with the
+# premium's OWN implied volatility (solved from the price, so no IV feed is needed): delta 0.30-0.65 keeps away from
+# deep-OTM lottery tickets and deep-ITM capital hogs; theta <= 15% of the premium per day caps time decay. These are
+# stated priors for a PAPER variant, not tuned values; a structured sweep follows once >= 30 paper trades exist.
+FNO_MOMO_OIG_TAG = "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1"
+FNO_OIG_DELTA_MIN, FNO_OIG_DELTA_MAX = 0.30, 0.65
+FNO_OIG_THETA_MAX_FRAC = 0.15  # ATM theta/premium ~ 1/(2 x days to expiry): 15% allows >= ~3.3 days
+FNO_RISK_FREE = 0.065  # RBI repo-like annual rate for the Black-Scholes inputs
+
+
+def _norm_cdf(x: float) -> float:
+    import math
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def _bs_price(S, K, T, sigma, ot, r=FNO_RISK_FREE):
+    import math
+    if S <= 0 or K <= 0 or T <= 0 or sigma <= 0:
+        return max(0.0, (S - K) if ot == "CE" else (K - S))
+    d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    if ot == "CE":
+        return S * _norm_cdf(d1) - K * math.exp(-r * T) * _norm_cdf(d2)
+    return K * math.exp(-r * T) * _norm_cdf(-d2) - S * _norm_cdf(-d1)
+
+
+def _bs_implied_vol(px, S, K, T, ot, r=FNO_RISK_FREE):
+    """Bisection IV in (1%, 500%); None when the premium is at/below intrinsic or above the model ceiling."""
+    lo, hi = 0.01, 5.0
+    if px <= 0 or T <= 0 or px <= _bs_price(S, K, T, lo, ot, r) or px >= _bs_price(S, K, T, hi, ot, r):
+        return None
+    for _ in range(70):
+        mid = 0.5 * (lo + hi)
+        if _bs_price(S, K, T, mid, ot, r) > px:
+            hi = mid
+        else:
+            lo = mid
+    return 0.5 * (lo + hi)
+
+
+def _bs_greeks(S, K, T, sigma, ot, r=FNO_RISK_FREE) -> dict:
+    """delta, gamma, theta per calendar day (premium points), vega per 1 vol point."""
+    import math
+    sq = math.sqrt(T)
+    d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sq)
+    d2 = d1 - sigma * sq
+    pdf = math.exp(-0.5 * d1 * d1) / math.sqrt(2 * math.pi)
+    disc = K * math.exp(-r * T)
+    if ot == "CE":
+        delta = _norm_cdf(d1)
+        theta = (-S * pdf * sigma / (2 * sq) - r * disc * _norm_cdf(d2)) / 365.0
+    else:
+        delta = _norm_cdf(d1) - 1.0
+        theta = (-S * pdf * sigma / (2 * sq) + r * disc * _norm_cdf(-d2)) / 365.0
+    return {"delta": round(delta, 4), "gamma": round(pdf / (S * sigma * sq), 6), "theta_per_day": round(theta, 4),
+            "vega_per_vol_pt": round(S * pdf * sq / 100.0, 4)}
+
+
+def _fno_years_to_expiry(expiry_label, now) -> float:
+    """Expiry '27-Nov-2026' at 15:30 IST; floor of 30 minutes so expiry-day maths never divides by zero."""
+    try:
+        exp = dt.datetime.strptime(str(expiry_label), "%d-%b-%Y").replace(hour=15, minute=30)
+    except (TypeError, ValueError):
+        return 0.0
+    secs = (exp - now.replace(tzinfo=None)).total_seconds()
+    return max(secs, 1800.0) / (365.0 * 86400.0) if secs > -60 else 0.0
+
+
+def _fno_option_metrics(row: dict, now) -> dict:
+    """B-1681: OI build-up label + implied vol + Greeks for one contract row (View 6 columns and the entry gate)."""
+    ot = _fno_momo_opt_type(row.get("optionType")) or next(
+        (t for t in str(row.get("contract") or "").split() if t in ("CE", "PE")), "")
+    px, S, K = _fno_num(row.get("lastPrice")), _fno_num(row.get("underlyingValue")), _fno_num(row.get("strikePrice"))
+    parts = str(row.get("contract") or "").split()
+    T = _fno_years_to_expiry(row.get("expiryDate") or (parts[-1] if parts else None), now)
+    pc = _fno_num(row.get("pChange"))
+    oi_raw = row.get("changeinOpenInterest")
+    oi_chg = None if oi_raw in (None, "", "-") else _fno_num(oi_raw)
+    build = None
+    if oi_chg is not None:
+        build = ("long_buildup" if pc > 0 and oi_chg > 0 else "short_covering" if pc > 0 and oi_chg < 0
+                 else "short_buildup" if pc < 0 and oi_chg > 0 else "long_unwinding" if pc < 0 and oi_chg < 0
+                 else "flat")
+    m = {"oi": _fno_num(row.get("openInterest")) or None, "oi_change": oi_chg, "oi_build": build,
+         "iv_pct": None, "delta": None, "gamma": None, "theta_per_day": None, "vega_per_vol_pt": None,
+         "theta_frac": None, "days_to_expiry": round(T * 365.0, 2) if T else None}
+    if ot and px > 0 and S > 0 and K > 0 and T > 0:
+        iv = _bs_implied_vol(px, S, K, T, ot)
+        if iv:
+            g = _bs_greeks(S, K, T, iv, ot)
+            m.update(g, iv_pct=round(iv * 100.0, 2), theta_frac=round(abs(g["theta_per_day"]) / px, 4))
+    return m
+
+
+def _fno_momo_oi_greeks_gate(m: dict):
+    """True / False / None (missing datum). Returns (verdict, skip_reason)."""
+    if not m or m.get("oi_build") is None or m.get("delta") is None:
+        return None, "skipped_oi_greeks_unknown"
+    if m["oi_build"] != "long_buildup":
+        return False, "skipped_oi_" + m["oi_build"]
+    if not (FNO_OIG_DELTA_MIN <= abs(m["delta"]) <= FNO_OIG_DELTA_MAX):
+        return False, "skipped_delta_out_of_band"
+    if m["theta_frac"] is None or m["theta_frac"] > FNO_OIG_THETA_MAX_FRAC:
+        return False, "skipped_theta_burden"
+    return True, None
+
+
 def _fno_momo_pick(groups: dict, day: str = ""):
     """Top FNO_MOMO_TOP_N by contracts traded per index -> the one with the largest positive % change, or None.
     B-1679 (b): a contract expiring today is never picked (expiry-day premiums gap far past a 2% stop)."""
@@ -42657,7 +42876,7 @@ def _fno_momo_pick(groups: dict, day: str = ""):
                 continue
             if best is None or pc > best["pChange"]:
                 best = {"contract": r["contract"], "underlying": u, "option_type": ot,
-                        "lastPrice": px, "pChange": pc, "rank": rank}
+                        "lastPrice": px, "pChange": pc, "rank": rank, "row": r}
     return best
 
 
@@ -42755,18 +42974,30 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                                                    snap.get("index_detail") or {})
             else:
                 senti = _fno_momo_sentiment(cand["option_type"], pct.get(cand["underlying"]), pct.get("NIFTY"))
+            # B-1681: OI build-up + Greeks of the candidate, recorded on every entry (any variant) for View 6's "why"
+            om = _fno_option_metrics(cand.get("row") or {}, now)
+            scan["metrics"] = om
+            oig_skip = None
+            if senti is True and variant["gate"] == "oigreeks":
+                ok, oig_skip = _fno_momo_oi_greeks_gate(om)
+                senti = True if ok else None if ok is None else False
             if senti is not True:
-                scan["skip"] = "skipped_sentiment_unknown" if senti is None else "skipped_sentiment_disagrees"
+                scan["skip"] = oig_skip or ("skipped_sentiment_unknown" if senti is None else "skipped_sentiment_disagrees")
             else:
                 px = cand["lastPrice"]
                 stop = round(px * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
                 why = (f"top{cand['rank']} {cand['underlying']} by contracts traded, +{cand['pChange']}% (largest), "
                        f"index {pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%, gate {variant['gate']}")
+                if om.get("delta") is not None:
+                    why += (f"; OI {om['oi_build'] or 'n/a'}, IV {om['iv_pct']}%, delta {om['delta']}, "
+                            f"theta {om['theta_per_day']}/day ({round((om['theta_frac'] or 0) * 100, 1)}% of premium)")
+                meta = {"metrics": om, "index_pct": pct.get(cand["underlying"]), "nifty_pct": pct.get("NIFTY"),
+                        "rank": cand["rank"], "gate": variant["gate"]}
                 conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "
                              "opened_ts, entry_price, peak_price, stop_price, last_price, last_ts, entry_pchange, "
-                             "open_reason) VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             "open_reason, entry_meta) VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (tag, day, cand["contract"], cand["underlying"], cand["option_type"], now_ts,
-                              px, px, stop, px, now_ts, cand["pChange"], why))
+                              px, px, stop, px, now_ts, cand["pChange"], why, json.dumps(meta)))
                 scan["entered"] = True
                 acts.append({"action": "entry", "contract": cand["contract"], "price": px, "reason": why})
                 print(f"[FNO_MOMO] PAPER entry {tag} {cand['contract']} @ {px} ({why})")
@@ -42820,14 +43051,20 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
         for v in FNO_MOMO_VARIANTS:  # B-1677: side-by-side totals for every paper variant
             nets = [r[0] or 0.0 for r in conn.execute(
                 "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
+            gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
             per_var[v["tag"]] = {"gate": v["gate"], "n": len(nets), "wins": sum(1 for x in nets if x > 0),
-                                 "net_pct_sum": round(sum(nets), 4)}
+                                 "net_pct_sum": round(sum(nets), 4),
+                                 "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
     for r in rows:
         r["opened_ist"], r["closed_ist"] = _ist(r.get("opened_ts")), _ist(r.get("close_ts"))
         # user 2026-11-23: running P&L on the open row (last seen premium vs entry, net of the 0.8% cost model)
         r["running_net_pct"] = (_fno_momo_net_pct(r["entry_price"], r.get("last_price") or r["entry_price"])
                                 if r["status"] == "open" else None)
         r["last_ist"] = _ist(r.get("last_ts"))
+        try:
+            r["entry_meta"] = json.loads(r["entry_meta"]) if r.get("entry_meta") else None
+        except (TypeError, ValueError):
+            r["entry_meta"] = None
     today = ist_now().strftime("%Y-%m-%d")
     closed = [r for r in rows if r["status"] == "closed"]
 
@@ -42838,6 +43075,12 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
     last = _FNO_MOMO_STATES[tag].get("last_scan")
     import strategy_registry as sr
     return {"tag": tag, "gate": next(v["gate"] for v in FNO_MOMO_VARIANTS if v["tag"] == tag), "variants": per_var,
+            # B-1681 (user: "What backtesting showed"): stated plainly, from the registry entry, never invented
+            "backtest": {"status": "none", "why": ("No backtest exists: NSE and BSE publish no free intraday option-"
+                                                   "premium history, so this strategy is judged on its PAPER forward "
+                                                   "record below (net of the 0.8% cost). Real-money wiring needs pooled "
+                                                   "PFnet > 1.00 over enough trades plus your explicit yes."),
+                         "rule": next((d.notes for d in sr.REGISTRY if d.name == tag), None)},
             "mode": "paper", "trail_pct": FNO_MOMO_TRAIL_PCT * 100,
             "category": FNO_MOMO_CATEGORY, "category_label": sr.CATEGORY_LABELS.get(FNO_MOMO_CATEGORY, FNO_MOMO_CATEGORY),
             "cost_pct_round_trip": ROUND_TRIP_COST_PCT,
