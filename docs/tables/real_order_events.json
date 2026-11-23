@@ -111179,7 +111179,43 @@
    "prev_state": "queued at open",
    "new_state": "expired",
    "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
+  },
+  {
+   "id": 9266,
+   "ts": 1795431815.6184635,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 9267,
+   "ts": 1795431815.6242795,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 9268,
+   "ts": 1795431815.629778,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-23T10:01:43Z"
+ "synced_at_utc": "2026-11-23T11:03:37Z"
 }
