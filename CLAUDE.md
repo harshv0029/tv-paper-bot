@@ -89,6 +89,7 @@ full file wins.
 - Methodology is in `docs/INDICATOR_COMBINATORICS_METHODOLOGY.md`. When the user shares a
   book or resource, try every strategy in it.
 - Re-test every registry tag every 6 months (`scripts/retest_due.py`).
+- NSE official MCP (`mcp__NSE_Bhavcopy__*`, `mcp__NSE_LIVE__*`, B-1669): user 2026-11-22 "use them whenever you think useful". Research, reviews and data checks only; never a real entry/SL source (1-3 min delayed, informational terms).
 - `docs/STRATEGY_LEARNINGS.md`: add an entry for every strategy, result or exit discussion.
   End each entry with a "Profit-booking / exit takeaway" line.
 

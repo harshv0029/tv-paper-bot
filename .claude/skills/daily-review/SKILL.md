@@ -26,6 +26,7 @@ one running + one queued.
 - GitHub Actions runs since the cursor that failed or were cancelled (deploy-gate, kotak-reconcile, journal-sync, research).
 - Git journals: `docs/real_order_log.json`, `docs/real_reconcile_log.json`.
 - Open P0/P1 rows in `docs/ACTIONABLES_BACKLOG.md` touched since the cursor.
+- Market context (B-1669, NSE official MCP, research only): `mcp__NSE_Bhavcopy__get_market_breadth` / `get_market_mood` for each session in the window; `get_corporate_actions` for any held or traded symbol with a >20% one-day move.
 
 ## 2. Analyse
 For each finding: what happened (IST, symbol, category), Kotak vs app, root cause from code, INR impact.
