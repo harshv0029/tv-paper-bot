@@ -42287,6 +42287,7 @@ _FNO_VIEW6_FIELDS = ("contract", "underlying", "optionType", "lastPrice", "pChan
                      "openInterest", "underlyingValue")
 _FNO_BY_INDEX_CACHE = {"ts": 0.0, "data": None}  # one small slot (<= 100 slim rows), 60 s
 _FNO_INDEX_PCT_CACHE = {"ts": 0.0, "data": None}
+_FNO_INDEX_DETAIL_CACHE = {"data": {}}  # B-1677: {underlying: {last, open, advances, declines}} from the same fetch
 
 
 def _fno_num(v) -> float:
@@ -42337,11 +42338,16 @@ def _fno_index_day_changes_fetch() -> dict:
         Referer="https://www.nseindia.com/market-data/live-market-indices"))
     with opener.open(req, timeout=12) as resp:
         payload = _json.loads(resp.read(1_000_000).decode("utf-8", "replace"))
-    out = {}
+    out, detail = {}, {}
     for r in (payload.get("data") or []) if isinstance(payload, dict) else []:
-        u = _FNO_INDEX_NAME_MAP.get(str(r.get("index") or "").strip().upper())
+        name = str(r.get("index") or "").strip().upper()
+        u = _FNO_INDEX_NAME_MAP.get(name) or ("INDIAVIX" if name == "INDIA VIX" else None)
         if u and r.get("percentChange") not in (None, ""):
             out[u] = _fno_num(r.get("percentChange"))
+            # B-1677: the strict sentiment gate also needs the day open, last and NIFTY 50 breadth
+            detail[u] = {"last": _fno_num(r.get("last")), "open": _fno_num(r.get("open")),
+                         "advances": _fno_num(r.get("advances")), "declines": _fno_num(r.get("declines"))}
+    _FNO_INDEX_DETAIL_CACHE["data"] = detail
     return out
 
 
@@ -42371,6 +42377,7 @@ def _fno_by_index_snapshot() -> dict:
     raw = _fno_most_active_fetch(["index_calls", "index_puts"], 50)
     rows = (raw.get("lists", {}).get("index_calls") or []) + (raw.get("lists", {}).get("index_puts") or [])
     data = {"groups": _fno_group_by_index(rows, 50), "index_pct": _fno_index_day_changes(),
+            "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}
     del raw, rows
@@ -42420,6 +42427,34 @@ def _fno_momo_sentiment(opt_type: str, index_pct, nifty_pct):
     return index_pct < 0 and nifty_pct < 0
 
 
+# B-1677 (user 2026-11-23 "Yes" to a stricter sentiment check): a second PAPER variant runs beside v1 with its own
+# position, so both can be compared on the same days. Strict ENTRY gate (CE; PE mirrored), every datum required:
+# index and NIFTY day change >= +0.25%, the index trading above its day open, NIFTY 50 breadth advances >= 1.5x
+# declines, and INDIA VIX not up 5% or more on the day (a CE only; a rising VIX supports a PE). Exits are the same as v1.
+FNO_MOMO_STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt__5m__trail2__v1"
+FNO_MOMO_STRICT_MIN_PCT = 0.25
+FNO_MOMO_STRICT_BREADTH = 1.5
+FNO_MOMO_STRICT_VIX_MAX_UP = 5.0
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic"}, {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict"})
+_FNO_MOMO_STATES = {FNO_MOMO_TAG: _FNO_MOMO_STATE, FNO_MOMO_STRICT_TAG: {"last_scan_ts": 0.0, "last_scan": None}}
+
+
+def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict):
+    """B-1677 strict entry gate. True / False, or None when any datum is missing (no entry then)."""
+    pct, detail = pct or {}, detail or {}
+    ip, npct, vix = pct.get(underlying), pct.get("NIFTY"), pct.get("INDIAVIX")
+    di, dn = detail.get(underlying) or {}, detail.get("NIFTY") or {}
+    adv, dec = dn.get("advances") or 0.0, dn.get("declines") or 0.0
+    if (opt_type not in ("CE", "PE") or ip is None or npct is None or vix is None or not di.get("open")
+            or not di.get("last") or (adv + dec) <= 0):
+        return None
+    if opt_type == "CE":
+        return bool(ip >= FNO_MOMO_STRICT_MIN_PCT and npct >= FNO_MOMO_STRICT_MIN_PCT and di["last"] > di["open"]
+                    and adv >= FNO_MOMO_STRICT_BREADTH * max(dec, 1.0) and vix < FNO_MOMO_STRICT_VIX_MAX_UP)
+    return bool(ip <= -FNO_MOMO_STRICT_MIN_PCT and npct <= -FNO_MOMO_STRICT_MIN_PCT and di["last"] < di["open"]
+                and dec >= FNO_MOMO_STRICT_BREADTH * max(adv, 1.0))
+
+
 def _fno_momo_pick(groups: dict):
     """Top FNO_MOMO_TOP_N by contracts traded per index -> the one with the largest positive % change, or None."""
     best = None
@@ -42451,7 +42486,7 @@ def _fno_momo_close(conn, row, price: float, reason: str, now_ts: float) -> dict
     return {"action": "exit", "contract": row["contract"], "price": price, "reason": reason, "net_pct": net}
 
 
-def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None) -> list:
+def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None) -> list:
     """B-1676 one pass (PAPER ONLY). Exits every call: forced 15:15 IST, trailing SL FNO_MOMO_TRAIL_PCT below the peak
     premium, confidence loss (out of its index top 3 by contracts traded, or sentiment flipped). Entry every 5 min
     09:30-14:30 IST when nothing is open. Returns the actions taken."""
@@ -42459,15 +42494,18 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None) -> list:
     now_ts = now_ts if now_ts is not None else time.time()
     if not _nse_regular_trading_day(now):
         return []
+    variant = variant or FNO_MOMO_VARIANTS[0]
+    tag, state = variant["tag"], _FNO_MOMO_STATES[variant["tag"]]
     mins = now.hour * 60 + now.minute
     day = now.strftime("%Y-%m-%d")
-    row = conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open' ORDER BY id DESC LIMIT 1").fetchone()
+    row = conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open' AND tag = ? ORDER BY id DESC LIMIT 1",
+                       (tag,)).fetchone()
     acts = []
     if row is not None and row["day"] != day:  # left open by a down bot: close at the last seen premium
         acts.append(_fno_momo_close(conn, row, row["last_price"] or row["entry_price"], "stale_prev_day_close", now_ts))
         row = None
     scan_due = (row is None and FNO_MOMO_ENTRY_START_MIN <= mins <= FNO_MOMO_ENTRY_END_MIN
-                and now_ts - _FNO_MOMO_STATE["last_scan_ts"] >= FNO_MOMO_SCAN_EVERY_S - 5)
+                and now_ts - state["last_scan_ts"] >= FNO_MOMO_SCAN_EVERY_S - 5)
     if row is None and not scan_due:
         if acts:
             conn.commit()
@@ -42499,29 +42537,33 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None) -> list:
             conn.execute("UPDATE fno_momo_paper_trades SET peak_price = ?, stop_price = ?, last_price = ?, last_ts = ? "
                          "WHERE id = ?", (peak, stop, price, now_ts, row["id"]))
     elif scan_due and snap.get("ok"):
-        _FNO_MOMO_STATE["last_scan_ts"] = now_ts
+        state["last_scan_ts"] = now_ts
         cand = _fno_momo_pick(groups)
         scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
         if cand is None:
             scan["skip"] = "skipped_no_positive_candidate"
         else:
-            senti = _fno_momo_sentiment(cand["option_type"], pct.get(cand["underlying"]), pct.get("NIFTY"))
+            if variant["gate"] == "strict":
+                senti = _fno_momo_sentiment_strict(cand["option_type"], cand["underlying"], pct,
+                                                   snap.get("index_detail") or {})
+            else:
+                senti = _fno_momo_sentiment(cand["option_type"], pct.get(cand["underlying"]), pct.get("NIFTY"))
             if senti is not True:
                 scan["skip"] = "skipped_sentiment_unknown" if senti is None else "skipped_sentiment_disagrees"
             else:
                 px = cand["lastPrice"]
                 stop = round(px * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
                 why = (f"top{cand['rank']} {cand['underlying']} by contracts traded, +{cand['pChange']}% (largest), "
-                       f"index {pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%")
+                       f"index {pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%, gate {variant['gate']}")
                 conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "
                              "opened_ts, entry_price, peak_price, stop_price, last_price, last_ts, entry_pchange, "
                              "open_reason) VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             (FNO_MOMO_TAG, day, cand["contract"], cand["underlying"], cand["option_type"], now_ts,
+                             (tag, day, cand["contract"], cand["underlying"], cand["option_type"], now_ts,
                               px, px, stop, px, now_ts, cand["pChange"], why))
                 scan["entered"] = True
                 acts.append({"action": "entry", "contract": cand["contract"], "price": px, "reason": why})
-                print(f"[FNO_MOMO] PAPER entry {cand['contract']} @ {px} ({why})")
-        _FNO_MOMO_STATE["last_scan"] = scan
+                print(f"[FNO_MOMO] PAPER entry {tag} {cand['contract']} @ {px} ({why})")
+        state["last_scan"] = scan
     conn.commit()
     if acts:
         sync_generic_tables_external(only=("fno_momo_paper_trades",))
@@ -42541,20 +42583,31 @@ def _fno_momo_tick_hook() -> None:
     """B-1676 scheduler hook (runs in a worker thread). Never raises: a failure here can never break the tick."""
     try:
         with closing(get_db()) as conn:
-            _fno_momo_step(conn)
+            for v in FNO_MOMO_VARIANTS:  # B-1677: each variant has its own position; the snapshot is cached 60 s
+                try:
+                    _fno_momo_step(conn, variant=v)
+                except Exception as e:  # noqa: BLE001
+                    print(f"[FNO_MOMO] paper pass {v['gate']} failed (non-fatal): {str(e)[:200]}")
     except Exception as e:  # noqa: BLE001
         print(f"[FNO_MOMO] paper pass failed (non-fatal): {str(e)[:200]}")
 
 
 @app.get("/fno-momo-paper")
-def fno_momo_paper(limit: int = 100):
+def fno_momo_paper(limit: int = 100, tag: str = ""):
     """B-1676 PAPER strategy state: open position, recent trades (IST times), totals net of the 0.8% cost model."""
     def _ist(ts):
         return (dt.datetime.utcfromtimestamp(ts) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime(
             "%Y-%m-%d %H:%M:%S IST") if ts else None
+    tag = tag if tag in _FNO_MOMO_STATES else FNO_MOMO_TAG
     with closing(get_db()) as conn:
-        rows = [dict(r) for r in conn.execute("SELECT * FROM fno_momo_paper_trades ORDER BY id DESC LIMIT ?",
-                                              (max(1, min(int(limit), 500)),)).fetchall()]
+        rows = [dict(r) for r in conn.execute("SELECT * FROM fno_momo_paper_trades WHERE tag = ? ORDER BY id DESC LIMIT ?",
+                                              (tag, max(1, min(int(limit), 500)))).fetchall()]
+        per_var = {}
+        for v in FNO_MOMO_VARIANTS:  # B-1677: side-by-side totals for every paper variant
+            nets = [r[0] or 0.0 for r in conn.execute(
+                "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
+            per_var[v["tag"]] = {"gate": v["gate"], "n": len(nets), "wins": sum(1 for x in nets if x > 0),
+                                 "net_pct_sum": round(sum(nets), 4)}
     for r in rows:
         r["opened_ist"], r["closed_ist"] = _ist(r.get("opened_ts")), _ist(r.get("close_ts"))
     today = ist_now().strftime("%Y-%m-%d")
@@ -42564,9 +42617,10 @@ def fno_momo_paper(limit: int = 100):
         nets = [r["net_pct"] or 0.0 for r in lst]
         return {"n": len(lst), "wins": sum(1 for x in nets if x > 0), "net_pct_sum": round(sum(nets), 4),
                 "avg_net_pct": round(sum(nets) / len(nets), 4) if nets else None}
-    last = _FNO_MOMO_STATE.get("last_scan")
+    last = _FNO_MOMO_STATES[tag].get("last_scan")
     import strategy_registry as sr
-    return {"tag": FNO_MOMO_TAG, "mode": "paper", "trail_pct": FNO_MOMO_TRAIL_PCT * 100,
+    return {"tag": tag, "gate": next(v["gate"] for v in FNO_MOMO_VARIANTS if v["tag"] == tag), "variants": per_var,
+            "mode": "paper", "trail_pct": FNO_MOMO_TRAIL_PCT * 100,
             "category": FNO_MOMO_CATEGORY, "category_label": sr.CATEGORY_LABELS.get(FNO_MOMO_CATEGORY, FNO_MOMO_CATEGORY),
             "cost_pct_round_trip": ROUND_TRIP_COST_PCT,
             "open": next((r for r in rows if r["status"] == "open"), None),

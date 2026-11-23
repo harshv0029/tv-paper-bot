@@ -45,6 +45,9 @@ def db(monkeypatch):
     monkeypatch.setattr(main, "sync_generic_tables_external", lambda only=None: SYNCED.append(only) or 0)
     monkeypatch.setitem(main._FNO_MOMO_STATE, "last_scan_ts", 0.0)
     monkeypatch.setitem(main._FNO_MOMO_STATE, "last_scan", None)
+    for st in main._FNO_MOMO_STATES.values():
+        monkeypatch.setitem(st, "last_scan_ts", 0.0)
+        monkeypatch.setitem(st, "last_scan", None)
     # PAPER ONLY: any Kotak/real-order call fails the test
     for mod in (kotak_real_orders, kotak_real_fo_orders):
         for name in dir(mod):
@@ -226,3 +229,57 @@ def test_mirrored_and_restored_after_wipe(monkeypatch):
                 assert tuple(r) == (CE_NAME, "open", main.FNO_MOMO_TAG)
                 return
     pytest.fail("open paper position was not restored after the wipe")
+
+
+# ---- B-1677 strict sentiment variant ----
+STRICT = main.FNO_MOMO_VARIANTS[1]
+DET_UP = {"NIFTY": {"last": 25700, "open": 25600, "advances": 35, "declines": 15}}
+
+
+def _ssnap(rows, pct, detail):
+    return dict(_snap(rows, pct), index_detail=detail)
+
+
+@pytest.mark.parametrize("ot,pct,det,want", [
+    ("CE", {"NIFTY": 0.4, "INDIAVIX": 1.0}, DET_UP, True),
+    ("CE", {"NIFTY": 0.1, "INDIAVIX": 1.0}, DET_UP, False),        # too small a move
+    ("CE", {"NIFTY": 0.4, "INDIAVIX": 6.0}, DET_UP, False),        # VIX spiking
+    ("CE", {"NIFTY": 0.4, "INDIAVIX": 1.0}, {"NIFTY": dict(DET_UP["NIFTY"], advances=25, declines=25)}, False),
+    ("CE", {"NIFTY": 0.4, "INDIAVIX": 1.0}, {"NIFTY": dict(DET_UP["NIFTY"], last=25500)}, False),  # below open
+    ("PE", {"NIFTY": -0.4, "INDIAVIX": 7.0},
+     {"NIFTY": {"last": 25500, "open": 25600, "advances": 10, "declines": 40}}, True),
+    ("CE", {"NIFTY": 0.4}, DET_UP, None),                          # VIX missing -> unknown
+    ("CE", {"NIFTY": 0.4, "INDIAVIX": 1.0}, {}, None),             # detail missing -> unknown
+])
+def test_strict_gate(ot, pct, det, want):
+    assert main._fno_momo_sentiment_strict(ot, "NIFTY", pct, det) is want
+
+
+def test_strict_variant_has_own_position_and_tag(db):
+    rows = [r for r in BASE if r["underlying"] == "NIFTY"]  # pick = NIFTY 25500 CE
+    weak = {"NIFTY": 0.1, "INDIAVIX": 1.0}
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap(rows, weak, DET_UP), now_ts=T0)                  # v1 enters
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap(rows, weak, DET_UP), now_ts=T0, variant=STRICT)  # strict skips
+    tags = [r["tag"] for r in db.execute("SELECT tag FROM fno_momo_paper_trades WHERE status = 'open'")]
+    assert tags == [main.FNO_MOMO_TAG]
+    assert main._FNO_MOMO_STATES[main.FNO_MOMO_STRICT_TAG]["last_scan"]["skip"] == "skipped_sentiment_disagrees"
+    strong = {"NIFTY": 0.4, "INDIAVIX": 1.0}
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap(rows, strong, DET_UP), now_ts=T0 + 300, variant=STRICT)
+    tags = sorted(r["tag"] for r in db.execute("SELECT tag FROM fno_momo_paper_trades WHERE status = 'open'"))
+    assert tags == sorted([main.FNO_MOMO_TAG, main.FNO_MOMO_STRICT_TAG])
+    out = main.fno_momo_paper(tag=main.FNO_MOMO_STRICT_TAG)
+    assert out["gate"] == "strict" and out["open"]["tag"] == main.FNO_MOMO_STRICT_TAG
+    assert set(out["variants"]) == {main.FNO_MOMO_TAG, main.FNO_MOMO_STRICT_TAG}
+
+
+def test_strict_registered_single_leg_option_never_wired():
+    s = next(x for x in sr.REGISTRY if x.name == main.FNO_MOMO_STRICT_TAG)
+    assert s.categories == (sr.TradeCategory.OPTIONS,) and s.metrics is None
+    assert main._is_strategy_viable_for_real_money(main.FNO_MOMO_STRICT_TAG, check_switch=False) is False
+
+
+def test_tick_hook_runs_every_variant(monkeypatch):
+    seen = []
+    monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
+    main._fno_momo_tick_hook()
+    assert seen == ["basic", "strict"]
