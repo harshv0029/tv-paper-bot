@@ -33,13 +33,13 @@
 </head>
 <body>
 <h1>View 6 · Most-traded index options <span class="mode">research + paper only</span></h1>
-<div class="sub">Per index, the option contracts with the most contracts traded today (NSE snapshot, 1-3 min delayed). Refreshes every 60 s. Never a real entry or stop source. <span id="when" class="mono"></span> <span id="err" class="err"></span></div>
+<div class="sub">Per index, the top 5 option contracts by contracts traded today among those UP on the day (you only buy). Indices crowded out of NSE's most-active lists are filled from their own option chain. 15m = premium change over the last 15 min. NSE snapshot, 1-3 min delayed. Refreshes every 60 s. Never a real entry or stop source. <span id="when" class="mono"></span> <span id="err" class="err"></span></div>
 
 <h2>Paper strategy <select id="pvar" aria-label="Paper variant"><option value="">v1 basic sentiment</option></select> <span class="dim mono" id="ptag"></span></h2>
 <div class="cards" id="paper"><div class="empty">loading…</div></div>
 <div class="wrap" style="margin-top:10px"><table>
-  <thead><tr><th>Opened (IST)</th><th>Contract</th><th class="num">Entry</th><th class="num">Peak</th><th class="num">Exit</th><th>Closed (IST)</th><th>Reason</th><th class="num">Net %</th></tr></thead>
-  <tbody id="ptrades"><tr><td colspan="8" class="empty">loading…</td></tr></tbody>
+  <thead><tr><th>Opened (IST)</th><th>Contract</th><th class="num">Entry</th><th class="num">Peak</th><th class="num">SL</th><th class="num">Last / Exit</th><th>Closed (IST)</th><th>Reason</th><th class="num">Running / Net %</th><th class="num">Seen %</th></tr></thead>
+  <tbody id="ptrades"><tr><td colspan="10" class="empty">loading…</td></tr></tbody>
 </table></div>
 
 <div class="grid" id="indices"></div>
@@ -56,11 +56,11 @@
   function table(u, d) {
     const rows = (d && d.rows) || [];
     const body = rows.length ? rows.map(r => `<tr><td>${esc(r.contract)}</td><td class="num mono">${f2(r.lastPrice)}</td>
-        <td class="num mono">${pct(r.pChange)}</td><td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
+        <td class="num mono">${pct(r.pChange)}</td><td class="num mono">${r.chg15_pct == null ? '<span class="dim">warming up</span>' : pct(r.chg15_pct)}</td><td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
         <td class="num mono">${f2(r.openInterest)}</td></tr>`).join("")
-      : `<tr><td colspan="5" class="empty">No ${esc(u)} contracts in NSE's most-active lists right now.</td></tr>`;
-    return `<div><h2>${esc(u)} <span class="dim mono">index ${pct(d && d.day_change_pct)}</span></h2><div class="wrap"><table>
-      <thead><tr><th>Contract</th><th class="num">Price</th><th class="num">Change %</th><th class="num">Contracts traded (lakh)</th><th class="num">OI</th></tr></thead>
+      : `<tr><td colspan="6" class="empty">No ${esc(u)} contract is up on the day right now.</td></tr>`;
+    return `<div><h2>${esc(u)} <span class="dim mono">index ${pct(d && d.day_change_pct)}${d && d.source === "option_chain" ? " · from option chain" : ""}</span></h2><div class="wrap"><table>
+      <thead><tr><th>Contract</th><th class="num">Price</th><th class="num">Day %</th><th class="num">15m %</th><th class="num">Contracts traded (lakh)</th><th class="num">OI</th></tr></thead>
       <tbody>${body}</tbody></table></div></div>`;
   }
 
@@ -89,7 +89,7 @@
     document.getElementById("ptag").textContent = (j.category_label ? j.category_label + " · " : "") + (j.tag || "");
     const o = j.open, t = j.today || {}, a = j.all || {}, s = j.last_scan;
     const live = o ? `${esc(o.contract)}` : "none";
-    const openD = o ? `entry ${f2(o.entry_price)} · last ${f2(o.last_price)} · peak ${f2(o.peak_price)} · SL ${f2(o.stop_price)}<br>since ${hm(o.opened_ist)} IST` : "flat";
+    const openD = o ? `running ${pct(o.running_net_pct)} net · entry ${f2(o.entry_price)} · last ${f2(o.last_price)} (${hm(o.last_ist)}) · peak ${f2(o.peak_price)} · SL ${f2(o.stop_price)}<br>since ${hm(o.opened_ist)} IST` : "flat";
     const scanD = s ? `${hm(s.ist)} IST · ${s.entered ? "entered" : esc(s.skip || "")}${s.candidate ? " · " + esc(s.candidate.contract) + " " + pct(s.candidate.pChange) : ""}` : "no scan yet this session";
     document.getElementById("paper").innerHTML =
       card("Open paper position", live, openD) +
@@ -100,9 +100,11 @@
     const rows = (j.trades || []).filter(x => x.day === today);
     document.getElementById("ptrades").innerHTML = rows.length ? rows.map(x => `<tr><td class="mono">${hm(x.opened_ist)}</td>
       <td>${esc(x.contract)}</td><td class="num mono">${f2(x.entry_price)}</td><td class="num mono">${f2(x.peak_price)}</td>
-      <td class="num mono">${x.close_price == null ? "open" : f2(x.close_price)}</td><td class="mono">${hm(x.closed_ist)}</td>
-      <td>${esc(x.close_reason || "")}</td><td class="num mono">${x.net_pct == null ? "–" : pct(x.net_pct)}</td></tr>`).join("")
-      : `<tr><td colspan="8" class="empty">No paper trades today.</td></tr>`;
+      <td class="num mono">${f2(x.status === "open" ? x.stop_price : (x.stop_at_exit ?? x.stop_price))}</td>
+      <td class="num mono">${x.status === "open" ? f2(x.last_price) + ' <span class="dim">open</span>' : f2(x.close_price)}</td><td class="mono">${hm(x.closed_ist)}</td>
+      <td>${esc(x.close_reason || "")}</td><td class="num mono">${x.status === "open" ? pct(x.running_net_pct) : (x.net_pct == null ? "–" : pct(x.net_pct))}</td>
+      <td class="num mono">${x.observed_net_pct == null ? "–" : pct(x.observed_net_pct)}</td></tr>`).join("")
+      : `<tr><td colspan="10" class="empty">No paper trades today.</td></tr>`;
   }
 
   let busy = false;
