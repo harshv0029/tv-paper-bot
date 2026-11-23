@@ -42818,10 +42818,19 @@ FNO_MOMO_STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt_
 FNO_MOMO_STRICT_MIN_PCT = 0.25
 FNO_MOMO_STRICT_BREADTH = 1.5
 FNO_MOMO_STRICT_VIX_MAX_UP = 5.0
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic"}, {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict"},
-                     {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1", "gate": "oigreeks"})
+# B-1686 (user 2026-11-23 "these are not three strategies but just one: strict sentiment replaced the basic sentiment,
+# and Greeks and OI are to be used to buy the single-leg option trades"): ONE active paper strategy = strict sentiment
+# + the OI/Greeks buy filter, under a new immutable tag. The three earlier tags are RETIRED: no new entries, their
+# history stays viewable, any row still open under them is closed by the sweep (retired_variant_close).
+FNO_MOMO_STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"
+FNO_MOMO_RETIRED_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic", "retired": True},
+                             {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict", "retired": True},
+                             {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1",
+                              "gate": "oigreeks", "retired": True})
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_STRICT_OIG_TAG, "gate": "strict_oigreeks"},)  # the ONLY one that enters
+FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
-                    for v in FNO_MOMO_VARIANTS}
+                    for v in FNO_MOMO_ALL_VARIANTS}
 
 
 def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict):
@@ -43065,7 +43074,7 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         if cand is None:
             scan["skip"] = "skipped_no_positive_candidate"
         else:
-            if variant["gate"] == "strict":
+            if variant["gate"] in ("strict", "strict_oigreeks"):  # B-1686: strict replaced basic
                 senti = _fno_momo_sentiment_strict(cand["option_type"], cand["underlying"], pct,
                                                    snap.get("index_detail") or {})
             else:
@@ -43074,7 +43083,7 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             om = _fno_option_metrics(cand.get("row") or {}, now)
             scan["metrics"] = om
             oig_skip = None
-            if senti is True and variant["gate"] == "oigreeks":
+            if senti is True and variant["gate"] in ("oigreeks", "strict_oigreeks"):  # B-1686: OI + Greeks decide the buy
                 ok, oig_skip = _fno_momo_oi_greeks_gate(om)
                 senti = True if ok else None if ok is None else False
             if senti is not True:
@@ -43137,17 +43146,20 @@ def _fno_momo_table_ready() -> bool:
     return t in _generic_mirror_hydrated
 
 
-def _fno_momo_eod_sweep(conn, now=None, now_ts=None) -> list:
+def _fno_momo_eod_sweep(conn, now=None, now_ts=None, include_late=True) -> list:
     """Closes paper rows a 15:15 pass missed: opened on an earlier day, or today after 15:15 IST. Fill = last seen
     premium (the bot saw nothing later). No network. Pushes the table when it closed anything."""
     now = now or ist_now()
     now_ts = now_ts if now_ts is not None else time.time()
     day = now.strftime("%Y-%m-%d")
-    late = now.hour * 60 + now.minute >= FNO_MOMO_FORCE_EXIT_MIN
+    late = include_late and now.hour * 60 + now.minute >= FNO_MOMO_FORCE_EXIT_MIN
+    active = {v["tag"] for v in FNO_MOMO_VARIANTS}
     acts = []
     for row in conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open'").fetchall():
         if row["day"] != day:
             reason = "stale_prev_day_close"
+        elif row["tag"] not in active:
+            reason = "retired_variant_close"  # B-1686: only the one active strategy may hold a position
         elif late:
             reason = "forced_exit_1515_late"
         else:
@@ -43179,7 +43191,8 @@ def _fno_momo_tick_hook() -> None:
             print(f"[FNO_MOMO] snapshot failed (non-fatal): {str(e)[:160]}")
             snap = {"ok": False, "groups": {}}
         with closing(get_db()) as conn:
-            for v in FNO_MOMO_VARIANTS:  # B-1677: each variant has its own position
+            _fno_momo_eod_sweep(conn, include_late=False)  # B-1686: retired / previous-day rows; the step owns 15:15
+            for v in FNO_MOMO_VARIANTS:  # B-1686: one active strategy
                 try:
                     _fno_momo_step(conn, snapshot=snap, variant=v, quote=_fno_contract_ltp)
                 except Exception as e:  # noqa: BLE001
@@ -43212,16 +43225,16 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
     def _ist(ts):
         return (dt.datetime.utcfromtimestamp(ts) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime(
             "%Y-%m-%d %H:%M:%S IST") if ts else None
-    tag = tag if tag in _FNO_MOMO_STATES else FNO_MOMO_TAG
+    tag = tag if tag in _FNO_MOMO_STATES else FNO_MOMO_VARIANTS[0]["tag"]  # B-1686: default = the active strategy
     with closing(get_db()) as conn:
         rows = [dict(r) for r in conn.execute("SELECT * FROM fno_momo_paper_trades WHERE tag = ? ORDER BY id DESC LIMIT ?",
                                               (tag, max(1, min(int(limit), 500)))).fetchall()]
         per_var = {}
-        for v in FNO_MOMO_VARIANTS:  # B-1677: side-by-side totals for every paper variant
+        for v in FNO_MOMO_ALL_VARIANTS:  # B-1677: totals per tag; B-1686: retired tags flagged
             nets = [r[0] or 0.0 for r in conn.execute(
                 "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
             gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
-            per_var[v["tag"]] = {"gate": v["gate"], "n": len(nets), "wins": sum(1 for x in nets if x > 0),
+            per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")), "n": len(nets), "wins": sum(1 for x in nets if x > 0),
                                  "net_pct_sum": round(sum(nets), 4),
                                  "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
     for r in rows:
@@ -43243,7 +43256,7 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                 "avg_net_pct": round(sum(nets) / len(nets), 4) if nets else None}
     last = _FNO_MOMO_STATES[tag].get("last_scan")
     import strategy_registry as sr
-    return {"tag": tag, "gate": next(v["gate"] for v in FNO_MOMO_VARIANTS if v["tag"] == tag), "variants": per_var,
+    return {"tag": tag, "gate": next(v["gate"] for v in FNO_MOMO_ALL_VARIANTS if v["tag"] == tag), "variants": per_var,
             # B-1681 (user: "What backtesting showed"): stated plainly, from the registry entry, never invented
             "backtest": {"status": "none", "why": ("No backtest exists: NSE and BSE publish no free intraday option-"
                                                    "premium history, so this strategy is judged on its PAPER forward "

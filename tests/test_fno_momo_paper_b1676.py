@@ -14,6 +14,8 @@ import strategy_registry as sr
 
 REAL_SYNC = main.sync_generic_tables_external
 REAL_SNAP = main._fno_by_index_snapshot
+ACTIVE = main.FNO_MOMO_VARIANTS  # B-1686: the one real active strategy (strict sentiment + OI/Greeks)
+BASIC = next(v for v in main.FNO_MOMO_ALL_VARIANTS if v["gate"] == "basic")
 SYNCED = []
 MON = dt.datetime(2026, 11, 23, 10, 0)
 T0 = 1_800_000_000.0
@@ -59,6 +61,9 @@ def db(monkeypatch):
     monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: {"ok": False, "groups": {}})
     monkeypatch.setattr(main, "_FNO_CHAIN_CACHE", {})
     monkeypatch.setattr(main, "_FNO_PX_HIST", {})
+    # B-1686: the rule tests below exercise the shared step logic through the (retired) basic gate; tests of the one
+    # active strategy restore ACTIVE explicitly
+    monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", (BASIC,))
     monkeypatch.setattr(main, "_FNO_PX_HIST_SYNC", {"restored": False, "last_save_ts": 0.0, "error": None})
     monkeypatch.setattr(main, "_FNO_MOMO_HEALTH", dict(main._FNO_MOMO_HEALTH, pass_started_ts=None, pass_done_ts=None,
                                                        last_error=None, sweeps=0, skipped_unhydrated=0))
@@ -246,7 +251,7 @@ def test_mirrored_and_restored_after_wipe(monkeypatch):
 
 
 # ---- B-1677 strict sentiment variant ----
-STRICT = main.FNO_MOMO_VARIANTS[1]
+STRICT = next(v for v in main.FNO_MOMO_ALL_VARIANTS if v["gate"] == "strict")
 DET_UP = {"NIFTY": {"last": 25700, "open": 25600, "advances": 35, "declines": 15}}
 
 
@@ -283,7 +288,7 @@ def test_strict_variant_has_own_position_and_tag(db):
     assert tags == sorted([main.FNO_MOMO_TAG, main.FNO_MOMO_STRICT_TAG])
     out = main.fno_momo_paper(tag=main.FNO_MOMO_STRICT_TAG)
     assert out["gate"] == "strict" and out["open"]["tag"] == main.FNO_MOMO_STRICT_TAG
-    assert set(out["variants"]) == {v["tag"] for v in main.FNO_MOMO_VARIANTS}
+    assert set(out["variants"]) == {v["tag"] for v in main.FNO_MOMO_ALL_VARIANTS}
 
 
 def test_strict_registered_single_leg_option_never_wired():
@@ -296,8 +301,9 @@ def test_tick_hook_runs_every_variant(monkeypatch):
     monkeypatch.setattr(main, "_fno_momo_due", lambda now=None: True)  # B-1684: in-window pass
     seen = []
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
+    monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     main._fno_momo_tick_hook()
-    assert seen == ["basic", "strict", "oigreeks"]
+    assert seen == ["strict_oigreeks"]  # B-1686: ONE strategy enters
 
 
 # ---- B-1678 / B-1679 (d) / B-1680 (user 2026-11-23) ------------------------------------------------------------------
@@ -453,7 +459,7 @@ def test_chain_v3_path_used_with_nearest_expiry(monkeypatch):
 
 
 # ---- B-1681: OI + Greeks gate, SENSEX via BSE, merge-restore of the paper table -------------------------------------
-OIG = next(v for v in main.FNO_MOMO_VARIANTS if v["gate"] == "oigreeks")
+OIG = next(v for v in main.FNO_MOMO_ALL_VARIANTS if v["gate"] == "oigreeks")
 
 
 def test_black_scholes_round_trip_and_greeks():
@@ -681,3 +687,47 @@ def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
     r = main._fno_view_snapshot()
     assert r["loading"] is True and r["ok"] is False and "loading" in r["errors"]["snapshot"]
     gate.set(); main._FNO_VIEW_REFRESH["thread"].join(5)
+
+
+# ---- B-1686: one strategy = strict sentiment + OI/Greeks ------------------------------------------------------------
+def test_only_one_active_strategy_strict_plus_oi_greeks():
+    assert [v["gate"] for v in ACTIVE] == ["strict_oigreeks"]
+    assert ACTIVE[0]["tag"] == "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"
+    assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {"basic", "strict", "oigreeks"}
+
+
+def test_combined_needs_strict_sentiment_and_oi_greeks(db):
+    det = {"NIFTY": {"last": 25100, "open": 25000, "advances": 35, "declines": 15}}
+    strong, weak = {"NIFTY": 0.4, "INDIAVIX": 1.0}, {"NIFTY": 0.1, "INDIAVIX": 1.0}
+    st = main._FNO_MOMO_STATES[ACTIVE[0]["tag"]]
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], weak, det), now_ts=T0, variant=ACTIVE[0])
+    assert st["last_scan"]["skip"] == "skipped_sentiment_disagrees"  # OI/Greeks fine, strict sentiment not
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow(oi_chg=-500)], strong, det), now_ts=T0 + 300,
+                        variant=ACTIVE[0])
+    assert st["last_scan"]["skip"] == "skipped_oi_short_covering"  # strict fine, OI not
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], strong, det), now_ts=T0 + 600, variant=ACTIVE[0])
+    t = _open(db)
+    assert t["tag"] == ACTIVE[0]["tag"] and "strict_oigreeks" in t["open_reason"] and "delta" in t["open_reason"]
+
+
+def test_retired_open_row_closed_in_window_by_the_sweep(db, monkeypatch):
+    _ins_open(db, tag=main.FNO_MOMO_TAG)
+    monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
+    acts = main._fno_momo_eod_sweep(db, now=MON, now_ts=T0, include_late=False)
+    assert [a["reason"] for a in acts] == ["retired_variant_close"]
+
+
+def test_route_defaults_to_the_active_strategy(monkeypatch):
+    monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
+    out = main.fno_momo_paper()
+    assert out["tag"] == ACTIVE[0]["tag"] and out["gate"] == "strict_oigreeks"
+    assert out["variants"][main.FNO_MOMO_TAG]["retired"] is True and out["variants"][ACTIVE[0]["tag"]]["retired"] is False
+
+
+def test_combined_registered_paper_only_and_old_marked_retired():
+    by = {x.name: x for x in sr.REGISTRY}
+    a = by[ACTIVE[0]["tag"]]
+    assert a.metrics is None and a.categories == (sr.TradeCategory.OPTIONS,)
+    assert main._is_strategy_viable_for_real_money(a.name, check_switch=False) is False
+    for v in main.FNO_MOMO_RETIRED_VARIANTS:
+        assert by[v["tag"]].notes.startswith("RETIRED")
