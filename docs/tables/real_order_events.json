@@ -111011,7 +111011,19 @@
    "prev_state": "long 3 @ Rs188.01",
    "new_state": "closed",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout | fill not yet confirmed by Kotak"
+  },
+  {
+   "id": 9252,
+   "ts": 1795427840.5736468,
+   "symbol": "GAIL.NS",
+   "kotak_trading_symbol": "GAIL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 3 @ Rs188.01",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: retry of paper swing exit already recorded: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-23T09:52:56Z"
+ "synced_at_utc": "2026-11-23T09:57:22Z"
 }
