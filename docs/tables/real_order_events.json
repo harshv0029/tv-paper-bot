@@ -110243,7 +110243,31 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs885.65",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs885.65 already covers the position (target stop Rs885.65), adopted, nothing placed"
+  },
+  {
+   "id": 9188,
+   "ts": 1795405539.3640258,
+   "symbol": "ULTRACEMCO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_low_balance | swing primary_base: skipped_low_balance: paper qty 1, real risk qty 0, 1 share = Rs12925.00 - capped to 0 by remaining daily cap Rs6047.87 (max 0) and/or real capital Rs6047.87 (max 0)"
+  },
+  {
+   "id": 9189,
+   "ts": 1795405539.3720124,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"7 nse symbols printed new trades today within 120s\", \"symbols\": [\"MARUTI.NS\", \"MFSL.NS\", \"NESTLEIND.NS\", \"NMDC.NS\", \"PAYTM.NS\", \"PFC.NS\", \"PREMIERENE.NS\"], \"count\": 7, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 37.9}, \"replay\": {\"placed\": 0, \"dropped\": 1, \"requeued\": 0, \"considered\": 1}}"
   }
  ],
- "synced_at_utc": "2026-11-23T03:45:36Z"
+ "synced_at_utc": "2026-11-23T03:45:50Z"
 }
