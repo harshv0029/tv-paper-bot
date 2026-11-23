@@ -110279,7 +110279,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs400.40",
    "detail": "reason: swing entry signal from strategy reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 9191,
+   "ts": 1795405650.596544,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261123000032817",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs362.40",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-23T03:47:17Z"
+ "synced_at_utc": "2026-11-23T03:47:33Z"
 }
