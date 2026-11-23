@@ -2545,3 +2545,7 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 - The most-active list only shows contracts that already traded heavily, so a replay could never ask "what would a strike two away from ATM have done". Storing the whole ATM +-10 window (CE and PE, nearest expiry) every minute lets the backtest test strike choice (ATM vs 1-3 OTM), not only the top-3-by-volume rule.
 - VIX is stored per minute so the strict gate's VIX +5% CE block can be replayed and swept (3/5/8%) instead of taken on faith.
 - Profit-booking / exit takeaway: with the full strike ladder per minute, the trailing-SL sweep can be run per moneyness bucket; expect OTM legs to need a wider trail than ATM (higher % noise), so do not carry one trail % across strikes without testing it.
+
+### 2026-11-23 IST: B-1690 Greeks on every tape leg
+- Per-minute delta/gamma/theta/vega/IV for the whole ATM +-10 ladder lets the replay look for patterns such as IV expanding while delta rises (momentum with vol bid) vs IV crush, and gamma peaks near expiry.
+- Profit-booking / exit takeaway: test exits keyed to Greek changes (e.g. exit when IV drops N points from entry, or when theta per day exceeds X% of the premium) against the flat 2% trail; pick by pooled PFnet, not one day.

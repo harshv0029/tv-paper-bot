@@ -123,3 +123,19 @@ def test_view6_route_carries_vix(monkeypatch):
     monkeypatch.setattr(main, "_fno_view_snapshot", lambda: {"groups": {}, "index_pct": {"INDIAVIX": 2.5},
                                                              "index_detail": {"INDIAVIX": {"last": 14.9}}, "ok": True})
     assert main.fno_most_active_by_index()["india_vix"] == {"last": 14.9, "pct": 2.5}
+
+
+def test_b1690_greeks_per_leg():
+    now = dt.datetime(2026, 11, 23, 10, 0)
+    w, atm = main._fno_atm_window(_chain())
+    T = main._fno_years_to_expiry("27-Nov-2026", now)
+    for r in w:
+        r["lastPrice"] = round(main._bs_price(r["underlyingValue"], r["strikePrice"], T, 0.13, r["optionType"]), 2)
+    p = main._fno_tape_payload({}, {}, {"NIFTY": (w, atm)}, None, now)
+    assert p["cols"][-6:] == list(main.FNO_TAPE_GREEK_COLS)
+    rows = {r[0]: dict(zip(p["cols"], r)) for r in p["rows"]["NIFTY"]}
+    ce, pe = rows["NIFTY 25500 CE 27-Nov-2026"], rows["NIFTY 25500 PE 27-Nov-2026"]
+    assert 0 < ce["delta"] < 1 and -1 < pe["delta"] < 0 and ce["gamma"] > 0
+    assert ce["theta_per_day"] < 0 and ce["vega_per_vol_pt"] > 0 and 3 < ce["days_to_expiry"] < 5
+    bad = main._fno_tape_greeks({"contract": "x", "lastPrice": 0}, now)
+    assert len(bad) == 6

@@ -42676,6 +42676,9 @@ FNO_TAPE_UPSTASH_EX_S = 3 * 86400
 FNO_TAPE_KEEP_DAYS = 3
 FNO_TAPE_COLS = ("contract", "lastPrice", "pChange", "numberOfContractsTraded", "openInterest",
                  "changeinOpenInterest", "impliedVolatility", "underlyingValue")
+# B-1690 (user 2026-11-23 "Also add Greeks so that u can find pattern out of that to decide entry n exit"): Black-Scholes
+# Greeks per leg, from _fno_option_metrics (IV solved from the premium, r = FNO_RISK_FREE, T to 15:30 on expiry).
+FNO_TAPE_GREEK_COLS = ("iv_pct", "delta", "gamma", "theta_per_day", "vega_per_vol_pt", "days_to_expiry")
 _FNO_TAPE_STATE = {"last_minute": None, "rows_today": 0, "day": None, "upstash_ok": 0, "upstash_fail": 0,
                    "skipped_budget": 0, "last_error": None, "atm_indices": []}
 
@@ -42739,10 +42742,20 @@ def _fno_tape_chains() -> dict:
     return out
 
 
-def _fno_tape_payload(groups: dict, index_pct: dict, chains: dict = None, index_detail: dict = None) -> dict:
+def _fno_tape_greeks(r: dict, now) -> list:
+    try:
+        m = _fno_option_metrics(r, now)
+    except Exception:  # noqa: BLE001
+        m = {}
+    return [None if m.get(c) is None else round(float(m[c]), 6 if c == "gamma" else 4) for c in FNO_TAPE_GREEK_COLS]
+
+
+def _fno_tape_payload(groups: dict, index_pct: dict, chains: dict = None, index_detail: dict = None, now=None) -> dict:
+    now = now or ist_now()
+
     def pack(rs):
         return [[r.get(c) if c == "contract" else round(_fno_num(r.get(c)), 2) for c in FNO_TAPE_COLS]
-                for r in rs if r.get("contract")]
+                + _fno_tape_greeks(r, now) for r in rs if r.get("contract")]
     out, src, atm = {}, {}, {}
     chains = chains or {}
     for u in list(_FNO_INDEX_UNDERLYINGS) + [k for k in (groups or {}) if k not in _FNO_INDEX_UNDERLYINGS]:
@@ -42753,7 +42766,7 @@ def _fno_tape_payload(groups: dict, index_pct: dict, chains: dict = None, index_
     pct = dict(index_pct or {})
     vd = (index_detail or {}).get("INDIAVIX") or {}
     vix = {"last": vd.get("last"), "pct": pct.get("INDIAVIX")}
-    return {"cols": list(FNO_TAPE_COLS), "rows": out, "src": src, "atm": atm, "index_pct": pct, "vix": vix}
+    return {"cols": list(FNO_TAPE_COLS) + list(FNO_TAPE_GREEK_COLS), "rows": out, "src": src, "atm": atm, "index_pct": pct, "vix": vix}
 
 
 def _fno_tape_pack(payload: str) -> str:
@@ -42787,7 +42800,7 @@ def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None, index_d
         if chains is None:
             chains = _fno_tape_chains()
         _FNO_TAPE_STATE["atm_indices"] = sorted(chains)
-        payload = json.dumps(_fno_tape_payload(groups, index_pct, chains, index_detail), separators=(",", ":"))
+        payload = json.dumps(_fno_tape_payload(groups, index_pct, chains, index_detail, now), separators=(",", ":"))
         own = conn is None
         c = conn or get_db()
         try:
