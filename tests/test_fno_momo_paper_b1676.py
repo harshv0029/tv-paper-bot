@@ -59,6 +59,9 @@ def db(monkeypatch):
     monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: {"ok": False, "groups": {}})
     monkeypatch.setattr(main, "_FNO_CHAIN_CACHE", {})
     monkeypatch.setattr(main, "_FNO_PX_HIST", {})
+    monkeypatch.setattr(main, "_FNO_PX_HIST_SYNC", {"restored": False, "last_save_ts": 0.0, "error": None})
+    monkeypatch.setattr(main, "_FNO_MOMO_HEALTH", dict(main._FNO_MOMO_HEALTH, pass_started_ts=None, pass_done_ts=None,
+                                                       last_error=None, sweeps=0, skipped_unhydrated=0))
     with closing(main.get_db()) as c:
         yield c
 
@@ -208,7 +211,8 @@ def test_tick_hook_swallows_errors(monkeypatch):
 def test_tick_wires_the_hook():
     import inspect
     src = inspect.getsource(main._scheduler_tick)
-    assert "_fno_momo_tick_hook" in src and "_fno_momo_due()" in src
+    # B-1684: the hook gates itself (full pass in the window, EOD sweep outside it)
+    assert "_fno_momo_tick_hook" in src and "_fno_momo_due()" in inspect.getsource(main._fno_momo_tick_hook)
 
 
 def test_mirrored_and_restored_after_wipe(monkeypatch):
@@ -289,6 +293,7 @@ def test_strict_registered_single_leg_option_never_wired():
 
 
 def test_tick_hook_runs_every_variant(monkeypatch):
+    monkeypatch.setattr(main, "_fno_momo_due", lambda now=None: True)  # B-1684: in-window pass
     seen = []
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
     main._fno_momo_tick_hook()
@@ -398,6 +403,7 @@ def test_view6_route_positive_only_with_chg15(monkeypatch):
 
 
 def test_tick_hook_passes_the_fresh_quote(monkeypatch):
+    monkeypatch.setattr(main, "_fno_momo_due", lambda now=None: True)  # B-1684: in-window pass
     seen = []
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, quote=None, **k: seen.append(quote))
     main._fno_momo_tick_hook()
@@ -543,3 +549,135 @@ def test_view6_rows_carry_oi_and_greeks(monkeypatch):
     monkeypatch.setattr(main, "ist_now", lambda: MON)
     r = TestClient(main.app).get("/fno-most-active-by-index").json()["indices"]["NIFTY"]["rows"][0]
     assert r["oi_build"] == "long_buildup" and r["iv_pct"] > 0 and 0.3 < r["delta"] < 0.65
+
+
+# ---- B-1684: data vanished after some time / after reboot -------------------------------------------------------
+def _ins_open(db, day="2026-11-23", tag=None, last=104.0):
+    db.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, opened_ts, "
+               "entry_price, peak_price, stop_price, last_price, last_ts) VALUES (?, ?, 'open', 'C1', 'BANKNIFTY', "
+               "'PE', 1, 110, 110, 107.8, ?, 1)", (tag or main.FNO_MOMO_TAG, day, last))
+    db.commit()
+
+
+def test_eod_sweep_closes_a_missed_1515_exit_and_pushes(db):
+    _ins_open(db)
+    assert main._fno_momo_eod_sweep(db, now=dt.datetime(2026, 11, 23, 15, 10), now_ts=T0) == []
+    acts = main._fno_momo_eod_sweep(db, now=dt.datetime(2026, 11, 23, 19, 42), now_ts=T0)
+    assert [a["reason"] for a in acts] == ["forced_exit_1515_late"] and acts[0]["price"] == 104.0
+    row = db.execute("SELECT * FROM fno_momo_paper_trades").fetchone()
+    assert row["status"] == "closed" and row["net_pct"] == main._fno_momo_net_pct(110, 104)
+    assert ("fno_momo_paper_trades",) in SYNCED
+
+
+def test_eod_sweep_closes_previous_day_rows_before_the_open(db):
+    _ins_open(db, day="2026-11-20")
+    acts = main._fno_momo_eod_sweep(db, now=dt.datetime(2026, 11, 23, 8, 0), now_ts=T0)
+    assert [a["reason"] for a in acts] == ["stale_prev_day_close"]
+
+
+def test_hook_off_window_only_sweeps_no_network(db, monkeypatch):
+    _ins_open(db)
+    monkeypatch.setattr(main, "ist_now", lambda: dt.datetime(2026, 11, 23, 19, 42))
+    monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: pytest.fail("network called off-window"))
+    main._fno_momo_tick_hook()
+    assert db.execute("SELECT status FROM fno_momo_paper_trades").fetchone()[0] == "closed"
+    assert main._FNO_MOMO_HEALTH["pass_done_ts"] is not None and main._FNO_MOMO_HEALTH["sweeps"] == 1
+
+
+def test_hook_never_writes_before_the_table_restore(db, monkeypatch):
+    _ins_open(db)
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "https://x")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    monkeypatch.setattr(main, "_generic_mirror_hydrated", set())
+    monkeypatch.setattr(main, "hydrate_generic_tables_from_external", lambda only=None: 0)  # Upstash unreachable
+    monkeypatch.setattr(main, "ist_now", lambda: dt.datetime(2026, 11, 23, 19, 42))
+    main._fno_momo_tick_hook()
+    assert db.execute("SELECT status FROM fno_momo_paper_trades").fetchone()[0] == "open"
+    assert main._FNO_MOMO_HEALTH["skipped_unhydrated"] == 1 and SYNCED == []
+    monkeypatch.setattr(main, "hydrate_generic_tables_from_external",
+                        lambda only=None: main._generic_mirror_hydrated.update(only) or 1)  # restore succeeds
+    main._fno_momo_tick_hook()
+    assert db.execute("SELECT status FROM fno_momo_paper_trades").fetchone()[0] == "closed"
+
+
+def test_health_reports_a_hung_pass():
+    main._FNO_MOMO_HEALTH.update(pass_started_ts=T0, pass_done_ts=T0 - 30)
+    h = main._fno_momo_health(now_ts=T0 + main.FNO_MOMO_STALL_S + 1)
+    assert h["stalled"] is True and h["running_s"] > main.FNO_MOMO_STALL_S
+    main._FNO_MOMO_HEALTH.update(pass_done_ts=T0 + 5)
+    assert main._fno_momo_health(now_ts=T0 + 999)["stalled"] is False
+
+
+def test_tick_launches_hook_off_window_too():
+    import inspect
+    src = inspect.getsource(main._scheduler_tick)
+    assert "if _fno_momo_task is None or _fno_momo_task.done():" in src
+
+
+def test_15m_history_restores_after_a_wipe(monkeypatch):
+    store = {}
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "https://x")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    monkeypatch.setattr(main, "_upstash_get", lambda k: store.get(k))
+    monkeypatch.setattr(main, "_upstash_set", lambda k, v: store.__setitem__(k, v))
+    g = {"NIFTY": [dict(BASE[0], lastPrice=100.0)]}
+    main._fno_hist_record(g, T0)
+    assert main.FNO_HIST_UPSTASH_KEY in store
+    # restart: memory wiped, samples come back from Upstash and the 15 m change works at once
+    monkeypatch.setattr(main, "_FNO_PX_HIST", {})
+    monkeypatch.setattr(main, "_FNO_PX_HIST_SYNC", {"restored": False, "last_save_ts": 0.0, "error": None})
+    main._fno_hist_record({"NIFTY": [dict(BASE[0], lastPrice=110.0)]}, T0 + 16 * 60)
+    assert main._fno_chg15(CE_NAME, 110.0, T0 + 16 * 60) == pytest.approx(10.0)
+
+
+def test_15m_history_never_saved_before_restore(monkeypatch):
+    sets = []
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "https://x")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    monkeypatch.setattr(main, "_upstash_get", lambda k: (_ for _ in ()).throw(RuntimeError("down")))
+    monkeypatch.setattr(main, "_upstash_set", lambda k, v: sets.append(k))
+    main._fno_hist_record({"NIFTY": [BASE[0]]}, T0)
+    assert sets == [] and main._FNO_PX_HIST_SYNC["restored"] is False
+
+
+def test_chg15_is_rolling_not_a_15min_block():
+    # samples every 60 s: each refresh compares against the price ~15 min before THAT moment
+    for i in range(30):
+        main._FNO_PX_HIST.setdefault(CE_NAME, []).append((T0 + 60 * i, 100.0 + i))
+    a = main._fno_chg15_detail(CE_NAME, 120.0, T0 + 20 * 60)  # base = the minute-5 sample
+    b = main._fno_chg15_detail(CE_NAME, 121.0, T0 + 21 * 60)  # one minute later the base moved one minute too
+    assert a["chg15_base_price"] == 105.0 and b["chg15_base_price"] == 106.0
+    assert a["chg15_pct"] == round((120 / 105 - 1) * 100, 2) and a["chg15_from_ist"].endswith("IST")
+
+
+def test_chg15_never_uses_a_stale_base():
+    main._FNO_PX_HIST[CE_NAME] = [(T0, 100.0)]  # only a 19-min-old sample: gap, not a 15-min change
+    assert main._fno_chg15(CE_NAME, 120.0, T0 + 19 * 60) is None
+    assert main._fno_chg15(CE_NAME, 120.0, T0 + 15 * 60 + 30) == 20.0
+
+
+def test_view_serves_cached_snapshot_without_waiting(monkeypatch):
+    import threading
+    gate = threading.Event()
+    calls = []
+    monkeypatch.setattr(main, "_FNO_BY_INDEX_CACHE", {"ts": main.time.time() - 120, "data": {"ok": True, "groups": {"NIFTY": []}}})
+    monkeypatch.setattr(main, "_FNO_VIEW_REFRESH", {"thread": None, "last_error": None, "started_ts": 0.0, "result": None})
+    monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: calls.append(1) or gate.wait(5) or {"ok": True})
+    t0 = main.time.time()
+    a = main._fno_view_snapshot()
+    b = main._fno_view_snapshot()  # refresh still running: no second fetch (single-flight)
+    assert main.time.time() - t0 < 1.0 and a["ok"] and a["age_s"] >= 119 and b["cached"]
+    gate.set(); main._FNO_VIEW_REFRESH["thread"].join(5)
+    assert calls == [1]
+
+
+def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
+    import threading
+    gate = threading.Event()
+    monkeypatch.setattr(main, "FNO_VIEW_WAIT_S", 0.2)
+    monkeypatch.setattr(main, "_FNO_BY_INDEX_CACHE", {"ts": 0.0, "data": None})
+    monkeypatch.setattr(main, "_FNO_VIEW_REFRESH", {"thread": None, "last_error": None, "started_ts": 0.0, "result": None})
+    monkeypatch.setattr(main, "_fno_by_index_snapshot", lambda: gate.wait(5) or {"ok": True})
+    r = main._fno_view_snapshot()
+    assert r["loading"] is True and r["ok"] is False and "loading" in r["errors"]["snapshot"]
+    gate.set(); main._FNO_VIEW_REFRESH["thread"].join(5)

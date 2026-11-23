@@ -33,7 +33,7 @@
 </head>
 <body>
 <h1>View 6 · Most-traded index options <span class="mode">research + paper only</span></h1>
-<div class="sub">Per index, the top 5 option contracts by contracts traded today among those UP on the day (you only buy). Indices crowded out of NSE's most-active lists are filled from their own option chain. 15m = premium change over the last 15 min. NSE snapshot, 1-3 min delayed. Refreshes every 60 s. Never a real entry or stop source. <span id="when" class="mono"></span> <span id="err" class="err"></span></div>
+<div class="sub">Per index, the top 5 option contracts by contracts traded today among those UP on the day (you only buy). Indices crowded out of NSE's most-active lists are filled from their own option chain. 15m = rolling: premium now vs its price exactly 15 min ago (time shown under it), recomputed every refresh. NSE snapshot, 1-3 min delayed. Refreshes every 60 s. Never a real entry or stop source. <span id="when" class="mono"></span> <span id="err" class="err"></span></div>
 
 <h2>Paper strategy <select id="pvar" aria-label="Paper variant"><option value="">v1 basic sentiment</option></select> <span class="dim mono" id="ptag"></span></h2>
 <div class="cards" id="paper"><div class="empty">loading…</div></div>
@@ -58,7 +58,7 @@
   function table(u, d) {
     const rows = (d && d.rows) || [];
     const body = rows.length ? rows.map(r => `<tr><td>${esc(r.contract)}</td><td class="num mono">${f2(r.lastPrice)}</td>
-        <td class="num mono">${pct(r.pChange)}</td><td class="num mono">${r.chg15_pct == null ? '<span class="dim">warming up</span>' : pct(r.chg15_pct)}</td><td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
+        <td class="num mono">${pct(r.pChange)}</td><td class="num mono">${r.chg15_pct == null ? '<span class="dim">warming up</span>' : pct(r.chg15_pct) + '<br><span class="dim" style="font-size:11px">vs ' + String(r.chg15_from_ist||'').slice(0,5) + '</span>'}</td><td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
         <td class="num mono">${f2(r.openInterest)}</td><td class="mono ${r.oi_build === "long_buildup" ? "up" : r.oi_build ? "down" : "dim"}">${esc(BUILD[r.oi_build] || "–")}</td>
         <td class="num mono">${r.iv_pct == null ? "–" : r.iv_pct.toFixed(1)}</td><td class="num mono">${r.delta == null ? "–" : r.delta.toFixed(2)}</td>
         <td class="num mono">${r.theta_frac == null ? "–" : (r.theta_frac * 100).toFixed(1) + "%"}</td></tr>`).join("")

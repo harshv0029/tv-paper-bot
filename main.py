@@ -34063,7 +34063,7 @@ async def _scheduler_tick():
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
         try:  # B-1676: PAPER-only most-active option momentum (exits every tick, entry scan every 5 min), one pass at a time
             global _fno_momo_task
-            if _fno_momo_due() and (_fno_momo_task is None or _fno_momo_task.done()):
+            if _fno_momo_task is None or _fno_momo_task.done():  # B-1684: the hook gates itself (EOD sweep off-window)
                 _fno_momo_task = asyncio.create_task(asyncio.to_thread(_fno_momo_tick_hook))
         except Exception as e:
             print(f"[FNO_MOMO] paper pass launch failed (non-fatal): {e}")
@@ -42592,11 +42592,55 @@ def _fno_contract_ltp(contract: str, underlying: str):
 # Not trading state: a restart only blanks the column until 15 min of samples exist again, so no Upstash mirror.
 FNO_CHG_WINDOW_S = 15 * 60
 FNO_HIST_KEEP_S = 20 * 60
-FNO_HIST_PER_INDEX = 20
+FNO_HIST_PER_INDEX = 50  # B-1684: every listed contract (was 20: rows 21-50 never got a 15-min base)
 _FNO_PX_HIST = {}  # contract -> [(ts, price), ...] oldest first; <= 5 x 20 contracts x ~20 samples
 
 
+# B-1684: the 15-min samples were memory-only, so every restart blanked View 6's "15m %" column for 15 min. Mirrored to
+# one small Upstash key (<= ~60 KB, saved at most every FNO_HIST_SAVE_S) and restored once on the first sample after boot.
+FNO_HIST_UPSTASH_KEY = "fno_px_hist_v1"
+FNO_HIST_SAVE_S = 60
+_FNO_PX_HIST_SYNC = {"restored": False, "last_save_ts": 0.0, "error": None}
+
+
+def _fno_hist_restore(now_ts: float) -> int:
+    """Loads the mirrored samples once per boot (samples older than FNO_HIST_KEEP_S dropped). Returns contracts loaded."""
+    if _FNO_PX_HIST_SYNC["restored"] or not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        _FNO_PX_HIST_SYNC["restored"] = True
+        return 0
+    try:
+        raw = _upstash_get(FNO_HIST_UPSTASH_KEY)
+    except Exception as e:  # noqa: BLE001
+        _FNO_PX_HIST_SYNC["error"] = f"restore: {str(e)[:120]}"
+        return 0  # retried on the next sample
+    _FNO_PX_HIST_SYNC["restored"] = True
+    n = 0
+    for k, h in ((json.loads(raw) if raw else {}) or {}).items():
+        keep = [(float(t), float(p)) for t, p in h if now_ts - float(t) <= FNO_HIST_KEEP_S]
+        if keep:
+            merged = sorted(set(keep) | set(_FNO_PX_HIST.get(k, [])))
+            _FNO_PX_HIST[k] = merged
+            n += 1
+    return n
+
+
+def _fno_hist_save(now_ts: float) -> bool:
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) or not _FNO_PX_HIST_SYNC["restored"]:
+        return False  # never overwrite the remote copy before it was read
+    if now_ts - _FNO_PX_HIST_SYNC["last_save_ts"] < FNO_HIST_SAVE_S:
+        return False
+    _FNO_PX_HIST_SYNC["last_save_ts"] = now_ts
+    try:
+        _upstash_set(FNO_HIST_UPSTASH_KEY, json.dumps({k: [[round(t, 1), p] for t, p in h] for k, h in _FNO_PX_HIST.items()}))
+        _FNO_PX_HIST_SYNC["error"] = None
+        return True
+    except Exception as e:  # noqa: BLE001
+        _FNO_PX_HIST_SYNC["error"] = f"save: {str(e)[:120]}"
+        return False
+
+
 def _fno_hist_record(groups: dict, now_ts: float) -> None:
+    _fno_hist_restore(now_ts)
     for u, rows in (groups or {}).items():
         for r in (rows or [])[:FNO_HIST_PER_INDEX]:
             px = _fno_num(r.get("lastPrice"))
@@ -42610,18 +42654,33 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
             _FNO_PX_HIST[k] = h
         else:
             del _FNO_PX_HIST[k]
+    _fno_hist_save(now_ts)
+
+
+FNO_CHG_MAX_BASE_AGE_S = 16 * 60  # B-1684: the base must be 15:00-16:00 min old (was up to 20 min)
+
+
+def _fno_chg15_detail(contract: str, price, now_ts: float) -> dict:
+    """B-1684 (user 2026-11-23 "running 15 min only, not a block of 15 min checked every 15 min"): a ROLLING change:
+    the premium now vs the sample closest to exactly 15 min ago (samples ~every 60 s), recomputed on every refresh.
+    No sample 15:00-16:00 min old (warming up / gap) -> None, never a stale older base."""
+    px = _fno_num(price)
+    base = base_ts = None
+    for ts, p in _FNO_PX_HIST.get(contract, []):
+        age = now_ts - ts
+        if FNO_CHG_WINDOW_S <= age <= FNO_CHG_MAX_BASE_AGE_S:
+            base, base_ts = p, ts  # oldest-first: the last match is the one closest to 15:00
+        elif age < FNO_CHG_WINDOW_S:
+            break
+    pct = round((px / base - 1.0) * 100.0, 2) if base and px > 0 else None
+    return {"chg15_pct": pct, "chg15_base_price": base if pct is not None else None,
+            "chg15_from_ist": ((dt.datetime.utcfromtimestamp(base_ts) + dt.timedelta(minutes=IST_OFFSET_MIN))
+                               .strftime("%H:%M:%S IST") if pct is not None else None)}
 
 
 def _fno_chg15(contract: str, price, now_ts: float):
-    """% change of the premium vs the latest sample at least 15 min old (and at most 20). None while warming up."""
-    px = _fno_num(price)
-    base = None
-    for ts, p in _FNO_PX_HIST.get(contract, []):
-        if now_ts - ts >= FNO_CHG_WINDOW_S:
-            base = p
-        else:
-            break
-    return round((px / base - 1.0) * 100.0, 2) if base and px > 0 else None
+    """% change of the premium vs its price 15 min ago (rolling, see _fno_chg15_detail). None while warming up."""
+    return _fno_chg15_detail(contract, price, now_ts)["chg15_pct"]
 
 
 def _fno_by_index_snapshot() -> dict:
@@ -42660,6 +42719,42 @@ def _fno_by_index_snapshot() -> dict:
     return dict(data, cached=False)
 
 
+# B-1684 (2026-11-23 19:5x IST: the View 6 call itself timed out at 30 s): a page request never waits on NSE/BSE when a
+# snapshot exists. It gets the last good snapshot at once (with its age) and, when that is older than 60 s, ONE
+# background refresh starts (single-flight). Only a cold cache (first load after a boot) waits, at most
+# FNO_VIEW_WAIT_S, then answers "loading" instead of hanging; the 60 s page refresh picks the data up.
+FNO_VIEW_WAIT_S = 20
+_FNO_VIEW_REFRESH = {"thread": None, "last_error": None, "started_ts": 0.0, "result": None}
+
+
+def _fno_view_refresh_bg() -> None:
+    try:
+        _FNO_VIEW_REFRESH["result"] = _fno_by_index_snapshot()  # a failed (not ok) fetch is shown with its errors
+        _FNO_VIEW_REFRESH["last_error"] = None
+    except Exception as e:  # noqa: BLE001
+        _FNO_VIEW_REFRESH["last_error"] = f"{type(e).__name__}: {str(e)[:160]}"
+
+
+def _fno_view_snapshot() -> dict:
+    import threading
+    c = _FNO_BY_INDEX_CACHE
+    th = _FNO_VIEW_REFRESH["thread"]
+    busy = th is not None and th.is_alive()
+    age = time.time() - c["ts"] if c["data"] is not None else None
+    if not busy and (age is None or age >= 60):
+        th = threading.Thread(target=_fno_view_refresh_bg, name="fno_view_refresh", daemon=True)
+        _FNO_VIEW_REFRESH.update(thread=th, started_ts=time.time())
+        th.start()
+    if c["data"] is None and th is not None:
+        th.join(FNO_VIEW_WAIT_S)
+    if c["data"] is None and _FNO_VIEW_REFRESH["result"] is not None and not (th is not None and th.is_alive()):
+        return dict(_FNO_VIEW_REFRESH["result"])  # the fresh answer of a cold fetch (also a failed one, with errors)
+    if c["data"] is None:
+        return {"ok": False, "groups": {}, "loading": True,
+                "errors": {"snapshot": _FNO_VIEW_REFRESH["last_error"] or "loading: first NSE fetch after restart"}}
+    return dict(c["data"], cached=True, age_s=round(time.time() - c["ts"], 1))
+
+
 @app.get("/fno-most-active-by-index")
 def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
     """B-1675 View 6 data: most-traded index options per index (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50),
@@ -42667,7 +42762,7 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
     buying"): by default only contracts up on the day, top `per_index` of those; each row carries chg15_pct, the
     premium change over the last 15 min. Public NSE data, cached 60 s. Research display only."""
     n = max(1, min(int(per_index), 50))
-    snap = _fno_by_index_snapshot()
+    snap = _fno_view_snapshot()  # B-1684: never blocks a page on NSE when a snapshot exists
     pct = snap.get("index_pct") or {}
     now_ts = time.time()
     out = {}
@@ -42676,14 +42771,15 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
         if positive_only:
             rows = [r for r in rows if _fno_num(r.get("pChange")) > 0]
         now_ist = ist_now()
-        out[u] = {"rows": [dict(r, chg15_pct=_fno_chg15(r.get("contract"), r.get("lastPrice"), now_ts),
+        out[u] = {"rows": [dict(r, **_fno_chg15_detail(r.get("contract"), r.get("lastPrice"), now_ts),
                                 **_fno_option_metrics(r, now_ist))  # B-1681: OI build-up, IV, Greeks
                            for r in rows[:n]],
                   "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active"),
                   "error": (snap.get("errors") or {}).get("chain_" + u)}
     return {"indices": out, "positive_only": bool(positive_only),
             "per_index": n, "fetched_ist": snap.get("fetched_ist"), "cached": snap.get("cached", False),
-            "ok": snap.get("ok", False), "errors": snap.get("errors", {}),
+            "ok": snap.get("ok", False), "age_s": snap.get("age_s"), "loading": snap.get("loading", False),
+            "errors": snap.get("errors", {}),
             "source": "nseindia.com snapshot-derivatives-equity + allIndices (research only)"}
 
 
@@ -43017,9 +43113,64 @@ def _fno_momo_due(now=None) -> bool:
             and FNO_MOMO_ENTRY_START_MIN <= mins <= FNO_MOMO_FORCE_EXIT_MIN + 5)
 
 
+# B-1684 (user 2026-11-23 "data getting vanished after some time and after reboot"): the 12:33 BANKNIFTY paper row
+# was still 'open' with last_ts == opened_ts at 19:42 IST: no 15:15 close, no update ever reached Upstash, so the 17:44
+# reboot restored the 12:33 copy. Three guards: (1) the paper pass never touches the table before its Upstash restore
+# succeeded (a pre-restore write is what lost the morning's trades); (2) an EOD sweep runs on every tick OUTSIDE the
+# 09:30-15:20 window too, so a missed 15:15 exit (pass hung / bot down) is closed and pushed as soon as the bot sees it;
+# (3) a hung pass is visible (/fno-momo-paper "health") instead of silently freezing the strategy.
+FNO_MOMO_STALL_S = 180
+_FNO_MOMO_HEALTH = {"pass_started_ts": None, "pass_done_ts": None, "last_error": None, "sweeps": 0,
+                    "skipped_unhydrated": 0}
+
+
+def _fno_momo_table_ready() -> bool:
+    """True when fno_momo_paper_trades may be written: Upstash unset (nothing to restore) or its restore succeeded.
+    Retries the restore here (cheap: one meta GET when already restored)."""
+    t = "fno_momo_paper_trades"
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) or t in _generic_mirror_hydrated:
+        return True
+    try:
+        hydrate_generic_tables_from_external(only={t})
+    except Exception as e:  # noqa: BLE001
+        print(f"[FNO_MOMO] table restore retry failed (non-fatal): {str(e)[:160]}")
+    return t in _generic_mirror_hydrated
+
+
+def _fno_momo_eod_sweep(conn, now=None, now_ts=None) -> list:
+    """Closes paper rows a 15:15 pass missed: opened on an earlier day, or today after 15:15 IST. Fill = last seen
+    premium (the bot saw nothing later). No network. Pushes the table when it closed anything."""
+    now = now or ist_now()
+    now_ts = now_ts if now_ts is not None else time.time()
+    day = now.strftime("%Y-%m-%d")
+    late = now.hour * 60 + now.minute >= FNO_MOMO_FORCE_EXIT_MIN
+    acts = []
+    for row in conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open'").fetchall():
+        if row["day"] != day:
+            reason = "stale_prev_day_close"
+        elif late:
+            reason = "forced_exit_1515_late"
+        else:
+            continue
+        acts.append(_fno_momo_close(conn, row, row["last_price"] or row["entry_price"], reason, now_ts))
+    if acts:
+        conn.commit()
+        _FNO_MOMO_HEALTH["sweeps"] += len(acts)
+        sync_generic_tables_external(only=("fno_momo_paper_trades",))
+    return acts
+
+
 def _fno_momo_tick_hook() -> None:
     """B-1676 scheduler hook (runs in a worker thread). Never raises: a failure here can never break the tick."""
+    _FNO_MOMO_HEALTH["pass_started_ts"] = time.time()
     try:
+        if not _fno_momo_table_ready():  # B-1684 (1): never write before the restore
+            _FNO_MOMO_HEALTH["skipped_unhydrated"] += 1
+            return
+        if not _fno_momo_due():  # B-1684 (2): outside the window only the cheap EOD sweep runs
+            with closing(get_db()) as conn:
+                _fno_momo_eod_sweep(conn)
+            return
         # B-1680: one snapshot per tick (cached 60 s) keeps the 15-min change samples flowing; B-1679 (c): the held
         # contract's own quote (cached 25 s) is checked on every 30 s tick.
         try:
@@ -43032,9 +43183,27 @@ def _fno_momo_tick_hook() -> None:
                 try:
                     _fno_momo_step(conn, snapshot=snap, variant=v, quote=_fno_contract_ltp)
                 except Exception as e:  # noqa: BLE001
+                    _FNO_MOMO_HEALTH["last_error"] = f"{v['gate']}: {str(e)[:200]}"
                     print(f"[FNO_MOMO] paper pass {v['gate']} failed (non-fatal): {str(e)[:200]}")
     except Exception as e:  # noqa: BLE001
+        _FNO_MOMO_HEALTH["last_error"] = str(e)[:200]
         print(f"[FNO_MOMO] paper pass failed (non-fatal): {str(e)[:200]}")
+    finally:
+        _FNO_MOMO_HEALTH["pass_done_ts"] = time.time()
+
+
+def _fno_momo_health(now_ts=None) -> dict:
+    """B-1684 (3): pass liveness + mirror state for /fno-momo-paper."""
+    now_ts = now_ts if now_ts is not None else time.time()
+    h = dict(_FNO_MOMO_HEALTH)
+    st, dn = h["pass_started_ts"], h["pass_done_ts"]
+    running = st is not None and (dn is None or dn < st)
+    h["running_s"] = round(now_ts - st, 1) if running else 0.0
+    h["stalled"] = bool(running and now_ts - st > FNO_MOMO_STALL_S)
+    h["table_restored"] = ("fno_momo_paper_trades" in _generic_mirror_hydrated
+                           or not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN))
+    h["last_push_ts"] = _generic_mirror_last_push_ts.get("fno_momo_paper_trades")
+    return h
 
 
 @app.get("/fno-momo-paper")
@@ -43087,6 +43256,8 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
             "open": next((r for r in rows if r["status"] == "open"), None),
             "trades": rows, "today": _tot([r for r in closed if r["day"] == today]), "all": _tot(closed),
             "last_scan": dict(last, ist=_ist(last.get("ts"))) if last else None,
+            "health": dict(_fno_momo_health(), last_push_ist=_ist(_generic_mirror_last_push_ts.get("fno_momo_paper_trades")),
+                           pass_started_ist=_ist(_FNO_MOMO_HEALTH["pass_started_ts"])),  # B-1684
             "now_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST")}
 
 
