@@ -1,22 +1,6 @@
 {
  "rows": [
   {
-   "day": "2026-11-17",
-   "entry_order_id": "261117000397982",
-   "entry_price": 1220.0,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "360ONE-EQ",
-   "opened_at": 1794896459.742369,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1184.5,
-   "source": "holding",
-   "stop_loss": 1184.4603386017875,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "360ONE.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000031453",
    "entry_price": 400.4,
@@ -31,22 +15,6 @@
    "stop_loss": 362.39073460490215,
    "strategy": "reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2",
    "symbol": "AMBUJACEM.NS"
-  },
-  {
-   "day": "2026-10-09",
-   "entry_order_id": "261009000196477",
-   "entry_price": 134.39,
-   "first_seen_day": "2026-10-09",
-   "is_short": 0,
-   "kotak_trading_symbol": "BANKINDIA-EQ",
-   "opened_at": 1791522706.9950182,
-   "owner": "swing",
-   "qty": 8,
-   "sl_trigger_price": 148.67,
-   "source": "holding",
-   "stop_loss": 115.72,
-   "strategy": "order_block_delta",
-   "symbol": "BANKINDIA.NS"
   },
   {
    "day": "2026-11-09",
