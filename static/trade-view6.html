@@ -74,7 +74,8 @@
     const r = await fetch("/fno-most-active-by-index?per_index=5", {cache: "no-store"});
     if (!r.ok) throw new Error("index lists HTTP " + r.status);
     const j = await r.json();
-    document.getElementById("indices").innerHTML = IDX.map(u => table(u, (j.indices || {})[u])).join("");
+    const vx = j.india_vix || {};
+    document.getElementById("indices").innerHTML = `<div class="dim mono" style="margin:4px 0 8px">India VIX ${vx.last == null ? "–" : f2(vx.last)} (${pct(vx.pct)} on the day)${num(vx.pct) >= 5 ? ' <span class="down">· CE buys blocked (VIX up 5%+)</span>' : ""}</div>` + IDX.map(u => table(u, (j.indices || {})[u])).join("");
     document.getElementById("when").textContent = "Fetched " + (j.fetched_ist || "–") + (j.cached ? " (cached)" : "");
     const errs = Object.entries(j.errors || {});
     return j.ok ? "" : "NSE lists unavailable" + (errs.length ? ": " + errs.map(e => e.join(" ")).join("; ") : "");
