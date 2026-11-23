@@ -851,7 +851,19 @@
    "sell_qty": 5.0,
    "sell_amt": 1186.2,
    "updated_at": 1795199042.1989317
+  },
+  {
+   "day": "2026-11-23",
+   "trdsym": "AMBUJACEM-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 2.0,
+   "buy_amt": 800.7,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795405823.1499572
   }
  ],
- "synced_at_utc": "2026-11-22T06:58:49Z"
+ "synced_at_utc": "2026-11-23T03:51:15Z"
 }
