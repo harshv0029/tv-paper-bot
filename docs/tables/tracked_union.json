@@ -17,22 +17,6 @@
    "symbol": "360ONE.NS"
   },
   {
-   "day": "2026-11-17",
-   "entry_order_id": "261117000020711",
-   "entry_price": 1407.8,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "ADANIGREEN-EQ",
-   "opened_at": 1794887143.4140205,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1371.5,
-   "source": "holding",
-   "stop_loss": 1371.4366099841168,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "ADANIGREEN.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000031453",
    "entry_price": 400.4,
