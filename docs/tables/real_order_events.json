@@ -110567,7 +110567,31 @@
    "prev_state": null,
    "new_state": "cancelled before the exit",
    "detail": "reason: time_exit_backstop: expected exit 2026-11-23 15:00 IST reached (max hold 30 trading days; closed 15:00 IST that day if still open; earlier on stop/target/rule exit)"
+  },
+  {
+   "id": 9215,
+   "ts": 1795426233.0318248,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 8 @ Rs134.39",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-23 15:00 IST reached (max hold 30 trading days; closed 15:00 IST that day if still open; earlier on stop/target/rule exit)"
+  },
+  {
+   "id": 9216,
+   "ts": 1795426240.504986,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261123000888304",
+   "prev_state": "long 8 @ Rs134.39",
+   "new_state": "closed",
+   "detail": "reason: time_exit_backstop: expected exit 2026-11-23 15:00 IST reached (max hold 30 trading days; closed 15:00 IST that day if still open; earlier on stop/target/rule exit)"
   }
  ],
- "synced_at_utc": "2026-11-23T09:30:34Z"
+ "synced_at_utc": "2026-11-23T09:30:48Z"
 }
