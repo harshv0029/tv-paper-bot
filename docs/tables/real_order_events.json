@@ -110819,7 +110819,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs80.91",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=12"
+  },
+  {
+   "id": 9236,
+   "ts": 1795427501.290716,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   }
  ],
- "synced_at_utc": "2026-11-23T09:46:37Z"
+ "synced_at_utc": "2026-11-23T09:51:44Z"
 }
