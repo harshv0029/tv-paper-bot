@@ -2553,3 +2553,7 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 ### 2026-11-24 IST: B-1691 Upstash month cap blind to untracked days
 - A quota guard that only counts days it recorded under-reports the month when tracking starts mid-month; assume the budget was spent on unrecorded days and prefer the provider's own figure.
 - Profit-booking / exit takeaway: no direct exit change; exit/SL state is exempt from the pause, so trailing exits keep their Upstash mirror while research writers back off.
+
+### 2026-11-24 IST: B-1692 weekly context review
+- One reusable key-extractor for diag logs beats writing a parser per check; unused connectors are the largest remaining always-loaded cost.
+- Profit-booking / exit takeaway: none directly; cheaper checks leave more budget for exit research.
