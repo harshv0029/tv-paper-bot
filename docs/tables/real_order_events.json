@@ -110483,7 +110483,19 @@
    "prev_state": "long 5 @ Rs225.30",
    "new_state": "closed",
    "detail": "reason: entry-day stop Rs220.50 breached (live Rs220.69); the stop is never lowered, so the holding is sold"
+  },
+  {
+   "id": 9208,
+   "ts": 1795423727.9054735,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261123000777914",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1369.40",
+   "detail": "reason: swing entry signal from strategy reversal__island_turn1cr_tfs__long__4h__atr2d5_within8__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-23T08:15:20Z"
+ "synced_at_utc": "2026-11-23T08:48:50Z"
 }
