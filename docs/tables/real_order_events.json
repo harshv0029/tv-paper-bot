@@ -110423,7 +110423,31 @@
    "prev_state": "long 1 @ Rs1407.80",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 9203,
+   "ts": 1795419259.3533688,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "exit",
+   "event": "skipped_duplicate",
+   "order_id": null,
+   "prev_state": "tracked open (stale), long 1 @ Rs1407.80",
+   "new_state": "cleared - Kotak already shows this closed",
+   "detail": "reason: retry of paper swing exit already recorded: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 9204,
+   "ts": 1795419260.6465087,
+   "symbol": "ADANIGREEN.NS",
+   "kotak_trading_symbol": "ADANIGREEN-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261123000627910",
+   "prev_state": "long 1 @ Rs1407.80",
+   "new_state": "closed",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-11-23T07:34:14Z"
+ "synced_at_utc": "2026-11-23T07:34:28Z"
 }
