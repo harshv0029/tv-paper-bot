@@ -110507,7 +110507,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1301.30",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 9210,
+   "ts": 1795423761.6352086,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261123000779383",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1301.30",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1301.30 already covers the position (target stop Rs1301.27), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-23T08:49:21Z"
+ "synced_at_utc": "2026-11-23T08:49:44Z"
 }
