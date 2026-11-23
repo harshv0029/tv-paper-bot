@@ -110387,7 +110387,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs211.55",
    "detail": "reason: swing entry signal from strategy oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2 passed the PFnet gate; B-1500 exit variant live_tr2 (oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsbandfloor_rsn200_srcmain_trailr2__nonovl__v2, 0.124606 %/day; first viable variant by return per day)"
+  },
+  {
+   "id": 9200,
+   "ts": 1795413342.24075,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261123000433677",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs197.56",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-23T05:55:29Z"
+ "synced_at_utc": "2026-11-23T05:55:47Z"
 }
