@@ -81,22 +81,6 @@
    "symbol": "BIOCON.NS"
   },
   {
-   "day": "2026-11-17",
-   "entry_order_id": "261117000473273",
-   "entry_price": 1150.8,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "COCHINSHIP-EQ",
-   "opened_at": 1794898956.8921185,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1120.6,
-   "source": "holding",
-   "stop_loss": 1120.562642541499,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "COCHINSHIP.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000298121",
    "entry_price": 357.1,
