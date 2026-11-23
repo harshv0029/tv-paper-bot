@@ -42108,6 +42108,130 @@ def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", r
         return {"error": f"raw fetch of the CSV failed: {e}", "csv_url": csv_url}
 
 
+_FNO_MOST_ACTIVE_CACHE = {"ts": 0.0, "key": None, "data": None}
+_FNO_MOST_ACTIVE_LISTS = {
+    "contracts": "contracts",
+    "index_calls": "calls_index_vol",
+    "index_puts": "puts_index_vol",
+    "stock_calls": "calls_stocks_vol",
+    "stock_puts": "puts_stocks_vol",
+    "futures": "futures",
+}
+_FNO_ROW_FIELDS = ("underlying", "identifier", "instrumentType", "instrument", "expiryDate",
+                   "optionType", "strikePrice", "lastPrice", "pChange", "numberOfContractsTraded",
+                   "totalTurnover", "premiumTurnover", "openInterest", "changeinOpenInterest",
+                   "pchangeinOpenInterest", "underlyingValue", "volume", "value")
+
+
+def _fno_label(row):
+    """'NIFTY 25500 CE 27-Nov-2026' style label from an NSE snapshot row."""
+    parts = [str(row.get("underlying") or row.get("symbol") or "").strip()]
+    k = row.get("strikePrice")
+    if k not in (None, "", 0, "0"):
+        try:
+            kf = float(k)
+            parts.append(str(int(kf)) if kf == int(kf) else str(kf))
+        except (TypeError, ValueError):
+            parts.append(str(k))
+    ot = str(row.get("optionType") or "").strip().upper()
+    if ot in ("CALL", "CE"):
+        parts.append("CE")
+    elif ot in ("PUT", "PE"):
+        parts.append("PE")
+    elif "FUT" in str(row.get("instrumentType") or row.get("instrument") or "").upper():
+        parts.append("FUT")
+    if row.get("expiryDate"):
+        parts.append(str(row["expiryDate"]))
+    return " ".join(p for p in parts if p)
+
+
+def _fno_rows_from_payload(payload, limit):
+    """Find the first list of dict rows in an NSE snapshot payload (shape varies
+    by list: {'volume': {'data': [...]}}, {'data': [...]}, ...) and trim each row."""
+    def _find(obj, depth=0):
+        if depth > 4:
+            return None
+        if isinstance(obj, list) and obj and isinstance(obj[0], dict):
+            return obj
+        if isinstance(obj, dict):
+            for key in ("volume", "data", "value", "OPTIDX", "OPTSTK", "FUTIDX", "FUTSTK"):
+                if key in obj:
+                    r = _find(obj[key], depth + 1)
+                    if r:
+                        return r
+            for v in obj.values():
+                r = _find(v, depth + 1)
+                if r:
+                    return r
+        return None
+    rows = _find(payload) or []
+    out = []
+    for row in rows[:limit]:
+        slim = {k: row.get(k) for k in _FNO_ROW_FIELDS if k in row}
+        slim["contract"] = _fno_label(row)
+        out.append(slim)
+    return out
+
+
+def _fno_most_active_fetch(lists, limit):
+    """Cookie handshake on nseindia.com, then the public derivatives snapshot
+    API per list. Research only (B-1671): never a real entry/SL source."""
+    import http.cookiejar
+    import json as _json
+    import urllib.request
+    ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
+    jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    hdrs = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
+    result = {"lists": {}, "errors": {}}
+    try:
+        req = urllib.request.Request("https://www.nseindia.com/market-data/most-active-contracts",
+                                     headers=dict(hdrs, Accept="text/html,*/*"))
+        with opener.open(req, timeout=12) as resp:
+            resp.read(2000)
+    except Exception as e:
+        result["errors"]["handshake"] = str(e)[:200]
+    for name in lists:
+        url = "https://www.nseindia.com/api/snapshot-derivatives-equity?index=" + _FNO_MOST_ACTIVE_LISTS[name]
+        try:
+            req = urllib.request.Request(url, headers=dict(
+                hdrs, Accept="application/json, text/plain, */*",
+                Referer="https://www.nseindia.com/market-data/most-active-contracts"))
+            with opener.open(req, timeout=12) as resp:
+                raw = resp.read(3_000_000)
+            result["lists"][name] = _fno_rows_from_payload(_json.loads(raw.decode("utf-8", "replace")), limit)
+        except Exception as e:
+            result["errors"][name] = str(e)[:200]
+    return result
+
+
+@app.get("/fno-most-active")
+def fno_most_active(lists: str = "contracts,index_calls,index_puts,stock_calls,stock_puts,futures",
+                    limit: int = 15):
+    """Live most-traded NSE F&O contracts (user 2026-11-23, B-1671), e.g.
+    'NIFTY 25500 CE 27-Nov-2026' with contracts traded, turnover, OI, OI change.
+    Read-only public NSE data, no account data, so no token. Cached 60 s.
+    Research only: never feeds real entries or SLs."""
+    import time as _t
+    names = [n.strip() for n in str(lists).split(",") if n.strip() in _FNO_MOST_ACTIVE_LISTS]
+    if not names:
+        return {"error": "no valid list", "valid_lists": sorted(_FNO_MOST_ACTIVE_LISTS)}
+    limit = max(1, min(int(limit), 50))
+    key = (tuple(names), limit)
+    now = _t.time()
+    c = _FNO_MOST_ACTIVE_CACHE
+    if c["data"] is not None and c["key"] == key and now - c["ts"] < 60:
+        return dict(c["data"], cached=True)
+    data = _fno_most_active_fetch(names, limit)
+    data["fetched_ist"] = ist_now().strftime("%Y-%m-%d %H:%M:%S IST")
+    data["source"] = "nseindia.com snapshot-derivatives-equity (research only)"
+    data["ok"] = any(data["lists"].values())
+    if data["ok"]:
+        c.update(ts=now, key=key, data=data)
+    return dict(data, cached=False)
+
+
 @app.get("/nse-asm-probe")
 def nse_asm_probe():
     """DIAGNOSTIC ONLY - one-shot reachability test for NSE's own ASM

@@ -10,6 +10,7 @@
     {"date": "2026-11-11", "type": "deposit", "amount_inr": 5000.00},
     {"date": "2026-11-13", "type": "payout", "amount_inr": 5000.00, "detail": "requested payout"},
     {"date": "2026-11-16", "type": "deposit", "amount_inr": 5000.00},
-    {"date": "2026-11-17", "type": "deposit", "amount_inr": 5000.00}
+    {"date": "2026-11-17", "type": "deposit", "amount_inr": 5000.00},
+    {"date": "2026-11-23", "type": "deposit", "amount_inr": 5000.00, "detail": "Gmail payment-successful 09:35 IST"}
   ]
 }
