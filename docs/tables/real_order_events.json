@@ -111215,7 +111215,19 @@
    "prev_state": null,
    "new_state": "none",
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 9269,
+   "ts": 1795458897.9593105,
+   "symbol": "ULTRACEMCO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_expired",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "expired",
+   "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
   }
  ],
- "synced_at_utc": "2026-11-23T17:49:27Z"
+ "synced_at_utc": "2026-11-23T18:35:00Z"
 }
