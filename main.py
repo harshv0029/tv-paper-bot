@@ -25084,13 +25084,46 @@ def _upstash_official_month(http_get=None, now=None):
     return c["data"]
 
 
+# B-1691 (user 2026-11-24 00:00 IST: Upstash mailed "80% of the monthly quota used" while the self-meter showed 44%):
+# daily records only start 2026-11-14, so earlier days of the month counted as 0 bytes and the month cap thought
+# ~3.6 GB was still free. Days of this month before today with no record are now assumed to have spent the full
+# daily budget, Upstash's own month figure (when the management key is set) wins when larger, and the month cap
+# keeps a 5% reserve for the exempt real-money writes and restore reads that the pause never blocks.
+_UPSTASH_MONTH_RESERVE_FRAC = 0.05
+
+
+def _upstash_month_prior_estimate(day: str = None) -> tuple:
+    """(bytes, ops) used by this IST month before today: recorded days + untracked past days at the daily budget,
+    raised to Upstash's official month-to-date figure (cached only, never fetched here) minus today's metered use."""
+    day = day or _upstash_usage_day or ist_now().strftime("%Y-%m-%d")
+    used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
+    used_o = sum(int(v[1]) for v in _upstash_month_prior.values())
+    try:
+        missing = max(0, int(day[8:10]) - 1 - sum(1 for k in _upstash_month_prior if k[:7] == day[:7] and k < day))
+    except (TypeError, ValueError):
+        missing = 0
+    used_b += missing * _UPSTASH_DAILY_BYTES_BUDGET
+    used_o += missing * _UPSTASH_DAILY_OPS_BUDGET
+    off = _UPSTASH_OFFICIAL_CACHE.get("data") if _UPSTASH_OFFICIAL_CACHE.get("url") == UPSTASH_REDIS_REST_URL else None
+    if off:
+        try:
+            _, tb, to = _upstash_usage_totals()
+            used_b = max(used_b, int(off.get("month_bandwidth_bytes") or 0) - tb)
+            used_o = max(used_o, int(off.get("month_requests") or 0) - to)
+        except Exception:  # noqa: BLE001
+            pass
+    return used_b, used_o
+
+
 def _upstash_today_budget() -> tuple:
     """(bytes_budget, ops_budget) for today, cumulative over the month so far (B-1577). Never below 0."""
     used_b = sum(int(v[0]) for v in _upstash_month_prior.values())
     used_o = sum(int(v[1]) for v in _upstash_month_prior.values())
+    est_b, est_o = _upstash_month_prior_estimate()  # B-1691
+    keep = 1 - _UPSTASH_MONTH_RESERVE_FRAC
     n = len(_upstash_month_prior)
-    b = min((n + 1) * _UPSTASH_DAILY_BYTES_BUDGET - used_b, _UPSTASH_MONTHLY_BYTES - used_b)
-    o = min((n + 1) * _UPSTASH_DAILY_OPS_BUDGET - used_o, _UPSTASH_MONTHLY_OPS - used_o)
+    b = min((n + 1) * _UPSTASH_DAILY_BYTES_BUDGET - used_b, int(keep * _UPSTASH_MONTHLY_BYTES) - est_b)
+    o = min((n + 1) * _UPSTASH_DAILY_OPS_BUDGET - used_o, int(keep * _UPSTASH_MONTHLY_OPS) - est_o)
     return max(b, 0), max(o, 0)
 
 
@@ -35944,6 +35977,8 @@ def upstash_usage():
             # (daily records start 2026-11-14, B-1577; earlier days of the month were not metered).
             "month_tracked_since": min(list(_upstash_month_prior) + [_upstash_usage_day or ist_now().strftime("%Y-%m-%d")]),
             "month_used_bytes": sum(v[0] for v in _upstash_month_prior.values()) + tot,
+            # B-1691: incl. untracked days of the month at the daily budget / Upstash's own figure when larger
+            "month_used_bytes_estimate": _upstash_month_prior_estimate()[0] + tot,
             # B-1613: Upstash's own month-to-date figure (None until the management key is set on Render)
             "upstash_official": _upstash_official_month(),
             "upstash_official_error": _UPSTASH_OFFICIAL_CACHE["error"],

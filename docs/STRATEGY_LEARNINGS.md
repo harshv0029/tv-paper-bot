@@ -2549,3 +2549,7 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 ### 2026-11-23 IST: B-1690 Greeks on every tape leg
 - Per-minute delta/gamma/theta/vega/IV for the whole ATM +-10 ladder lets the replay look for patterns such as IV expanding while delta rises (momentum with vol bid) vs IV crush, and gamma peaks near expiry.
 - Profit-booking / exit takeaway: test exits keyed to Greek changes (e.g. exit when IV drops N points from entry, or when theta per day exceeds X% of the premium) against the flat 2% trail; pick by pooled PFnet, not one day.
+
+### 2026-11-24 IST: B-1691 Upstash month cap blind to untracked days
+- A quota guard that only counts days it recorded under-reports the month when tracking starts mid-month; assume the budget was spent on unrecorded days and prefer the provider's own figure.
+- Profit-booking / exit takeaway: no direct exit change; exit/SL state is exempt from the pause, so trailing exits keep their Upstash mirror while research writers back off.
