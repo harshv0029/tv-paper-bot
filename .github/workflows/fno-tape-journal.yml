@@ -1,0 +1,52 @@
+# B-1687 (b): daily git journal of the per-minute View 6 tape (/fno-tape?fill=1), the data set for the
+# strict-sentiment + OI/Greeks single-leg option backtest. Research data only (public NSE quotes, no account ids).
+# 15:50 IST weekdays = 10:20 UTC. The bot keeps 3 days in SQLite + Upstash, so a missed run can be re-run by date.
+name: fno-tape-journal
+
+on:
+  schedule:
+    - cron: "20 10 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "IST day YYYY-MM-DD (default today)"
+        required: false
+        default: ""
+
+concurrency:
+  group: fno-tape-journal
+  cancel-in-progress: false
+
+jobs:
+  tape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Fetch the tape
+        run: |
+          DAY="${{ github.event.inputs.date }}"
+          [ -n "$DAY" ] || DAY=$(TZ=Asia/Kolkata date +%F)
+          echo "DAY=$DAY" >> "$GITHUB_ENV"
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" > /dev/null || true
+          for i in 1 2 3; do
+            curl -sS -m 180 -f "https://tv-paper-bot-gdan.onrender.com/fno-tape?date=$DAY&fill=1" -o /tmp/tape.json && break
+            sleep $((i * 30))
+          done
+          jq '{day, minutes, local, filled_from_upstash, fill_error, expected_minutes}' /tmp/tape.json
+      - name: Commit
+        run: |
+          N=$(jq '.minutes' /tmp/tape.json)
+          if [ "${N:-0}" -lt 1 ]; then echo "No tape rows for $DAY (holiday or bot down) - nothing to commit."; exit 0; fi
+          mkdir -p docs/fno_tape
+          OUT="docs/fno_tape/$DAY.json.gz"
+          if [ -f "$OUT" ] && [ "$(zcat "$OUT" | jq '.minutes')" -ge "$N" ]; then echo "Journal already has $N+ minutes."; exit 0; fi
+          jq -c 'del(.state)' /tmp/tape.json | gzip -9n > "$OUT"
+          git config user.name "tv-paper-bot journal sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "F&O tape journal $DAY ($N minutes) [skip render]"
+          for i in 1 2 3 4; do git push && exit 0; git pull --rebase origin main; sleep $((i * 5)); done
+          exit 1

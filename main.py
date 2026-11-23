@@ -42657,6 +42657,144 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
     _fno_hist_save(now_ts)
 
 
+# ---- B-1687 (b) (user 2026-11-23 "B"): the View 6 TAPE. No free intraday option-premium history exists, so the bot
+# records its own: once per minute in the NSE session, the top FNO_TAPE_PER_INDEX rows of every index (premium, day %,
+# contracts traded, OI, OI change, IV, spot) plus each index's day %. After ~4 weeks this is replayed through the real
+# _fno_momo_step for a true 5m backtest of the strict-sentiment + OI/Greeks strategy. Storage: SQLite (fast, local) +
+# one Upstash key per minute (EX 3 days, so a Render wipe loses nothing) + a daily git journal
+# (fno-tape-journal.yml -> docs/fno_tape/<day>.json.gz, from /fno-tape?fill=1). Research only: never a real entry/SL.
+FNO_TAPE_PER_INDEX = 15
+FNO_TAPE_UPSTASH_PREFIX = "fno_tape_v1"
+FNO_TAPE_UPSTASH_EX_S = 3 * 86400
+FNO_TAPE_KEEP_DAYS = 3
+FNO_TAPE_COLS = ("contract", "lastPrice", "pChange", "numberOfContractsTraded", "openInterest",
+                 "changeinOpenInterest", "impliedVolatility", "underlyingValue")
+_FNO_TAPE_STATE = {"last_minute": None, "rows_today": 0, "day": None, "upstash_ok": 0, "upstash_fail": 0,
+                   "skipped_budget": 0, "last_error": None}
+
+
+def _fno_tape_window(now=None) -> bool:
+    now = now or ist_now()
+    m = now.hour * 60 + now.minute
+    return _nse_regular_trading_day(now) and 9 * 60 + 15 <= m <= 15 * 60 + 30
+
+
+def _fno_tape_ensure(conn) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS fno_tape (day TEXT NOT NULL, minute TEXT NOT NULL, payload TEXT NOT NULL,"
+                 " PRIMARY KEY (day, minute))")
+
+
+def _fno_tape_payload(groups: dict, index_pct: dict) -> dict:
+    out = {}
+    for u, rows in (groups or {}).items():
+        out[u] = [[r.get(c) if c == "contract" else round(_fno_num(r.get(c)), 2) for c in FNO_TAPE_COLS]
+                  for r in (rows or [])[:FNO_TAPE_PER_INDEX] if r.get("contract")]
+    return {"cols": list(FNO_TAPE_COLS), "rows": out, "index_pct": dict(index_pct or {})}
+
+
+def _fno_tape_upstash_set(key: str, value: str) -> None:
+    resp = requests.post(_upstash_set_url(key) + f"?EX={FNO_TAPE_UPSTASH_EX_S}",
+                         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+                         data=value.encode("utf-8"), timeout=10)
+    _upstash_meter(key, len(value), "set")
+    resp.raise_for_status()
+
+
+def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None) -> bool:
+    """One tape row per IST minute (first fresh snapshot of the minute wins). Never raises."""
+    try:
+        now = now or ist_now()
+        if not _fno_tape_window(now):
+            return False
+        day, minute = now.strftime("%Y-%m-%d"), now.strftime("%H:%M")
+        if _FNO_TAPE_STATE["last_minute"] == (day, minute):
+            return False
+        payload = json.dumps(_fno_tape_payload(groups, index_pct), separators=(",", ":"))
+        own = conn is None
+        c = conn or get_db()
+        try:
+            _fno_tape_ensure(c)
+            c.execute("INSERT OR IGNORE INTO fno_tape (day, minute, payload) VALUES (?,?,?)", (day, minute, payload))
+            cutoff = (now - dt.timedelta(days=FNO_TAPE_KEEP_DAYS)).strftime("%Y-%m-%d")
+            c.execute("DELETE FROM fno_tape WHERE day < ?", (cutoff,))
+            c.commit()
+        finally:
+            if own:
+                c.close()
+        if _FNO_TAPE_STATE["day"] != day:
+            _FNO_TAPE_STATE.update(day=day, rows_today=0)
+        _FNO_TAPE_STATE["last_minute"] = (day, minute)
+        _FNO_TAPE_STATE["rows_today"] += 1
+        if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+            if _upstash_budget_level() >= 2:  # research data yields to real-money state when the budget is spent
+                _FNO_TAPE_STATE["skipped_budget"] += 1
+            else:
+                try:
+                    _fno_tape_upstash_set(f"{FNO_TAPE_UPSTASH_PREFIX}:{day}:{minute.replace(':', '')}", payload)
+                    _FNO_TAPE_STATE["upstash_ok"] += 1
+                except Exception as e:  # noqa: BLE001
+                    _FNO_TAPE_STATE["upstash_fail"] += 1
+                    _FNO_TAPE_STATE["last_error"] = f"upstash: {str(e)[:120]}"
+        return True
+    except Exception as e:  # noqa: BLE001
+        _FNO_TAPE_STATE["last_error"] = f"{type(e).__name__}: {str(e)[:160]}"
+        return False
+
+
+def _fno_tape_minutes(day: str) -> list:
+    out = []
+    m = 9 * 60 + 15
+    while m <= 15 * 60 + 30:
+        out.append(f"{m // 60:02d}:{m % 60:02d}")
+        m += 1
+    return out
+
+
+def _fno_tape_export(day: str, fill: bool = False, conn=None) -> dict:
+    """The day's tape from SQLite; with fill, minutes missing locally (a Render wipe) are read back from Upstash."""
+    own = conn is None
+    c = conn or get_db()
+    try:
+        _fno_tape_ensure(c)
+        rows = {m: json.loads(p) for m, p in c.execute(
+            "SELECT minute, payload FROM fno_tape WHERE day = ? ORDER BY minute", (day,)).fetchall()}
+    finally:
+        if own:
+            c.close()
+    local = len(rows)
+    filled, fill_err = 0, None
+    if fill and UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+        for m in _fno_tape_minutes(day):
+            if m in rows:
+                continue
+            try:
+                raw = _upstash_get(f"{FNO_TAPE_UPSTASH_PREFIX}:{day}:{m.replace(':', '')}")
+            except Exception as e:  # noqa: BLE001
+                fill_err = str(e)[:120]
+                break
+            if raw:
+                rows[m] = json.loads(raw)
+                filled += 1
+    return {"day": day, "minutes": len(rows), "local": local, "filled_from_upstash": filled, "fill_error": fill_err,
+            "expected_minutes": len(_fno_tape_minutes(day)),
+            "tape": [dict(v, minute=m) for m, v in sorted(rows.items())]}
+
+
+@app.get("/fno-tape")
+def fno_tape(date: str = "", fill: int = 0, summary: int = 0):
+    """B-1687 (b): the per-minute View 6 tape for one IST day (default today). summary=1 drops the rows."""
+    day = date or ist_now().strftime("%Y-%m-%d")
+    try:
+        dt.date.fromisoformat(day)
+    except ValueError:
+        return {"error": "date must be YYYY-MM-DD"}
+    out = _fno_tape_export(day, fill=bool(fill))
+    out["state"] = {k: (list(v) if isinstance(v, tuple) else v) for k, v in _FNO_TAPE_STATE.items()}
+    if summary:
+        out.pop("tape", None)
+    return out
+
+
 FNO_CHG_MAX_BASE_AGE_S = 16 * 60  # B-1684: the base must be 15:00-16:00 min old (was up to 20 min)
 
 
@@ -42716,6 +42854,7 @@ def _fno_by_index_snapshot() -> dict:
     if data["ok"]:
         c.update(ts=now, data=data)
         _fno_hist_record(groups, now)
+        _fno_tape_record(groups, data["index_pct"])  # B-1687 (b): once per IST minute, never raises
     return dict(data, cached=False)
 
 
@@ -43182,6 +43321,11 @@ def _fno_momo_tick_hook() -> None:
         if not _fno_momo_due():  # B-1684 (2): outside the window only the cheap EOD sweep runs
             with closing(get_db()) as conn:
                 _fno_momo_eod_sweep(conn)
+            if _fno_tape_window():  # B-1687 (b): 09:15-09:30 and 15:20-15:30 keep the tape flowing
+                try:
+                    _fno_by_index_snapshot()
+                except Exception as e:  # noqa: BLE001
+                    _FNO_TAPE_STATE["last_error"] = f"snapshot: {str(e)[:120]}"
             return
         # B-1680: one snapshot per tick (cached 60 s) keeps the 15-min change samples flowing; B-1679 (c): the held
         # contract's own quote (cached 25 s) is checked on every 30 s tick.

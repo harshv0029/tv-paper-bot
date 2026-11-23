@@ -2533,3 +2533,10 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 - The 15-min change is rolling (now vs exactly 15 min ago), not a fixed 15-min block.
 - Profit-booking / exit takeaway: single-leg options move fast, so an exit that silently fails to record (or fire) is the
   costliest loose end; every exit path needs a backstop that runs even when the normal pass did not.
+
+### 2026-11-23 IST: B-1687 (b) View 6 tape for the strict-sentiment + OI/Greeks option backtest
+- No free intraday option-premium history exists, so the bot now records its own: one row per minute of the
+  top 15 contracts per index (premium, OI, OI change, IV, spot). After ~20 trading days it replays through the
+  real `_fno_momo_step`, the only honest 5m backtest of this strategy. Until then, no threshold is tuned.
+- Profit-booking / exit takeaway: the tape keeps every minute's premium, so the replay can measure the 2% trail
+  against wider trails and peak-vs-exit give-back on real intraday paths, not daily bars.
