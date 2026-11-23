@@ -111167,7 +111167,19 @@
    "prev_state": "tracked open (stale), long 3 @ Rs188.01",
    "new_state": "cleared - Kotak already shows this closed",
    "detail": "reason: retry of paper swing exit already recorded: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 9265,
+   "ts": 1795428093.861446,
+   "symbol": "ULTRACEMCO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_expired",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "expired",
+   "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
   }
  ],
- "synced_at_utc": "2026-11-23T10:00:01Z"
+ "synced_at_utc": "2026-11-23T10:01:43Z"
 }
