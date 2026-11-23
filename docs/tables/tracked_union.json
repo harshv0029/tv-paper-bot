@@ -97,6 +97,22 @@
    "symbol": "GAIL.NS"
   },
   {
+   "day": "2026-11-23",
+   "entry_order_id": "261123000777914",
+   "entry_price": 1369.4,
+   "first_seen_day": "2026-11-23",
+   "is_short": 0,
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "opened_at": 1795423727.3264492,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1301.3,
+   "source": "position",
+   "stop_loss": 1301.2711921765795,
+   "strategy": "reversal__island_turn1cr_tfs__long__4h__atr2d5_within8__nonovl__v2",
+   "symbol": "HCLTECH.NS"
+  },
+  {
    "day": "2026-11-20",
    "entry_order_id": "261120000207212",
    "entry_price": 911.35,
