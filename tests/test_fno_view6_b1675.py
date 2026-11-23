@@ -33,6 +33,9 @@ def test_by_index_route_uses_one_fetch_and_caches(monkeypatch):
     monkeypatch.setattr(main, "_fno_most_active_fetch", fake_fetch)
     monkeypatch.setattr(main, "_fno_index_day_changes", lambda: {"NIFTY": 0.4, "FINNIFTY": -0.2})
     monkeypatch.setitem(main._FNO_BY_INDEX_CACHE, "data", None)
+    monkeypatch.setattr(main, "_nse_opener", lambda *a, **k: ("op", {}))  # B-1678 chain fallback: no network
+    monkeypatch.setattr(main, "_fno_chain_fetch", lambda *a, **k: [])
+    monkeypatch.setattr(main, "_FNO_CHAIN_CACHE", {})
     c = TestClient(main.app)
     j = c.get("/fno-most-active-by-index?per_index=5").json()
     assert calls == [(("index_calls", "index_puts"), 50)]

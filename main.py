@@ -1031,10 +1031,16 @@ def init_db():
                 opened_ts REAL NOT NULL, entry_price REAL NOT NULL,
                 peak_price REAL NOT NULL, stop_price REAL NOT NULL,   -- every paper trade carries a trailing stop
                 last_price REAL, last_ts REAL, entry_pchange REAL, open_reason TEXT,
-                close_ts REAL, close_price REAL, close_reason TEXT, gross_pct REAL, net_pct REAL
+                close_ts REAL, close_price REAL, close_reason TEXT, gross_pct REAL, net_pct REAL,
+                stop_at_exit REAL, observed_exit_price REAL, observed_net_pct REAL  -- B-1679 (a)
             )
             """
         )
+        for _col in ("stop_at_exit REAL", "observed_exit_price REAL", "observed_net_pct REAL"):
+            try:  # B-1679: a DB restored from before these columns existed
+                conn.execute("ALTER TABLE fno_momo_paper_trades ADD COLUMN " + _col)
+            except Exception:
+                pass
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS news_signal_events (
@@ -42367,34 +42373,207 @@ def _fno_index_day_changes() -> dict:
     return data
 
 
+# ---- B-1678: option-chain fallback so every index shows its own top contracts --------------------------------------
+# NSE's most-active lists are the top 50 index calls/puts across ALL indices, so NIFTY and BANKNIFTY crowd out
+# FINNIFTY / MIDCPNIFTY / NIFTYNXT50 (user 2026-11-23: "Only strikes of nifty and banknifty are there ... keep top 5
+# of that index"). An index with fewer than FNO_VIEW6_MIN_ROWS rows is filled from its own nearest-expiry option
+# chain (totalTradedVolume = contracts traded). Research/paper only: never a real entry/SL source.
+FNO_VIEW6_MIN_ROWS = 5
+FNO_CHAIN_CACHE_S = 120
+FNO_QUOTE_CACHE_S = 25
+_FNO_CHAIN_CACHE = {}  # (underlying, expiry or '') -> {"ts", "rows"}; <= 5 indices x 2 expiries, slim rows only
+
+
+def _nse_opener(page="https://www.nseindia.com/option-chain"):
+    """Cookie handshake on nseindia.com; returns (opener, headers). Never raises."""
+    import http.cookiejar
+    import urllib.request
+    ua = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+          "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    hdrs = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
+    try:
+        with opener.open(urllib.request.Request(page, headers=dict(hdrs, Accept="text/html,*/*")), timeout=12) as r:
+            r.read(2000)
+    except Exception:
+        pass
+    return opener, dict(hdrs, Accept="application/json, text/plain, */*", Referer=page)
+
+
+def _nse_get_json(opener, hdrs, path, cap=4_000_000):
+    import json as _json
+    import urllib.request
+    with opener.open(urllib.request.Request("https://www.nseindia.com" + path, headers=hdrs), timeout=12) as resp:
+        return _json.loads(resp.read(cap).decode("utf-8", "replace"))
+
+
+def _fno_chain_rows(payload, underlying, expiry=None) -> list:
+    """NSE option chain payload (v3 or legacy) -> slim View 6 rows, one per CE/PE leg with contracts traded > 0."""
+    recs = (payload or {}).get("records") if isinstance(payload, dict) else None
+    data = []
+    if isinstance(payload, dict):
+        data = (recs or {}).get("data") or (payload.get("filtered") or {}).get("data") or []
+    under_val = (recs or {}).get("underlyingValue")
+    out = []
+    for item in data or []:
+        if not isinstance(item, dict):
+            continue
+        for ot in ("CE", "PE"):
+            leg = item.get(ot)
+            if not isinstance(leg, dict):
+                continue
+            exp = leg.get("expiryDate") or item.get("expiryDate") or item.get("expiryDates") or expiry
+            if expiry and exp and str(exp) != str(expiry):
+                continue
+            n = _fno_num(leg.get("totalTradedVolume") if leg.get("totalTradedVolume") is not None
+                         else leg.get("numberOfContractsTraded"))
+            px = _fno_num(leg.get("lastPrice"))
+            if n <= 0 or px <= 0:
+                continue
+            pc = leg.get("pChange", leg.get("pchange"))
+            if pc in (None, ""):
+                ch = _fno_num(leg.get("change"))
+                pc = round(ch / (px - ch) * 100.0, 2) if px - ch > 0 else 0.0
+            r = {"underlying": underlying, "strikePrice": leg.get("strikePrice", item.get("strikePrice")),
+                 "optionType": ot, "expiryDate": exp, "lastPrice": px, "pChange": _fno_num(pc),
+                 "numberOfContractsTraded": n, "openInterest": leg.get("openInterest"),
+                 "underlyingValue": leg.get("underlyingValue", under_val)}
+            r["contract"] = _fno_label(r)
+            out.append(r)
+    return out
+
+
+def _fno_chain_fetch(underlying, expiry=None, opener=None) -> list:
+    """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S. [] on failure."""
+    key = (underlying, expiry or "")
+    now = time.time()
+    hit = _FNO_CHAIN_CACHE.get(key)
+    ttl = FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S
+    if hit and now - hit["ts"] < ttl:
+        return hit["rows"]
+    rows = []
+    try:
+        op, hdrs = opener or _nse_opener()
+        exp = expiry
+        if not exp:
+            info = _nse_get_json(op, hdrs, "/api/option-chain-contract-info?symbol=" + underlying, 500_000)
+            dates = (info or {}).get("expiryDates") or []
+            exp = dates[0] if dates else None
+        if exp:
+            import urllib.parse as _up
+            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-v3?type=Indices&symbol=" + underlying
+                                                 + "&expiry=" + _up.quote(str(exp))), underlying, exp)
+        if not rows:  # legacy endpoint (all expiries) as the fallback
+            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying),
+                                   underlying, exp)
+    except Exception as e:
+        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {str(e)[:160]}")
+    if rows:
+        if len(_FNO_CHAIN_CACHE) > 12:
+            _FNO_CHAIN_CACHE.clear()
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows}
+    return rows
+
+
+def _fno_contract_ltp(contract: str, underlying: str):
+    """B-1679 (c): a fresh premium for one held paper contract from its own expiry's option chain (cached 25 s),
+    so the 2% stop is checked on every 30 s tick even when the contract leaves NSE's most-active lists. None on miss."""
+    parts = str(contract or "").split()
+    exp = parts[-1] if len(parts) >= 4 else None
+    for r in _fno_chain_fetch(underlying, exp) if exp else []:
+        if r["contract"] == contract:
+            return r["lastPrice"]
+    return None
+
+
+# ---- B-1680: last-15-minute change per contract (View 6 column). In-memory rolling samples, display only ----------
+# Not trading state: a restart only blanks the column until 15 min of samples exist again, so no Upstash mirror.
+FNO_CHG_WINDOW_S = 15 * 60
+FNO_HIST_KEEP_S = 20 * 60
+FNO_HIST_PER_INDEX = 20
+_FNO_PX_HIST = {}  # contract -> [(ts, price), ...] oldest first; <= 5 x 20 contracts x ~20 samples
+
+
+def _fno_hist_record(groups: dict, now_ts: float) -> None:
+    for u, rows in (groups or {}).items():
+        for r in (rows or [])[:FNO_HIST_PER_INDEX]:
+            px = _fno_num(r.get("lastPrice"))
+            if px > 0 and r.get("contract"):
+                h = _FNO_PX_HIST.setdefault(r["contract"], [])
+                if not h or now_ts - h[-1][0] >= 30:
+                    h.append((now_ts, px))
+    for k in list(_FNO_PX_HIST):
+        h = [s for s in _FNO_PX_HIST[k] if now_ts - s[0] <= FNO_HIST_KEEP_S]
+        if h:
+            _FNO_PX_HIST[k] = h
+        else:
+            del _FNO_PX_HIST[k]
+
+
+def _fno_chg15(contract: str, price, now_ts: float):
+    """% change of the premium vs the latest sample at least 15 min old (and at most 20). None while warming up."""
+    px = _fno_num(price)
+    base = None
+    for ts, p in _FNO_PX_HIST.get(contract, []):
+        if now_ts - ts >= FNO_CHG_WINDOW_S:
+            base = p
+        else:
+            break
+    return round((px / base - 1.0) * 100.0, 2) if base and px > 0 else None
+
+
 def _fno_by_index_snapshot() -> dict:
     """B-1675: index_calls + index_puts (top 50 each) grouped per index (up to 50 rows each) plus each index's day
-    change. Cached 60 s in one small slot. Research/paper only: never a real entry/SL source."""
+    change. B-1678: an index with fewer than FNO_VIEW6_MIN_ROWS rows is filled from its own option chain.
+    Cached 60 s in one small slot. Research/paper only: never a real entry/SL source."""
     c = _FNO_BY_INDEX_CACHE
     now = time.time()
     if c["data"] is not None and now - c["ts"] < 60:
         return dict(c["data"], cached=True)
     raw = _fno_most_active_fetch(["index_calls", "index_puts"], 50)
     rows = (raw.get("lists", {}).get("index_calls") or []) + (raw.get("lists", {}).get("index_puts") or [])
-    data = {"groups": _fno_group_by_index(rows, 50), "index_pct": _fno_index_day_changes(),
+    groups = _fno_group_by_index(rows, 50)
+    sources = {u: "most_active" for u in _FNO_INDEX_UNDERLYINGS}
+    short = [u for u in _FNO_INDEX_UNDERLYINGS if len(groups.get(u) or []) < FNO_VIEW6_MIN_ROWS]
+    if short:
+        cold = [u for u in short if time.time() - (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("ts", 0.0) >= FNO_CHAIN_CACHE_S]
+        opener = _nse_opener() if cold else None  # one cookie handshake for every index that needs a chain fetch
+        for u in short:
+            chain = _fno_chain_fetch(u, None, opener)
+            if chain:
+                merged = _fno_group_by_index((groups.get(u) or []) + chain, 50).get(u) or []
+                groups[u] = merged
+                sources[u] = "option_chain"
+    data = {"groups": groups, "sources": sources, "index_pct": _fno_index_day_changes(),
             "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}
     del raw, rows
     if data["ok"]:
         c.update(ts=now, data=data)
+        _fno_hist_record(groups, now)
     return dict(data, cached=False)
 
 
 @app.get("/fno-most-active-by-index")
-def fno_most_active_by_index(per_index: int = 5):
+def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
     """B-1675 View 6 data: most-traded index options per index (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50),
-    sorted by contracts traded. Public NSE data, cached 60 s. Research display only."""
+    sorted by contracts traded. B-1680 (user 2026-11-23 "Change should be positive only, because I am always
+    buying"): by default only contracts up on the day, top `per_index` of those; each row carries chg15_pct, the
+    premium change over the last 15 min. Public NSE data, cached 60 s. Research display only."""
     n = max(1, min(int(per_index), 50))
     snap = _fno_by_index_snapshot()
     pct = snap.get("index_pct") or {}
-    return {"indices": {u: {"rows": (snap.get("groups") or {}).get(u, [])[:n], "day_change_pct": pct.get(u)}
-                        for u in _FNO_INDEX_UNDERLYINGS},
+    now_ts = time.time()
+    out = {}
+    for u in _FNO_INDEX_UNDERLYINGS:
+        rows = (snap.get("groups") or {}).get(u, [])
+        if positive_only:
+            rows = [r for r in rows if _fno_num(r.get("pChange")) > 0]
+        out[u] = {"rows": [dict(r, chg15_pct=_fno_chg15(r.get("contract"), r.get("lastPrice"), now_ts))
+                           for r in rows[:n]],
+                  "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active")}
+    return {"indices": out, "positive_only": bool(positive_only),
             "per_index": n, "fetched_ist": snap.get("fetched_ist"), "cached": snap.get("cached", False),
             "ok": snap.get("ok", False), "errors": snap.get("errors", {}),
             "source": "nseindia.com snapshot-derivatives-equity + allIndices (research only)"}
@@ -42455,11 +42634,22 @@ def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail
                 and dec >= FNO_MOMO_STRICT_BREADTH * max(adv, 1.0))
 
 
-def _fno_momo_pick(groups: dict):
-    """Top FNO_MOMO_TOP_N by contracts traded per index -> the one with the largest positive % change, or None."""
+def _fno_momo_is_expiry_day(contract: str, day: str) -> bool:
+    """True when the contract label's expiry ('... 24-Nov-2026') is the given IST day ('2026-11-24')."""
+    try:
+        return dt.datetime.strptime(str(contract).split()[-1], "%d-%b-%Y").strftime("%Y-%m-%d") == day
+    except (ValueError, IndexError):
+        return False
+
+
+def _fno_momo_pick(groups: dict, day: str = ""):
+    """Top FNO_MOMO_TOP_N by contracts traded per index -> the one with the largest positive % change, or None.
+    B-1679 (b): a contract expiring today is never picked (expiry-day premiums gap far past a 2% stop)."""
     best = None
     for u in _FNO_INDEX_UNDERLYINGS:
         for rank, r in enumerate((groups or {}).get(u, [])[:FNO_MOMO_TOP_N], 1):
+            if day and _fno_momo_is_expiry_day(r.get("contract"), day):
+                continue
             pc, px = _fno_num(r.get("pChange")), _fno_num(r.get("lastPrice"))
             ot = _fno_momo_opt_type(r.get("optionType")) or next(
                 (t for t in str(r.get("contract") or "").split() if t in ("CE", "PE")), "")
@@ -42476,17 +42666,25 @@ def _fno_momo_net_pct(entry: float, exit_px: float) -> float:
     return round((exit_px / entry - 1.0) * 100.0 - ROUND_TRIP_COST_PCT, 4) if entry > 0 else 0.0
 
 
-def _fno_momo_close(conn, row, price: float, reason: str, now_ts: float) -> dict:
+def _fno_momo_close(conn, row, price: float, reason: str, now_ts: float, observed=None) -> dict:
+    """`price` is the paper fill; `observed` the premium actually seen on that tick (B-1679 (a): both recorded).
+    A trailing_sl exit fills at the resting stop level, as an SL-M sitting at the exchange from entry would; the
+    observed price shows how far a 30-60 s delayed snapshot had moved past it."""
+    observed = price if observed is None else observed
     gross = round((price / row["entry_price"] - 1.0) * 100.0, 4) if row["entry_price"] else 0.0
     net = _fno_momo_net_pct(row["entry_price"], price)
+    obs_net = _fno_momo_net_pct(row["entry_price"], observed)
     conn.execute("UPDATE fno_momo_paper_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
-                 "gross_pct = ?, net_pct = ?, last_price = ?, last_ts = ? WHERE id = ?",
-                 (now_ts, price, reason, gross, net, price, now_ts, row["id"]))
-    print(f"[FNO_MOMO] PAPER exit {row['contract']} @ {price} reason={reason} net={net}%")
-    return {"action": "exit", "contract": row["contract"], "price": price, "reason": reason, "net_pct": net}
+                 "gross_pct = ?, net_pct = ?, last_price = ?, last_ts = ?, stop_at_exit = ?, observed_exit_price = ?, "
+                 "observed_net_pct = ? WHERE id = ?",
+                 (now_ts, price, reason, gross, net, observed, now_ts, row["stop_price"], observed, obs_net, row["id"]))
+    print(f"[FNO_MOMO] PAPER exit {row['contract']} @ {price} (seen {observed}, stop {row['stop_price']}) "
+          f"reason={reason} net={net}%")
+    return {"action": "exit", "contract": row["contract"], "price": price, "observed": observed, "reason": reason,
+            "net_pct": net}
 
 
-def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None) -> list:
+def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quote=None) -> list:
     """B-1676 one pass (PAPER ONLY). Exits every call: forced 15:15 IST, trailing SL FNO_MOMO_TRAIL_PCT below the peak
     premium, confidence loss (out of its index top 3 by contracts traded, or sentiment flipped). Entry every 5 min
     09:30-14:30 IST when nothing is open. Returns the actions taken."""
@@ -42515,30 +42713,39 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None) -> 
     groups = snap.get("groups") or {}
     pct = snap.get("index_pct") or {}
     if row is not None:
-        cur = next((r for r in groups.get(row["underlying"], []) if r.get("contract") == row["contract"]), None)
-        price = _fno_num(cur.get("lastPrice")) if cur else 0.0
+        price = 0.0
+        if quote is not None:  # B-1679 (c): the held contract's own chain quote, fresh every 30 s tick
+            try:
+                price = _fno_num(quote(row["contract"], row["underlying"]))
+            except Exception:
+                price = 0.0
+        if price <= 0:
+            cur = next((r for r in groups.get(row["underlying"], []) if r.get("contract") == row["contract"]), None)
+            price = _fno_num(cur.get("lastPrice")) if cur else 0.0
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
         top = {r.get("contract") for r in groups.get(row["underlying"], [])[:FNO_MOMO_TOP_N]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
-        reason = None
+        reason, fill = None, price
         if mins >= FNO_MOMO_FORCE_EXIT_MIN:
             reason = "forced_exit_1515"
-        elif price <= row["stop_price"] or price <= stop:
-            reason = "trailing_sl"
+        elif price <= row["stop_price"]:
+            # B-1679: the stop sits 2% under the entry from the first tick and trails 2% under the peak. The paper
+            # fill is the resting stop level (an SL-M at the exchange); the observed price is kept beside it.
+            reason, fill = "trailing_sl", row["stop_price"]
         elif snap.get("ok") and row["contract"] not in top:
             reason = "confidence_lost_top3"
         elif senti is False:
             reason = "confidence_lost_sentiment"
         if reason:
-            acts.append(_fno_momo_close(conn, row, price, reason, now_ts))
+            acts.append(_fno_momo_close(conn, row, fill, reason, now_ts, observed=price))
         else:
             conn.execute("UPDATE fno_momo_paper_trades SET peak_price = ?, stop_price = ?, last_price = ?, last_ts = ? "
                          "WHERE id = ?", (peak, stop, price, now_ts, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        cand = _fno_momo_pick(groups)
+        cand = _fno_momo_pick(groups, day)
         scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
         if cand is None:
             scan["skip"] = "skipped_no_positive_candidate"
@@ -42582,10 +42789,17 @@ def _fno_momo_due(now=None) -> bool:
 def _fno_momo_tick_hook() -> None:
     """B-1676 scheduler hook (runs in a worker thread). Never raises: a failure here can never break the tick."""
     try:
+        # B-1680: one snapshot per tick (cached 60 s) keeps the 15-min change samples flowing; B-1679 (c): the held
+        # contract's own quote (cached 25 s) is checked on every 30 s tick.
+        try:
+            snap = _fno_by_index_snapshot()
+        except Exception as e:  # noqa: BLE001
+            print(f"[FNO_MOMO] snapshot failed (non-fatal): {str(e)[:160]}")
+            snap = {"ok": False, "groups": {}}
         with closing(get_db()) as conn:
-            for v in FNO_MOMO_VARIANTS:  # B-1677: each variant has its own position; the snapshot is cached 60 s
+            for v in FNO_MOMO_VARIANTS:  # B-1677: each variant has its own position
                 try:
-                    _fno_momo_step(conn, variant=v)
+                    _fno_momo_step(conn, snapshot=snap, variant=v, quote=_fno_contract_ltp)
                 except Exception as e:  # noqa: BLE001
                     print(f"[FNO_MOMO] paper pass {v['gate']} failed (non-fatal): {str(e)[:200]}")
     except Exception as e:  # noqa: BLE001
@@ -42610,6 +42824,10 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                                  "net_pct_sum": round(sum(nets), 4)}
     for r in rows:
         r["opened_ist"], r["closed_ist"] = _ist(r.get("opened_ts")), _ist(r.get("close_ts"))
+        # user 2026-11-23: running P&L on the open row (last seen premium vs entry, net of the 0.8% cost model)
+        r["running_net_pct"] = (_fno_momo_net_pct(r["entry_price"], r.get("last_price") or r["entry_price"])
+                                if r["status"] == "open" else None)
+        r["last_ist"] = _ist(r.get("last_ts"))
     today = ist_now().strftime("%Y-%m-%d")
     closed = [r for r in rows if r["status"] == "closed"]
 

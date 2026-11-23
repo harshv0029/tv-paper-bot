@@ -2500,3 +2500,16 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 - BANKNIFTY 63000 PE (expiry day, +168% on the day) entered 12:07 IST at 169.75 and was next seen at 117.25: -31.73% net on a 2% trail. Re-entered 12:17 IST at 117.60, exited 127.55 on the trail: +7.66%. Today: 2 trades, 1 win, -24.07% summed.
 - The paper exit only sees a 60 s-cached, 1-3 min delayed snapshot, so on expiry-day gamma the trail level is gapped through between samples; the paper loss is the observed gap, not what a resting SL-M would fill at (that would slip too, but by less).
 - Profit-booking / exit takeaway: a 2% trail only means something with tick-level prices and a resting stop; with minute-level sampling report both the trail-level exit and the observed exit, and test skipping expiry-day contracts, where premiums move 30% between samples.
+
+## 2026-11-23 B-1679 (d): why a "2% trail" printed -31.73%, and the paper fill model (B-1676/B-1677)
+- The stop was already 2% under the entry from the first tick (169.75 -> SL 166.36). The loss came from observation, not the
+  rule: the paper saw the premium only through NSE's most-active snapshot (1-3 min delayed, cached 60 s), and on an
+  expiry-week BANKNIFTY PE with the index -2% the next price it saw was 117.25. A real SL-M resting at the exchange would
+  have triggered near 166.
+- Fix: the held contract is re-quoted from its own expiry chain every 30 s tick; a trailing_sl exit fills at the resting stop
+  level (SL-M model) and the observed price + its net are stored beside it, so both the optimistic and the pessimistic
+  number are visible; contracts expiring today are never picked.
+- Bias to remember: the stop-level fill is optimistic in a true gap (a real SL-M fills at the market). Judge the variants on
+  BOTH net columns before any real-money discussion.
+- Profit-booking / exit takeaway: a tight 2% trail only means 2% if the stop rests at the exchange; any exit checked by
+  polling must be priced at the observed print, so real options exits must always be resting SL-M orders, never polled.
