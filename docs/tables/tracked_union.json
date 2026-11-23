@@ -49,22 +49,6 @@
    "symbol": "FEDERALBNK.NS"
   },
   {
-   "day": "2026-11-17",
-   "entry_order_id": "261117000475126",
-   "entry_price": 188.01,
-   "first_seen_day": "2026-11-17",
-   "is_short": 0,
-   "kotak_trading_symbol": "GAIL-EQ",
-   "opened_at": 1794899006.975297,
-   "owner": "swing",
-   "qty": 3,
-   "sl_trigger_price": 184.48,
-   "source": "holding",
-   "stop_loss": 184.48177203412143,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "GAIL.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000777914",
    "entry_price": 1369.4,
