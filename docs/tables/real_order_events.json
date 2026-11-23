@@ -110339,7 +110339,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs1120.60",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
+  },
+  {
+   "id": 9196,
+   "ts": 1795411972.9639459,
+   "symbol": "KALYANKJIL.NS",
+   "kotak_trading_symbol": "KALYANKJIL-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 3",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-23T03:56:26Z"
+ "synced_at_utc": "2026-11-23T05:32:55Z"
 }
