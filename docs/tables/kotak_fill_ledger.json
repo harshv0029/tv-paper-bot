@@ -862,8 +862,32 @@
    "buy_amt": 800.7,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795405823.1499572
+   "updated_at": 1795406137.401887
+  },
+  {
+   "day": "2026-11-23",
+   "trdsym": "COCHINSHIP-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 1120.6,
+   "updated_at": 1795406137.401887
+  },
+  {
+   "day": "2026-11-23",
+   "trdsym": "KALYANKJIL-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 3.0,
+   "sell_amt": 1995.3,
+   "updated_at": 1795406137.401887
   }
  ],
- "synced_at_utc": "2026-11-23T03:51:15Z"
+ "synced_at_utc": "2026-11-23T03:56:39Z"
 }
