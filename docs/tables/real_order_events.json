@@ -110281,7 +110281,7 @@
    "detail": "reason: swing entry signal from strategy reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 passed the PFnet gate"
   },
   {
-   "id": 9192,
+   "id": 9191,
    "ts": 1795405636.4247835,
    "symbol": "AMBUJACEM.NS",
    "kotak_trading_symbol": "AMBUJACEM-EQ",
@@ -110293,7 +110293,7 @@
    "detail": "reason: real market BUY entry; Kotak accepted it"
   },
   {
-   "id": 9191,
+   "id": 9192,
    "ts": 1795405650.596544,
    "symbol": "AMBUJACEM.NS",
    "kotak_trading_symbol": "AMBUJACEM-EQ",
@@ -110377,5 +110377,5 @@
    "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-23T05:33:15Z"
+ "synced_at_utc": "2026-11-23T05:43:45Z"
 }
