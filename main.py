@@ -36611,6 +36611,9 @@ def _capital_split(positions) -> dict:
             "net_deposited_inr": net_dep, "deposits_inr": flows["deposits_inr"], "payouts_inr": flows["payouts_inr"],
             "fund_flows_last_date": flows["last_date"], "gain_vs_deposits_inr": gain,
             "gain_vs_deposits_pct": round(100 * gain / net_dep, 2) if (gain is not None and net_dep) else None,
+            # B-1673: a deposit missing from docs/real_fund_flows.json reads as profit (2026-11-23: Rs 5,443 shown, true
+            # ~Rs 443). A gain above 10% of net deposits is unusual for this account, so flag it for a deposit check.
+            "gain_unverified": bool(gain is not None and net_dep and gain > 0.10 * net_dep),
             "open_positions": len(positions or []),
             "free_cash_source": "kotak_neo_real_account" if free is not None else "not_yet_fetched",
             "free_cash_fetched_at_utc": _real_capital_cache.get("fetched_at") or None}
@@ -42193,17 +42196,36 @@ def _fno_most_active_fetch(lists, limit):
     except Exception as e:
         result["errors"]["handshake"] = str(e)[:200]
     for name in lists:
-        url = "https://www.nseindia.com/api/snapshot-derivatives-equity?index=" + _FNO_MOST_ACTIVE_LISTS[name]
-        try:
-            req = urllib.request.Request(url, headers=dict(
-                hdrs, Accept="application/json, text/plain, */*",
-                Referer="https://www.nseindia.com/market-data/most-active-contracts"))
-            with opener.open(req, timeout=12) as resp:
-                raw = resp.read(3_000_000)
-            result["lists"][name] = _fno_rows_from_payload(_json.loads(raw.decode("utf-8", "replace")), limit)
-        except Exception as e:
-            result["errors"][name] = str(e)[:200]
+        rows, keys_seen, err = [], [], None
+        for idx in _fno_index_candidates(_FNO_MOST_ACTIVE_LISTS[name]):
+            url = "https://www.nseindia.com/api/snapshot-derivatives-equity?index=" + idx
+            try:
+                req = urllib.request.Request(url, headers=dict(
+                    hdrs, Accept="application/json, text/plain, */*",
+                    Referer="https://www.nseindia.com/market-data/most-active-contracts"))
+                with opener.open(req, timeout=12) as resp:
+                    raw = resp.read(3_000_000)
+                payload = _json.loads(raw.decode("utf-8", "replace"))
+                rows = _fno_rows_from_payload(payload, limit)
+                if rows:
+                    break
+                keys_seen.append(idx + ":" + ",".join(sorted(payload)[:8]) if isinstance(payload, dict) else idx + ":?")
+            except Exception as e:
+                err = str(e)[:200]
+        result["lists"][name] = rows
+        if not rows:
+            # B-1671 fix: an empty list is reported, never silent (2026-11-23 11:22 IST index lists came back empty)
+            result["errors"][name] = err or ("empty payload; tried " + " | ".join(keys_seen))[:300]
     return result
+
+
+def _fno_index_candidates(idx):
+    """NSE spells the snapshot list names with '-' or '_' depending on the list; try both."""
+    out = [idx]
+    for alt in (idx.replace("_", "-"), idx.replace("-", "_")):
+        if alt not in out:
+            out.append(alt)
+    return out
 
 
 @app.get("/fno-most-active")

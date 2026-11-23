@@ -43,3 +43,35 @@ def test_route_not_cached_on_failure(monkeypatch):
                         lambda n, l: {"lists": {}, "errors": {"handshake": "403"}})
     r = main.fno_most_active(lists="contracts")
     assert r["ok"] is False and main._FNO_MOST_ACTIVE_CACHE["data"] is None
+
+
+def test_index_candidates_and_empty_list_reported(monkeypatch):
+    assert main._fno_index_candidates("calls_index_vol") == ["calls_index_vol", "calls-index-vol"]
+    assert main._fno_index_candidates("contracts") == ["contracts"]
+    import io, json, urllib.request
+    seen = []
+
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    class _Opener:
+        def open(self, req, timeout=0):
+            url = req.full_url
+            seen.append(url)
+            if "most-active-contracts" in url:
+                return _Resp(b"<html>")
+            if url.endswith("calls-index-vol"):
+                return _Resp(json.dumps({"OPTIDX": {"data": [
+                    {"underlying": "NIFTY", "strikePrice": 25700, "optionType": "Call",
+                     "expiryDate": "23-Nov-2026"}]}}).encode())
+            return _Resp(b"{}")
+
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *a: _Opener())
+    out = main._fno_most_active_fetch(["index_calls", "futures"], 5)
+    assert out["lists"]["index_calls"][0]["contract"] == "NIFTY 25700 CE 23-Nov-2026"
+    assert "index_calls" not in out["errors"]
+    assert out["lists"]["futures"] == [] and "empty payload" in out["errors"]["futures"]

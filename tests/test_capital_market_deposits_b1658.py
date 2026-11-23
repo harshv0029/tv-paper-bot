@@ -36,3 +36,16 @@ def test_fund_flows_file_sums_and_has_no_account_ids():
 def test_view4_renders_market_total():
     html = pathlib.Path(__file__).resolve().parents[1].joinpath("static/trade-view4.html").read_text()
     assert "cp.total_market_inr" in html and "cp.net_deposited_inr" in html
+
+
+def test_gain_unverified_flags_missing_deposit_b1673(monkeypatch):
+    # 2026-11-23: a Rs 5,000 deposit missing from the flows file showed as Rs 5,443 gain on Rs 27,000 net deposited.
+    monkeypatch.setitem(main._real_capital_cache, "value", 32443.56)
+    flows = {"deposits_inr": 34849.12, "payouts_inr": 12849.12, "net_deposited_inr": 27000.0, "last_date": "2026-11-17"}
+    monkeypatch.setattr(main, "_real_fund_flows", lambda: flows)
+    c = main._capital_split([])
+    assert c["gain_vs_deposits_inr"] == 5443.56 and c["gain_unverified"] is True
+    flows.update(net_deposited_inr=32000.0, last_date="2026-11-23")
+    c = main._capital_split([])
+    assert c["gain_vs_deposits_inr"] == 443.56 and c["gain_unverified"] is False
+    assert "check deposits" in pathlib.Path("static/trade-view4.html").read_text()
