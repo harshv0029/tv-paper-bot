@@ -5,6 +5,7 @@ import strategy_registry as sr
 
 TAG = "fno_mostactive_momo__top3_max_gain__long_opt__5m__trail2__v1"
 STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt__5m__trail2__v1"  # B-1677
+OIG_TAG = "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1"  # B-1681
 
 
 def build():
@@ -24,4 +25,13 @@ def build():
         notes=("B-1676 with a strict ENTRY gate (user 2026-11-23): index and NIFTY day change >= 0.25% in the trade "
                "direction, index beyond its day open, NIFTY 50 breadth >= 1.5x, INDIA VIX up < 5% for a CE. Missing "
                "datum = no entry. Exits as v1 (2% trail). PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=OIG_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py _fno_momo_oi_greeks_gate (B-1681), PAPER forward test beside B-1676/B-1677",
+        evidence="Paper forward test only; no backtest possible yet (no free intraday option history).",
+        notes=("B-1676 basic sentiment plus an OI + Greeks ENTRY gate (user 2026-11-23 'use OI and Greeks'): the "
+               "contract's OI rising with its premium (long buildup, not short covering), Black-Scholes delta from the "
+               "premium's own implied vol in 0.30-0.65, theta decay <= 15% of the premium per day. Missing datum = no "
+               "entry. Exits as v1 (2% trail). PAPER ONLY."),
     )]
