@@ -140735,7 +140735,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001831 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 27s more (not sent)"
+  },
+  {
+   "id": 11729,
+   "ts": 1795495019.288576,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001831 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 24s more (not sent)"
+  },
+  {
+   "id": 11730,
+   "ts": 1795495023.850313,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001831 rejected: ADAPTER is down); SL retry for HCLTECH-EQ backed off 15s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:36:59Z"
+ "synced_at_utc": "2026-11-24T04:37:07Z"
 }
