@@ -142163,7 +142163,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001898 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 23s more (not sent)"
+  },
+  {
+   "id": 11848,
+   "ts": 1795495395.2756717,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001898 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 19s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:43:14Z"
+ "synced_at_utc": "2026-11-24T04:43:21Z"
 }
