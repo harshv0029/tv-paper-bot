@@ -11,7 +11,7 @@
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": 362.4,
-   "source": "holding",
+   "source": "position",
    "stop_loss": 362.39073460490215,
    "strategy": "reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2",
    "symbol": "AMBUJACEM.NS"
@@ -59,7 +59,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1301.3,
-   "source": "holding",
+   "source": "position",
    "stop_loss": 1301.2711921765795,
    "strategy": "reversal__island_turn1cr_tfs__long__4h__atr2d5_within8__nonovl__v2",
    "symbol": "HCLTECH.NS"
@@ -267,7 +267,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 197.56,
-   "source": "holding",
+   "source": "position",
    "stop_loss": 178.49500383649553,
    "strategy": "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2",
    "symbol": "UNIONBANK.NS"
