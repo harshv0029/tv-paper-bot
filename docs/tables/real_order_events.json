@@ -139955,7 +139955,55 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001813 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11664,
+   "ts": 1795494968.754613,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001814",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11665,
+   "ts": 1795494968.7947013,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001815",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11666,
+   "ts": 1795494969.713881,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001816",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 11667,
+   "ts": 1795494972.0977077,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001817",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:36:06Z"
+ "synced_at_utc": "2026-11-24T04:36:14Z"
 }
