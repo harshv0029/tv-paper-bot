@@ -372,3 +372,13 @@ def _generic_hydrate_backoff_reset(monkeypatch):
     except Exception:
         return
     monkeypatch.setattr(main, "_GENERIC_HYDRATE_FAIL", {})
+
+
+@pytest.fixture(autouse=True)
+def _b1700_base_cost_outside_its_test(request, monkeypatch):
+    """B-1700: older tests pin View 1 windows to STORED pfnet values; run them at the 0.8% base cost so the product
+    re-pricing only applies in tests that exercise it."""
+    if "b1700" in request.node.nodeid:
+        return
+    import strategy_registry as _sr
+    monkeypatch.setattr(_sr, "PRODUCT_COST_PCT", {})

@@ -40,6 +40,7 @@ changes which (up to MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE) strategies
 currently hold those slots.
 """
 from dataclasses import replace, dataclass, field
+import math
 from enum import Enum
 from typing import Callable, Optional
 
@@ -120,6 +121,55 @@ class StrategyStatus(str, Enum):
 # Real breakeven after transaction costs. A strategy below this loses
 # money on average, however it ranks against its peers - see this
 # module's own docstring for why that distinction is load-bearing.
+# B-1700 (user 2026-11-24 IST "Yes, build it", from the Nov-2026 Kotak P&L: charges 0.15% round trip, brokerage ~0):
+# every stored Metrics.pfnet was measured at BASE_COST_PCT (0.8%) round trip. Real Kotak cost depends on the product:
+# intraday (MIS) ~0.03% and delivery (CNC) ~0.22% (+ the flat DP charge, handled per position by main._dp_charge_verdict),
+# taken here with a safety margin. Viability and wiring judge each strategy at ITS product's cost (effective_pfnet);
+# F&O, MCX and currency keep 0.8% (not measured from a statement yet). Backtests still run at 0.8% (research baseline).
+BASE_COST_PCT = 0.8
+PRODUCT_COST_PCT = {"equity_intraday": 0.10, "equity_swing": 0.35}
+
+
+def product_cost_pct(asset_class) -> float:
+    """Round-trip cost % for a strategy's asset class (AssetClass or its value); unknown/None -> BASE_COST_PCT."""
+    key = getattr(asset_class, "value", asset_class)
+    return PRODUCT_COST_PCT.get(key, BASE_COST_PCT)
+
+
+def repriced_pfnet(m, cost_pct: float):
+    """B-1700: pooled PFnet re-priced from BASE_COST_PCT to `cost_pct` round trip, from the same run's pfgross, pfnet
+    and win rate (cost c off every trade: pfnet = (G - c*w) / (L + c*(1-w)), solved for G and L at c = 0.8).
+    None when the run lacks the inputs (pfgross missing or not above pfnet, win rate outside (0, 100))."""
+    try:
+        pfg, pfn, w = float(m.pfgross or 0), float(m.pfnet), float(m.win_rate_pct) / 100.0
+    except (TypeError, ValueError, AttributeError):
+        return None
+    if not all(math.isfinite(x) for x in (pfg, pfn, w)) or pfg <= 0 or pfg <= pfn or not 0 < w < 1:
+        return None  # NaN pfgross (9 live chan_kalman runs) must fall back, never poison the gate
+    c = BASE_COST_PCT
+    loss = c * (w + pfn * (1 - w)) / (pfg - pfn)
+    gain = pfg * loss
+    c2 = max(0.0, float(cost_pct))
+    den = loss + c2 * (1 - w)
+    if den <= 0:
+        return None
+    out = (gain - c2 * w) / den
+    return round(out, 3) if math.isfinite(out) else None
+
+
+def effective_pfnet(d):
+    """B-1700: the PFnet viability/wiring judge `d` by - stored pfnet re-priced at its product's cost. Falls back to the
+    stored pfnet when the product cost is the base 0.8% or the run cannot be re-priced. None = no metrics."""
+    m = getattr(d, "metrics", None)
+    if m is None or m.pfnet is None:
+        return None
+    c = product_cost_pct(getattr(d, "asset_class", None))
+    if c == BASE_COST_PCT:
+        return m.pfnet
+    pf = repriced_pfnet(m, c)
+    return m.pfnet if pf is None else pf
+
+
 PFNET_LIVE_FLOOR = 1.0  # 2026-11-03 user: wiring and viability need PFnet > 1.00 (strict; supersedes 2026-10-14 ">= 1" and 2026-10-11 1.1)
 
 
@@ -193,7 +243,7 @@ class StrategyDef:
             return None
         if VIABLE_STACK_ACTIVE:  # newest explorer stack is the definition (see main._load_viable_overrides)
             return self.name in VIABLE_OVERRIDES
-        return self.metrics.pfnet > floor
+        return effective_pfnet(self) > floor  # B-1700: at the product's real cost
 
     def is_wired(self, floor: float = PFNET_LIVE_FLOOR) -> Optional[bool]:
         """B-1344 (user 2026-10-23: "just one condition for wiring, PFnet before tax >= 1, nothing else"): wiring for
@@ -201,7 +251,7 @@ class StrategyDef:
         Supersedes B-1284's 30-day hold condition. Independent of the explorer stack, which governs real ENTRY only."""
         if self.metrics is None:
             return None
-        return bool(self.metrics.pfnet > floor)
+        return bool(effective_pfnet(self) > floor)  # B-1700
 
 
 # 2026-10-12 user: "quality, not quantity" - the viable TABLES list only strategies with PFnet >= floor, at least
