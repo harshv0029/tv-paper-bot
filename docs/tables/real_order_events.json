@@ -132527,7 +132527,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001487 rejected: ADAPTER is down); SL retry for HINDPETRO-EQ backed off 7s more (not sent)"
+  },
+  {
+   "id": 11045,
+   "ts": 1795492866.2175016,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001487 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 2s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:01:03Z"
+ "synced_at_utc": "2026-11-24T04:01:11Z"
 }
