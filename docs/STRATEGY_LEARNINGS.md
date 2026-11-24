@@ -2565,3 +2565,7 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 ### 2026-11-24 IST: B-1695 holiday read as a broker outage
 - Before calling a broker error an outage, check the exchange calendar: "ADAPTER is down" on 10-Nov and 24-Nov were both NSE holidays.
 - Profit-booking / exit takeaway: exits and SLs must key off the exchange calendar; sending them on a closed day only burns broker rate limits that the next open's protection needs.
+
+### 2026-11-24 IST: B-1697, Upstash writes off on NSE-closed days (Nov 2026)
+The user asked that Upstash not be used on NSE-closed days of Nov 2026, to save its monthly quota. The B-1576 daily-pause path already refuses a write by raising, leaving the mirror's change-cache unset so it pushes next time; the closed-day gate reuses it, so no mirror needs its own change. Real-money state stays exempt (MCX trades on some NSE holidays, and a restart must never lose an open position), and reads stay on so a restore after a wipe still works.
+Profit-booking / exit takeaway: exits and stops are unaffected; real positions and their SL state keep mirroring every day, so a closed-day restart cannot drop an exit.

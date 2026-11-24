@@ -42,7 +42,8 @@ def parse_row(line, header_cols):
     prio = "P?"
     if pi is not None:
         prio = prio_of(cells[pi])
-        for j in (pi - 1, pi + 1, pi + 2):  # pi+2: '| P0 | area | STATUS |' rows (B-1637 onward)
+        # pi+2: "| P0 | area | STATUS |" rows (B-1637 onward); pi+3: "| P2 | area | item | STATUS |" (B-1696)
+        for j in (pi - 1, pi + 1, pi + 2, pi + 3):
             if 0 <= j < len(cells) and STATUS_RE.match(cells[j]) and prio_of(cells[j]) is None:
                 status = cells[j]
                 break

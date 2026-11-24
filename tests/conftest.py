@@ -335,3 +335,17 @@ def _instance_lease_unset_by_default(request, monkeypatch):
     monkeypatch.setattr(instance_lease, "_creds", lambda: (None, None))
     monkeypatch.setattr(instance_lease, "_state", {"role": "unknown", "holder": None, "checked_at": 0.0,
                                                    "error": None, "claims": 0})
+
+
+@pytest.fixture(autouse=True)
+def _upstash_closed_day_pause_off_except_its_own_tests(request, monkeypatch):
+    """B-1697 refuses non-exempt Upstash writes on NSE-closed days of Nov 2026. Mirror tests must not depend on the
+    day the suite runs, so the no-argument ("today") form is pinned off; explicit-date calls hit the real function."""
+    if request.node.module.__name__.endswith("test_b1697_upstash_closed_day"):
+        return
+    try:
+        import main
+    except Exception:
+        return
+    real = main._upstash_closed_day_pause
+    monkeypatch.setattr(main, "_upstash_closed_day_pause", lambda now=None: False if now is None else real(now))
