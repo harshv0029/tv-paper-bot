@@ -111227,7 +111227,19 @@
    "prev_state": "queued at open",
    "new_state": "expired",
    "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
+  },
+  {
+   "id": 9270,
+   "ts": 1795481501.2805662,
+   "symbol": "ULTRACEMCO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_expired",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "expired",
+   "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
   }
  ],
- "synced_at_utc": "2026-11-23T18:35:00Z"
+ "synced_at_utc": "2026-11-24T00:52:12Z"
 }
