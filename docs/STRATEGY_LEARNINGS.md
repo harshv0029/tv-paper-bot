@@ -2577,3 +2577,7 @@ Profit-booking / exit takeaway: exits depend on real-money state, which stays mi
 ### 2026-11-24 IST: daily review, T1 quantity on exit retries (B-1699)
 GAIL's timeout exit on 23-Nov was retried 4 times at the close for a quantity Kotak would not release (part of the holding was still T1). Each retry was rejected, so the retries added risk of a late, noisy close and gained nothing. Exit retries must size to Kotak's sellable quantity, not the app's total.
 Profit-booking / exit takeaway: on a timeout exit, sell what is sellable now and queue the T1 remainder for the next session's open, under the same exit reason and with its SL kept.
+
+### 2026-11-24 IST: Nov-2026 Kotak P&L vs the cost model (B-1700 to B-1702)
+The Kotak statement shows charges of 0.15% round trip: about 0.22% on delivery and about 0.03% on intraday, with brokerage about zero. The 0.8% model assumed 0.20%/side brokerage that is not being charged. Nov net was Rs 66.57 on Rs 129.58 gross, so charges took 49% of gross even at the real rate. The month's profit came almost entirely from one swing winner (Bank of India +Rs 195). Intraday lost money gross; short-term delivery made it.
+Profit-booking / exit takeaway: the swing/delivery holds carried the month, so let delivery winners run on the trail rather than cutting them early. Intraday exits lost money even before costs, so intraday needs a better edge, not cheaper costs.
