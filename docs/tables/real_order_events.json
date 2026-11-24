@@ -130811,7 +130811,31 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001435 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10902,
+   "ts": 1795492706.9142272,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001435 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 10s more (not sent)"
+  },
+  {
+   "id": 10903,
+   "ts": 1795492712.4873855,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001435 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 37s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:58:21Z"
+ "synced_at_utc": "2026-11-24T03:58:36Z"
 }
