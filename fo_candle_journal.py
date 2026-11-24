@@ -183,7 +183,8 @@ def _decode(meta: dict, parts: list) -> list:
     return json.loads("".join(parts)) if parts else []
 
 
-def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
+def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS, skip_local_past: bool = False,
+                        today: str | None = None) -> int:
     """Insert (OR IGNORE) every remote bar for the most recent days. Returns rows inserted.
 
     B-865: NEWEST day first and committed per day. Startup gives this only a
@@ -191,7 +192,10 @@ def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
     with one final commit spent that budget on 14 old days and restored
     today's bars (the only ones the 30-candle scan needs) last or never."""
     inserted = 0
+    have = set(local_days(conn)) if skip_local_past else set()
     for day in reversed(_get_days(get)[-max_days:]):
+        if day in have and day != today:
+            continue  # B-1698: a past day already on disk is complete; today may still be partial, so it merges
         meta_raw = get(_key(day, "meta"))
         if not meta_raw:
             continue

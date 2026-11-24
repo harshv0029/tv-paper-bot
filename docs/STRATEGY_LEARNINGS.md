@@ -2569,3 +2569,11 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 ### 2026-11-24 IST: B-1697, Upstash writes off on NSE-closed days (Nov 2026)
 The user asked that Upstash not be used on NSE-closed days of Nov 2026, to save its monthly quota. The B-1576 daily-pause path already refuses a write by raising, leaving the mirror's change-cache unset so it pushes next time; the closed-day gate reuses it, so no mirror needs its own change. Real-money state stays exempt (MCX trades on some NSE holidays, and a restart must never lose an open position), and reads stay on so a restore after a wipe still works.
 Profit-booking / exit takeaway: exits and stops are unaffected; real positions and their SL state keep mirroring every day, so a closed-day restart cannot drop an exit.
+
+### 2026-11-24 IST: B-1698, Upstash spend is reads, and failed writes can cause read loops
+On 24-Nov, 97% of Upstash bytes were GETs: the option-candle boot restore (15 days, about 95 MB per boot), a table restore retried every minute without backoff (real_fo_trades, 57 MB), the viable-stack read-back, and a restart-tracker loop where a refused write left a flag unset so it re-read two keys every minute. Budgeting writes alone saves almost nothing. Every retry path needs a backoff, and a refused write must not trigger a re-read loop. Each deploy also costs one boot restore, so batch deploys while quota is tight.
+Profit-booking / exit takeaway: exits depend on real-money state, which stays mirrored. Keeping Upstash under its monthly cap is what keeps entries and exits running, so quota is now treated as a trading risk.
+
+### 2026-11-24 IST: daily review, T1 quantity on exit retries (B-1699)
+GAIL's timeout exit on 23-Nov was retried 4 times at the close for a quantity Kotak would not release (part of the holding was still T1). Each retry was rejected, so the retries added risk of a late, noisy close and gained nothing. Exit retries must size to Kotak's sellable quantity, not the app's total.
+Profit-booking / exit takeaway: on a timeout exit, sell what is sellable now and queue the T1 remainder for the next session's open, under the same exit reason and with its SL kept.

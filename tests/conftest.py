@@ -349,3 +349,26 @@ def _upstash_closed_day_pause_off_except_its_own_tests(request, monkeypatch):
         return
     real = main._upstash_closed_day_pause
     monkeypatch.setattr(main, "_upstash_closed_day_pause", lambda now=None: False if now is None else real(now))
+
+
+@pytest.fixture(autouse=True)
+def _upstash_lean_off_except_its_own_tests(request, monkeypatch):
+    """B-1698 lean mode (Nov 2026) changes restore/read-back behaviour; tests must not depend on the run date."""
+    if request.node.module.__name__.endswith("test_b1698_upstash_lean"):
+        return
+    try:
+        import main
+    except Exception:
+        return
+    real = main._upstash_lean
+    monkeypatch.setattr(main, "_upstash_lean", lambda now=None: False if now is None else real(now))
+
+
+@pytest.fixture(autouse=True)
+def _generic_hydrate_backoff_reset(monkeypatch):
+    """B-1698: the restore back-off is per process; a failure in one test must not delay another test's restore."""
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_GENERIC_HYDRATE_FAIL", {})
