@@ -254,6 +254,89 @@ UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
 # fails over to another reachable slot after _UPSTASH_FAILOVER_AFTER consecutive HTTP refusals (suspension, auth).
 # The unsuffixed pair stays as the single-slot fallback when no numbered slot is set. Everything else reads the two
 # globals above at call time, so a switch is just reassigning them. The B-1574 stale-DB guard decides what to restore.
+# B-1709 (user 2026-11-24 23:10 IST: "keep upstash usage zero beyond market hours. its strict instruction. till nov
+# end"; 23:20 IST: "you take permission from me before using upstash outside market hours"): in the listed months
+# EVERY Upstash HTTP call (reads, writes, ping, lease, management API; exempt real-money keys included) is refused
+# outside market hours: weekday 09:00-15:45 IST on an NSE trading day, a special session +-15 min. It is enforced at
+# the HTTP layer (requests.Session.request), so no call site can bypass it. The refusal is a ConnectionError, so
+# every existing "Upstash unreachable" path (journal fallback at boot, per-tick mirror retry, fail-open lease) runs.
+# A process that BOOTED off-hours restored nothing from Upstash (Render's disk is wiped on restart), so at the
+# window's open every Upstash WRITE stays refused until _upstash_offhours_catchup() has re-run the boot restores;
+# otherwise the first push would overwrite the mirror with the journal-only state. There is no automatic exception:
+# Claude asks the user before any off-hours Upstash use.
+_UPSTASH_OFFHOURS_ZERO_MONTHS = frozenset({"2026-11"})
+_UPSTASH_OFFHOURS: dict = {"catchup_pending": False, "catchup_thread": None, "slot_select_deferred": False,
+                           "blocked": 0, "by_kind": {}, "last_blocked_ist": None, "last_log_ts": 0.0,
+                           "catchup_done_ist": None, "catchup_error": None}
+
+
+class UpstashOffHoursBlocked(requests.exceptions.ConnectionError):
+    """B-1709: an Upstash call refused outside market hours (or before the post-open restore)."""
+
+
+def _upstash_offhours_zero(now=None) -> bool:
+    """B-1709: True when `now` (naive IST, default now) is outside market hours in a listed month."""
+    t = (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)) if now is None else now
+    if t.strftime("%Y-%m") not in _UPSTASH_OFFHOURS_ZERO_MONTHS:
+        return False
+    try:
+        m = t.hour * 60 + t.minute
+        sp_fn = globals().get("nse_special_session")
+        sp = sp_fn(t) if sp_fn else None
+        if sp:
+            return not (sp[0] - 15 <= m <= sp[1] + 15)
+        if t.weekday() >= 5:
+            return True
+        td = globals().get("_nse_calendar_trading_day")
+        if td and not td(t.date()):
+            return True
+        return not (9 * 60 <= m <= 15 * 60 + 45)
+    except Exception:  # noqa: BLE001 - a calendar error inside the window must not stop real-money mirrors
+        return False
+
+
+def _upstash_host(url) -> bool:
+    try:
+        from urllib.parse import urlparse
+        h = (urlparse(str(url)).hostname or "").lower()
+    except Exception:  # noqa: BLE001
+        return False
+    return h in ("upstash.io", "upstash.com") or h.endswith(".upstash.io") or h.endswith(".upstash.com")
+
+
+def _upstash_offhours_block_kind(method, url, now=None):
+    """B-1709: None when the call may go, else the refusal kind ('off_hours' / 'await_restore')."""
+    if not _upstash_host(url):
+        return None
+    if _upstash_offhours_zero(now):
+        return "off_hours"
+    if (_UPSTASH_OFFHOURS["catchup_pending"] and str(method).upper() != "GET"
+            and _UPSTASH_OFFHOURS["catchup_thread"] != threading.get_ident()):
+        return "await_restore"
+    return None
+
+
+_requests_session_request_orig = requests.sessions.Session.request
+
+
+def _upstash_guarded_session_request(self, method, url, *args, **kwargs):
+    kind = _upstash_offhours_block_kind(method, url)
+    if kind:
+        st = _UPSTASH_OFFHOURS
+        st["blocked"] += 1
+        st["by_kind"][kind] = st["by_kind"].get(kind, 0) + 1
+        st["last_blocked_ist"] = (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+        if time.time() - st["last_log_ts"] > 3600:
+            st["last_log_ts"] = time.time()
+            print(f"[upstash-offhours] B-1709 refusing Upstash calls ({kind}); {st['blocked']} refused so far")
+        raise UpstashOffHoursBlocked(f"B-1709: Upstash not used outside market hours ({kind})")
+    return _requests_session_request_orig(self, method, url, *args, **kwargs)
+
+
+requests.sessions.Session.request = _upstash_guarded_session_request
+if _upstash_offhours_zero():  # booted off-hours: nothing restored from Upstash yet
+    _UPSTASH_OFFHOURS["catchup_pending"] = True
+
 _UPSTASH_SLOT_MAX = 9
 _UPSTASH_FAILOVER_AFTER = 2
 _UPSTASH_SLOT_STATE: dict = {"slots": [], "active": None, "chosen_by": None, "switches": [], "consecutive_fail": 0}
@@ -296,6 +379,10 @@ def _upstash_select_slot_at_boot(env=None, http_get=None):
     slots = _upstash_slots_from_env(env)
     _UPSTASH_SLOT_STATE["slots"] = [n for n, _u, _t in slots]
     if not slots:
+        return None
+    if http_get is None and _upstash_offhours_zero():  # B-1709: no slot answers off-hours; choose at the open
+        _UPSTASH_OFFHOURS["slot_select_deferred"] = True
+        print("[upstash-slot] B-1709 off-hours boot: slot choice deferred to the market-hours restore")
         return None
     probes = [(n, u, t) + _upstash_slot_heartbeat(u, t, http_get) for n, u, t in slots]
     live = [p for p in probes if p[3]]
@@ -38144,6 +38231,11 @@ async def health():
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
             "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
+            "upstash_offhours": {"zero_now": _upstash_offhours_zero(), "blocked": _UPSTASH_OFFHOURS["blocked"],
+                                 "by_kind": dict(_UPSTASH_OFFHOURS["by_kind"]),
+                                 "catchup_pending": _UPSTASH_OFFHOURS["catchup_pending"],
+                                 "catchup_done_ist": _UPSTASH_OFFHOURS["catchup_done_ist"],
+                                 "catchup_error": _UPSTASH_OFFHOURS["catchup_error"]},  # B-1709
             "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"],
             "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
             "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM),
@@ -39911,6 +40003,10 @@ def _upstash_probe(now=None) -> dict:
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         _UPSTASH_PROBE.update(ok=False, error="not configured")
         return _UPSTASH_PROBE
+    if _upstash_offhours_zero():  # B-1709: no PING off-hours; keep the last verdict, flag the pause
+        _UPSTASH_PROBE["paused_offhours"] = True
+        return _UPSTASH_PROBE
+    _UPSTASH_PROBE["paused_offhours"] = False
     for attempt in range(2):  # B-1360: one slow reply (a 5 s ReadTimeout during the boot restore) is not an outage
         try:
             r = requests.get(f"{UPSTASH_REDIS_REST_URL}/ping",
@@ -39955,6 +40051,61 @@ def _upstash_failover(env=None, http_get=None) -> int | None:
     return None
 
 
+def _upstash_offhours_catchup(now=None) -> bool:
+    """B-1709: after an off-hours boot, re-run the Upstash boot restores once the window opens, then release writes.
+    Returns True when it ran. Only this thread may write while it runs (_upstash_offhours_block_kind)."""
+    st = _UPSTASH_OFFHOURS
+    if not st["catchup_pending"] or _upstash_offhours_zero(now):
+        return False
+    st["catchup_thread"] = threading.get_ident()
+    errs = []
+    try:
+        if st["slot_select_deferred"]:
+            _upstash_select_slot_at_boot()
+            st["slot_select_deferred"] = False
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            st["catchup_pending"] = False
+            return True
+
+        def _with_conn(fn):
+            with closing(get_db()) as conn:
+                return fn(conn)
+
+        steps = [("runtime_settings", lambda: _with_conn(hydrate_runtime_settings_from_external)),
+                 ("t1_restricted", lambda: _with_conn(hydrate_t1_restricted_from_external)),
+                 ("real_positions", hydrate_real_positions_from_external),
+                 ("real_positions_short", hydrate_real_positions_short_from_external),
+                 ("real_positions_swing", hydrate_real_positions_swing_from_external),
+                 ("check_totals", hydrate_check_totals_daily),
+                 ("signal_state_swing", hydrate_signal_state_swing_from_external),
+                 ("generic_tables", hydrate_generic_tables_from_external),
+                 ("real_open_positions", hydrate_real_open_positions_last_good_from_external),
+                 ("swing_skipped", hydrate_swing_skipped_from_external),
+                 ("exit_timing", hydrate_exit_timing_from_external),
+                 ("viable_stack", _startup_merge_viable_stack)]
+        for name, fn in steps:
+            try:
+                fn()
+            except Exception as e:  # noqa: BLE001
+                errs.append(f"{name}: {type(e).__name__}")
+        reached = _upstash_probe().get("ok")
+        if not reached:  # Upstash itself down: keep writes held, retry next pass
+            st["catchup_error"] = "Upstash not reachable at the open; retrying"
+            return True
+        try:
+            instance_lease.claim_at_startup()
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"lease: {type(e).__name__}")
+        st["catchup_error"] = "; ".join(errs) or None
+        st["catchup_pending"] = False
+        st["catchup_done_ist"] = (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[upstash-offhours] B-1709 market-hours restore done ({st['catchup_error'] or 'all steps ok'}); "
+              "Upstash writes released")
+        return True
+    finally:
+        st["catchup_thread"] = None
+
+
 def _upstash_force_full_push() -> None:
     """B-1575: after a slot switch, push every mirror's full current state to the new database."""
     _generic_mirror_last_hash.clear()
@@ -39992,6 +40143,10 @@ def _watchdog_loop(sleep=time.sleep, rounds=None):
             _watchdog_check()
         except Exception as e:  # noqa: BLE001
             print(f"[watchdog] check failed (non-fatal): {e}")
+        try:
+            _upstash_offhours_catchup()  # B-1709: restore once at the open after an off-hours boot
+        except Exception as e:  # noqa: BLE001
+            print(f"[upstash-offhours] catch-up failed (non-fatal, retried): {e}")
         try:
             if time.time() - (_UPSTASH_PROBE["checked_at"] or 0) >= _UPSTASH_PROBE_EVERY_SECONDS:
                 _upstash_probe()
