@@ -1,0 +1,17 @@
+{
+  "_doc": "B-1708: Kotak P&L statement totals (equity), pasted by the user 2026-11-24 22:40 IST: 'use that for all calculations'. Ground truth for realised P&L since account start. No account identifiers here. Kotak DP charges (Rs 23.60 per scrip per delivery-sell day) are billed separately and are NOT in 'charges_inr'.",
+  "period_from": "2026-09-01",
+  "as_of": "2026-11-24",
+  "as_of_evidence": "statement rows 360 ONE (1 sh, buy 1220.23 / sell 1204.15) and Adani Green (1 sh, 1408.29 / 1392.95) match ledger exits of 2026-11-23; ledger has no exit on 2026-11-24",
+  "segment": "equity",
+  "qty": 1324,
+  "buy_amt_inr": 234001.93,
+  "sell_amt_inr": 233670.07,
+  "gross_stt_excl_intraday_inr": -377.34,
+  "gross_stt_excl_short_term_inr": 45.48,
+  "gross_stt_excl_long_term_inr": 0.0,
+  "gross_stt_excl_total_inr": -331.86,
+  "gross_pnl_inr": -268.63,
+  "charges_inr": 175.04,
+  "net_pnl_inr": -443.67
+}

@@ -165,11 +165,13 @@
     <tbody id="rejRows"><tr><td colspan="9" class="dim">loading…</td></tr></tbody></table></div>
 <div class="box" id="capBox" style="margin:12px 0"><h2>Capital · free vs tied in open positions</h2>
   <div class="mono" id="capLine" style="font-size:12px">loading…</div>
+  <div class="mono" id="reconLine" style="font-size:12px;margin-top:4px" title="B-1708: Kotak account total at market minus net deposits, split using Kotak's P&amp;L statement: realised net since the statement start (plus fill-ledger trades exiting after its as-of day) + open positions at market (Kotak MTM) + the rest (Kotak DP debits at ₹23.60 per scrip per delivery-sell day, AMC and other debits the statement leaves out)."></div>
   <div class="dim mono" style="font-size:10.5px;margin-top:4px">Free cash = Kotak live free balance (new positions are sized to it). Tied = entry price x qty over open buy, short and swing positions.</div>
   <!-- B-1443: return on deployed capital, fed by /roc-kpis (Kotak fill ledger) -->
   <div class="mono" id="rocLine" style="font-size:12px;margin-top:8px" title="ROC % = net realised P&amp;L of real trades exited in the period (after estimated statutory charges: STT, exchange, SEBI, stamp, GST; brokerage not included) divided by the average daily deployed capital (entry value of every position held on each calendar day, time-weighted over the period). Source: Kotak positions day fills, stored daily in a durable ledger (Kotak wins); holdings already open when the ledger began use their tracked entry price. IST calendar months. n/a = not enough captured data, with the reason.">ROC loading…</div>
   <div class="dim mono" id="rocNote" style="font-size:10.5px;margin-top:2px"></div>
   <!-- B-1451: since-start return, CAGR, XIRR and the daily rolling 30-day ROC trend, from /roc-kpis -->
+  <div class="mono" id="stmtLine" style="font-size:12px;margin-top:6px" title="B-1708: realised P&amp;L from Kotak's own P&amp;L statement (equity), the ground truth; fill-ledger trades that exit after its as-of day are added on top. The Since start line below is the bot's fill ledger (from 2 Nov), kept for the ROC periods."></div>
   <div class="mono" id="annLine" style="font-size:12px;margin-top:6px" title="Since start = from the Kotak fill ledger's first day to today (IST). Return = total net P&amp;L of exited real trades / average daily deployed capital. CAGR = that return compounded to a yearly rate: (1 + return) ^ (365 / days) - 1. XIRR = the annual rate at which every closed trade's cash flows (entry value out on the entry day, entry value + net P&amp;L back on the exit day) net to zero: the money-weighted yearly return of realised trades; open positions are left out until they exit. Both are annualised, so they swing widely until about 90 days of data.">Since start loading…</div>
   <div class="mono" id="runLine" style="font-size:12px;margin-top:4px" title="Running = realised net P&amp;L of exited trades + unrealised net P&amp;L of every position and holding Kotak shows open now (real trades only, no paper trades; entry at Kotak fill price, else Kotak avg price) valued at its live price (Kotak live feed, else Yahoo), minus the statutory charges an exit at that price would cost (brokerage not included), over the same average deployed capital and days. Running CAGR = (1 + running return) ^ (365 / days) - 1. Prices refresh at most once a minute; F&amp;O/MCX lots and lots with no price are left out and counted.">Running loading…</div>
   <div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="dim mono" style="font-size:10.5px" title="Each point is one IST calendar day (x: oldest left, today right). Height (y) is that day's ROC % over the 30 days ending on it. Dashed line = 0%. Green if the latest point is &gt;= 0, red if below. Hover a point for its numbers.">Rolling 30-day ROC, daily (x: day, y: ROC %; dashed = 0%)</span><svg id="rollSpark" width="260" height="36" style="max-width:100%"></svg><span class="mono" id="rollNow" style="font-size:11px"></span></div>
@@ -585,7 +587,8 @@
       slSortApply();
       $("slNote").textContent = d.note || "";
       // B-1420: capital card from the same poll
-      const cp = d.capital || {}, inr = v => v == null ? "-" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
+      const cp = d.capital || {}; window._capLast = cp; reconRender();
+      const inr = v => v == null ? "-" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
       $("capLine").innerHTML = `Free cash ${inr(cp.free_cash_inr)} · Tied in ${esc(cp.open_positions ?? 0)} open ${inr(cp.tied_inr)} · Total ${inr(cp.total_inr)} · Tied ${cp.tied_pct == null ? "-" : Number(cp.tied_pct).toFixed(1) + "%"}` +
         (cp.free_cash_inr == null ? ' <span class="dim">(free cash not yet fetched from Kotak)</span>' : "") +
         // B-1658: the same account at live prices, against the money actually put in (deposits - payouts)
@@ -595,6 +598,24 @@
             (cp.gain_unverified ? ` <b style="color:#d80" title="Gain above 10% of net deposits: check for a deposit missing from docs/real_fund_flows.json">⚠ check deposits</b>` : "") : "") +
           (cp.unpriced_positions ? ` <span class="dim">(${cp.unpriced_positions} position(s) at entry price: no live price)</span>` : "") : "");
     } catch (e) {}
+  }
+
+  // B-1707: reconcile the account's gain/loss vs net deposits with the fill-ledger P&L (both at market, Kotak MTM)
+  function reconRender() {
+    const cp = window._capLast, RN = window._rocRun, K = window._rocStmt, el = document.getElementById("reconLine");
+    if (!el || !cp || !RN || cp.gain_vs_deposits_inr == null) return;
+    const f = v => (v < 0 ? "−₹" : "₹") + Math.abs(Number(v)).toLocaleString("en-IN", {maximumFractionDigits: 2});
+    if (K && K.realised_net_inr != null && RN.unrealised_gross_inr != null) {  // B-1708: Kotak P&L statement split
+      const rest = Math.round((cp.gain_vs_deposits_inr - K.realised_net_inr - RN.unrealised_gross_inr) * 100) / 100;
+      el.innerHTML = `Where it went (Kotak P&amp;L statement since ${K.period_from} to ${K.as_of}): realised net ${f(K.realised_net_inr)}` +
+        ` <span class="dim">(gross ${f(K.realised_gross_inr)} − charges ${f(K.realised_charges_inr)})</span> + open at market ${f(RN.unrealised_gross_inr)}` +
+        ` + DP &amp; other Kotak debits ${f(rest)} <span class="dim">(≈ ${Math.abs(rest / 23.6).toFixed(0)} delivery sells at ₹23.60; DP, AMC are not in the statement)</span> = ${f(cp.gain_vs_deposits_inr)}`;
+      return;
+    }
+    if (RN.total_mtm_inr == null) return;
+    const rest = Math.round((cp.gain_vs_deposits_inr - RN.total_mtm_inr) * 100) / 100;
+    el.innerHTML = `Kotak account vs net deposits ${f(cp.gain_vs_deposits_inr)} = fill-ledger P&amp;L at market ${f(RN.total_mtm_inr)} + not in the ledger ${f(rest)}` +
+      ` <span class="dim">(trading before the ledger start, AMC and other Kotak debits not in fills)</span>`;
   }
 
   // B-1443: ROC on deployed capital (last month, MTD, rolling 30d) + closed trades, from /roc-kpis every 60 s.
@@ -617,12 +638,20 @@
       // B-1451: since-start return, CAGR, XIRR + rolling 30-day sparkline
       const S = d.since_start || {}, sg = v => v == null ? '<span class="dim">n/a</span>' : `<span class="${pc(v)}">${v > 0 ? "+" : ""}${Number(v).toFixed(2)}%</span>`;
       $("annLine").innerHTML = `Since start${S.start ? " (" + esc(S.start) + ", " + S.covered_days + " days)" : ""} · Return ${sg(S.return_pct)} · CAGR ${sg(S.cagr_pct)} · XIRR ${sg(S.xirr_pct)}` +
-        (S.unreliable ? ' <span class="dim">(early estimate)</span>' : "") + ` <span class="dim">· gross ${inr(S.gross_pnl_inr)} − charges ${inr(S.charges_inr)} = net ${inr(S.net_pnl_inr)} (charges = statutory est., brokerage not included) on avg deployed ${inr(S.avg_deployed_inr)} · ${S.trades || 0} closed trades (exited only; ${S.open_lots_excluded || 0} open lot(s) not in P&amp;L) · updated ${esc((d.as_of_ist || "?").slice(11, 16))} IST, Kotak fills ${d.kotak_fills_fetched_ist ? esc(d.kotak_fills_fetched_ist.slice(11, 16)) + " IST" : "not fetched since restart"}</span>`;
+        (S.unreliable ? ' <span class="dim">(early estimate)</span>' : "") + ` <span class="dim">· gross ${inr(S.gross_pnl_inr)} − charges ${inr(S.charges_inr)} = net ${inr(S.net_pnl_inr)} (charges = statutory est. + Kotak DP ${inr(S.dp_charges_inr || 0)} at ₹23.60 per scrip per delivery-sell day; brokerage not included) on avg deployed ${inr(S.avg_deployed_inr)} · ${S.trades || 0} closed trades (exited only; ${S.open_lots_excluded || 0} open Kotak position lot(s) not in P&amp;L) · updated ${esc((d.as_of_ist || "?").slice(11, 16))} IST, Kotak fills ${d.kotak_fills_fetched_ist ? esc(d.kotak_fills_fetched_ist.slice(11, 16)) + " IST" : "not fetched since restart"}</span>`;
       // B-1461: running CAGR = realised + open holdings/positions marked at live prices
       const RN = d.running || {};
       $("runLine").innerHTML = `Running (incl. Kotak open positions &amp; holdings) · Return ${sg(RN.return_pct)} · Running CAGR ${sg(RN.cagr_pct)}` +
-        ` <span class="dim">· realised ${inr(RN.realised_net_inr)} + unrealised ${inr(RN.unrealised_net_inr)} = ${inr(RN.total_net_inr)} net · ${RN.priced_lots || 0} of ${RN.open_lots || 0} open lot(s) at live price · prices ${RN.prices_as_of_ist ? esc(RN.prices_as_of_ist.slice(11, 16)) + " IST" : "n/a"}, refreshed every ${RN.refresh_seconds || 60} s</span>` +
-        (RN.reason ? ` <span class="dim">(${esc(RN.reason)})</span>` : "");
+        ` <span class="dim">· realised ${inr(RN.realised_net_inr)} + unrealised at market ${inr(RN.unrealised_gross_inr)} (Kotak MTM) = ${inr(RN.total_mtm_inr)} · after est. exit charges ${inr(RN.unrealised_charges_inr)} (statutory + DP): ${inr(RN.total_net_inr)} net · ${RN.priced_lots || 0} of ${RN.open_lots || 0} open Kotak position lot(s) at live price · prices ${RN.prices_as_of_ist ? esc(RN.prices_as_of_ist.slice(11, 16)) + " IST" : "n/a"}, refreshed every ${RN.refresh_seconds || 60} s</span>` +
+        (RN.reason ? ` <span class="dim">(${esc(RN.reason)})</span>` : "") +
+        // B-1707: ledger lots Kotak shows closed = exits the fill ledger never captured (their P&L is missing)
+        ((RN.ledger_lots_not_open_at_kotak || []).length ? `<br><b style="color:#d80">⚠ ${RN.ledger_lots_not_open_at_kotak.length} lot(s) Kotak shows closed but no exit fill was captured (P&amp;L missing): ${RN.ledger_lots_not_open_at_kotak.map(o => esc(o.symbol) + " x" + o.qty + " from " + esc(o.entry_day)).join(", ")}</b>` : "");
+      const K = d.kotak_statement; window._rocStmt = K;  // B-1708
+      $("stmtLine").innerHTML = K ? `Realised (Kotak P&amp;L statement, ${esc(K.period_from)} to ${esc(K.as_of)}) · gross ${inr(K.gross_pnl_inr)} − charges ${inr(K.charges_inr)} = <b>net ${inr(K.net_pnl_inr)}</b>` +
+        (K.ledger_after_trades ? ` + ${K.ledger_after_trades} fill-ledger trade(s) after ${esc(K.as_of)} ${inr(K.ledger_after_net_inr)} = <b>${inr(K.realised_net_inr)}</b>` : "") +
+        (RN.statement_total_mtm_inr != null ? ` · with open positions at market (Kotak MTM) <b>${inr(RN.statement_total_mtm_inr)}</b> · after est. exit charges ${inr(RN.statement_total_net_inr)}` : "") +
+        ` <span class="dim">(Kotak DP ₹23.60 per scrip per delivery-sell day is billed separately)</span>` : "";
+      window._rocRun = RN; reconRender();
       $("annNote").textContent = S.reason || "";
       const ser = (d.rolling_30d_series || []).filter(x => x.roc_pct != null), sv = $("rollSpark");
       sv.innerHTML = "";

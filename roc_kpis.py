@@ -147,7 +147,7 @@ def match_round_trips(ledger_rows: list, charges_fn=None, side_hints=None) -> tu
                        "net_pnl_inr": round(sell_v - buy_v - ch, 2),
                        "return_pct": round(ret, 3) if ret is not None else None, "holding_days": hold,
                        "return_per_day_pct": round(ret / max(hold, 1), 3) if ret is not None else None,
-                       "source": src})
+                       "source": src, "prod": prod})
 
     for sym, rows in by_sym.items():
         rows = sorted(rows, key=lambda r: (str(r["day"]), 0 if r.get("source") == "opening" else 1))
@@ -214,14 +214,53 @@ def _deployed_by_day(closed: list, open_lots: list, start: dt.date, end: dt.date
     return out
 
 
-def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: int = 50, side_hints=None) -> dict:
+def statement_block(statement, closed: list):
+    """B-1708: Kotak's P&L statement is the realised ground truth up to its as_of day; ledger trades exiting after
+    as_of are added on top. Kotak DP is billed outside the statement's charges (dp_in_charges False)."""
+    if not isinstance(statement, dict) or statement.get("net_pnl_inr") is None or not statement.get("as_of"):
+        return None
+    after = [t for t in closed if (t.get("exit_day") or "") > statement["as_of"]]
+    sm = lambda k: round(sum(float(t.get(k) or 0) for t in after), 2)
+    out = {k: statement.get(k) for k in ("period_from", "as_of", "gross_pnl_inr", "charges_inr", "net_pnl_inr", "qty")}
+    out.update(ledger_after_trades=len(after), ledger_after_net_inr=sm("net_pnl_inr"),
+               realised_gross_inr=round(float(statement.get("gross_pnl_inr") or 0) + sm("gross_pnl_inr"), 2),
+               realised_charges_inr=round(float(statement.get("charges_inr") or 0) + sm("charges_inr"), 2),
+               realised_net_inr=round(float(statement["net_pnl_inr"]) + sm("net_pnl_inr"), 2), dp_in_charges=False)
+    return out
+
+
+def apply_dp_charges(closed: list, dp_per_sell_inr: float) -> float:
+    """B-1707 (user 2026-11-24 "make them sync with kotak numbers"): Kotak debits the DP charge (Rs20 + 18% GST) once
+    per scrip per day shares leave the demat, i.e. a delivery (CNC) long sold on a later day than it was bought. A
+    same-day CNC round trip nets intraday and is not debited. Added to the first closed row of each (symbol, exit
+    day) so the realised net matches Kotak's ledger. Returns the total DP added."""
+    if not dp_per_sell_inr:
+        return 0.0
+    seen, total = set(), 0.0
+    for t in closed:
+        if t.get("side") == "short" or str(t.get("prod") or "").upper() != "CNC" or t["exit_day"] <= t["entry_day"]:
+            continue
+        key = (t["symbol"], t["exit_day"])
+        if key in seen:
+            continue
+        seen.add(key)
+        t["dp_charge_inr"] = round(dp_per_sell_inr, 2)
+        t["charges_inr"] = round(t["charges_inr"] + dp_per_sell_inr, 2)
+        t["net_pnl_inr"] = round(t["net_pnl_inr"] - dp_per_sell_inr, 2)
+        total += dp_per_sell_inr
+    return round(total, 2)
+
+
+def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: int = 50, side_hints=None,
+             dp_per_sell_inr: float = 0.0) -> dict:
     """The three ROC KPIs plus the per-trade list. Never invents data: a period with no covered day, or zero
     average deployed capital, returns roc_pct None with the reason."""
     closed, open_lots, notes = match_round_trips(ledger_rows, charges_fn, side_hints)
+    dp_total = apply_dp_charges(closed, dp_per_sell_inr)
     kotak_days = sorted({str(r["day"])[:10] for r in ledger_rows or [] if r.get("source") != "opening"})
     ledger_start = _d(kotak_days[0]) if kotak_days else None
     out = {"ledger_start": ledger_start.isoformat() if ledger_start else None, "as_of": today.isoformat(),
-           "periods": {}, "open_lots": len(open_lots), "notes": notes}
+           "periods": {}, "open_lots": len(open_lots), "notes": notes, "dp_charges_inr": dp_total}
     for key, (a, b, label) in period_bounds(today).items():
         p = {"label": label, "start": a.isoformat(), "end": b.isoformat(), "roc_pct": None, "net_pnl_inr": None,
              "avg_deployed_inr": None, "trades": 0, "covered_days": 0, "period_days": (b - a).days + 1, "reason": None}
@@ -250,6 +289,7 @@ def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: i
         out["periods"][key] = p
     out["since_start"] = since_start_kpis(closed, open_lots, ledger_start, today)
     out["rolling_30d_series"] = rolling_30d_series(closed, open_lots, ledger_start, today)
+    out["closed_trades_all"] = closed  # B-1708: full list for the statement top-up; the payload pops it
     out["closed_trades"] = sorted(closed, key=lambda t: (t["exit_day"], t["symbol"]), reverse=True)[:trades_limit]
     out["closed_trades_total"] = len(closed)
     out["open_lot_rows"] = open_lots  # B-1461: for the running (mark-to-market) CAGR
@@ -301,7 +341,8 @@ def since_start_kpis(closed: list, open_lots: list, ledger_start, today: dt.date
     days = len(dep)
     out.update(covered_days=days, trades=len(ts), net_pnl_inr=round(net, 2), avg_deployed_inr=round(avg, 2),
                gross_pnl_inr=round(sum(t["gross_pnl_inr"] for t in ts), 2),  # B-1460: before charges
-               charges_inr=round(sum(t["charges_inr"] for t in ts), 2))
+               charges_inr=round(sum(t["charges_inr"] for t in ts), 2),
+               dp_charges_inr=round(sum(t.get("dp_charge_inr") or 0 for t in ts), 2))  # B-1707
     notes = []
     if avg > 0:
         r = net / avg
@@ -354,7 +395,8 @@ def rolling_30d_series(closed: list, open_lots: list, ledger_start, today: dt.da
     return out
 
 
-def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, charges_fn=None) -> dict:
+def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, charges_fn=None,
+                 dp_per_sell_inr: float = 0.0) -> dict:
     """B-1461: running (mark-to-market) return and CAGR since start = realised net P&L of exited trades PLUS the
     unrealised net P&L of every open lot (holdings and positions) valued at its live price, over the same average
     deployed capital and covered days as since_start. Unrealised net deducts the statutory charges an exit at that
@@ -367,6 +409,7 @@ def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, char
         out["reason"] = since_start.get("reason") or "no Kotak fill ledger yet"
         return out
     ug = uc = 0.0
+    dp_seen = set()
     for o in open_lots:
         px = price_by_symbol.get(o["symbol"])
         try:
@@ -379,6 +422,9 @@ def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, char
         q, epx, long_ = o["qty"], o["entry_px"], o["side"] != "short"
         buy_v, sell_v = (epx if long_ else px) * q, (px if long_ else epx) * q
         ch = float(charges_fn(o.get("seg"), o["symbol"], o.get("prod"), buy_v, sell_v)) if charges_fn else 0.0
+        if dp_per_sell_inr and long_ and str(o.get("prod") or "").upper() == "CNC" and o["symbol"] not in dp_seen:
+            dp_seen.add(o["symbol"])  # B-1707: Kotak debits DP once per scrip per sell day
+            ch += dp_per_sell_inr
         ug += sell_v - buy_v
         uc += ch
         out["priced_lots"] += 1
@@ -386,7 +432,8 @@ def running_kpis(since_start: dict, open_lots: list, price_by_symbol: dict, char
                             "ltp": round(px, 2), "unrealised_net_inr": round(sell_v - buy_v - ch, 2)})
     total = since_start["net_pnl_inr"] + ug - uc
     out.update(unrealised_gross_inr=round(ug, 2), unrealised_charges_inr=round(uc, 2), unrealised_net_inr=round(ug - uc, 2),
-               total_net_inr=round(total, 2))
+               total_net_inr=round(total, 2),
+               total_mtm_inr=round(since_start["net_pnl_inr"] + ug, 2))  # B-1707: Kotak MTM (no exit charges)
     notes = []
     if avg > 0:
         r = total / avg
