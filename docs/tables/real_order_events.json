@@ -137939,7 +137939,43 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001733 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 24s more (not sent)"
+  },
+  {
+   "id": 11496,
+   "ts": 1795494296.8523526,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001733 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 28s more (not sent)"
+  },
+  {
+   "id": 11497,
+   "ts": 1795494300.1190944,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001733 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 26s more (not sent)"
+  },
+  {
+   "id": 11498,
+   "ts": 1795494303.2106404,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001733 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 23s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:24:57Z"
+ "synced_at_utc": "2026-11-24T04:25:06Z"
 }
