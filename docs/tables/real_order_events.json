@@ -143123,7 +143123,91 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 46s more (not sent)"
+  },
+  {
+   "id": 11928,
+   "ts": 1795495696.622298,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for HINDPETRO-EQ backed off 43s more (not sent)"
+  },
+  {
+   "id": 11929,
+   "ts": 1795495700.4518373,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 39s more (not sent)"
+  },
+  {
+   "id": 11930,
+   "ts": 1795495702.0238304,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 50s more (not sent)"
+  },
+  {
+   "id": 11931,
+   "ts": 1795495702.1371953,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 49s more (not sent)"
+  },
+  {
+   "id": 11932,
+   "ts": 1795495702.2661927,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 8s more (not sent)"
+  },
+  {
+   "id": 11933,
+   "ts": 1795495702.2731454,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 46s more (not sent)"
+  },
+  {
+   "id": 11934,
+   "ts": 1795495703.9036355,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001962 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 47s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:48:18Z"
+ "synced_at_utc": "2026-11-24T04:48:26Z"
 }
