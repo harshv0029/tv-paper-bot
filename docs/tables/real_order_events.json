@@ -135635,7 +135635,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001648 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11304,
+   "ts": 1795493800.5456991,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001651",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11305,
+   "ts": 1795493800.5545218,
+   "symbol": "HCLTECH.NS",
+   "kotak_trading_symbol": "HCLTECH-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001651 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:16:31Z"
+ "synced_at_utc": "2026-11-24T04:16:42Z"
 }
