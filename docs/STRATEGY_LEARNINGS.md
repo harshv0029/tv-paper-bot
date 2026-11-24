@@ -2595,3 +2595,8 @@ Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but e
 - The fill ledger's realised net (+83.72 since 2 Nov) overstated Kotak because Kotak's DP debit (₹23.60 per scrip per delivery-sell day) is billed outside the contract-note charges; November DP was about ₹779, larger than the gross P&L.
 - Lot counts must use one unit (Kotak's open set), or the card contradicts itself (21 vs 19).
 - Profit-booking / exit takeaway: a delivery exit costs ₹23.60 flat on top of statutory charges, so small-value CNC exits (under ~₹3,000) lose ≥0.8% to DP alone; prefer exiting a scrip's full quantity in one day and favour MIS for small swing sizes where the strategy allows.
+
+## 2026-11-24 B-1709: hard off-hours Upstash block, enforce at the HTTP layer
+- The user made off-hours Upstash use strictly zero for Nov 2026. Per-writer throttles (B-1569/B-1576/B-1697/B-1698) never reached zero because ~60 call sites, the lease module and the PING each talk to Upstash directly; one guard on requests.Session.request is the only way to guarantee it.
+- Render wipes the disk on restart, so an off-hours boot restores nothing from Upstash. Writes must stay held at the open until the restores re-run, or the first push would overwrite the mirror with the journal-only state.
+- Profit-booking / exit takeaway: real exits placed off-hours (MCX/F&O) are not mirrored until 09:00; the exit itself is unaffected (Kotak is ground truth, governance re-reads it every 5 min), but any off-hours exit should be checked against Kotak at the next open.

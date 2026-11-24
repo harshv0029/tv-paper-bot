@@ -382,3 +382,12 @@ def _b1700_base_cost_outside_its_test(request, monkeypatch):
         return
     import strategy_registry as _sr
     monkeypatch.setattr(_sr, "PRODUCT_COST_PCT", {})
+
+
+@pytest.fixture(autouse=True)
+def _b1709_upstash_offhours_clock_independent(monkeypatch):
+    """B-1709: the off-hours Upstash block follows the wall clock; tests run with it off unless they set the months."""
+    import main as _m
+    monkeypatch.setattr(_m, "_UPSTASH_OFFHOURS_ZERO_MONTHS", frozenset())
+    monkeypatch.setitem(_m._UPSTASH_OFFHOURS, "catchup_pending", False)
+    monkeypatch.setitem(_m._UPSTASH_OFFHOURS, "slot_select_deferred", False)
