@@ -144011,7 +144011,139 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:22 S SL qty 1 trg 1135.10 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12002,
+   "ts": 1795496345.1494853,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002015",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:59 S SL qty 1 trg 338.25 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12003,
+   "ts": 1795496345.1498616,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002007",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:48 S SL qty 1 trg 354.40 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12004,
+   "ts": 1795496345.1499681,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002008",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:50 S SL qty 20 trg 11.71 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12005,
+   "ts": 1795496345.150046,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002005",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:35 S SL qty 5 trg 69.33 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12006,
+   "ts": 1795496345.1502383,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002016",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:59 S SL qty 1 trg 1792.30 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12007,
+   "ts": 1795496345.1503627,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002006",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:48 S SL qty 1 trg 234.63 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12008,
+   "ts": 1795496345.1504517,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002014",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:55 S SL qty 1 trg 1501.20 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12009,
+   "ts": 1795496345.1505685,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002009",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:53 S SL qty 1 trg 415.20 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12010,
+   "ts": 1795496345.1507125,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002010",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:53 S SL qty 1 trg 357.80 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12011,
+   "ts": 1795496345.1507506,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002012",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:54 S SL qty 2 trg 78.77 status rejected rejRsn ADAPTER is down"
+  },
+  {
+   "id": 12012,
+   "ts": 1795496345.1507976,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261124000002013",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:55 S SL qty 1 trg 2582.10 status rejected rejRsn ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:55:24Z"
+ "synced_at_utc": "2026-11-24T04:59:42Z"
 }
