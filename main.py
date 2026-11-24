@@ -26363,6 +26363,7 @@ def _capture_kotak_fill_ledger(position_rows: list, now_ist=None) -> int:
     return n
 
 
+ROC_PNL_STATEMENT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "kotak_pnl_statement.json")  # B-1708
 ROC_CONTRACT_NOTE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "kotak_contract_note_fills.json")
 
 
@@ -26407,7 +26408,22 @@ def _roc_kpis_payload(today=None) -> dict:
     except Exception as e:  # noqa: BLE001
         print(f"[roc] running CAGR unavailable (non-fatal): {e}")
         out["running"] = {"reason": f"unavailable: {e}"}
+    try:  # B-1708: Kotak P&L statement (user 2026-11-24 "use that for all calculations") wins for realised P&L
+        with open(ROC_PNL_STATEMENT_FILE) as f:
+            ks = roc_kpis.statement_block(json.load(f), out.get("closed_trades_all") or out.get("closed_trades") or [])
+        out["kotak_statement"] = ks
+        rn = out.get("running") or {}
+        if ks and rn.get("unrealised_gross_inr") is not None:
+            ug, uc = float(rn["unrealised_gross_inr"]), float(rn.get("unrealised_charges_inr") or 0)
+            rn["statement_total_mtm_inr"] = round(ks["realised_net_inr"] + ug, 2)
+            rn["statement_total_net_inr"] = round(ks["realised_net_inr"] + ug - uc, 2)
+    except FileNotFoundError:
+        out["kotak_statement"] = None
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] Kotak P&L statement not applied (non-fatal): {e}")
+        out["kotak_statement"] = None
     out.pop("open_lot_rows", None)
+    out.pop("closed_trades_all", None)
     out["definition"] = ("ROC % = net realised P&L of real trades exited in the period (after estimated statutory "
                          "charges; brokerage not included) / average daily deployed capital (entry value of every "
                          "position held on each calendar day, time-weighted over the period's covered days). IST "

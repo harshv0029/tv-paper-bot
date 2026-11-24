@@ -214,6 +214,21 @@ def _deployed_by_day(closed: list, open_lots: list, start: dt.date, end: dt.date
     return out
 
 
+def statement_block(statement, closed: list):
+    """B-1708: Kotak's P&L statement is the realised ground truth up to its as_of day; ledger trades exiting after
+    as_of are added on top. Kotak DP is billed outside the statement's charges (dp_in_charges False)."""
+    if not isinstance(statement, dict) or statement.get("net_pnl_inr") is None or not statement.get("as_of"):
+        return None
+    after = [t for t in closed if (t.get("exit_day") or "") > statement["as_of"]]
+    sm = lambda k: round(sum(float(t.get(k) or 0) for t in after), 2)
+    out = {k: statement.get(k) for k in ("period_from", "as_of", "gross_pnl_inr", "charges_inr", "net_pnl_inr", "qty")}
+    out.update(ledger_after_trades=len(after), ledger_after_net_inr=sm("net_pnl_inr"),
+               realised_gross_inr=round(float(statement.get("gross_pnl_inr") or 0) + sm("gross_pnl_inr"), 2),
+               realised_charges_inr=round(float(statement.get("charges_inr") or 0) + sm("charges_inr"), 2),
+               realised_net_inr=round(float(statement["net_pnl_inr"]) + sm("net_pnl_inr"), 2), dp_in_charges=False)
+    return out
+
+
 def apply_dp_charges(closed: list, dp_per_sell_inr: float) -> float:
     """B-1707 (user 2026-11-24 "make them sync with kotak numbers"): Kotak debits the DP charge (Rs20 + 18% GST) once
     per scrip per day shares leave the demat, i.e. a delivery (CNC) long sold on a later day than it was bought. A
@@ -274,6 +289,7 @@ def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: i
         out["periods"][key] = p
     out["since_start"] = since_start_kpis(closed, open_lots, ledger_start, today)
     out["rolling_30d_series"] = rolling_30d_series(closed, open_lots, ledger_start, today)
+    out["closed_trades_all"] = closed  # B-1708: full list for the statement top-up; the payload pops it
     out["closed_trades"] = sorted(closed, key=lambda t: (t["exit_day"], t["symbol"]), reverse=True)[:trades_limit]
     out["closed_trades_total"] = len(closed)
     out["open_lot_rows"] = open_lots  # B-1461: for the running (mark-to-market) CAGR
