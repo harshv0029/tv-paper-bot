@@ -139307,7 +139307,43 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001782 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 23s more (not sent)"
+  },
+  {
+   "id": 11610,
+   "ts": 1795494652.3256984,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001782 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 20s more (not sent)"
+  },
+  {
+   "id": 11611,
+   "ts": 1795494654.659362,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001782 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 29s more (not sent)"
+  },
+  {
+   "id": 11612,
+   "ts": 1795494658.108963,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001782 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 29s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:30:53Z"
+ "synced_at_utc": "2026-11-24T04:31:01Z"
 }
