@@ -130835,7 +130835,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001435 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 37s more (not sent)"
+  },
+  {
+   "id": 10904,
+   "ts": 1795492723.8073778,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001438",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #3 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T03:58:36Z"
+ "synced_at_utc": "2026-11-24T03:58:45Z"
 }
