@@ -615229,5 +615229,322 @@
         "time_local": "2026-11-23 17:23:25.315225"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-11-24T13:24:05Z",
+    "attempts": {
+      "^NSEBANK": {
+        "checked_at_utc": 1795526613.4192874,
+        "symbol": "^NSEBANK",
+        "status": "closed",
+        "time_local": "2026-11-24 18:53:33.419239"
+      },
+      "GC=F": {
+        "checked_at_utc": 1795526613.4458055,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-11-24 13:23:33.422206",
+        "currency": "USD",
+        "fx_to_inr": 92.9,
+        "last_close": 3634.5,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 3631.1614212067225,
+        "sma_slow": 3631.116415529452,
+        "trend": "up",
+        "capital": 16065.08,
+        "daily_loss_cap": 321.3016,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 321.3,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SI=F": {
+        "checked_at_utc": 1795526613.4948235,
+        "symbol": "SI=F",
+        "status": "checked",
+        "time_local": "2026-11-24 13:23:33.474269",
+        "currency": "USD",
+        "fx_to_inr": 92.9,
+        "last_close": 42.185001373291016,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 42.20282314973633,
+        "sma_slow": 42.131707750124235,
+        "trend": "up",
+        "capital": 16065.08,
+        "daily_loss_cap": 321.3016,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 321.3,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "^NSEI": {
+        "checked_at_utc": 1795526613.5289116,
+        "symbol": "^NSEI",
+        "status": "closed",
+        "time_local": "2026-11-24 18:53:33.528871"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1795526613.5316813,
+        "symbol": "^BSESN",
+        "status": "closed",
+        "time_local": "2026-11-24 18:53:33.531645"
+      },
+      "CL=F": {
+        "checked_at_utc": 1795526613.5548851,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-11-24 13:23:33.533867",
+        "currency": "USD",
+        "fx_to_inr": 92.9,
+        "last_close": 80.43000030517578,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 80.31258119392578,
+        "sma_slow": 80.27565623631237,
+        "trend": "up",
+        "capital": 16065.08,
+        "daily_loss_cap": 321.3016,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 321.3,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "scan_skipped": "orb-universal-score not viable",
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SENSEX26NOV81400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82500CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82600CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82700CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82800CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82900CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83000CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83100CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83200CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83300CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83400CE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV81900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82500PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82600PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82700PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82800PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV82900PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83000PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83100PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83200PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83300PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      },
+      "SENSEX26NOV83400PE:STRIKE": {
+        "status": "checked",
+        "checked_at_utc": 1795502670.3496315,
+        "action_taken": "no_setup"
+      }
+    }
   }
 ]
