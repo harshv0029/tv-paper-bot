@@ -127487,7 +127487,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001098 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 54s more (not sent)"
+  },
+  {
+   "id": 10625,
+   "ts": 1795492397.447979,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001098 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 51s more (not sent)"
+  },
+  {
+   "id": 10626,
+   "ts": 1795492400.69478,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001098 rejected: ADAPTER is down); SL retry for HINDPETRO-EQ backed off 10s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:53:16Z"
+ "synced_at_utc": "2026-11-24T03:53:23Z"
 }
