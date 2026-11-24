@@ -135131,7 +135131,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001624 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 40s more (not sent)"
+  },
+  {
+   "id": 11262,
+   "ts": 1795493568.693349,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001624 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 39s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:12:49Z"
+ "synced_at_utc": "2026-11-24T04:12:56Z"
 }
