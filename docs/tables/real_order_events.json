@@ -131555,7 +131555,127 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10964,
+   "ts": 1795492767.2321956,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001459",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10965,
+   "ts": 1795492767.3059275,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001460",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10966,
+   "ts": 1795492767.6147692,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001458 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10967,
+   "ts": 1795492767.9985163,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001460 rejected: ADAPTER is down); SL retry for PIDILITIND-EQ backed off 21s more (not sent)"
+  },
+  {
+   "id": 10969,
+   "ts": 1795492768.400302,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001459 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10968,
+   "ts": 1795492768.4022324,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001460 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10970,
+   "ts": 1795492768.8166163,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001461",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10971,
+   "ts": 1795492769.8826447,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001461 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10972,
+   "ts": 1795492771.2762003,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001461 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 23s more (not sent)"
+  },
+  {
+   "id": 10973,
+   "ts": 1795492775.4406488,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001461 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 20s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:59:29Z"
+ "synced_at_utc": "2026-11-24T03:59:38Z"
 }
