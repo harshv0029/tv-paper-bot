@@ -136931,7 +136931,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001702 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11412,
+   "ts": 1795494130.5478618,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001703",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 11413,
+   "ts": 1795494130.559362,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001703 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:22:00Z"
+ "synced_at_utc": "2026-11-24T04:22:12Z"
 }
