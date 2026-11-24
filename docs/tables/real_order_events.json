@@ -125051,7 +125051,91 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000912 rejected: ADAPTER is down); SL retry for HCLTECH-EQ backed off 35s more (not sent)"
+  },
+  {
+   "id": 10422,
+   "ts": 1795492210.4316669,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 12s more (not sent)"
+  },
+  {
+   "id": 10423,
+   "ts": 1795492210.4382253,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 13s more (not sent)"
+  },
+  {
+   "id": 10424,
+   "ts": 1795492210.4450788,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 16s more (not sent)"
+  },
+  {
+   "id": 10425,
+   "ts": 1795492210.4505038,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 23s more (not sent)"
+  },
+  {
+   "id": 10426,
+   "ts": 1795492210.4560318,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 23s more (not sent)"
+  },
+  {
+   "id": 10427,
+   "ts": 1795492210.4616573,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 18s more (not sent)"
+  },
+  {
+   "id": 10428,
+   "ts": 1795492210.4670868,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 21s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:50:01Z"
+ "synced_at_utc": "2026-11-24T03:50:12Z"
 }
