@@ -128351,7 +128351,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001132 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 9s more (not sent)"
+  },
+  {
+   "id": 10697,
+   "ts": 1795492483.3646488,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001132 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 2s more (not sent)"
+  },
+  {
+   "id": 10698,
+   "ts": 1795492486.4544501,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001132 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 36s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:54:43Z"
+ "synced_at_utc": "2026-11-24T03:54:51Z"
 }
