@@ -138011,7 +138011,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001733 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 28s more (not sent)"
+  },
+  {
+   "id": 11502,
+   "ts": 1795494330.5121872,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001735",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11503,
+   "ts": 1795494330.5379672,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001735 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:25:29Z"
+ "synced_at_utc": "2026-11-24T04:25:36Z"
 }
