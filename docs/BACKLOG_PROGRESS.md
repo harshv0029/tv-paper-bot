@@ -394,9 +394,9 @@ Total rows: 1446 | closed: 1024 | not closed: 422
 | B-1669 | P? | NSE | 2026-11-22 IST |  |
 | B-1671 | P? | USER | 2026-11-23 IST |  |
 | B-1692 | P? | WEEKLY | 2026-11-24 IST |  |
-| B-1693 | P? | UNKNOWN | 2026-11-24 IST | owed, awaiting, waiting |
+| B-1693 | P? | UNKNOWN | 2026-11-24 IST | owed |
 | B-1694 | P? | SCHEDULER | 2026-11-24 IST | blocked, pending |
-| B-1695 | P? | NSE | 2026-11-24 IST | open:, needs, awaiting, waiting |
+| B-1695 | P? | NSE | 2026-11-24 IST | open: |
 
 ## research-queue (116)
 
