@@ -16636,11 +16636,8 @@ def _names_meeting_criteria(crit: dict) -> set:
     qualifies (or a changed metric disqualifies) with no re-save. Missing hold hours fails a max-hold limit."""
     import strategy_registry as sr
     out = set()
-    for d in sr.REGISTRY:
-        m = d.metrics
-        if m is None or m.pfnet is None:
-            continue
-        if not (crit["pf_min"] <= m.pfnet <= crit["pf_max"]):
+    for d, m, epf in sr.effective_pfnet_table():  # B-1700: PFnet at the product's real cost, precomputed
+        if not (crit["pf_min"] <= epf <= crit["pf_max"]):
             continue
         if (m.n_trades or 0) < crit["min_trades"]:
             continue
@@ -16725,12 +16722,22 @@ def _slots_admit_map(slots: list) -> dict:
     return admit
 
 
-def _slot_fail_factors(crit: dict, m) -> list:
-    """Which of a slot's 3 factors a strategy's stored metrics fail (empty = passes)."""
+def _sr_effective_pfnet(strat):
+    """B-1700: strategy_registry.effective_pfnet, None-safe (no entry -> None)."""
+    if strat is None:
+        return None
+    import strategy_registry as sr
+    return sr.effective_pfnet(strat)
+
+
+def _slot_fail_factors(crit: dict, m, pf=None) -> list:
+    """Which of a slot's 3 factors a strategy's stored metrics fail (empty = passes). pf = the PFnet to judge (B-1700:
+    strategy_registry.effective_pfnet, at the product's real cost); None = the stored pfnet."""
     if m is None or m.pfnet is None:
         return ["no_metrics"]
     out = []
-    if not (crit["pf_min"] <= m.pfnet <= crit["pf_max"]):
+    pf = m.pfnet if pf is None else pf
+    if not (crit["pf_min"] <= pf <= crit["pf_max"]):
         out.append("pfnet")
     if (m.n_trades or 0) < crit["min_trades"]:
         out.append("min_trades")
@@ -28162,18 +28169,20 @@ def _dp_charge_verdict(strategy, qty, price) -> dict | None:
     if name in sr.VIABLE_OVERRIDES:
         return None  # user override: "without any restriction"
     try:
-        if strat.metrics.pfnet is None or float(strat.metrics.pfnet) <= 1.0:
+        base_pf = sr.effective_pfnet(strat)  # B-1700: at the product's real cost
+        if base_pf is None or float(base_pf) <= 1.0:
             return None  # not viable at base cost: _is_strategy_viable_for_real_money owns that rejection
     except (TypeError, ValueError):
         return None
     dp_pct = round(100.0 * DP_CHARGE_PER_SELL_INR / notional, 3)
-    pf2 = _pfnet_with_extra_cost(strat.metrics, dp_pct)
+    base_c = sr.product_cost_pct(getattr(strat, "asset_class", None))  # B-1700: 0.35% delivery, 0.8% if unknown
+    pf2 = sr.repriced_pfnet(strat.metrics, base_c + dp_pct)
     if pf2 is None:
         return None
     return {"ok": pf2 > 1.0, "dp_pct": dp_pct, "pfnet_with_dp": pf2,
             "detail": f"DP charge Rs{DP_CHARGE_PER_SELL_INR:.2f} on Rs{notional:.2f} = {dp_pct:.2f}% extra; "
-                      f"PFnet {strat.metrics.pfnet} at {ROUND_TRIP_COST_PCT}% -> {pf2} at "
-                      f"{ROUND_TRIP_COST_PCT + dp_pct:.2f}% (needs > 1.00)"}
+                      f"PFnet {base_pf} at {base_c}% -> {pf2} at "
+                      f"{base_c + dp_pct:.2f}% (needs > 1.00)"}
 
 
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
@@ -35295,19 +35304,20 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
         m = d.metrics
         if m is None or m.pfnet is None:
             continue
+        epf = sr.effective_pfnet(d)  # B-1700: View 1 filters at the product's real cost
         dcats = [c.value for c in d.categories]
         if cats and not (cats & set(dcats)):
             continue
-        if pf_min is not None and m.pfnet < pf_min:
+        if pf_min is not None and epf < pf_min:
             continue
-        if pf_max is not None and m.pfnet > pf_max:
+        if pf_max is not None and epf > pf_max:
             continue
         if (m.n_trades or 0) < min_n:
             continue
         if max_hold_hrs is not None and (m.avg_held_hrs is None or m.avg_held_hrs > max_hold_hrs):
             continue
         rows.append({"name": d.name, "categories": dcats, "timeframe": d.timeframe,
-                     "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
+                     "pfnet": m.pfnet, "pfnet_at_cost": epf, "cost_pct": sr.product_cost_pct(d.asset_class), "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
                      "avg_held_hrs": m.avg_held_hrs, "universe": m.universe,
                      "override": d.name in ov, "replay_pfnet": rp.get(d.name),
                      "replay_failed": d.name in rp and rp[d.name] < sr.PFNET_LIVE_FLOOR})
@@ -35769,7 +35779,7 @@ def _viability_slots_summary(conn, rejected: dict | None = None, day: str | None
             strat = _registry_entry(reg) if reg else None
             m = strat.metrics if strat is not None else None
             if sl.get("criteria"):
-                ff = _slot_fail_factors(sl["criteria"], m)
+                ff = _slot_fail_factors(sl["criteria"], m, _sr_effective_pfnet(strat))
             else:
                 ff = [] if (reg and reg in set(sl.get("names") or [])) else ["not_in_list"]
             if ff:
@@ -35905,7 +35915,7 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
             e["note"] = "no registry entry" if strat is None else "no backtest metrics"
             per.append(e)
             continue
-        e.update(registry=reg, pfnet=m.pfnet, n_trades=m.n_trades or 0, hold_hrs=m.avg_held_hrs)
+        e.update(registry=reg, pfnet=_sr_effective_pfnet(strat), n_trades=m.n_trades or 0, hold_hrs=m.avg_held_hrs)  # B-1700
         if crit is None:
             # Legacy name-list definition: adding the name admits it (the list bypasses the replay-owed hold).
             e["fixable"], e["needs"], e["changes"] = True, {}, []
@@ -37144,7 +37154,11 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             "blocked_triggers_today": _strategy_blocked_triggers.get(tag, 0) if _strategy_blocked_triggers.get("_day") == now_ist.strftime("%Y-%m-%d") else 0,
             "successful_entries_today": 0, "closed_today": 0, "win_rate_today_pct": None,
         })
-    rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
+    for r in rows:  # B-1700: the PFnet viability/wiring judge by (product's real cost), shown beside the stored 0.8% one
+        _st = _registry_entry(r.get("registry_name")) if r.get("registry_name") else None
+        r["pfnet_at_cost"] = _sr_effective_pfnet(_st) if _st is not None else r.get("pfnet")
+        r["cost_pct"] = sr.product_cost_pct(getattr(_st, "asset_class", None))
+    rows.sort(key=lambda r: (r["pfnet_at_cost"] is None, -(r["pfnet_at_cost"] or 0)))
     _n_live = sum(1 for r in rows if r.get("status") == "live_wired")
     _n_closed = sum(1 for r in rows if r.get("status") == "wired_gate_closed")
     counts = {"viable_total": len(rows) - _n_closed, "live_wired": _n_live, "wired_gate_closed": _n_closed,

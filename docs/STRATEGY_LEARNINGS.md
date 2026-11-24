@@ -2577,3 +2577,16 @@ Profit-booking / exit takeaway: exits depend on real-money state, which stays mi
 ### 2026-11-24 IST: daily review, T1 quantity on exit retries (B-1699)
 GAIL's timeout exit on 23-Nov was retried 4 times at the close for a quantity Kotak would not release (part of the holding was still T1). Each retry was rejected, so the retries added risk of a late, noisy close and gained nothing. Exit retries must size to Kotak's sellable quantity, not the app's total.
 Profit-booking / exit takeaway: on a timeout exit, sell what is sellable now and queue the T1 remainder for the next session's open, under the same exit reason and with its SL kept.
+
+### 2026-11-24 IST: Nov-2026 Kotak P&L vs the cost model (B-1700 to B-1702)
+The Kotak statement shows charges of 0.15% round trip: about 0.22% on delivery and about 0.03% on intraday, with brokerage about zero. The 0.8% model assumed 0.20%/side brokerage that is not being charged. Nov net was Rs 66.57 on Rs 129.58 gross, so charges took 49% of gross even at the real rate. The month's profit came almost entirely from one swing winner (Bank of India +Rs 195). Intraday lost money gross; short-term delivery made it.
+Profit-booking / exit takeaway: the swing/delivery holds carried the month, so let delivery winners run on the trail rather than cutting them early. Intraday exits lost money even before costs, so intraday needs a better edge, not cheaper costs.
+
+### 2026-11-24 IST: product cost re-score and the 5-loser exit review (B-1700, B-1703, B-1705)
+Re-pricing the registry from 0.8% to product costs (intraday 0.10%, delivery 0.35%) admits 1,672 more strategies into View 1. The intraday additions are high-frequency 5m scalps whose profit factor goes from 0.7 to about 3.0 on the cost assumption alone, so slippage must be measured before they trade real money. The DP charge (Rs23.60 per delivery sell) turned November from +Rs66.57 to about -Rs712. Of the 5 biggest losers, 2 gave back real open profit (IRFC +2.4%, Cochin Shipyard +4%) and 2 were stopped and then recovered.
+Profit-booking / exit takeaway: once a swing trade is about 2% up, move its stop to at least entry plus cost and DP, so open profit is not handed back. This needs a full-universe replay before any change ships.
+
+
+### 2026-11-24 IST: B-1700 product cost re-pricing has a performance cost
+Re-pricing PFnet per call (effective_pfnet) inside View 1's per-slot loops ran about 3M times per /strategy-viable-stack request (0.4 s -> 4.4 s) and blocked the HTTP loop during a scan. A per-Metrics cache plus a precomputed (strategy, metrics, effective PFnet) table brought it to 0.25 s. Derived metrics used in hot loops must be computed once per registry, not per lookup. The Render views now show "PFnet @ real cost" with the stored 0.8% value alongside, so ranking matches the gate.
+Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but exits must still clear the real cost; measure intraday slippage (B-1703) before trusting thin 5m scalps, and keep the breakeven-ratchet research (B-1705) on the swing side.
