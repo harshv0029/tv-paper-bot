@@ -130,3 +130,26 @@ def test_heal_core_never_lowers_a_rejected_carried_stop():
     assert place.call_count == 1 and not res["sl_ok"] and res["stop"] == 331.5
     with closing(main.get_db()) as conn:
         assert conn.execute("SELECT stop_loss FROM real_positions_swing WHERE symbol='NYKAA.NS'").fetchone()[0] != 290.0
+
+
+def test_b1693_naked_holding_reaches_protection_snapshot():
+    """B-1693 (2026-11-24): an unprotected delivery holding must show in /real-protection-status,
+    not only in the reconcile result (Kotak adapter outage left 19 holdings naked behind an all-clear)."""
+    res, _ = _run({"NYKAA-EQ": {"qty": 1, "avg_price": 340.0, "symbol": "NYKAA"}})
+    assert [u["kotak_trading_symbol"] for u in res["holdings_unprotected"]] == ["NYKAA-EQ"]
+    with closing(main.get_db()) as conn:
+        import json
+        snap = json.loads(conn.execute("SELECT unprotected_json FROM real_protection_snapshot WHERE id=1").fetchone()[0])
+    assert snap == [{"kotak_trading_symbol": "NYKAA-EQ", "qty": 1, "is_short": False, "source": "holdings"}]
+
+
+def test_b1693_protected_holding_not_in_snapshot():
+    _swing_db()
+    sl = {"trdSym": "NYKAA-EQ", "trnsTp": "S", "prcTp": "SL-M", "ordSt": "trigger pending"}
+    with patch("kotak_neo.positions", return_value={"data": []}), patch("kotak_neo.limits", return_value={}), \
+         patch("kotak_neo.order_report", return_value={"data": [sl]}), \
+         patch.object(main, "_kotak_holdings_open_by_trdsym",
+                      return_value={"NYKAA-EQ": {"qty": 1, "avg_price": 340.0, "symbol": "NYKAA"}}):
+        main._reconcile_real_positions_core(adopt=None)
+    with closing(main.get_db()) as conn:
+        assert conn.execute("SELECT unprotected_json FROM real_protection_snapshot WHERE id=1").fetchone()[0] == "[]"

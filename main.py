@@ -27634,6 +27634,10 @@ def _nse_equity_calendar_open(now_local) -> bool:
         return sp[0] <= mins_now <= sp[1]
     if now_local.weekday() >= 5:
         return False
+    # B-1695 (2026-11-24 Guru Nanak Jayanti, and 2026-11-10): the holiday list was never checked here, so on an NSE
+    # holiday the bot sent ~1,000 SL orders Kotak rejected ("ADAPTER is down") and read it as a broker outage.
+    if not _nse_calendar_trading_day(now_local.date()):
+        return False
     return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
 
 
@@ -41828,24 +41832,29 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         except Exception as e:
             print(f"[reconcile] holdings auto-heal failed (non-fatal, alarm still fires): {e}")
     unprotected = _find_unprotected_open_positions(kotak_open_by_trdsym, order_rows)
+    # B-1693 (2026-11-24 09:20 IST live: Kotak "ADAPTER is down", 19 holdings with no SL, yet
+    # /real-protection-status showed unprotected_positions [] because only positions() rows were
+    # snapshotted). Delivery holdings without a live SL go into the snapshot and the alert too.
+    holdings_unprotected = _find_unprotected_open_positions(
+        {k: {"qty": v["qty"], "is_short": False} for k, v in (swing_holdings or {}).items()
+         if k not in kotak_open_by_trdsym}, order_rows)
+    snapshot_rows = list(unprotected) + [dict(u, source="holdings") for u in holdings_unprotected]
     with closing(get_db()) as protection_conn:
         protection_conn.execute(
             "INSERT INTO real_protection_snapshot (id, checked_at, unprotected_json) VALUES (1, ?, ?) "
             "ON CONFLICT(id) DO UPDATE SET checked_at = excluded.checked_at, unprotected_json = excluded.unprotected_json",
-            (time.time(), json.dumps(unprotected)),
+            (time.time(), json.dumps(snapshot_rows)),
         )
         protection_conn.commit()
-    if unprotected:
-        print(f"[UNPROTECTED-ALERT] {len(unprotected)} open Kotak position(s) have NO live stop-loss "
-              f"order at the broker: {[u['kotak_trading_symbol'] for u in unprotected]} - real money, "
+    if snapshot_rows:
+        print(f"[UNPROTECTED-ALERT] {len(snapshot_rows)} open Kotak position(s)/holding(s) have NO live stop-loss "
+              f"order at the broker: {[u['kotak_trading_symbol'] for u in snapshot_rows]} - real money, "
               f"no downside protection, right now.")
 
     return {
         "reconciled_at_utc": time.time(), "real_balance_inr": net_balance,
         "qty_corrected_count": len(qty_corrected), "qty_corrected": qty_corrected,
-        "holdings_unprotected": _find_unprotected_open_positions(
-            {k: {"qty": v["qty"], "is_short": False} for k, v in (swing_holdings or {}).items()
-             if k not in kotak_open_by_trdsym}, order_rows),
+        "holdings_unprotected": holdings_unprotected,
         "swing_past_time_limit": _swing_past_time_limit_safe(),
         "holdings_healed": holdings_healed,
         "holdings_checked": None if swing_holdings is None else len(swing_holdings),
