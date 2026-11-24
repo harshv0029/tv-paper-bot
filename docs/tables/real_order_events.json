@@ -140783,7 +140783,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001834 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11733,
+   "ts": 1795495044.1105547,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001834 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 17s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:37:22Z"
+ "synced_at_utc": "2026-11-24T04:37:29Z"
 }
