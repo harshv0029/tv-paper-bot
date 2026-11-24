@@ -114803,7 +114803,31 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000827 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 48s more (not sent)"
+  },
+  {
+   "id": 9568,
+   "ts": 1795491985.1611133,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000827 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 52s more (not sent)"
+  },
+  {
+   "id": 9569,
+   "ts": 1795491985.4956908,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000827 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 53s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:46:27Z"
+ "synced_at_utc": "2026-11-24T03:46:34Z"
 }
