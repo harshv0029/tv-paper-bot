@@ -16636,11 +16636,8 @@ def _names_meeting_criteria(crit: dict) -> set:
     qualifies (or a changed metric disqualifies) with no re-save. Missing hold hours fails a max-hold limit."""
     import strategy_registry as sr
     out = set()
-    for d in sr.REGISTRY:
-        m = d.metrics
-        if m is None or m.pfnet is None:
-            continue
-        if not (crit["pf_min"] <= sr.effective_pfnet(d) <= crit["pf_max"]):  # B-1700: at the product's real cost
+    for d, m, epf in sr.effective_pfnet_table():  # B-1700: PFnet at the product's real cost, precomputed
+        if not (crit["pf_min"] <= epf <= crit["pf_max"]):
             continue
         if (m.n_trades or 0) < crit["min_trades"]:
             continue
@@ -37157,7 +37154,11 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             "blocked_triggers_today": _strategy_blocked_triggers.get(tag, 0) if _strategy_blocked_triggers.get("_day") == now_ist.strftime("%Y-%m-%d") else 0,
             "successful_entries_today": 0, "closed_today": 0, "win_rate_today_pct": None,
         })
-    rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
+    for r in rows:  # B-1700: the PFnet viability/wiring judge by (product's real cost), shown beside the stored 0.8% one
+        _st = _registry_entry(r.get("registry_name")) if r.get("registry_name") else None
+        r["pfnet_at_cost"] = _sr_effective_pfnet(_st) if _st is not None else r.get("pfnet")
+        r["cost_pct"] = sr.product_cost_pct(getattr(_st, "asset_class", None))
+    rows.sort(key=lambda r: (r["pfnet_at_cost"] is None, -(r["pfnet_at_cost"] or 0)))
     _n_live = sum(1 for r in rows if r.get("status") == "live_wired")
     _n_closed = sum(1 for r in rows if r.get("status") == "wired_gate_closed")
     counts = {"viable_total": len(rows) - _n_closed, "live_wired": _n_live, "wired_gate_closed": _n_closed,

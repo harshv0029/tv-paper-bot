@@ -75,3 +75,29 @@ def test_nan_pfgross_falls_back_to_stored():
     nan = SimpleNamespace(pfgross=float("nan"), pfnet=1.827, win_rate_pct=47.2)  # live chan_kalman 5m run
     assert sr.repriced_pfnet(nan, 0.10) is None
     assert sr.effective_pfnet(_d(sr.AssetClass.EQUITY_INTRADAY, nan)) == 1.827
+
+
+def test_effective_pfnet_table_cached_and_follows_registry(monkeypatch):
+    m = sr.Metrics(pfnet=0.95, pfgross=1.10, win_rate_pct=45.0, n_trades=100)
+    d = sr.StrategyDef(name="b1700_tbl", asset_class=sr.AssetClass.EQUITY_INTRADAY,
+                       categories=(sr.TradeCategory.BUY,), timeframe="5m", status=sr.StrategyStatus.RESEARCH, metrics=m)
+    monkeypatch.setattr(sr, "REGISTRY", [d])
+    t1 = sr.effective_pfnet_table()
+    assert t1 is sr.effective_pfnet_table()  # cached: View 1 scans it ~50x per request
+    assert t1[0][2] == sr.repriced_pfnet(m, 0.10) > 1.0
+    monkeypatch.setattr(sr, "PRODUCT_COST_PCT", {})  # cost table change rebuilds it
+    assert sr.effective_pfnet_table()[0][2] == 0.95
+
+
+def test_strategies_rows_carry_pfnet_at_cost():
+    rows = main._strategy_scan_activity_compute(include_unwired=True)["strategies"]
+    assert rows
+    for r in rows:
+        assert "pfnet_at_cost" in r and "cost_pct" in r
+    keys = [r["pfnet_at_cost"] for r in rows if r["pfnet_at_cost"] is not None]
+    assert keys == sorted(keys, reverse=True)  # sorted by the real-cost PFnet
+
+
+def test_view1_page_shows_real_cost_column():
+    html = open("static/trade-view.html").read()
+    assert "function pfCost(" in html and "PFnet @ real cost" in html and 'sxSort={key:"pfnet_at_cost"' in html

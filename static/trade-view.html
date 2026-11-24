@@ -390,14 +390,18 @@
       <button id="sx-slot-reset" title="Discard unsaved slot edits and reload the live slots">Discard edits</button>
       <span id="sx-slot-msg" style="color:#64748b"></span>
     </div>
-    <div class="counts-scroll"><table class="counts"><thead><tr><th class="num">#</th><th>On</th><th>Slot name</th><th class="num">PFnet min</th><th class="num">PFnet max</th><th class="num">Min trades</th><th class="num">Max hold (h)</th><th class="num">Strategies pass (saved)</th><th class="num">Admitted first</th><th></th></tr></thead>
+    <div class="counts-scroll"><table class="counts"><thead><tr><th class="num">#</th><th>On</th><th>Slot name</th><th class="num" title="Judged at the product's real cost (B-1700)">PFnet min (real cost)</th><th class="num">PFnet max (real cost)</th><th class="num">Min trades</th><th class="num">Max hold (h)</th><th class="num">Strategies pass (saved)</th><th class="num">Admitted first</th><th></th></tr></thead>
       <tbody id="sx-slots"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody></table></div>
   </div>
   <div class="counts-scroll"><table class="counts">
-    <thead><tr id="sx-head"><th class="num">#</th><th data-k="name" data-t="Strategy" style="cursor:pointer">Strategy</th><th data-k="categories" data-t="Category" style="cursor:pointer">Category</th><th data-k="timeframe" data-t="TF" style="cursor:pointer">TF</th><th class="num" data-k="pfnet" data-t="PFnet" style="cursor:pointer">PFnet ▼</th><th class="num" data-k="win_rate_pct" data-t="Win %" style="cursor:pointer">Win %</th><th class="num" data-k="n_trades" data-t="Trades" style="cursor:pointer">Trades</th><th class="num" data-k="avg_held_hrs" data-t="Avg hold (h)" style="cursor:pointer">Avg hold (h)</th><th>Override</th></tr></thead>
+    <thead><tr id="sx-head"><th class="num">#</th><th data-k="name" data-t="Strategy" style="cursor:pointer">Strategy</th><th data-k="categories" data-t="Category" style="cursor:pointer">Category</th><th data-k="timeframe" data-t="TF" style="cursor:pointer">TF</th><th class="num" data-k="pfnet_at_cost" data-t="PFnet @ real cost" title="Re-priced at the product's real round-trip cost (intraday 0.10%, delivery 0.35%, F&amp;O/MCX 0.8%). Your slot PFnet min/max filter on this value." style="cursor:pointer">PFnet @ real cost ▼</th><th class="num" data-k="win_rate_pct" data-t="Win %" style="cursor:pointer">Win %</th><th class="num" data-k="n_trades" data-t="Trades" style="cursor:pointer">Trades</th><th class="num" data-k="avg_held_hrs" data-t="Avg hold (h)" style="cursor:pointer">Avg hold (h)</th><th>Override</th></tr></thead>
     <tbody id="sx-body"><tr><td colspan="9" class="scan-idle">Press Show.</td></tr></tbody>
   </table></div>
 </div>
+<script>
+// B-1700: PFnet at the product's real round-trip cost (what viability/wiring now judge), 0.8% backtest figure alongside
+function pfCost(r,d){d=d==null?3:d;var a=r.pfnet_at_cost,b=r.pfnet;if(a==null&&b==null)return "\u2014";if(a==null||r.cost_pct==null||r.cost_pct>=0.8||a===b)return (+(a==null?b:a)).toFixed(d);return "<span title='At this product\u2019s real round-trip cost "+r.cost_pct+"% (Kotak Nov-2026 P&L, B-1700). Backtest PFnet at 0.8%: "+(b==null?"n/a":(+b).toFixed(d))+"'>"+(+a).toFixed(d)+"</span> <span class='meta'>("+(b==null?"n/a":(+b).toFixed(2))+" @0.8%)</span>";}
+</script>
 <script>
 /* Memory guard (user 2026-10-20: page hung the laptop): skip DOM rebuilds when the HTML string is unchanged, so the 10s poll does not reparse/relayout identical content. */
 (function(){var d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");if(!d||!d.set)return;Object.defineProperty(Element.prototype,"innerHTML",{get:d.get,set:function(v){if(typeof v==="string"&&this.__h===v&&this.__n===this.childNodes.length)return;d.set.call(this,v);this.__h=typeof v==="string"?v:undefined;this.__n=this.childNodes.length;},configurable:true});})();
@@ -416,7 +420,7 @@
   var box=document.getElementById("sx-cats");
   box.innerHTML=CATORDER.map(function(c){return '<label style="display:block"><input type="checkbox" class="sx-c" value="'+c+'"> '+CATLAB[c]+'</label>';}).join("");
   function esc(t){return String(t).replace(/[&<>]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[m];});}
-  var sxRows=[], sxSort={key:"pfnet",dir:-1};
+  var sxRows=[], sxSort={key:"pfnet_at_cost",dir:-1};
   function sxRender(){
     var f=function(v,n){return v==null?"\u2014":Number(v).toFixed(n);};
     var k=sxSort.key, dir=sxSort.dir;
@@ -425,7 +429,7 @@
       if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1;
       return (typeof x==="string"?x.localeCompare(y):x-y)*dir;});
     document.getElementById("sx-body").innerHTML=rows.length?rows.map(function(r,i){
-      return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.map(function(c){return CATLAB[c]||c;}).join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"\u2014":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+(r.replay_failed?" <span style='color:#d32f2f;font-weight:600' title='Replay through the live main.py code is below the PFnet floor. Real money still follows your View 1 set.'>replay failed (PFnet "+f(r.replay_pfnet,2)+")</span>":"")+"</td></tr>";
+      return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.map(function(c){return CATLAB[c]||c;}).join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+pfCost(r,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"\u2014":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+(r.replay_failed?" <span style='color:#d32f2f;font-weight:600' title='Replay through the live main.py code is below the PFnet floor. Real money still follows your View 1 set.'>replay failed (PFnet "+f(r.replay_pfnet,2)+")</span>":"")+"</td></tr>";
     }).join(""):"<tr><td colspan='9' class='scan-idle'>No strategy matches.</td></tr>";
     [].slice.call(document.querySelectorAll("#sx-head th[data-k]")).forEach(function(th){
       th.textContent=th.getAttribute("data-t")+(th.getAttribute("data-k")===k?(dir<0?" \u25BC":" \u25B2"):"");});
@@ -547,7 +551,7 @@
         <th data-sa-key="categories" style="cursor:pointer;user-select:none">Category</th>
         <th title="What is actually traded: equity shares, an index/MCX single-strike option, or futures." data-sa-key="instrument" style="cursor:pointer;user-select:none">Instrument</th>
         <th data-sa-key="strategy_tag" style="cursor:pointer;user-select:none">Strategy</th>
-        <th class="num" data-sa-key="pfnet" style="cursor:pointer;user-select:none">PFnet</th>
+        <th class="num" data-sa-key="pfnet_at_cost" title="At the product's real round-trip cost (B-1700); 0.8% backtest figure in brackets" style="cursor:pointer;user-select:none">PFnet @ real cost</th>
         <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr." data-sa-key="avg_held_hrs" style="cursor:pointer;user-select:none">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
         <th class="num" title="Statistical confidence that this strategy's backtested edge is real, not luck: chance the true win rate beats its break-even win rate, given PFnet, win % and trade count. 50% = break-even; higher = more trades and a wider margin." data-sa-key="entry_confidence_pct" style="cursor:pointer;user-select:none">Confidence to enter</th>
         <th class="num" title="Stop-loss distance from entry: average of this strategy's open positions (entry vs frozen stop); if none open, its stop rule." data-sa-key="sl_pct" style="cursor:pointer;user-select:none">SL %</th>
@@ -1166,7 +1170,7 @@ function renderCategoryScanTable() {
     (c.strategies || []).concat(c.no_signal_strategies || []).forEach(r => { fun[r.strategy] = r; }));
   const names = {short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures (NSE)",options:"Single leg option",options_multi:"Multi leg option",commodity:"Commodity (MCX)",currency:"Currency (NSE CDS)",bidirectional:"Bidirectional"};
   const by = {};
-  sa.strategies.filter(r => r.pfnet != null && r.pfnet >= (sa.floor || 1) && r.scan_wired !== false)
+  sa.strategies.filter(r => (r.pfnet_at_cost ?? r.pfnet) != null && (r.pfnet_at_cost ?? r.pfnet) >= (sa.floor || 1) && r.scan_wired !== false)
     .forEach(r => (r.categories && r.categories.length ? r.categories : ["other"]).forEach(c => (by[c] = by[c] || []).push(r)));
   const cats = Object.keys(by).sort();
   if (!cats.length) { body.innerHTML = '<div class="scan-idle">No wired viable strategies</div>'; return; }
@@ -1177,7 +1181,7 @@ function renderCategoryScanTable() {
       return rows.map((r, j) => {
         const f = fun[r.strategy_tag] || {};
         const wr = r.win_rate_today_pct != null ? fmt(r.win_rate_today_pct, 1) + "%" : '<span class="meta">none closed</span>';
-        return `<tr>${j === 0 ? `<td class="num" rowspan="${rows.length}">${i + 1}</td><td rowspan="${rows.length}"><b>${esc(names[c] || c)}</b><br><span class="meta">${rows.length} strategies</span></td>` : ""}<td class="sym">${esc(r.strategy_tag)}</td><td class="num">${fmt(r.pfnet, 3)}</td><td class="num">${n(r.scans_today)}</td><td class="num">${n(r.scans_last_30s)}</td><td class="num">${n(f.fired)}</td><td class="num">${n(f.placed)}</td><td class="num">${wr}</td></tr>`;
+        return `<tr>${j === 0 ? `<td class="num" rowspan="${rows.length}">${i + 1}</td><td rowspan="${rows.length}"><b>${esc(names[c] || c)}</b><br><span class="meta">${rows.length} strategies</span></td>` : ""}<td class="sym">${esc(r.strategy_tag)}</td><td class="num">${pfCost(r, 3)}</td><td class="num">${n(r.scans_today)}</td><td class="num">${n(r.scans_last_30s)}</td><td class="num">${n(f.fired)}</td><td class="num">${n(f.placed)}</td><td class="num">${wr}</td></tr>`;
       }).join("");
     }).join("") + '</tbody></table>';
 }
@@ -1277,7 +1281,7 @@ function renderStrategyScanActivity(data) {
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td>${r.instrument || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
-    <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
+    <td class="num">${pfCost(r, 3)}</td>
     ${avgHrsHeldCell(r.avg_held_hrs)}
     <td class="num">${r.entry_confidence_pct !== null && r.entry_confidence_pct !== undefined ? fmt(r.entry_confidence_pct, 1) + "%" : "—"}</td>
     <td class="num">${r.sl_pct !== null && r.sl_pct !== undefined ? fmt(r.sl_pct, 2) + "%" + (r.sl_open_n ? ` <span class="meta">(avg of ${r.sl_open_n} open)</span>` : "") : (r.sl_rule ? `<span class="meta">${r.sl_rule}</span>` : "<span class=\"meta\">n/a</span>")}</td>

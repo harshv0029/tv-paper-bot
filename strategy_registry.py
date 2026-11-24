@@ -166,8 +166,34 @@ def effective_pfnet(d):
     c = product_cost_pct(getattr(d, "asset_class", None))
     if c == BASE_COST_PCT:
         return m.pfnet
+    key = (id(m), c)
+    hit = _EFFECTIVE_PFNET_CACHE.get(key)
+    if hit is not None and hit[0] is m:  # identity check: an id is only reused after m is freed, and we hold m
+        return hit[1]
     pf = repriced_pfnet(m, c)
-    return m.pfnet if pf is None else pf
+    out = m.pfnet if pf is None else pf
+    _EFFECTIVE_PFNET_CACHE[key] = (m, out)
+    return out
+
+
+def effective_pfnet_table():
+    """B-1700: [(d, d.metrics, effective_pfnet(d))] for every REGISTRY entry with a pfnet, built once per registry
+    object / size / cost table (View 1 pages scan the registry ~50 times per request)."""
+    global _EPF_TABLE
+    key = (id(REGISTRY), len(REGISTRY), tuple(sorted(PRODUCT_COST_PCT.items())))
+    if _EPF_TABLE is None or _EPF_TABLE[0] != key or _EPF_TABLE[1] is not REGISTRY:
+        rows = [(d, d.metrics, effective_pfnet(d)) for d in REGISTRY
+                if d.metrics is not None and d.metrics.pfnet is not None]
+        _EPF_TABLE = (key, REGISTRY, rows)
+    return _EPF_TABLE[2]
+
+
+_EPF_TABLE = None
+
+
+# Metrics is frozen, so a run's re-priced PFnet never changes: View 1 / viable-stack pages call effective_pfnet ~3M
+# times per request (0.4s -> 4.4s uncached, 2026-11-24 boot test). Bounded by the registry size (one entry per run x cost).
+_EFFECTIVE_PFNET_CACHE: dict = {}
 
 
 PFNET_LIVE_FLOOR = 1.0  # 2026-11-03 user: wiring and viability need PFnet > 1.00 (strict; supersedes 2026-10-14 ">= 1" and 2026-10-11 1.1)
@@ -265,7 +291,8 @@ def is_quality_viable(s: "StrategyDef", floor: float = PFNET_LIVE_FLOOR) -> bool
     m = s.metrics
     if VIABLE_STACK_ACTIVE:
         return bool(m is not None and s.name in VIABLE_OVERRIDES)
-    return bool(m is not None and m.pfnet > floor and (m.n_trades or 0) >= QUALITY_MIN_TRADES
+    return bool(m is not None and m.pfnet is not None and effective_pfnet(s) > floor  # B-1700: at real cost
+                and (m.n_trades or 0) >= QUALITY_MIN_TRADES
                 and m.avg_held_hrs is not None and m.avg_held_hrs <= QUALITY_MAX_HOLD_HRS)
 
 
@@ -2810,7 +2837,8 @@ def _ranked_by_pfnet(pool: list) -> list:
     must mean the same thing everywhere it's asked."""
     return sorted(
         pool,
-        key=lambda s: s.metrics.pfnet if s.metrics is not None else float("-inf"),
+        key=lambda s: (effective_pfnet(s) if s.metrics is not None and s.metrics.pfnet is not None
+                       else float("-inf")),  # B-1700: rank at the product's real cost
         reverse=True,
     )
 
