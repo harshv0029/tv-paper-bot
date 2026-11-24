@@ -135827,7 +135827,67 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001662 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11320,
+   "ts": 1795493898.7408226,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001663",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11321,
+   "ts": 1795493898.8016286,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001664",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 11322,
+   "ts": 1795493901.5414681,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001665",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11323,
+   "ts": 1795493901.622547,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001666",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11324,
+   "ts": 1795493902.0917225,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001666 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 56s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:18:17Z"
+ "synced_at_utc": "2026-11-24T04:18:24Z"
 }
