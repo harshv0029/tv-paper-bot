@@ -134903,7 +134903,31 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000001624 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11243,
+   "ts": 1795493555.1686544,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001624 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 51s more (not sent)"
+  },
+  {
+   "id": 11244,
+   "ts": 1795493559.6467454,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001624 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 48s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:12:35Z"
+ "synced_at_utc": "2026-11-24T04:12:42Z"
 }
