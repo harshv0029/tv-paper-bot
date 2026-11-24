@@ -144743,7 +144743,31 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
+  },
+  {
+   "id": 12063,
+   "ts": 1795496076.935747,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
+  },
+  {
+   "id": 12064,
+   "ts": 1795496080.4561074,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
   }
  ],
- "synced_at_utc": "2026-11-24T04:54:38Z"
+ "synced_at_utc": "2026-11-24T04:54:47Z"
 }
