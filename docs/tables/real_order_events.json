@@ -132167,7 +132167,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000001475 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11015,
+   "ts": 1795492824.78684,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001478 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 43s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:00:25Z"
+ "synced_at_utc": "2026-11-24T04:00:33Z"
 }
