@@ -111239,7 +111239,19 @@
    "prev_state": "queued at open",
    "new_state": "expired",
    "detail": "reason: queued trigger was not placed before its session ended | swing primary_base: skipped_session_ended: session 2026-11-23 ended unplaced; last: never replayed"
+  },
+  {
+   "id": 9271,
+   "ts": 1795491905.6998582,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000000778",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T00:52:12Z"
+ "synced_at_utc": "2026-11-24T03:45:07Z"
 }
