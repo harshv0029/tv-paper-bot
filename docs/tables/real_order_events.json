@@ -140879,7 +140879,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001841 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11741,
+   "ts": 1795495095.464916,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001842",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 11742,
+   "ts": 1795495095.4742646,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001842 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:38:04Z"
+ "synced_at_utc": "2026-11-24T04:38:17Z"
 }
