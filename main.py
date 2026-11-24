@@ -27634,6 +27634,10 @@ def _nse_equity_calendar_open(now_local) -> bool:
         return sp[0] <= mins_now <= sp[1]
     if now_local.weekday() >= 5:
         return False
+    # B-1695 (2026-11-24 Guru Nanak Jayanti, and 2026-11-10): the holiday list was never checked here, so on an NSE
+    # holiday the bot sent ~1,000 SL orders Kotak rejected ("ADAPTER is down") and read it as a broker outage.
+    if not _nse_calendar_trading_day(now_local.date()):
+        return False
     return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
 
 

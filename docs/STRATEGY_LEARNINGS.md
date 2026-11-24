@@ -2561,3 +2561,7 @@ Profit-booking / exit takeaway: exits are a 2% trail from peak premium (checked 
 ### 2026-11-24 IST: B-1693 protection snapshot missed holdings
 - A protection report built from positions() alone gives an all-clear for delivery holdings; every holding has to be counted from holdings() too.
 - Profit-booking / exit takeaway: an exit can only be trusted if its stop is visible in the status; a hidden naked holding is an unmanaged exit.
+
+### 2026-11-24 IST: B-1695 holiday read as a broker outage
+- Before calling a broker error an outage, check the exchange calendar: "ADAPTER is down" on 10-Nov and 24-Nov were both NSE holidays.
+- Profit-booking / exit takeaway: exits and SLs must key off the exchange calendar; sending them on a closed day only burns broker rate limits that the next open's protection needs.
