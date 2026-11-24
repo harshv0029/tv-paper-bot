@@ -111985,7 +111985,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 54s more (not sent)"
   },
   {
-   "id": 9356,
+   "id": 9333,
    "ts": 1795491919.731797,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -111997,7 +111997,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 54s more (not sent)"
   },
   {
-   "id": 9333,
+   "id": 9334,
    "ts": 1795491919.7811813,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -112009,7 +112009,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 48s more (not sent)"
   },
   {
-   "id": 9355,
+   "id": 9335,
    "ts": 1795491919.7897165,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -112021,7 +112021,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 48s more (not sent)"
   },
   {
-   "id": 9334,
+   "id": 9336,
    "ts": 1795491919.8582885,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -112033,7 +112033,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 50s more (not sent)"
   },
   {
-   "id": 9335,
+   "id": 9337,
    "ts": 1795491919.8938804,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -112045,7 +112045,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 47s more (not sent)"
   },
   {
-   "id": 9336,
+   "id": 9338,
    "ts": 1795491919.9025223,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -112057,7 +112057,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 48s more (not sent)"
   },
   {
-   "id": 9337,
+   "id": 9339,
    "ts": 1795491919.9077768,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -112069,7 +112069,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9338,
+   "id": 9340,
    "ts": 1795491919.9151397,
    "symbol": "VAML.NS",
    "kotak_trading_symbol": "VAML-EQ",
@@ -112081,7 +112081,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 53s more (not sent)"
   },
   {
-   "id": 9339,
+   "id": 9341,
    "ts": 1795491919.9152162,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -112093,7 +112093,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 49s more (not sent)"
   },
   {
-   "id": 9340,
+   "id": 9342,
    "ts": 1795491919.9290385,
    "symbol": "NHPC.NS",
    "kotak_trading_symbol": "NHPC-EQ",
@@ -112105,7 +112105,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9341,
+   "id": 9343,
    "ts": 1795491919.9343548,
    "symbol": "IDEA.NS",
    "kotak_trading_symbol": "IDEA-EQ",
@@ -112117,7 +112117,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 50s more (not sent)"
   },
   {
-   "id": 9342,
+   "id": 9344,
    "ts": 1795491919.9396122,
    "symbol": "INDUSTOWER.NS",
    "kotak_trading_symbol": "INDUSTOWER-EQ",
@@ -112129,7 +112129,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 53s more (not sent)"
   },
   {
-   "id": 9343,
+   "id": 9345,
    "ts": 1795491919.9450276,
    "symbol": "MEESHO.NS",
    "kotak_trading_symbol": "MEESHO-EQ",
@@ -112141,7 +112141,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 55s more (not sent)"
   },
   {
-   "id": 9344,
+   "id": 9346,
    "ts": 1795491919.9503055,
    "symbol": "IRCTC.NS",
    "kotak_trading_symbol": "IRCTC-EQ",
@@ -112153,7 +112153,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 48s more (not sent)"
   },
   {
-   "id": 9345,
+   "id": 9347,
    "ts": 1795491919.9557533,
    "symbol": "HINDPETRO.NS",
    "kotak_trading_symbol": "HINDPETRO-EQ",
@@ -112165,7 +112165,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for HINDPETRO-EQ backed off 49s more (not sent)"
   },
   {
-   "id": 9346,
+   "id": 9348,
    "ts": 1795491919.9611263,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -112177,7 +112177,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 49s more (not sent)"
   },
   {
-   "id": 9347,
+   "id": 9349,
    "ts": 1795491919.968794,
    "symbol": "MANKIND.NS",
    "kotak_trading_symbol": "MANKIND-EQ",
@@ -112189,7 +112189,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for MANKIND-EQ backed off 50s more (not sent)"
   },
   {
-   "id": 9348,
+   "id": 9350,
    "ts": 1795491919.9740117,
    "symbol": "PIDILITIND.NS",
    "kotak_trading_symbol": "PIDILITIND-EQ",
@@ -112201,7 +112201,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for PIDILITIND-EQ backed off 51s more (not sent)"
   },
   {
-   "id": 9349,
+   "id": 9351,
    "ts": 1795491919.979248,
    "symbol": "VAML.NS",
    "kotak_trading_symbol": "VAML-EQ",
@@ -112213,7 +112213,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9350,
+   "id": 9352,
    "ts": 1795491919.9846056,
    "symbol": "MAZDOCK.NS",
    "kotak_trading_symbol": "MAZDOCK-EQ",
@@ -112225,7 +112225,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 51s more (not sent)"
   },
   {
-   "id": 9351,
+   "id": 9353,
    "ts": 1795491919.9899833,
    "symbol": "HINDALCO.NS",
    "kotak_trading_symbol": "HINDALCO-EQ",
@@ -112237,7 +112237,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9352,
+   "id": 9354,
    "ts": 1795491919.9952817,
    "symbol": "AMBUJACEM.NS",
    "kotak_trading_symbol": "AMBUJACEM-EQ",
@@ -112249,7 +112249,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9353,
+   "id": 9355,
    "ts": 1795491920.000487,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -112261,7 +112261,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 52s more (not sent)"
   },
   {
-   "id": 9354,
+   "id": 9356,
    "ts": 1795491920.0061595,
    "symbol": "HCLTECH.NS",
    "kotak_trading_symbol": "HCLTECH-EQ",
@@ -112333,7 +112333,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 47s more (not sent)"
   },
   {
-   "id": 9363,
+   "id": 9362,
    "ts": 1795491921.506117,
    "symbol": "MAZDOCK.NS",
    "kotak_trading_symbol": "MAZDOCK-EQ",
@@ -112345,7 +112345,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 50s more (not sent)"
   },
   {
-   "id": 9362,
+   "id": 9363,
    "ts": 1795491921.5078452,
    "symbol": "HINDPETRO.NS",
    "kotak_trading_symbol": "HINDPETRO-EQ",
@@ -113725,7 +113725,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 15s more (not sent)"
   },
   {
-   "id": 9479,
+   "id": 9478,
    "ts": 1795491958.0286517,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -113737,7 +113737,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000800 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 9s more (not sent)"
   },
   {
-   "id": 9478,
+   "id": 9479,
    "ts": 1795491958.0312705,
    "symbol": "VAML.NS",
    "kotak_trading_symbol": "VAML-EQ",
@@ -114541,7 +114541,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 9547,
+   "id": 9546,
    "ts": 1795491976.3635807,
    "symbol": "INDUSTOWER.NS",
    "kotak_trading_symbol": "INDUSTOWER-EQ",
@@ -114553,7 +114553,7 @@
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   },
   {
-   "id": 9546,
+   "id": 9547,
    "ts": 1795491976.3674846,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -116497,7 +116497,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000838 rejected: ADAPTER is down); SL retry for HCLTECH-EQ backed off 9s more (not sent)"
   },
   {
-   "id": 9710,
+   "id": 9709,
    "ts": 1795492032.5376303,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -116509,7 +116509,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000838 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 4s more (not sent)"
   },
   {
-   "id": 9711,
+   "id": 9710,
    "ts": 1795492032.5390844,
    "symbol": "MANKIND.NS",
    "kotak_trading_symbol": "MANKIND-EQ",
@@ -116521,7 +116521,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000838 rejected: ADAPTER is down); SL retry for MANKIND-EQ backed off 7s more (not sent)"
   },
   {
-   "id": 9709,
+   "id": 9711,
    "ts": 1795492032.574806,
    "symbol": "NHPC.NS",
    "kotak_trading_symbol": "NHPC-EQ",
@@ -122677,7 +122677,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000886 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 13s more (not sent)"
   },
   {
-   "id": 10225,
+   "id": 10224,
    "ts": 1795492151.449595,
    "symbol": "MAZDOCK.NS",
    "kotak_trading_symbol": "MAZDOCK-EQ",
@@ -122689,7 +122689,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000886 rejected: ADAPTER is down); SL retry for MAZDOCK-EQ backed off 15s more (not sent)"
   },
   {
-   "id": 10224,
+   "id": 10225,
    "ts": 1795492151.4554675,
    "symbol": "IDEA.NS",
    "kotak_trading_symbol": "IDEA-EQ",
@@ -124825,7 +124825,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 25s more (not sent)"
   },
   {
-   "id": 10415,
+   "id": 10403,
    "ts": 1795492196.8076656,
    "symbol": "HCLTECH.NS",
    "kotak_trading_symbol": "HCLTECH-EQ",
@@ -124837,7 +124837,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000000913 rejected: ADAPTER is down); SL retry for HCLTECH-EQ backed off 35s more (not sent)"
   },
   {
-   "id": 10403,
+   "id": 10404,
    "ts": 1795492196.8135443,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -124849,7 +124849,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 23s more (not sent)"
   },
   {
-   "id": 10404,
+   "id": 10405,
    "ts": 1795492196.8203957,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -124861,7 +124861,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 30s more (not sent)"
   },
   {
-   "id": 10405,
+   "id": 10406,
    "ts": 1795492196.8311327,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -124873,7 +124873,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 31s more (not sent)"
   },
   {
-   "id": 10406,
+   "id": 10407,
    "ts": 1795492196.836117,
    "symbol": "NHPC.NS",
    "kotak_trading_symbol": "NHPC-EQ",
@@ -124885,7 +124885,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 30s more (not sent)"
   },
   {
-   "id": 10407,
+   "id": 10408,
    "ts": 1795492196.8412013,
    "symbol": "IDEA.NS",
    "kotak_trading_symbol": "IDEA-EQ",
@@ -124897,7 +124897,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 31s more (not sent)"
   },
   {
-   "id": 10408,
+   "id": 10409,
    "ts": 1795492196.846619,
    "symbol": "INDUSTOWER.NS",
    "kotak_trading_symbol": "INDUSTOWER-EQ",
@@ -124909,7 +124909,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 30s more (not sent)"
   },
   {
-   "id": 10409,
+   "id": 10410,
    "ts": 1795492196.8521123,
    "symbol": "MEESHO.NS",
    "kotak_trading_symbol": "MEESHO-EQ",
@@ -124921,7 +124921,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 31s more (not sent)"
   },
   {
-   "id": 10410,
+   "id": 10411,
    "ts": 1795492196.8600051,
    "symbol": "IRCTC.NS",
    "kotak_trading_symbol": "IRCTC-EQ",
@@ -124933,7 +124933,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000911 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 31s more (not sent)"
   },
   {
-   "id": 10411,
+   "id": 10412,
    "ts": 1795492196.8653376,
    "symbol": "HINDPETRO.NS",
    "kotak_trading_symbol": "HINDPETRO-EQ",
@@ -124945,7 +124945,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000912 rejected: ADAPTER is down); SL retry for HINDPETRO-EQ backed off 33s more (not sent)"
   },
   {
-   "id": 10412,
+   "id": 10413,
    "ts": 1795492196.8706338,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -124957,7 +124957,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000912 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 48s more (not sent)"
   },
   {
-   "id": 10413,
+   "id": 10414,
    "ts": 1795492196.8758428,
    "symbol": "MANKIND.NS",
    "kotak_trading_symbol": "MANKIND-EQ",
@@ -124969,7 +124969,7 @@
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | reason: 09:15 IST open protect-first pass; B-1557: broker-wide outage (order 261124000000912 rejected: ADAPTER is down); SL retry for MANKIND-EQ backed off 33s more (not sent)"
   },
   {
-   "id": 10414,
+   "id": 10415,
    "ts": 1795492196.8812175,
    "symbol": "PIDILITIND.NS",
    "kotak_trading_symbol": "PIDILITIND-EQ",
@@ -131605,7 +131605,7 @@
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001460 rejected: ADAPTER is down); SL retry for PIDILITIND-EQ backed off 21s more (not sent)"
   },
   {
-   "id": 10969,
+   "id": 10968,
    "ts": 1795492768.400302,
    "symbol": "IDEA.NS",
    "kotak_trading_symbol": "IDEA-EQ",
@@ -131617,7 +131617,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261124000001459 rejected: ADAPTER is down"
   },
   {
-   "id": 10968,
+   "id": 10969,
    "ts": 1795492768.4022324,
    "symbol": "MEESHO.NS",
    "kotak_trading_symbol": "MEESHO-EQ",
@@ -132205,7 +132205,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001478 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 50s more (not sent)"
   },
   {
-   "id": 11019,
+   "id": 11018,
    "ts": 1795492833.4610026,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -132217,7 +132217,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001478 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 35s more (not sent)"
   },
   {
-   "id": 11018,
+   "id": 11019,
    "ts": 1795492833.468365,
    "symbol": "VAML.NS",
    "kotak_trading_symbol": "VAML-EQ",
@@ -144002,796 +144002,16 @@
   },
   {
    "id": 12001,
-   "ts": 1795496005.6915236,
+   "ts": 1795496037.5517216,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
    "order_id": "261124000002003",
-   "prev_state": "sent to Kotak",
+   "prev_state": null,
    "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12002,
-   "ts": 1795496005.703161,
-   "symbol": "ZYDUSLIFE.NS",
-   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000002003 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12003,
-   "ts": 1795496018.2436867,
-   "symbol": "NHPC.NS",
-   "kotak_trading_symbol": "NHPC-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002005",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12004,
-   "ts": 1795496018.2539654,
-   "symbol": "NHPC.NS",
-   "kotak_trading_symbol": "NHPC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000002005 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12005,
-   "ts": 1795496031.1255293,
-   "symbol": "MEESHO.NS",
-   "kotak_trading_symbol": "MEESHO-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002006",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12006,
-   "ts": 1795496031.5275419,
-   "symbol": "INDUSTOWER.NS",
-   "kotak_trading_symbol": "INDUSTOWER-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002007",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12007,
-   "ts": 1795496034.1995242,
-   "symbol": "IDEA.NS",
-   "kotak_trading_symbol": "IDEA-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002008",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12008,
-   "ts": 1795496034.2146194,
-   "symbol": "IDEA.NS",
-   "kotak_trading_symbol": "IDEA-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000002008 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12009,
-   "ts": 1795496036.0998225,
-   "symbol": "IRCTC.NS",
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002009",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12010,
-   "ts": 1795496036.4793098,
-   "symbol": "HINDPETRO.NS",
-   "kotak_trading_symbol": "HINDPETRO-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002010",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12011,
-   "ts": 1795496037.296061,
-   "symbol": "IDFCFIRSTB.NS",
-   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002012",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12012,
-   "ts": 1795496037.7695348,
-   "symbol": "INDUSTOWER.NS",
-   "kotak_trading_symbol": "INDUSTOWER-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000002012 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 53s more (not sent)"
-  },
-  {
-   "id": 12013,
-   "ts": 1795496038.2604666,
-   "symbol": "MANKIND.NS",
-   "kotak_trading_symbol": "MANKIND-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002013",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12014,
-   "ts": 1795496038.5020227,
-   "symbol": "PIDILITIND.NS",
-   "kotak_trading_symbol": "PIDILITIND-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002014",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12015,
-   "ts": 1795496042.4817874,
-   "symbol": "VAML.NS",
-   "kotak_trading_symbol": "VAML-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002015",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12016,
-   "ts": 1795496043.4045703,
-   "symbol": "MAZDOCK.NS",
-   "kotak_trading_symbol": "MAZDOCK-EQ",
-   "leg": "sl",
-   "event": "kotak_rejected",
-   "order_id": "261124000002016",
-   "prev_state": "sent to Kotak",
-   "new_state": "rejected",
-   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
-  },
-  {
-   "id": 12017,
-   "ts": 1795496043.6202047,
-   "symbol": "MEESHO.NS",
-   "kotak_trading_symbol": "MEESHO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12018,
-   "ts": 1795496047.0215168,
-   "symbol": "IRCTC.NS",
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12019,
-   "ts": 1795496050.1952472,
-   "symbol": "FEDERALBNK.NS",
-   "kotak_trading_symbol": "FEDERALBNK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002005 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 1s more (not sent)"
-  },
-  {
-   "id": 12020,
-   "ts": 1795496050.2072873,
-   "symbol": "PNB.NS",
-   "kotak_trading_symbol": "PNB-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002005 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 14s more (not sent)"
-  },
-  {
-   "id": 12021,
-   "ts": 1795496050.21356,
-   "symbol": "BIOCON.NS",
-   "kotak_trading_symbol": "BIOCON-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002005 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 28s more (not sent)"
-  },
-  {
-   "id": 12022,
-   "ts": 1795496050.2222326,
-   "symbol": "ZYDUSLIFE.NS",
-   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002005 rejected: ADAPTER is down); SL retry for ZYDUSLIFE-EQ backed off 39s more (not sent)"
-  },
-  {
-   "id": 12023,
-   "ts": 1795496050.2287447,
-   "symbol": "NHPC.NS",
-   "kotak_trading_symbol": "NHPC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002005 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 53s more (not sent)"
-  },
-  {
-   "id": 12024,
-   "ts": 1795496050.2385457,
-   "symbol": "IDEA.NS",
-   "kotak_trading_symbol": "IDEA-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1557: broker-wide outage (order 261124000002012 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 56s more (not sent)"
-  },
-  {
-   "id": 12025,
-   "ts": 1795496050.244966,
-   "symbol": "INDUSTOWER.NS",
-   "kotak_trading_symbol": "INDUSTOWER-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002007 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12026,
-   "ts": 1795496050.2506618,
-   "symbol": "MEESHO.NS",
-   "kotak_trading_symbol": "MEESHO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002006 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12027,
-   "ts": 1795496050.2567446,
-   "symbol": "IRCTC.NS",
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002009 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12028,
-   "ts": 1795496050.2628686,
-   "symbol": "HINDPETRO.NS",
-   "kotak_trading_symbol": "HINDPETRO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002010 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12029,
-   "ts": 1795496050.2711415,
-   "symbol": "IDFCFIRSTB.NS",
-   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002012 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12030,
-   "ts": 1795496050.277264,
-   "symbol": "MANKIND.NS",
-   "kotak_trading_symbol": "MANKIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002013 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12031,
-   "ts": 1795496050.2834811,
-   "symbol": "PIDILITIND.NS",
-   "kotak_trading_symbol": "PIDILITIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002014 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12032,
-   "ts": 1795496050.292145,
-   "symbol": "VAML.NS",
-   "kotak_trading_symbol": "VAML-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002015 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12033,
-   "ts": 1795496050.299501,
-   "symbol": "MAZDOCK.NS",
-   "kotak_trading_symbol": "MAZDOCK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000002016 rejected: ADAPTER is down"
-  },
-  {
-   "id": 12034,
-   "ts": 1795496050.3081958,
-   "symbol": "HINDALCO.NS",
-   "kotak_trading_symbol": "HINDALCO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12035,
-   "ts": 1795496050.3175647,
-   "symbol": "AMBUJACEM.NS",
-   "kotak_trading_symbol": "AMBUJACEM-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12036,
-   "ts": 1795496050.3234954,
-   "symbol": "UNIONBANK.NS",
-   "kotak_trading_symbol": "UNIONBANK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12037,
-   "ts": 1795496050.3354685,
-   "symbol": "HCLTECH.NS",
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none",
-   "new_state": "none (placement failed)",
-   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12038,
-   "ts": 1795496050.458337,
-   "symbol": "HINDPETRO.NS",
-   "kotak_trading_symbol": "HINDPETRO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12039,
-   "ts": 1795496053.886444,
-   "symbol": "IDFCFIRSTB.NS",
-   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12040,
-   "ts": 1795496057.8488214,
-   "symbol": "MANKIND.NS",
-   "kotak_trading_symbol": "MANKIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12041,
-   "ts": 1795496060.8173606,
-   "symbol": "FEDERALBNK.NS",
-   "kotak_trading_symbol": "FEDERALBNK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12042,
-   "ts": 1795496060.8270493,
-   "symbol": "HINDALCO.NS",
-   "kotak_trading_symbol": "HINDALCO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12043,
-   "ts": 1795496060.835597,
-   "symbol": "IDFCFIRSTB.NS",
-   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12044,
-   "ts": 1795496060.8543966,
-   "symbol": "AMBUJACEM.NS",
-   "kotak_trading_symbol": "AMBUJACEM-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12045,
-   "ts": 1795496064.7781265,
-   "symbol": "VAML.NS",
-   "kotak_trading_symbol": "VAML-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12046,
-   "ts": 1795496065.7809792,
-   "symbol": "MANKIND.NS",
-   "kotak_trading_symbol": "MANKIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12047,
-   "ts": 1795496065.8402753,
-   "symbol": "HCLTECH.NS",
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12048,
-   "ts": 1795496065.995767,
-   "symbol": "PIDILITIND.NS",
-   "kotak_trading_symbol": "PIDILITIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12049,
-   "ts": 1795496067.6068037,
-   "symbol": "ZYDUSLIFE.NS",
-   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12050,
-   "ts": 1795496069.3567045,
-   "symbol": "NHPC.NS",
-   "kotak_trading_symbol": "NHPC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12051,
-   "ts": 1795496069.482933,
-   "symbol": "UNIONBANK.NS",
-   "kotak_trading_symbol": "UNIONBANK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12052,
-   "ts": 1795496069.6815565,
-   "symbol": "VAML.NS",
-   "kotak_trading_symbol": "VAML-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12053,
-   "ts": 1795496070.4960232,
-   "symbol": "HINDPETRO.NS",
-   "kotak_trading_symbol": "HINDPETRO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12054,
-   "ts": 1795496070.6200778,
-   "symbol": "MAZDOCK.NS",
-   "kotak_trading_symbol": "MAZDOCK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12055,
-   "ts": 1795496070.6754575,
-   "symbol": "PIDILITIND.NS",
-   "kotak_trading_symbol": "PIDILITIND-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12056,
-   "ts": 1795496071.780666,
-   "symbol": "BIOCON.NS",
-   "kotak_trading_symbol": "BIOCON-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12057,
-   "ts": 1795496072.2107146,
-   "symbol": "IDEA.NS",
-   "kotak_trading_symbol": "IDEA-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12058,
-   "ts": 1795496073.2583883,
-   "symbol": "MAZDOCK.NS",
-   "kotak_trading_symbol": "MAZDOCK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12059,
-   "ts": 1795496073.7655087,
-   "symbol": "PNB.NS",
-   "kotak_trading_symbol": "PNB-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12060,
-   "ts": 1795496073.925223,
-   "symbol": "INDUSTOWER.NS",
-   "kotak_trading_symbol": "INDUSTOWER-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12061,
-   "ts": 1795496074.3118198,
-   "symbol": "MEESHO.NS",
-   "kotak_trading_symbol": "MEESHO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12062,
-   "ts": 1795496075.0521817,
-   "symbol": "IRCTC.NS",
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
-   "new_state": "none (placement failed)",
-   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12063,
-   "ts": 1795496076.935747,
-   "symbol": "HINDALCO.NS",
-   "kotak_trading_symbol": "HINDALCO-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12064,
-   "ts": 1795496080.4561074,
-   "symbol": "AMBUJACEM.NS",
-   "kotak_trading_symbol": "AMBUJACEM-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12065,
-   "ts": 1795496086.0989788,
-   "symbol": "UNIONBANK.NS",
-   "kotak_trading_symbol": "UNIONBANK-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
-  },
-  {
-   "id": 12066,
-   "ts": 1795496089.534436,
-   "symbol": "HCLTECH.NS",
-   "kotak_trading_symbol": "HCLTECH-EQ",
-   "leg": "sl",
-   "event": "failed",
-   "order_id": null,
-   "prev_state": "none (retry)",
-   "new_state": "none (placement failed again)",
-   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1648 standby instance srv-daa19blg1s2s73bqms20-78bd44c49c-llkv4:61:8a714cfb: lease held by srv-daa19blg1s2s73bqms20-57d75b89df-4gb5b:61:37648c1a; this instance does not send real orders"
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 24-Nov-2026 10:23:22 S SL qty 1 trg 1135.10 status rejected rejRsn ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:55:10Z"
+ "synced_at_utc": "2026-11-24T04:55:24Z"
 }
