@@ -131735,7 +131735,115 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10979,
+   "ts": 1795492807.6348865,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001466",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10980,
+   "ts": 1795492807.9800453,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001467",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10981,
+   "ts": 1795492808.088783,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001468",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10982,
+   "ts": 1795492808.62176,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001469",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10983,
+   "ts": 1795492808.8940637,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001470",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10984,
+   "ts": 1795492811.386115,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001470 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 56s more (not sent)"
+  },
+  {
+   "id": 10985,
+   "ts": 1795492811.5266035,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001471",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10986,
+   "ts": 1795492812.203412,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001472",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #4 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 10987,
+   "ts": 1795492814.3499515,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001472 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 3s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:00:09Z"
+ "synced_at_utc": "2026-11-24T04:00:18Z"
 }
