@@ -133883,7 +133883,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001542 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 7s more (not sent)"
+  },
+  {
+   "id": 11158,
+   "ts": 1795493234.4622757,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001542 rejected: ADAPTER is down); SL retry for IDEA-EQ backed off 2s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:07:10Z"
+ "synced_at_utc": "2026-11-24T04:07:17Z"
 }
