@@ -114827,7 +114827,79 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000827 rejected: ADAPTER is down); SL retry for IRCTC-EQ backed off 53s more (not sent)"
+  },
+  {
+   "id": 9570,
+   "ts": 1795491996.4297442,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 9571,
+   "ts": 1795491996.4339595,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 9572,
+   "ts": 1795491996.5259478,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 9573,
+   "ts": 1795491996.7624836,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "sl",
+   "event": "kotak_send_error",
+   "order_id": null,
+   "prev_state": "sent to Kotak",
+   "new_state": "failed",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; the send failed before Kotak returned an order id | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 9574,
+   "ts": 1795491997.5237987,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no order id in response: {'error': ApiException('(0)\\nReason: Server disconnected\\n')}"
+  },
+  {
+   "id": 9575,
+   "ts": 1795491998.2574434,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000000829",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T03:46:34Z"
+ "synced_at_utc": "2026-11-24T03:46:40Z"
 }
