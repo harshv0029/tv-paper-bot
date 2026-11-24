@@ -131291,7 +131291,79 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 13s more (not sent)"
+  },
+  {
+   "id": 10942,
+   "ts": 1795492749.1951706,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 8s more (not sent)"
+  },
+  {
+   "id": 10943,
+   "ts": 1795492750.9066706,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 48s more (not sent)"
+  },
+  {
+   "id": 10944,
+   "ts": 1795492750.921159,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 49s more (not sent)"
+  },
+  {
+   "id": 10945,
+   "ts": 1795492750.9304693,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 45s more (not sent)"
+  },
+  {
+   "id": 10946,
+   "ts": 1795492750.9556339,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for HINDALCO-EQ backed off 46s more (not sent)"
+  },
+  {
+   "id": 10947,
+   "ts": 1795492750.9755347,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001453 rejected: ADAPTER is down); SL retry for FEDERALBNK-EQ backed off 35s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:59:07Z"
+ "synced_at_utc": "2026-11-24T03:59:14Z"
 }
