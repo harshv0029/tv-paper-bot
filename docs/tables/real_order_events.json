@@ -130523,7 +130523,67 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000001410 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10878,
+   "ts": 1795492682.0682728,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001410 rejected: ADAPTER is down); SL retry for BIOCON-EQ backed off 36s more (not sent)"
+  },
+  {
+   "id": 10879,
+   "ts": 1795492682.4454231,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001410 rejected: ADAPTER is down); SL retry for UNIONBANK-EQ backed off 49s more (not sent)"
+  },
+  {
+   "id": 10880,
+   "ts": 1795492682.4768438,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001410 rejected: ADAPTER is down); SL retry for IDFCFIRSTB-EQ backed off 39s more (not sent)"
+  },
+  {
+   "id": 10881,
+   "ts": 1795492682.5805347,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001410 rejected: ADAPTER is down); SL retry for AMBUJACEM-EQ backed off 46s more (not sent)"
+  },
+  {
+   "id": 10882,
+   "ts": 1795492683.4760294,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000001410 rejected: ADAPTER is down); SL retry for VAML-EQ backed off 45s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:57:59Z"
+ "synced_at_utc": "2026-11-24T03:58:06Z"
 }
