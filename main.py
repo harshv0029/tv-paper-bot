@@ -26388,7 +26388,8 @@ def _roc_kpis_payload(today=None) -> dict:
         pass
     except Exception as e:  # noqa: BLE001
         print(f"[roc] contract-note fills not merged (non-fatal): {e}")
-    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr, side_hints=hints)
+    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr, side_hints=hints,
+                            dp_per_sell_inr=DP_CHARGE_PER_SELL_INR)  # B-1707: Kotak's DP debit, as the ledger shows
     out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
                           "holdings open when the ledger began come from tracked_union. App order tables are not used: "
                           "they miss exchange-triggered stop-loss exits, so they cannot give a trustworthy realised P&L.")
@@ -26399,6 +26400,10 @@ def _roc_kpis_payload(today=None) -> dict:
                                       .strftime("%Y-%m-%d %H:%M:%S") if fa else None)
     try:  # B-1461: running CAGR = realised + open holdings/positions at live prices (refreshed every 60 s)
         out["running"] = _roc_running_block(out)
+        ss = out.get("since_start") or {}
+        if isinstance(ss, dict) and out["running"].get("open_lots") is not None:  # B-1707: one unit, Kotak's open set
+            ss["ledger_open_lots"] = ss.get("open_lots_excluded")
+            ss["open_lots_excluded"] = out["running"]["open_lots"]
     except Exception as e:  # noqa: BLE001
         print(f"[roc] running CAGR unavailable (non-fatal): {e}")
         out["running"] = {"reason": f"unavailable: {e}"}
@@ -26452,6 +26457,24 @@ def _roc_lots_matched_to_kotak(ledger_lots: list, ledger_start) -> list:
     return out
 
 
+def _roc_ledger_lots_gone(ledger_lots: list, kotak_lots: list) -> list:
+    """B-1707: ledger FIFO lots (qty per symbol) that Kotak no longer shows open. Each is an exit the fill ledger
+    never captured (exchange SL hit while the app was down, a manual sell...), so its P&L is missing from realised."""
+    have = {}
+    for o in kotak_lots:
+        if o.get("source") == "kotak_fill":
+            have[o["symbol"]] = have.get(o["symbol"], 0.0) + float(o["qty"] or 0)
+    out = []
+    for o in sorted(ledger_lots, key=lambda o: (o["symbol"], o["entry_day"])):
+        q = float(o["qty"] or 0)
+        used = min(q, have.get(o["symbol"], 0.0))
+        have[o["symbol"]] = have.get(o["symbol"], 0.0) - used
+        if q - used > 1e-9:
+            out.append({"symbol": o["symbol"], "side": o["side"], "qty": round(q - used, 4),
+                        "entry_day": o["entry_day"], "entry_value_inr": round((q - used) * (o.get("entry_px") or 0), 2)})
+    return out
+
+
 def _roc_running_block(payload: dict) -> dict:
     """B-1461: View 4 running CAGR. Equity open lots (nse_cm/bse_cm, holdings and positions) are priced from the
     Kotak live feed first, else Yahoo, within a short budget; prices cached ROC_RUNNING_PRICE_TTL_S. F&O/MCX lots
@@ -26467,7 +26490,8 @@ def _roc_running_block(payload: dict) -> dict:
         c.update(at=time.time(), px=px, syms=syms)
     price_by_trdsym = {t: c["px"].get(y) for t, y in eq.items()}
     out = roc_kpis.running_kpis(payload.get("since_start") or {}, lots, price_by_trdsym,
-                                charges_fn=_estimate_statutory_charges_inr)
+                                charges_fn=_estimate_statutory_charges_inr, dp_per_sell_inr=DP_CHARGE_PER_SELL_INR)
+    out["ledger_lots_not_open_at_kotak"] = _roc_ledger_lots_gone(payload.get("open_lot_rows") or [], lots)  # B-1707
     out["prices_as_of_ist"] = ((dt.datetime.utcfromtimestamp(c["at"]) + dt.timedelta(minutes=IST_OFFSET_MIN))
                                .strftime("%Y-%m-%d %H:%M:%S") if c["at"] else None)
     out["refresh_seconds"] = ROC_RUNNING_PRICE_TTL_S

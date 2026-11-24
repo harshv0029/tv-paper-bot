@@ -2590,3 +2590,8 @@ Profit-booking / exit takeaway: once a swing trade is about 2% up, move its stop
 ### 2026-11-24 IST: B-1700 product cost re-pricing has a performance cost
 Re-pricing PFnet per call (effective_pfnet) inside View 1's per-slot loops ran about 3M times per /strategy-viable-stack request (0.4 s -> 4.4 s) and blocked the HTTP loop during a scan. A per-Metrics cache plus a precomputed (strategy, metrics, effective PFnet) table brought it to 0.25 s. Derived metrics used in hot loops must be computed once per registry, not per lookup. The Render views now show "PFnet @ real cost" with the stored 0.8% value alongside, so ranking matches the gate.
 Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but exits must still clear the real cost; measure intraday slippage (B-1703) before trusting thin 5m scalps, and keep the breakeven-ratchet research (B-1705) on the swing side.
+
+## 2026-11-24 B-1707: View 4 P&L vs Kotak, DP is the missing cost
+- The fill ledger's realised net (+83.72 since 2 Nov) overstated Kotak because Kotak's DP debit (₹23.60 per scrip per delivery-sell day) is billed outside the contract-note charges; November DP was about ₹779, larger than the gross P&L.
+- Lot counts must use one unit (Kotak's open set), or the card contradicts itself (21 vs 19).
+- Profit-booking / exit takeaway: a delivery exit costs ₹23.60 flat on top of statutory charges, so small-value CNC exits (under ~₹3,000) lose ≥0.8% to DP alone; prefer exiting a scrip's full quantity in one day and favour MIS for small swing sizes where the strategy allows.
