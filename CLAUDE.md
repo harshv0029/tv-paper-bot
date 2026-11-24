@@ -12,6 +12,7 @@ full file wins.
   (~0.4 MB), `main.py` or `docs/CLAUDE_RULES_FULL.md` whole. Grep by ID or keyword, then
   read only that line range.
 - To pick work, read `docs/BACKLOG_PROGRESS.md` (generated, short), not the backlog itself.
+- Diag logs: `python3 scripts/diag_json.py <log> key a.b` prints only the named keys.
 - Test output: run pytest with `-q` to a log file and show only the `tail -3`. Focused
   tests while working; the full suite (~20 min) runs once, in the background, before a commit.
 - Edit the backlog and learnings with append, sed or Edit on the exact rows. Never rewrite
