@@ -25379,7 +25379,10 @@ def _upstash_pause_exempt(key: str) -> bool:
     key = str(key)
     if key in (_REAL_POSITIONS_REDIS_KEY, _REAL_POSITIONS_SHORT_REDIS_KEY, _REAL_POSITIONS_SWING_REDIS_KEY,
                _SIGNAL_STATE_SWING_REDIS_KEY, _RUNTIME_SETTINGS_REDIS_KEY, _T1_RESTRICTED_REDIS_KEY,
-               _UPSTASH_USAGE_KEY, "restart_tracker:heartbeat"):  # B-1623: heartbeat ~1 KB/min
+               _UPSTASH_USAGE_KEY, "restart_tracker:heartbeat",  # B-1623: heartbeat ~1 KB/min
+               # B-1698: one ~70 KB write per boot; refused, it left boot_logged unset and the tracker re-read the
+               # heartbeat + the events list every minute (153 refused writes, 11.6 MB of reads by 12:20 IST 24-Nov)
+               "restart_tracker:events"):
         return True
     m = re.match(r"tv_paper_bot:tbl:([a-z0-9_]+):", key)
     return bool(m and m.group(1) in _UPSTASH_PAUSE_EXEMPT_TABLES)
@@ -25406,6 +25409,21 @@ def _upstash_month_headroom_ok(today_bytes: int, today_ops: int = 0, now=None) -
 # keeps writing, so a restart on a closed day never loses open real money (MCX trades on some NSE holidays). Reads are
 # not refused: a restore after a disk wipe still works.
 _UPSTASH_CLOSED_DAY_MONTHS = frozenset({"2026-11"})
+# B-1698 (user 2026-11-24 IST: "Till Nov 2026 end you will use Upstash for minimum usage, because the limit has crossed
+# 80%; after that trade entry/exit will stop"): lean mode for the listed months. Reads dominated (24-Nov: 308 MB, ~97%
+# GETs), so lean mode cuts READS that trading does not need: the option-candle boot restore keeps only the latest 2
+# days and skips older days already on disk, and the viable-stack push drops its read-back GET. Real-money state,
+# kill switches and the boot restore of every real table are unchanged.
+_UPSTASH_LEAN_MONTHS = frozenset({"2026-11"})
+
+
+def _upstash_lean(now=None) -> bool:
+    """B-1698: True while `now` (IST, default now) is in a month listed in _UPSTASH_LEAN_MONTHS."""
+    try:
+        t = ist_now() if now is None else now
+        return t.strftime("%Y-%m") in _UPSTASH_LEAN_MONTHS
+    except Exception:
+        return False
 
 
 def _upstash_closed_day_pause(now=None) -> bool:
@@ -25677,6 +25695,19 @@ def _git_tier_hydrate_retry(now=None) -> bool:
 # (live 09:25 IST: reconcile stuck 3+ min in _upstash_get). A push now retries the restore only for its own tables, at
 # most once per _GENERIC_HYDRATE_RETRY_SEC, and a restore pass stops at the first network/HTTP failure.
 _GENERIC_HYDRATE_RETRY_SEC = 60
+# B-1698 (24-Nov: real_fo_trades restore re-downloaded ~1,400 times, 57 MB, never marked hydrated): a table whose
+# restore fails backs off 60 s, 120 s, ... up to 30 min, and the last error is shown in /upstash-usage.
+_GENERIC_HYDRATE_FAIL: dict = {}
+_GENERIC_HYDRATE_BACKOFF_MAX_SEC = 1800
+
+
+def _generic_hydrate_note_fail(table: str, err: str, now=None) -> None:
+    now = time.time() if now is None else now
+    f = _GENERIC_HYDRATE_FAIL.get(table) or {"count": 0}
+    f["count"] = int(f.get("count", 0)) + 1
+    delay = min(_GENERIC_HYDRATE_RETRY_SEC * (2 ** (f["count"] - 1)), _GENERIC_HYDRATE_BACKOFF_MAX_SEC)
+    f.update(last_error=str(err)[:200], last_at=_ist_str(now), next_try=now + delay)
+    _GENERIC_HYDRATE_FAIL[table] = f
 _generic_hydrate_last_try: dict = {}
 
 
@@ -25694,15 +25725,22 @@ def hydrate_generic_tables_from_external(only=None) -> int:
     for table in _GENERIC_MIRROR_UPSTASH_TABLES:
         if table in _generic_mirror_hydrated or (only is not None and table not in only):
             continue
+        if time.time() < _GENERIC_HYDRATE_FAIL.get(table, {}).get("next_try", 0.0):
+            continue  # B-1698: backing off after a failed restore
         try:
             with closing(get_db()) as conn:
                 if _generic_hydrate_table(conn, table):
                     _generic_mirror_hydrated.add(table)
+                    _GENERIC_HYDRATE_FAIL.pop(table, None)
+                else:
+                    _generic_hydrate_note_fail(table, "incomplete remote copy")
         except requests.exceptions.RequestException as e:
             _generic_mirror_note_error(table, "restore", e)
+            _generic_hydrate_note_fail(table, f"{type(e).__name__}: {e}")
             print(f"[table_mirror] Upstash unreachable at {table} ({type(e).__name__}); stopping this pass, will retry")
             break
         except Exception as e:
+            _generic_hydrate_note_fail(table, f"{type(e).__name__}: {e}")
             print(f"[table_mirror] hydrate {table} failed (non-fatal, will retry): {e}")
     return len(_generic_mirror_hydrated)
 
@@ -25774,7 +25812,11 @@ def hydrate_fo_option_candles_from_external() -> int:
     try:
         import fo_candle_journal
         with closing(get_db()) as conn:
-            n = fo_candle_journal.restore_from_remote(conn, _upstash_get)
+            if _upstash_lean():  # B-1698: ~95 MB per boot for 15 days; today + previous day feed the live scan
+                n = fo_candle_journal.restore_from_remote(conn, _upstash_get, max_days=2, skip_local_past=True,
+                                                          today=ist_now().strftime("%Y-%m-%d"))
+            else:
+                n = fo_candle_journal.restore_from_remote(conn, _upstash_get)
         if n:
             print(f"[fo_candle_journal] restored {n} option candle(s) from Upstash")
         return n
@@ -35340,7 +35382,8 @@ def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
                 return False
         payload = json.dumps(rows)
         _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
-        ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
+        # B-1698: lean mode trusts the SET's 200 (raise_for_status) instead of a ~3 MB read-back GET
+        ok = True if _upstash_lean() else _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
         st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch",
                   last_local_sig=local_sig if ok else None)
         return ok
@@ -36024,6 +36067,9 @@ def upstash_usage():
             "paused_for_day": bool(_UPSTASH_PAUSE["paused"] and _UPSTASH_PAUSE["day"] == (_upstash_usage_day or "")),
             "paused_since_ist": _ist_str(_UPSTASH_PAUSE["since"]) if _UPSTASH_PAUSE["since"] else None,
             "writes_skipped_while_paused": dict(_UPSTASH_PAUSE["skipped"]),
+            "lean_mode": _upstash_lean(),  # B-1698
+            "hydrate_failures": {t: {k: v for k, v in f.items() if k != "next_try"}
+                                 for t, f in _GENERIC_HYDRATE_FAIL.items()},  # B-1698
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
@@ -40026,7 +40072,10 @@ def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
         events = json.loads(raw_ev) if raw_ev else []
         if not any(e.get("boot_ts") == _BOOT_TS for e in events):
             events = (events + [ev])[-_RESTART_EVENTS_CAP:]
-            put(_RESTART_EVENTS_KEY, json.dumps(events))
+            try:
+                put(_RESTART_EVENTS_KEY, json.dumps(events))
+            except UpstashPausedForDay as e:  # B-1698: a refused write must not re-read both keys every minute
+                print(f"[restart-tracker] boot event not stored (Upstash paused): {e}")
         if get is _upstash_get:
             _RESTART_EVENTS_CACHE.update(ts=now, events=events)  # B-1568
         _RESTART_STATE.update(boot_logged=True, last_event=ev)
