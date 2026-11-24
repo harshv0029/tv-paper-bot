@@ -25398,6 +25398,27 @@ def _upstash_month_headroom_ok(today_bytes: int, today_ops: int = 0, now=None) -
             and used_o < min(_UPSTASH_MONTHLY_OPS * share, 0.9 * _UPSTASH_MONTHLY_OPS))
 
 
+# B-1697 (user 2026-11-24 IST: "Upstash should not be used on market closing days of Nov 2026, to save its usage and
+# limit"): on an NSE-closed day (weekend or NSE_HOLIDAYS_2026; a special session such as Muhurat counts as open) in a
+# listed month, every NON-exempt Upstash write is refused, the same way as the B-1576 daily pause: the refused write
+# raises, the mirror's change-cache stays unset, and it pushes on the first write of the next trading day. Exempt
+# real-money state (real positions/stops, kill switches, runtime settings, T1 flags, usage counter, restart heartbeat)
+# keeps writing, so a restart on a closed day never loses open real money (MCX trades on some NSE holidays). Reads are
+# not refused: a restore after a disk wipe still works.
+_UPSTASH_CLOSED_DAY_MONTHS = frozenset({"2026-11"})
+
+
+def _upstash_closed_day_pause(now=None) -> bool:
+    """B-1697: True when `now` (IST, default now) is an NSE-closed day in a month listed in _UPSTASH_CLOSED_DAY_MONTHS."""
+    try:
+        t = ist_now() if now is None else now
+        if t.strftime("%Y-%m") not in _UPSTASH_CLOSED_DAY_MONTHS:
+            return False
+        return not _nse_calendar_trading_day(t.date())
+    except Exception:
+        return False
+
+
 def _upstash_pause_check(key: str) -> None:
     """B-1576: raise UpstashPausedForDay when today's budget is spent and this write is not exempt."""
     _, b, o = _upstash_usage_totals()
@@ -25405,6 +25426,10 @@ def _upstash_pause_check(key: str) -> None:
     day = _upstash_usage_day or ist_now().strftime("%Y-%m-%d")
     if _UPSTASH_PAUSE["day"] != day:
         _UPSTASH_PAUSE.update(day=day, paused=False, since=None, skipped={})
+    if not _upstash_pause_exempt(key) and _upstash_closed_day_pause():  # B-1697
+        fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
+        _UPSTASH_PAUSE["skipped"][fam] = _UPSTASH_PAUSE["skipped"].get(fam, 0) + 1
+        raise UpstashPausedForDay(f"NSE closed day: Upstash write to {fam} skipped until the next trading day (B-1697)")
     if frac < _UPSTASH_PAUSE_FRAC:
         return
     if not _UPSTASH_PAUSE["paused"]:
