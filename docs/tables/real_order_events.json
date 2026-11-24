@@ -126263,7 +126263,31 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261124000001065 rejected: ADAPTER is down"
+  },
+  {
+   "id": 10523,
+   "ts": 1795492285.4347684,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001065 rejected: ADAPTER is down); SL retry for INDUSTOWER-EQ backed off 9s more (not sent)"
+  },
+  {
+   "id": 10524,
+   "ts": 1795492288.6014347,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": "MEESHO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001065 rejected: ADAPTER is down); SL retry for MEESHO-EQ backed off 7s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:51:26Z"
+ "synced_at_utc": "2026-11-24T03:51:33Z"
 }
