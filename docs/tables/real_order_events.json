@@ -140855,7 +140855,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001840 rejected: ADAPTER is down"
+  },
+  {
+   "id": 11739,
+   "ts": 1795495082.7622857,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001841",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | repeat #2 within 300s: ADAPTER is down"
+  },
+  {
+   "id": 11740,
+   "ts": 1795495082.77313,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261124000001841 rejected: ADAPTER is down"
   }
  ],
- "synced_at_utc": "2026-11-24T04:37:52Z"
+ "synced_at_utc": "2026-11-24T04:38:04Z"
 }
