@@ -117707,7 +117707,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000000853 rejected: ADAPTER is down); SL retry for HCLTECH-EQ backed off 57s more (not sent)"
+  },
+  {
+   "id": 9810,
+   "ts": 1795492050.9426003,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000853 rejected: ADAPTER is down); SL retry for PNB-EQ backed off 40s more (not sent)"
+  },
+  {
+   "id": 9811,
+   "ts": 1795492052.5273736,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1557: broker-wide outage (order 261124000000853 rejected: ADAPTER is down); SL retry for PIDILITIND-EQ backed off 10s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T03:47:27Z"
+ "synced_at_utc": "2026-11-24T03:47:34Z"
 }
