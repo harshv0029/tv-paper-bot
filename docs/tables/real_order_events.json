@@ -137183,7 +137183,79 @@
    "prev_state": "sent to Kotak",
    "new_state": "rejected",
    "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11433,
+   "ts": 1795494255.1860511,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001718",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11434,
+   "ts": 1795494255.6179988,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001719",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11435,
+   "ts": 1795494256.8964975,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001720",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11436,
+   "ts": 1795494256.9692283,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001721",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11437,
+   "ts": 1795494257.3092678,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "kotak_rejected",
+   "order_id": "261124000001722",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: resting SELL stop-loss to protect an open long/swing position; Kotak rejected it | Kotak rejRsn: ADAPTER is down"
+  },
+  {
+   "id": 11438,
+   "ts": 1795494258.7765973,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1557: broker-wide outage (order 261124000001722 rejected: ADAPTER is down); SL retry for NHPC-EQ backed off 56s more (not sent)"
   }
  ],
- "synced_at_utc": "2026-11-24T04:24:16Z"
+ "synced_at_utc": "2026-11-24T04:24:23Z"
 }
