@@ -144623,7 +144623,43 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": false, \"reason\": \"only 0 nse symbols with a new trade in 120s (need 2; snapshots never count)\", \"symbols\": [], \"count\": 0, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"joined the in-flight 5-min reconcile\", \"seconds\": 14.3}, \"replay\": {\"placed\": 0, \"dropped\": 0, \"requeued\": 0, \"considered\": 0}}"
+  },
+  {
+   "id": 12055,
+   "ts": 1795578336.4318767,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261125000014503",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
+   "id": 12053,
+   "ts": 1795578343.5332658,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261125000017064",
+   "prev_state": "resting SELL trigger Rs1123.70",
+   "new_state": "resting SELL trigger Rs1135.10",
+   "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1123.70 to Rs1135.10 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12054,
+   "ts": 1795578411.0106423,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261125000013979",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs885.65",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   }
  ],
- "synced_at_utc": "2026-11-25T03:45:33Z"
+ "synced_at_utc": "2026-11-25T03:47:23Z"
 }
