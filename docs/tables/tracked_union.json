@@ -18,22 +18,6 @@
   },
   {
    "day": "2026-11-25",
-   "entry_order_id": "261125000317669",
-   "entry_price": 1486.3,
-   "first_seen_day": "2026-11-25",
-   "is_short": 1,
-   "kotak_trading_symbol": "APLAPOLLO-EQ",
-   "opened_at": 1795586613.6506624,
-   "owner": "short",
-   "qty": 1,
-   "sl_trigger_price": 1482.9,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": "news_event__confirmed__short__1d__v1",
-   "symbol": "APLAPOLLO.NS"
-  },
-  {
-   "day": "2026-11-25",
    "entry_order_id": "261125000304326",
    "entry_price": 160.6,
    "first_seen_day": "2026-11-25",
