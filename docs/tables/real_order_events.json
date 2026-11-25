@@ -144841,6 +144841,18 @@
    "detail": "reason: short paper exit: exited_short_state_exit"
   },
   {
+   "id": 12072,
+   "ts": 1795584477.1681268,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261125000180495",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 12071,
    "ts": 1795584487.4785945,
    "symbol": "ZYDUSLIFE.NS",
@@ -144853,5 +144865,5 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1146.70 to Rs1148.40 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-25T05:28:13Z"
+ "synced_at_utc": "2026-11-25T05:30:10Z"
 }
