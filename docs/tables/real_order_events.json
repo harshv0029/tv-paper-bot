@@ -144695,7 +144695,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs1136.00",
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
+  },
+  {
+   "id": 12059,
+   "ts": 1795580232.2734356,
+   "symbol": "INFY.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-25T03:52:25Z"
+ "synced_at_utc": "2026-11-25T04:17:14Z"
 }
