@@ -144731,7 +144731,19 @@
    "prev_state": null,
    "new_state": "no real short row in this app; no order sent",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12062,
+   "ts": 1795581125.5826995,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261125000150613",
+   "prev_state": "resting SELL trigger Rs1136.00",
+   "new_state": "resting SELL trigger Rs1141.20",
+   "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1136.00 to Rs1141.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-25T04:23:44Z"
+ "synced_at_utc": "2026-11-25T04:32:09Z"
 }
