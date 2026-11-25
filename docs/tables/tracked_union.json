@@ -241,6 +241,22 @@
    "symbol": "PIDILITIND.NS"
   },
   {
+   "day": "2026-11-25",
+   "entry_order_id": "261125000665062",
+   "entry_price": 1574.2,
+   "first_seen_day": "2026-11-25",
+   "is_short": 0,
+   "kotak_trading_symbol": "PIIND-EQ",
+   "opened_at": 1795597681.1756854,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 1535.3,
+   "source": "position",
+   "stop_loss": 1535.2961075272244,
+   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "PIIND.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000822429",
    "entry_price": 131.87,
