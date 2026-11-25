@@ -145703,7 +145703,43 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1581: Kotak shows MANKIND-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
+  },
+  {
+   "id": 12143,
+   "ts": 1795604564.317517,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 12144,
+   "ts": 1795604564.3323622,
+   "symbol": "MEESHO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 12145,
+   "ts": 1795604564.350196,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-25T10:06:48Z"
+ "synced_at_utc": "2026-11-25T11:02:46Z"
 }
