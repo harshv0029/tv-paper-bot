@@ -145235,7 +145235,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs1574.20",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12104,
+   "ts": 1795597717.1167061,
+   "symbol": "PIIND.NS",
+   "kotak_trading_symbol": "PIIND-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000665782",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1535.30",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-25T09:08:08Z"
+ "synced_at_utc": "2026-11-25T09:08:40Z"
 }
