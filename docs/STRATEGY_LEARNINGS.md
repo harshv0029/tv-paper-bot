@@ -2632,3 +2632,7 @@ Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but e
 ## B-1717 (2026-11-25): expiry-day contracts included in the fast View 6 paper plan
 User: drop the expiry-day skip, since every trade has a 2% max SL that then trails. New tag `..._alldte__...__v1`, B-1715 tag retired with 0 trades. Risk is capped per trade by the 2% trailing stop, but expiry-day premiums move fastest (gamma highest), so slippage past the stop is likelier and the 15-min time stop matters more. Review at 30 paper trades: split net P&L by expiry-day vs other days.
 Profit-booking / exit takeaway: on expiry day the 2% trail is the whole defence; measure gap-through-stop slippage on 0DTE trades before trusting the cap.
+
+## B-1718 (2026-11-25): 2% vs 5% trailing stop, run side by side on the same entries
+User asked to test a wider trail along with 2% and see both. Two paper twins share one entry rule (B-1717) and differ only in the trail (2% vs 5% below peak premium). Paired comparison removes entry luck: any P&L difference is the exit alone. Expected trade-off: 2% cuts losers fast but is inside one minute's premium noise, so it is likely stopped out of trades that later win; 5% gives room but each loser costs more. The 15-min time stop caps both.
+Profit-booking / exit takeaway: judge the trail on paired trades (same entry), by net P&L per trade and by "2% stopped, 5% later won" count, not by win % alone.

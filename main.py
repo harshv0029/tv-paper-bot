@@ -43756,10 +43756,19 @@ FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V2_VARIANT, FNO_MOMO_STRICT_OIG_VARIANT,
 FNO_MOMO_V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1"
 FNO_MOMO_V3_VARIANT = {"tag": FNO_MOMO_V3_TAG, "gate": "fast_v3", "retired": True}
 FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V3_VARIANT,) + FNO_MOMO_RETIRED_VARIANTS
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True},)  # B-1717: the ONLY one
+# B-1718 (user 2026-11-25 "Do that along with 2%. I need to see both results"): the SAME entry run twice in paper,
+#   once with the 2% trail and once with a wider 5% trail, so the two exits are compared trade for trade.
+FNO_MOMO_V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail5_hold15__v1"
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": FNO_MOMO_TRAIL_PCT},
+                     {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05})
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
+
+
+def _fno_momo_trail(variant) -> float:
+    """B-1718: the variant's trailing-SL fraction (default the 2% FNO_MOMO_TRAIL_PCT)."""
+    return float((variant or {}).get("trail") or FNO_MOMO_TRAIL_PCT)
 
 
 def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict):
@@ -44103,7 +44112,7 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             price = _fno_num(cur.get("lastPrice")) if cur else 0.0
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
-        stop = round(peak * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
+        stop = round(peak * (1.0 - _fno_momo_trail(variant)), 4)
         top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3") else FNO_MOMO_TOP_N  # B-1714: top 5
         top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
@@ -44159,7 +44168,7 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                 scan["skip"] = oig_skip or ("skipped_sentiment_unknown" if senti is None else "skipped_sentiment_disagrees")
             else:
                 px = cand["lastPrice"]
-                stop = round(px * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
+                stop = round(px * (1.0 - _fno_momo_trail(variant)), 4)
                 why = (f"top{cand['rank']} {cand['underlying']} by contracts traded, +{cand['pChange']}% (largest), "
                        f"index {pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%, gate {variant['gate']}")
                 if om.get("delta") is not None:
@@ -44312,7 +44321,8 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
             nets = [r[0] or 0.0 for r in conn.execute(
                 "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
             gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
-            per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")), "n": len(nets), "wins": sum(1 for x in nets if x > 0),
+            per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")),
+                                 "trail_pct": round(_fno_momo_trail(v) * 100, 2), "n": len(nets), "wins": sum(1 for x in nets if x > 0),
                                  "net_pct_sum": round(sum(nets), 4),
                                  "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
     for r in rows:
@@ -44341,7 +44351,8 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                                                    "record below (net of the 0.8% cost). Real-money wiring needs pooled "
                                                    "PFnet > 1.00 over enough trades plus your explicit yes."),
                          "rule": next((d.notes for d in sr.REGISTRY if d.name == tag), None)},
-            "mode": "paper", "trail_pct": FNO_MOMO_TRAIL_PCT * 100,
+            "mode": "paper",
+            "trail_pct": round(_fno_momo_trail(next((v for v in FNO_MOMO_ALL_VARIANTS if v["tag"] == tag), None)) * 100, 2),
             "category": FNO_MOMO_CATEGORY, "category_label": sr.CATEGORY_LABELS.get(FNO_MOMO_CATEGORY, FNO_MOMO_CATEGORY),
             "cost_pct_round_trip": ROUND_TRIP_COST_PCT,
             "open": next((r for r in rows if r["status"] == "open"), None),

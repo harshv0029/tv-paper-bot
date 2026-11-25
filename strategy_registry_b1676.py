@@ -10,6 +10,7 @@ STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_
 V2_TAG = "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"  # B-1714
 V3_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"  # B-1715 (retired)
 V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1"  # B-1717: ACTIVE
+V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail5_hold15__v1"  # B-1718
 RETIRED_V3 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1717, user: include expiry-day contracts, the 2% max SL "
               "then trail caps the loss; replaced by " + V3B_TAG + "). ")
 RETIRED_V2 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1715, user: trades exit within 15 min, do not wait for "
@@ -94,4 +95,13 @@ def build():
                "block); premium >= Rs 20; delta 0.40-0.60; IV <= 1.25x the index median. OI recorded, not a gate. "
                "Exits: 2% stop trailing the peak, 15-min time stop, out of the top 5 or sentiment flip, forced 15:15 "
                "IST. Net of 0.8% cost. PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=V3B_T5_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py FNO_MOMO_VARIANTS[1] (B-1718), paper twin of " + V3B_TAG,
+        evidence="Paper forward test only, compared trade for trade with the 2% twin.",
+        notes=("ACTIVE paper twin (user 2026-11-25: test a wider trail along with 2%, show both results). The SAME "
+               "entry rule as " + V3B_TAG + "; the only difference is the trailing SL: 5% below the peak premium "
+               "instead of 2%. All other exits identical (15-min time stop, out of the top 5, sentiment flip, forced "
+               "15:15 IST). Net of 0.8% cost. PAPER ONLY."),
     )]
