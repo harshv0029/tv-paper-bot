@@ -43784,8 +43784,20 @@ FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V3_VARIANT,) + FNO_MOMO_RETIRED_VARIANTS
 # B-1718 (user 2026-11-25 "Do that along with 2%. I need to see both results"): the SAME entry run twice in paper,
 #   once with the 2% trail and once with a wider 5% trail, so the two exits are compared trade for trade.
 FNO_MOMO_V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail5_hold15__v1"
+# B-1728 (user 2026-11-25 "pick short movement only / Quick entry / Quick exit / Single leg", then "Both yes"): a
+#   third paper plan. Same strict trend-day gate, windows, premium/delta/IV checks, but it buys the 5-min PULLBACK: the
+#   index moved at least 0.05% AGAINST the day's direction in the last 5 min (B-1727: momentum-chasing lost in all
+#   180 short configs; only pullback entries cleared PF 1, best 12% trail + 12% target, 15-min hold). Twins: 12% and
+#   5% trail, both with the 12% target and the 15-min time stop. PAPER ONLY.
+FNO_V4_TARGET_PCT = 0.12
+FNO_MOMO_V4_T12_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"
+FNO_MOMO_V4_T5_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail5_tgt12_hold15__v1"
 FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": FNO_MOMO_TRAIL_PCT},
-                     {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05})
+                     {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05},
+                     {"tag": FNO_MOMO_V4_T12_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                      "target": FNO_V4_TARGET_PCT},
+                     {"tag": FNO_MOMO_V4_T5_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.05,
+                      "target": FNO_V4_TARGET_PCT})
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -44026,6 +44038,44 @@ def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
     return None
 
 
+def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
+                      mins: int):
+    """B-1728: the first failing check of the trend-day pullback plan for one contract (None = passes)."""
+    if not any(a <= mins <= b for a, b in FNO_V3_WINDOWS):
+        return "skipped_midday_reversal_window"
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    last = _fno_num((detail.get(u) or {}).get("last"))
+    idx5, _ = _fno_chg_window(_FNO_IDX_HIST, u, last, now_ts, FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S)
+    if idx5 is None:
+        return "skipped_index_5m_warming_up"
+    if (idx5 if ot == "CE" else -idx5) > -FNO_V3_IDX_MOVE_MIN_PCT:
+        return "skipped_no_pullback"
+    if m.get("chg5_pct") is None:
+        return "skipped_momentum_warming_up"
+    if _fno_num(row.get("lastPrice")) < FNO_V3_MIN_PREMIUM:
+        return "skipped_premium_too_small"
+    if m.get("delta") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V3_DELTA_MIN <= abs(m["delta"]) <= FNO_V3_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if iv_med and m.get("iv_pct") and m["iv_pct"] > FNO_V2_IV_REL_MAX * iv_med:
+        return "skipped_iv_rich"
+    return None
+
+
+def _fno_momo_pick_v4(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = ""):
+    """B-1728: v2's checked pick with the pullback checks, ranked by the 5-min premium change (as the B-1727 study)."""
+    mins = now.hour * 60 + now.minute
+    return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
+                             skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v4_skip(r, ot, u, m, iv, p, d, dy,
+                                                                                        now_ts, mins),
+                             rank_key="chg5_pct")
+
+
 def _fno_momo_pick_v3(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
                       allow_expiry: bool = False):
     """B-1715: as v2's checked pick, with the fast-plan checks, ranked by the 5-min premium rise."""
@@ -44162,7 +44212,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - _fno_momo_trail(variant)), 4)
-        top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3") else FNO_MOMO_TOP_N  # B-1714: top 5
+        top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4") else FNO_MOMO_TOP_N  # B-1714
+        target = variant.get("target")  # B-1728
         top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
         reason, fill = None, price
@@ -44172,7 +44223,11 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             # B-1679: the stop sits 2% under the entry from the first tick and trails 2% under the peak. The paper
             # fill is the resting stop level (an SL-M at the exchange); the observed price is kept beside it.
             reason, fill = "trailing_sl", row["stop_price"]
-        elif variant["gate"] == "fast_v3" and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S:
+        elif target and price >= round(row["entry_price"] * (1.0 + target), 4):
+            # B-1728: profit target; paper fill = the resting limit level (the observed price is kept beside it)
+            reason, fill = "target_hit", round(row["entry_price"] * (1.0 + target), 4)
+        elif (variant["gate"] in ("fast_v3", "pullback_v4")
+              and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S):
             reason = "time_exit_15min"  # B-1715: the fast plan holds at most 15 min
         elif snap.get("ok") and row["contract"] not in top:
             reason = "confidence_lost_top3"
@@ -44187,9 +44242,11 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                          (peak, stop, price, now_ts, trough, path, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        v2 = variant["gate"] in ("mtf_v2", "fast_v3")
-        if v2:  # B-1714 / B-1715
-            if variant["gate"] == "fast_v3":
+        v2 = variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4")
+        if v2:  # B-1714 / B-1715 / B-1728
+            if variant["gate"] == "pullback_v4":
+                cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+            elif variant["gate"] == "fast_v3":
                 cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        allow_expiry=bool(variant.get("allow_expiry")))
             else:
@@ -44397,7 +44454,7 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                 "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
             gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
             per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")),
-                                 "trail_pct": round(_fno_momo_trail(v) * 100, 2), "n": len(nets), "wins": sum(1 for x in nets if x > 0),
+                                 "trail_pct": round(_fno_momo_trail(v) * 100, 2), "target_pct": round((v.get("target") or 0) * 100, 2) or None, "n": len(nets), "wins": sum(1 for x in nets if x > 0),
                                  "net_pct_sum": round(sum(nets), 4),
                                  "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
     for r in rows:
