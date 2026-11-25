@@ -145055,7 +145055,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs65.70",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12089,
+   "ts": 1795589488.975951,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261125000400849",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs65.70",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs65.70 already covers the position (target stop Rs65.70), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-25T06:51:29Z"
+ "synced_at_utc": "2026-11-25T06:51:46Z"
 }
