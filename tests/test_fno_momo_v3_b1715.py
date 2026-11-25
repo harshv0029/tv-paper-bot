@@ -29,8 +29,20 @@ def _run(db, rows, now=MON, pct=STRONG, det=DET_UP):
 
 
 def test_v3_is_the_only_active_variant():
-    assert V3["gate"] == "fast_v3" and V3["tag"] == main.FNO_MOMO_V3_TAG
-    assert "hold15" in V3["tag"] and "1h" not in V3["tag"]
+    assert V3["gate"] == "fast_v3" and V3["tag"] == main.FNO_MOMO_V3B_TAG  # B-1717
+    assert "hold15" in V3["tag"] and "1h" not in V3["tag"] and V3.get("allow_expiry") is True
+    assert main.FNO_MOMO_V3_VARIANT in main.FNO_MOMO_RETIRED_VARIANTS
+
+
+def test_b1717_expiry_day_contract_is_included(db):
+    r = _orow(exp="23-Nov-2026")  # expires today (MON = 2026-11-23)
+    _hist(r["contract"], 146.0)
+    scan = _run(db, [r])
+    assert scan["skip"] != "skipped_expiry_day"
+    assert scan["entered"] is True, scan.get("skip")
+    m = {"chg5_pct": 2.0, "delta": 0.5}
+    old = main._fno_momo_v3_skip(r, "CE", "NIFTY", m, None, STRONG, DET_UP, "2026-11-23", T0, 600)
+    assert old == "skipped_expiry_day"  # the retired B-1715 rule, unchanged
 
 
 def test_enters_without_waiting_for_15m_or_1h(db):

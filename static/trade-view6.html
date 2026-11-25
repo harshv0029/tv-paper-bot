@@ -91,7 +91,7 @@
     const vs = Object.entries(j.variants || {});
     if (vs.length && sel.options.length !== vs.length) {  // B-1677: one option per paper variant, with its all-time net
       const cur = j.tag;
-      sel.innerHTML = vs.map(([tg, v]) => `<option value="${esc(tg)}"${tg === cur ? " selected" : ""}>${v.gate === "fast_v3" ? "ACTIVE: fast 5-15 min (index + premium 5m momentum, delta, IV)" : esc(v.gate) + " (retired)"} · ${v.n} trades · ${(num(v.net_pct_sum) ?? 0).toFixed(2)}% net</option>`).join("");
+      sel.innerHTML = vs.map(([tg, v]) => `<option value="${esc(tg)}"${tg === cur ? " selected" : ""}>${v.gate === "fast_v3" && !v.retired ? "ACTIVE: fast 5-15 min (index + premium 5m momentum, delta, IV)" : esc(v.gate) + " (retired)"} · ${v.n} trades · ${(num(v.net_pct_sum) ?? 0).toFixed(2)}% net</option>`).join("");
     }
     document.getElementById("ptag").textContent = (j.category_label ? j.category_label + " · " : "") + (j.tag || "");
     const o = j.open, t = j.today || {}, a = j.all || {}, s = j.last_scan;

@@ -8,7 +8,10 @@ STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt__5m__trai
 OIG_TAG = "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1"  # B-1681
 STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"  # B-1686
 V2_TAG = "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"  # B-1714
-V3_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"  # B-1715: the ONE active
+V3_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"  # B-1715 (retired)
+V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1"  # B-1717: ACTIVE
+RETIRED_V3 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1717, user: include expiry-day contracts, the 2% max SL "
+              "then trail caps the loss; replaced by " + V3B_TAG + "). ")
 RETIRED_V2 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1715, user: trades exit within 15 min, do not wait for "
               "1 h; research first): replaced by the fast 5-15 min plan. ")
 RETIRED_V1 = ("RETIRED 2026-11-25 (B-1714, user: research OI/Greeks/% change and plan the paper entry): 0 entries in "
@@ -71,11 +74,24 @@ def build():
         status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
         source="main.py _fno_momo_pick_v3 / _fno_momo_v3_skip (B-1715), the single PAPER strategy",
         evidence="Paper forward test only; replay on the per-minute View 6 tape (B-1687) once enough days exist.",
-        notes=("THE active paper strategy (user 2026-11-25: exits within 15 min, research-based). Every 5 min, in "
+        notes=(RETIRED_V3 + "Was the active paper strategy (user 2026-11-25: exits within 15 min, research-based). Every 5 min, in "
                "09:30-11:15 and 13:15-14:30 IST only (mid-day reversal zone skipped), EVERY top-5 index option by "
                "contracts traded is checked; buy the largest 5-min premium rise that passes ALL: not expiring today; "
                "strict sentiment (trend day); the index moved >= 0.05% in the trade direction over 5 min; premium up "
                "over 5 min but <= 10%; 15-min rise <= 20% (unknown does not block); premium >= Rs 20; delta 0.40-0.60; "
                "IV <= 1.25x the index median. OI recorded, not a gate. Exits: 2% stop trailing the peak, 15-min time "
                "stop, out of the top 5 or sentiment flip, forced 15:15 IST. Net of 0.8% cost. PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=V3B_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py _fno_momo_pick_v3(allow_expiry=True) / _fno_momo_v3_skip (B-1717), the single PAPER strategy",
+        evidence="Paper forward test only; replay on the per-minute View 6 tape (B-1687) once enough days exist.",
+        notes=("THE active paper strategy (user 2026-11-25: include expiry-day contracts, the 2% max SL then trail "
+               "caps the loss). As " + V3_TAG + " but expiring-today contracts are checked too. Every 5 min, in "
+               "09:30-11:15 and 13:15-14:30 IST only, EVERY top-5 index option by contracts traded is checked; buy the "
+               "largest 5-min premium rise that passes ALL: strict sentiment (trend day); the index moved >= 0.05% in "
+               "the trade direction over 5 min; premium up over 5 min but <= 10%; 15-min rise <= 20% (unknown does not "
+               "block); premium >= Rs 20; delta 0.40-0.60; IV <= 1.25x the index median. OI recorded, not a gate. "
+               "Exits: 2% stop trailing the peak, 15-min time stop, out of the top 5 or sentiment flip, forced 15:15 "
+               "IST. Net of 0.8% cost. PAPER ONLY."),
     )]

@@ -43750,7 +43750,13 @@ FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V2_VARIANT, FNO_MOMO_STRICT_OIG_VARIANT,
                              {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict", "retired": True},
                              {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1",
                               "gate": "oigreeks", "retired": True})
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3_TAG, "gate": "fast_v3"},)  # B-1715: the ONLY one that enters
+# B-1717 (user 2026-11-25 "exclude the reason for expiring hence skipping, means u include all, because u have 2% max
+#   SL and then trail it"): same fast plan, expiry-day contracts are now checked too (the 2% trailing SL caps the loss).
+#   New tag (tags are immutable); the B-1715 tag is retired with 0 trades (never deployed).
+FNO_MOMO_V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1"
+FNO_MOMO_V3_VARIANT = {"tag": FNO_MOMO_V3_TAG, "gate": "fast_v3", "retired": True}
+FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V3_VARIANT,) + FNO_MOMO_RETIRED_VARIANTS
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True},)  # B-1717: the ONLY one
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -43949,9 +43955,9 @@ def _fno_momo_v2_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
 
 
 def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
-                      mins: int):
-    """B-1715: the first failing check of the fast plan for one contract (None = passes)."""
-    if day and _fno_momo_is_expiry_day(row.get("contract"), day):
+                      mins: int, allow_expiry: bool = False):
+    """B-1715: the first failing check of the fast plan for one contract (None = passes). B-1717: allow_expiry."""
+    if day and not allow_expiry and _fno_momo_is_expiry_day(row.get("contract"), day):
         return "skipped_expiry_day"
     if not any(a <= mins <= b for a, b in FNO_V3_WINDOWS):
         return "skipped_midday_reversal_window"
@@ -43986,12 +43992,13 @@ def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
     return None
 
 
-def _fno_momo_pick_v3(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = ""):
+def _fno_momo_pick_v3(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
+                      allow_expiry: bool = False):
     """B-1715: as v2's checked pick, with the fast-plan checks, ranked by the 5-min premium rise."""
     mins = now.hour * 60 + now.minute
     return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
                              skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v3_skip(r, ot, u, m, iv, p, d, dy,
-                                                                                        now_ts, mins),
+                                                                                        now_ts, mins, allow_expiry),
                              rank_key="chg5_pct")
 
 
@@ -44122,8 +44129,11 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         state["last_scan_ts"] = now_ts
         v2 = variant["gate"] in ("mtf_v2", "fast_v3")
         if v2:  # B-1714 / B-1715
-            pick = _fno_momo_pick_v3 if variant["gate"] == "fast_v3" else _fno_momo_pick_v2
-            cand, v2m, checked = pick(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+            if variant["gate"] == "fast_v3":
+                cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
+                                                       allow_expiry=bool(variant.get("allow_expiry")))
+            else:
+                cand, v2m, checked = _fno_momo_pick_v2(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
             scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None, "checked": checked[:30]}
         else:
             cand = _fno_momo_pick(groups, day)

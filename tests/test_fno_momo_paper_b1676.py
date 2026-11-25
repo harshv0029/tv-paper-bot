@@ -693,9 +693,10 @@ def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
 # ---- B-1686: one strategy = strict sentiment + OI/Greeks ------------------------------------------------------------
 def test_only_one_active_strategy_strict_plus_oi_greeks():
     assert [v["gate"] for v in ACTIVE] == ["fast_v3"]
-    assert ACTIVE[0]["tag"] == "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"
+    assert ACTIVE[0]["tag"] == (  # B-1717: expiry-day contracts included
+        "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1")
     assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {
-        "basic", "strict", "oigreeks", "strict_oigreeks", "mtf_v2"}
+        "basic", "strict", "oigreeks", "strict_oigreeks", "mtf_v2", "fast_v3"}
 
 
 def test_combined_needs_strict_sentiment_and_oi_greeks(db):
