@@ -166,7 +166,7 @@ def prem(u, S, K, d, m, ot):
     return main._bs_price(S, K, expiry_days(u, d, m), IV[u], ot)
 
 
-def part_b(B, trail, hold_min, flt):
+def part_b(B, trail, hold_min, flt, target=None, mode="momentum"):
     """flt: dict of switches. One position at a time (like the live variant); best chg5 wins."""
     trades = []
     for d, rows in sorted(B.items()):
@@ -183,11 +183,14 @@ def part_b(B, trail, hold_min, flt):
                 p_worst = prem(u, worst * sc, K, d, m, ot)
                 p_best = prem(u, best * sc, K, d, m, ot)
                 p_c = prem(u, x[3] * sc, K, d, m, ot)
+                p_o = prem(u, x[0] * sc, K, d, m, ot)  # bar open: a gap through the stop fills at the open
                 reason, fill = None, p_c
                 if m >= main.FNO_MOMO_FORCE_EXIT_MIN:
                     reason = "forced_1515"
                 elif trail is not None and p_worst <= pos["stop"]:
-                    reason, fill = "trail", pos["stop"]
+                    reason, fill = "trail", min(pos["stop"], p_o)  # stop checked first when both touch in one bar (conservative)
+                elif target is not None and p_best >= pos["px"] * (1 + target):
+                    reason, fill = "target", pos["px"] * (1 + target)
                 elif hold_min is not None and m - pos["m"] >= hold_min:
                     reason = "time"
                 elif flt.get("loose_exit", True) and loose(ot, u, snap) is False:
@@ -220,11 +223,15 @@ def part_b(B, trail, hold_min, flt):
                         continue
                     if flt.get("loose_entry") and not loose(ot, u, snap):
                         continue
-                    if flt.get("move5", True) and sg * (c / c5 - 1) * 100 < main.FNO_V3_IDX_MOVE_MIN_PCT:
+                    mv = sg * (c / c5 - 1) * 100
+                    if mode == "pullback":  # B-1727: trend day (strict gate) + the last 5 min moved AGAINST it
+                        if mv > -main.FNO_V3_IDX_MOVE_MIN_PCT:
+                            continue
+                    elif flt.get("move5", True) and mv < main.FNO_V3_IDX_MOVE_MIN_PCT:
                         continue
                     p, p5, p15 = (prem(u, v * sc, K, d, mm, ot) for v, mm in ((c, m), (c5, m - 5), (c15, m - 15)))
                     ch5, ch15 = (p / p5 - 1) * 100, (p / p15 - 1) * 100
-                    if flt.get("chg", True) and not (0 < ch5 <= main.FNO_V3_CHG5_MAX and ch15 <= main.FNO_V3_CHG15_MAX):
+                    if mode == "momentum" and flt.get("chg", True) and not (0 < ch5 <= main.FNO_V3_CHG5_MAX and ch15 <= main.FNO_V3_CHG15_MAX):
                         continue
                     if p < main.FNO_V3_MIN_PREMIUM:
                         continue
@@ -267,5 +274,12 @@ if __name__ == "__main__":
                       ("no_senti_exit", {"loose_exit": False})):
         for tr, hold in ((0.02, 15), (0.05, 15), (0.15, 60), (None, 30)):
             out["part_b"][f"{name}|trail={tr}|hold={hold}"] = summ(part_b(B, tr, hold, flt))
+    # B-1727 (user 2026-11-25 "pick short movement only, quick entry, quick exit, single leg"): holds <= 15 min.
+    for mode, flt in (("momentum", {}), ("momentum_nomove5", {"move5": False}), ("pullback", {})):
+        for hold in (5, 10, 15):
+            for tr in (0.02, 0.05, 0.08, 0.12):
+                for tg in (None, 0.03, 0.05, 0.08, 0.12):
+                    out["part_b"][f"short|{mode}|hold={hold}|trail={tr}|target={tg}"] = summ(
+                        part_b(B, tr, hold, flt, tg, "pullback" if mode == "pullback" else "momentum"))
     json.dump(out, open("docs/fno_v3_assumption_study.json", "w"), indent=1)
     print("ok", out["days"], out["first"], out["last"])

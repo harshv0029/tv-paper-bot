@@ -51,3 +51,36 @@ Sources:
 - SEBI F&O study (Jul 2025): https://www.sebi.gov.in/sebi_data/attachdocs/jul-2025/1751900271726.pdf
 - NSE tick-size circular: https://nsearchives.nseindia.com/content/circulars/FAOP67135.pdf
 - SEBI figures came from search summaries, because the SEBI site was not reachable from this session.
+
+## Correction and short-horizon sweep (B-1727, 2026-11-25 16:05 IST)
+
+**Correction.** Part B used to fill a stop exactly at the stop price, even when the next 5-min bar opened through it. Gap-aware fills now use min(stop, bar-open premium). Every trend in the table above still holds; the levels are lower:
+
+| Configuration | Before | After |
+|---|---|---|
+| Live 2% trail, 15-min hold | PF 0.755 | PF 0.417 (n=387, avg −1.42%) |
+| Live 5% trail, 15-min hold | PF 0.775 | PF 0.631 |
+| No strict gate (5%, 15 min) | — | PF 0.518 (live 0.631) |
+| No breadth | — | PF 0.602 |
+| No 5-min index move | — | PF 0.707 (better than live) |
+| No windows | — | PF 0.571 (worse than live) |
+
+5-min bars overstate gaps compared with the live 30-s checks, so the true figure lies between the two. Only the recorded 30-s paths from B-1719 can settle it.
+
+**Short-horizon sweep.** The user's constraint: short movement only, quick entry, quick exit, single leg. The sweep covered:
+- Holds of 5, 10 and 15 min.
+- Trails of 2, 5, 8 and 12%.
+- Targets of none, 3, 5, 8 and 12%.
+- Three entries: momentum, momentum without the 5-min move, and **pullback**. Pullback means the strict trend-day gate holds and the last 5 min moved at least 0.05% *against* it.
+
+Results:
+- 13 of 180 configurations reach PF > 1, and all of them are pullback.
+- Best: pullback, 15-min hold, 12% trail, 12% target: PF 1.052 (n=278, avg +0.16%).
+- Pullback with a 2% trail and 10-min hold looked like PF 1.705 before the gap fix and is PF 1.023 after it.
+
+The edge is not robust:
+- It comes only from FINNIFTY, whose proxy FINIETF is thin and shows stale-price reversals.
+- NIFTY gives PF 0.58 and BANKNIFTY 0.74 (2% trail, 10 min).
+- It flips between the two halves of the sample (H1 1.23, H2 0.93).
+
+Verdict: no quick-trade configuration shows an edge after the 0.8% cost on NIFTY or BANKNIFTY at 5-min resolution. A pullback entry is the only direction worth a paper trial.
