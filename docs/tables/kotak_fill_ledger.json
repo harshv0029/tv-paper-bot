@@ -986,6 +986,18 @@
   },
   {
    "day": "2026-11-25",
+   "trdsym": "BANKINDIA-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 2.0,
+   "buy_amt": 321.17,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795586109.0453212
+  },
+  {
+   "day": "2026-11-25",
    "trdsym": "HINDALCO-EQ",
    "prod": "CNC",
    "source": "kotak_positions",
@@ -994,7 +1006,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 885.65,
-   "updated_at": 1795585790.7210016
+   "updated_at": 1795586109.0453212
   },
   {
    "day": "2026-11-25",
@@ -1006,8 +1018,8 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1792.3,
-   "updated_at": 1795585790.7210016
+   "updated_at": 1795586109.0453212
   }
  ],
- "synced_at_utc": "2026-11-25T05:51:29Z"
+ "synced_at_utc": "2026-11-25T05:55:53Z"
 }
