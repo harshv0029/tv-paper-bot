@@ -144155,7 +144155,115 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"SI=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 7.0}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 12014,
+   "ts": 1795578324.2736,
+   "symbol": "HINDALCO.NS",
+   "kotak_trading_symbol": "HINDALCO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000013979",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs885.65",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs885.65 (target stop Rs885.65)"
+  },
+  {
+   "id": 12015,
+   "ts": 1795578324.28227,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000013655",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs338.25",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs338.25 (target stop Rs338.25)"
+  },
+  {
+   "id": 12016,
+   "ts": 1795578324.2889013,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000013942",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs324.80",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs324.80 (target stop Rs310.60); strategy stop Rs310.60 is outside the day's price band, so the stop rests at the band floor Rs324.80"
+  },
+  {
+   "id": 12017,
+   "ts": 1795578324.2950037,
+   "symbol": "IDFCFIRSTB.NS",
+   "kotak_trading_symbol": "IDFCFIRSTB-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000013960",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs77.09",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs77.09 (target stop Rs75.46); strategy stop Rs75.46 is outside the day's price band, so the stop rests at the band floor Rs77.09"
+  },
+  {
+   "id": 12018,
+   "ts": 1795578324.3010533,
+   "symbol": "PNB.NS",
+   "kotak_trading_symbol": "PNB-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000014220",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs135.18",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs135.18 (target stop Rs120.49); strategy stop Rs120.49 is outside the day's price band, so the stop rests at the band floor Rs135.18"
+  },
+  {
+   "id": 12019,
+   "ts": 1795578324.3079016,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000014352",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs197.56",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs197.56 (target stop Rs197.56)"
+  },
+  {
+   "id": 12020,
+   "ts": 1795578324.3144171,
+   "symbol": "BIOCON.NS",
+   "kotak_trading_symbol": "BIOCON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000014375",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs328.65",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs328.65 (target stop Rs328.65)"
+  },
+  {
+   "id": 12021,
+   "ts": 1795578324.3200219,
+   "symbol": "AMBUJACEM.NS",
+   "kotak_trading_symbol": "AMBUJACEM-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000013893",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs362.40",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs362.40 (target stop Rs362.40)"
+  },
+  {
+   "id": 12022,
+   "ts": 1795578324.3296938,
+   "symbol": "PIDILITIND.NS",
+   "kotak_trading_symbol": "PIDILITIND-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000014091",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1501.20",
+   "detail": "reason: 09:15 IST open protect-first pass: overnight holding had no resting stop-loss (the exchange cancels every resting order at 15:15 IST); placed at Rs1501.20 (target stop Rs1501.20)"
   }
  ],
- "synced_at_utc": "2026-11-24T20:25:13Z"
+ "synced_at_utc": "2026-11-25T03:45:26Z"
 }
