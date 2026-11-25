@@ -97,22 +97,6 @@
    "symbol": "HINDPETRO.NS"
   },
   {
-   "day": "2026-11-13",
-   "entry_order_id": "261113000066724",
-   "entry_price": 12.69,
-   "first_seen_day": "2026-11-13",
-   "is_short": 0,
-   "kotak_trading_symbol": "IDEA-EQ",
-   "opened_at": 1794542290.5117133,
-   "owner": "swing",
-   "qty": 20,
-   "sl_trigger_price": 11.71,
-   "source": "holding",
-   "stop_loss": 10.25285598209926,
-   "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-   "symbol": "IDEA.NS"
-  },
-  {
    "day": "2026-11-18",
    "entry_order_id": "261118000051330",
    "entry_price": 83.72,
