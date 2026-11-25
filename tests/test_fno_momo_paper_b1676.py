@@ -529,7 +529,7 @@ def test_bse_sensex_rows_sniff_keys():
 def test_sensex_routes_to_bse_and_reports_errors(monkeypatch):
     monkeypatch.setattr(main, "_bse_sensex_chain", lambda expiry=None: ([], "HTTPError: 403"))
     assert main._fno_chain_fetch("SENSEX") == []
-    assert main._FNO_CHAIN_CACHE[("SENSEX", "")]["error"] == "HTTPError: 403"
+    assert main._FNO_CHAIN_CACHE[("SENSEX", "")]["error"].endswith("HTTPError: 403")
 
 
 def test_paper_table_merges_on_restore_never_skips():

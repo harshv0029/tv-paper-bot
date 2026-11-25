@@ -42822,6 +42822,143 @@ def _fno_v3_shape(payload) -> str:
             f"item {','.join(sorted(first)[:8])}; leg {','.join(sorted(leg)[:12]) if isinstance(leg, dict) else '?'}")
 
 
+# ---- B-1712 (user 2026-11-25 "Use other sources"): Kotak Neo as the first option-chain source for View 6 -----------
+# NSE's option-chain API answered 404 for every index and BSE's 403 for SENSEX from Render. Kotak's scrip master
+# lists every index option (search_scrip, pSymbolName exact) and quotes(quote_type="all") returns ltp, per_change,
+# last_volume, open_int and ohlc for an option (live-confirmed 2026-11-25 on BANKNIFTY27JAN31500CE). Read-only quotes,
+# research/paper display only: never a real entry/SL source. Strikes: FNO_KOTAK_BAND either side of the spot.
+FNO_KOTAK_BAND = 10
+FNO_KOTAK_MIN_TTL_S = 60          # never more than one Kotak quote batch per index per minute (tape, View 6)
+FNO_KOTAK_QUOTE_CHUNK = 50
+_FNO_KOTAK_CONTRACTS = {}         # underlying -> {"day", "rows": [(expiry_date, strike, "CE"/"PE", token, lot)]}
+_FNO_KOTAK_SPOT_CACHE = {}        # underlying -> {"ts", "last", "pct"}
+_FNO_KOTAK_SPOT_TOKENS = {"SENSEX": ("bse_cm", "SENSEX")}  # live-confirmed 2026-11-25: ltp 83863.02
+
+
+def _fno_kotak_contracts(underlying: str) -> tuple:
+    """(slim contract rows, error) for one index from Kotak's scrip master, once per IST day. Only 5-tuples are
+    kept (the raw scrip rows are ~40 fields each and are dropped at once)."""
+    import nse_fo_chain
+    day = ist_now().strftime("%Y-%m-%d")
+    hit = _FNO_KOTAK_CONTRACTS.get(underlying)
+    if hit and hit["day"] == day and hit["rows"]:
+        return hit["rows"], None
+    out, errs = [], []
+    seg = nse_fo_chain._UNDERLYING_TO_SEGMENT.get(underlying)
+    for ot in ("ce", "pe"):
+        raw, err = nse_fo_chain._fo_rows_uncached(underlying, option_type=ot)
+        if err:
+            errs.append(f"scrip {ot}: {err}"[:120])
+            continue
+        for r in raw or []:
+            if str(r.get("pOptionType", "")).strip().lower() != ot:
+                continue
+            try:
+                exp = nse_fo_chain._parse_expiry(r["pExpiryDate"])
+                strike = float(r.get("dStrikePrice;")) / 100.0
+                out.append((exp, strike, ot.upper(), str(r["pSymbol"]), int(r.get("lLotSize") or 1)))
+            except Exception:  # noqa: BLE001
+                continue
+    if out:
+        _FNO_KOTAK_CONTRACTS[underlying] = {"day": day, "rows": out, "segment": seg}
+    return out, ("; ".join(errs) or None) if not out else None
+
+
+def _fno_kotak_spot(underlying: str):
+    """(last, day %) of the index: NSE allIndices (already fetched for View 6) or, for SENSEX, a Kotak quote."""
+    d = (_FNO_INDEX_DETAIL_CACHE.get("data") or {}).get(underlying) or {}
+    if d.get("last"):
+        return float(d["last"]), None
+    tok = _FNO_KOTAK_SPOT_TOKENS.get(underlying)
+    if not tok:
+        return None, None
+    c = _FNO_KOTAK_SPOT_CACHE.get(underlying) or {}
+    if c and time.time() - c["ts"] < FNO_KOTAK_MIN_TTL_S:
+        return c["last"], c["pct"]
+    import kotak_neo
+    q = kotak_neo.quotes([{"instrument_token": tok[1], "exchange_segment": tok[0]}], quote_type="all")
+    d0 = q[0] if isinstance(q, list) and q and isinstance(q[0], dict) else {}
+    last = _fno_num(d0.get("ltp")) or None
+    pct = None
+    if d0.get("per_change") not in (None, ""):
+        pct = _fno_num(d0.get("per_change"))
+    elif last and _fno_num((d0.get("ohlc") or {}).get("close")):
+        pc = _fno_num(d0["ohlc"]["close"])
+        pct = round((last - pc) / pc * 100.0, 2)
+    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct}
+    return last, pct
+
+
+def _fno_kotak_quote_rows(tokens: list, segment: str) -> dict:
+    """{token: quote dict} for many option tokens, quotes(quote_type='all') in chunks."""
+    import kotak_neo
+    out = {}
+    for i in range(0, len(tokens), FNO_KOTAK_QUOTE_CHUNK):
+        chunk = tokens[i:i + FNO_KOTAK_QUOTE_CHUNK]
+        q = kotak_neo.quotes([{"instrument_token": t, "exchange_segment": segment} for t in chunk], quote_type="all")
+        if isinstance(q, dict):
+            raise RuntimeError("quotes error " + str(q.get("message") or q.get("error") or q)[:120])
+        for d in q or []:
+            if isinstance(d, dict) and d.get("exchange_token") is not None:
+                out[str(d["exchange_token"])] = d
+    return out
+
+
+def _fno_kotak_chain(underlying: str, expiry: str = None) -> tuple:
+    """(View 6 rows, error) for one index from Kotak: nearest upcoming expiry (or `expiry`, 'dd-Mon-YYYY'),
+    FNO_KOTAK_BAND strikes either side of the spot, CE and PE. Contracts traded = last_volume / lot size."""
+    try:
+        rows, err = _fno_kotak_contracts(underlying)
+        if not rows:
+            return [], "Kotak " + (err or "no contracts")
+        today = dt.date.fromisoformat(ist_now().strftime("%Y-%m-%d"))
+        if expiry:
+            want = dt.date.fromisoformat(_fno_expiry_iso(expiry))
+        else:
+            ups = sorted({r[0] for r in rows if r[0] >= today})
+            if not ups:
+                return [], "Kotak: no upcoming expiry"
+            want = ups[0]
+        legs = [r for r in rows if r[0] == want]
+        if not legs:
+            return [], f"Kotak: no contracts for expiry {want}"
+        spot, _pct = _fno_kotak_spot(underlying)
+        strikes = sorted({r[1] for r in legs})
+        if spot:
+            atm = min(range(len(strikes)), key=lambda i: abs(strikes[i] - spot))
+        else:
+            atm = len(strikes) // 2
+        band = set(strikes[max(0, atm - FNO_KOTAK_BAND): atm + FNO_KOTAK_BAND + 1])
+        legs = [r for r in legs if r[1] in band]
+        seg = (_FNO_KOTAK_CONTRACTS.get(underlying) or {}).get("segment") or "nse_fo"
+        quotes = _fno_kotak_quote_rows([r[3] for r in legs], seg)
+        label = want.strftime("%d-%b-%Y")
+        out = []
+        for exp, strike, ot, tok, lot in legs:
+            d = quotes.get(tok) or {}
+            px = _fno_num(d.get("ltp"))
+            n = round(_fno_num(d.get("last_volume")) / max(lot, 1))
+            if px <= 0 or n <= 0:
+                continue
+            pc = d.get("per_change")
+            if pc in (None, ""):
+                prev = _fno_num((d.get("ohlc") or {}).get("close"))
+                pc = round((px - prev) / prev * 100.0, 2) if prev > 0 else 0.0
+            oi = _fno_num(d.get("open_int"))
+            r = {"underlying": underlying, "strikePrice": strike, "optionType": ot, "expiryDate": label,
+                 "lastPrice": px, "pChange": _fno_num(pc), "numberOfContractsTraded": n,
+                 "openInterest": round(oi / max(lot, 1)) if oi else None, "changeinOpenInterest": None,
+                 "pchangeinOpenInterest": None, "impliedVolatility": None, "underlyingValue": spot,
+                 "source": "kotak"}
+            r["contract"] = _fno_label(r)
+            out.append(r)
+        if not out:
+            return [], f"Kotak: {len(legs)} contracts quoted, none traded today ({len(quotes)} answered)"
+        return out, None
+    except Exception as e:  # noqa: BLE001
+        return [], f"Kotak {type(e).__name__}: {str(e)[:140]}"
+
+
 def _fno_chain_fetch(underlying, expiry=None, opener=None, ttl=None) -> list:
     """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S (or ttl,
     B-1688 tape: 60 s). [] on failure.
@@ -42838,10 +42975,19 @@ def _fno_chain_fetch(underlying, expiry=None, opener=None, ttl=None) -> list:
     if hit and now - hit["ts"] < ttl:
         return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
     rows, errs = [], []
+    # B-1712: Kotak first (one quote batch per index per minute at most), then the exchange's own site.
+    if hit and hit.get("kotak") and now - hit["ts"] < FNO_KOTAK_MIN_TTL_S:
+        return hit["rows"]
+    krows, kerr = _fno_kotak_chain(underlying, expiry)
+    if krows:
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": krows, "error": None, "kotak": True}
+        return krows
     if underlying == "SENSEX":  # B-1681: a BSE index; NSE never lists it
         rows, err = _bse_sensex_chain(expiry)
-        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows,
+                                 "error": None if rows else f"{kerr} | {err or 'no rows'}"[:300]}
         return rows
+    errs.append(kerr or "Kotak: no rows")
     state = {"op": opener or _nse_opener(), "fresh": opener is None}
 
     def _get(step, path, cap=4_000_000):
@@ -43335,6 +43481,10 @@ def _fno_by_index_snapshot() -> dict:
     rows = (raw.get("lists", {}).get("index_calls") or []) + (raw.get("lists", {}).get("index_puts") or [])
     groups = _fno_group_by_index(rows, 50)
     sources = {u: "most_active" for u in _FNO_INDEX_UNDERLYINGS}
+    try:
+        index_pct = dict(_fno_index_day_changes() or {})  # B-1712: first, so the Kotak chain centres on the spot
+    except Exception:  # noqa: BLE001
+        index_pct = {}
     short = [u for u in _FNO_INDEX_UNDERLYINGS if len(groups.get(u) or []) < FNO_VIEW6_MIN_ROWS]
     if short:
         cold = [u for u in short if time.time() - (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("ts", 0.0) >= FNO_CHAIN_CACHE_S]
@@ -43347,8 +43497,11 @@ def _fno_by_index_snapshot() -> dict:
             if chain:
                 merged = _fno_group_by_index((groups.get(u) or []) + chain, 50).get(u) or []
                 groups[u] = merged
-                sources[u] = "option_chain"
-    data = {"groups": groups, "sources": sources, "index_pct": _fno_index_day_changes(),
+                sources[u] = "kotak" if any(r.get("source") == "kotak" for r in chain) else "option_chain"
+    for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1712: SENSEX day % from Kotak (NSE allIndices never lists it)
+        if index_pct.get(u) is None and c.get("pct") is not None:
+            index_pct[u] = c["pct"]
+    data = {"groups": groups, "sources": sources, "index_pct": index_pct,
             "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}

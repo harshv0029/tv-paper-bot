@@ -68,6 +68,7 @@ import kotak_neo
 _UNDERLYING_TO_SEGMENT = {
     "NIFTY": "nse_fo", "BANKNIFTY": "nse_fo",
     "FINNIFTY": "nse_fo", "MIDCPNIFTY": "nse_fo",
+    "NIFTYNXT50": "nse_fo",  # B-1712: View 6 chain via Kotak (pSymbolName NIFTYNXT50 confirmed live 2026-11-25)
     "SENSEX": "bse_fo",
     "GOLD": "mcx_fo", "GOLDM": "mcx_fo",
     "SILVER": "mcx_fo", "SILVERM": "mcx_fo",
