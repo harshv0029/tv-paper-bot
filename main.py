@@ -1125,11 +1125,23 @@ def init_db():
             """
         )
         for _col in ("stop_at_exit REAL", "observed_exit_price REAL", "observed_net_pct REAL",
-                     "entry_meta TEXT"):  # B-1681: JSON of the OI / Greeks / sentiment inputs at entry
+                     "entry_meta TEXT",  # B-1681: JSON of the OI / Greeks / sentiment inputs at entry
+                     "trough_price REAL", "price_path TEXT"):  # B-1719: MAE + the [ts, price] path while open
             try:  # B-1679: a DB restored from before these columns existed
                 conn.execute("ALTER TABLE fno_momo_paper_trades ADD COLUMN " + _col)
             except Exception:
                 pass
+        # B-1719: one row per View 6 paper scan per tag (entered or the skip reason, plus each checked contract's
+        # skip), so skipped setups can be replayed later. Git tier (no Upstash use); 10 days kept on disk.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS fno_momo_scan_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tag TEXT NOT NULL, day TEXT NOT NULL, ts REAL NOT NULL,
+                entered INTEGER NOT NULL DEFAULT 0, skip TEXT, candidate TEXT, checked TEXT
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS news_signal_events (
@@ -25024,6 +25036,7 @@ _GENERIC_MIRROR_TABLES = (
     "news_trades",  # B-1541
     "pending_open_triggers",  # B-1512
     "fno_momo_paper_trades",  # B-1676 (paper only)
+    "fno_momo_scan_log",  # B-1719 (paper only, git tier)
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -25034,7 +25047,7 @@ _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # restart wiped the day's reasons (0 events on 2026-10-21). Git is the durable tier that works.
 _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
                             "strategy_scan_counts", "short_trades_closed",
-                            "strategy_viable_stack", "real_order_events")
+                            "strategy_viable_stack", "real_order_events", "fno_momo_scan_log")
 # B-1302 tiers: T1 safety-critical tables (kill switches, positions, signal state, stops) restore and push FIRST in
 # every pass, so a restart or a pass cut short by an Upstash failure still covers real-money state; T2 audit/log
 # tables (trades, real_trades, ...) follow; T3 counters/caches are _GENERIC_MIRROR_SLOW_TABLES (pushed at most every
@@ -41113,6 +41126,18 @@ def table_export_endpoint(name: str):
     return {"count": len(rows), "rows": rows}
 
 
+@app.get("/fno-momo-paper-export")
+def fno_momo_paper_export():
+    """B-1719: every View 6 paper trade row (all tags, open and closed) for the git archive (table-git-sync.yml).
+    No Upstash call here; 503 until the boot restore reached the table, so a partial table never reaches git."""
+    t = "fno_momo_paper_trades"
+    if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN and t not in _generic_mirror_hydrated:
+        raise HTTPException(status_code=503, detail="table not yet restored")
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute(f"SELECT * FROM {t} ORDER BY id").fetchall()]
+    return {"count": len(rows), "rows": rows}
+
+
 @app.get("/tracked-union")
 def tracked_union_endpoint():
     """No token, same precedent as /real-open-positions: symbols, qty, stops
@@ -43759,8 +43784,20 @@ FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V3_VARIANT,) + FNO_MOMO_RETIRED_VARIANTS
 # B-1718 (user 2026-11-25 "Do that along with 2%. I need to see both results"): the SAME entry run twice in paper,
 #   once with the 2% trail and once with a wider 5% trail, so the two exits are compared trade for trade.
 FNO_MOMO_V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail5_hold15__v1"
+# B-1728 (user 2026-11-25 "pick short movement only / Quick entry / Quick exit / Single leg", then "Both yes"): a
+#   third paper plan. Same strict trend-day gate, windows, premium/delta/IV checks, but it buys the 5-min PULLBACK: the
+#   index moved at least 0.05% AGAINST the day's direction in the last 5 min (B-1727: momentum-chasing lost in all
+#   180 short configs; only pullback entries cleared PF 1, best 12% trail + 12% target, 15-min hold). Twins: 12% and
+#   5% trail, both with the 12% target and the 15-min time stop. PAPER ONLY.
+FNO_V4_TARGET_PCT = 0.12
+FNO_MOMO_V4_T12_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"
+FNO_MOMO_V4_T5_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail5_tgt12_hold15__v1"
 FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": FNO_MOMO_TRAIL_PCT},
-                     {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05})
+                     {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05},
+                     {"tag": FNO_MOMO_V4_T12_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                      "target": FNO_V4_TARGET_PCT},
+                     {"tag": FNO_MOMO_V4_T5_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.05,
+                      "target": FNO_V4_TARGET_PCT})
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -44001,6 +44038,44 @@ def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
     return None
 
 
+def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
+                      mins: int):
+    """B-1728: the first failing check of the trend-day pullback plan for one contract (None = passes)."""
+    if not any(a <= mins <= b for a, b in FNO_V3_WINDOWS):
+        return "skipped_midday_reversal_window"
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    last = _fno_num((detail.get(u) or {}).get("last"))
+    idx5, _ = _fno_chg_window(_FNO_IDX_HIST, u, last, now_ts, FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S)
+    if idx5 is None:
+        return "skipped_index_5m_warming_up"
+    if (idx5 if ot == "CE" else -idx5) > -FNO_V3_IDX_MOVE_MIN_PCT:
+        return "skipped_no_pullback"
+    if m.get("chg5_pct") is None:
+        return "skipped_momentum_warming_up"
+    if _fno_num(row.get("lastPrice")) < FNO_V3_MIN_PREMIUM:
+        return "skipped_premium_too_small"
+    if m.get("delta") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V3_DELTA_MIN <= abs(m["delta"]) <= FNO_V3_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if iv_med and m.get("iv_pct") and m["iv_pct"] > FNO_V2_IV_REL_MAX * iv_med:
+        return "skipped_iv_rich"
+    return None
+
+
+def _fno_momo_pick_v4(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = ""):
+    """B-1728: v2's checked pick with the pullback checks, ranked by the 5-min premium change (as the B-1727 study)."""
+    mins = now.hour * 60 + now.minute
+    return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
+                             skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v4_skip(r, ot, u, m, iv, p, d, dy,
+                                                                                        now_ts, mins),
+                             rank_key="chg5_pct")
+
+
 def _fno_momo_pick_v3(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
                       allow_expiry: bool = False):
     """B-1715: as v2's checked pick, with the fast-plan checks, ranked by the 5-min premium rise."""
@@ -44054,6 +44129,28 @@ def _fno_momo_net_pct(entry: float, exit_px: float) -> float:
     return round((exit_px / entry - 1.0) * 100.0 - ROUND_TRIP_COST_PCT, 4) if entry > 0 else 0.0
 
 
+FNO_MOMO_PATH_MAX = 400  # B-1719: points kept per trade; past it every other point is dropped (start/end stay)
+
+
+def _fno_momo_path_add(row, price, now_ts) -> tuple:
+    """B-1719: (trough_price, price_path JSON) after adding one observed price to an open paper row."""
+    keys = row.keys() if hasattr(row, "keys") else []
+    entry = row["entry_price"]
+    trough = row["trough_price"] if "trough_price" in keys and row["trough_price"] is not None else entry
+    try:
+        path = json.loads(row["price_path"]) if "price_path" in keys and row["price_path"] else []
+    except Exception:
+        path = []
+    if not path:
+        path = [[round(row["opened_ts"] or now_ts, 1), entry]]
+    if price and price > 0:
+        trough = min(trough, price)
+        path.append([round(now_ts, 1), price])
+    if len(path) > FNO_MOMO_PATH_MAX:
+        path = path[:1] + path[1:-1:2] + path[-1:]
+    return trough, json.dumps(path, separators=(",", ":"))
+
+
 def _fno_momo_close(conn, row, price: float, reason: str, now_ts: float, observed=None) -> dict:
     """`price` is the paper fill; `observed` the premium actually seen on that tick (B-1679 (a): both recorded).
     A trailing_sl exit fills at the resting stop level, as an SL-M sitting at the exchange from entry would; the
@@ -44062,10 +44159,12 @@ def _fno_momo_close(conn, row, price: float, reason: str, now_ts: float, observe
     gross = round((price / row["entry_price"] - 1.0) * 100.0, 4) if row["entry_price"] else 0.0
     net = _fno_momo_net_pct(row["entry_price"], price)
     obs_net = _fno_momo_net_pct(row["entry_price"], observed)
+    trough, path = _fno_momo_path_add(row, observed, now_ts)
     conn.execute("UPDATE fno_momo_paper_trades SET status = 'closed', close_ts = ?, close_price = ?, close_reason = ?, "
                  "gross_pct = ?, net_pct = ?, last_price = ?, last_ts = ?, stop_at_exit = ?, observed_exit_price = ?, "
-                 "observed_net_pct = ? WHERE id = ?",
-                 (now_ts, price, reason, gross, net, observed, now_ts, row["stop_price"], observed, obs_net, row["id"]))
+                 "observed_net_pct = ?, trough_price = ?, price_path = ? WHERE id = ?",
+                 (now_ts, price, reason, gross, net, observed, now_ts, row["stop_price"], observed, obs_net,
+                  trough, path, row["id"]))
     print(f"[FNO_MOMO] PAPER exit {row['contract']} @ {price} (seen {observed}, stop {row['stop_price']}) "
           f"reason={reason} net={net}%")
     return {"action": "exit", "contract": row["contract"], "price": price, "observed": observed, "reason": reason,
@@ -44113,7 +44212,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - _fno_momo_trail(variant)), 4)
-        top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3") else FNO_MOMO_TOP_N  # B-1714: top 5
+        top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4") else FNO_MOMO_TOP_N  # B-1714
+        target = variant.get("target")  # B-1728
         top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
         reason, fill = None, price
@@ -44123,7 +44223,11 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             # B-1679: the stop sits 2% under the entry from the first tick and trails 2% under the peak. The paper
             # fill is the resting stop level (an SL-M at the exchange); the observed price is kept beside it.
             reason, fill = "trailing_sl", row["stop_price"]
-        elif variant["gate"] == "fast_v3" and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S:
+        elif target and price >= round(row["entry_price"] * (1.0 + target), 4):
+            # B-1728: profit target; paper fill = the resting limit level (the observed price is kept beside it)
+            reason, fill = "target_hit", round(row["entry_price"] * (1.0 + target), 4)
+        elif (variant["gate"] in ("fast_v3", "pullback_v4")
+              and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S):
             reason = "time_exit_15min"  # B-1715: the fast plan holds at most 15 min
         elif snap.get("ok") and row["contract"] not in top:
             reason = "confidence_lost_top3"
@@ -44132,13 +44236,17 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         if reason:
             acts.append(_fno_momo_close(conn, row, fill, reason, now_ts, observed=price))
         else:
-            conn.execute("UPDATE fno_momo_paper_trades SET peak_price = ?, stop_price = ?, last_price = ?, last_ts = ? "
-                         "WHERE id = ?", (peak, stop, price, now_ts, row["id"]))
+            trough, path = _fno_momo_path_add(row, price, now_ts)
+            conn.execute("UPDATE fno_momo_paper_trades SET peak_price = ?, stop_price = ?, last_price = ?, last_ts = ?, "
+                         "trough_price = ?, price_path = ? WHERE id = ?",
+                         (peak, stop, price, now_ts, trough, path, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        v2 = variant["gate"] in ("mtf_v2", "fast_v3")
-        if v2:  # B-1714 / B-1715
-            if variant["gate"] == "fast_v3":
+        v2 = variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4")
+        if v2:  # B-1714 / B-1715 / B-1728
+            if variant["gate"] == "pullback_v4":
+                cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+            elif variant["gate"] == "fast_v3":
                 cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        allow_expiry=bool(variant.get("allow_expiry")))
             else:
@@ -44182,13 +44290,16 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                         "rank": cand["rank"], "gate": variant["gate"]}
                 conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "
                              "opened_ts, entry_price, peak_price, stop_price, last_price, last_ts, entry_pchange, "
-                             "open_reason, entry_meta) VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                             "open_reason, entry_meta, trough_price, price_path) "
+                             "VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                              (tag, day, cand["contract"], cand["underlying"], cand["option_type"], now_ts,
-                              px, px, stop, px, now_ts, cand["pChange"], why, json.dumps(meta)))
+                              px, px, stop, px, now_ts, cand["pChange"], why, json.dumps(meta), px,
+                              json.dumps([[round(now_ts, 1), px]])))
                 scan["entered"] = True
                 acts.append({"action": "entry", "contract": cand["contract"], "price": px, "reason": why})
                 print(f"[FNO_MOMO] PAPER entry {tag} {cand['contract']} @ {px} ({why})")
         state["last_scan"] = scan
+        _fno_momo_scan_log(conn, tag, day, scan)
     conn.commit()
     if acts:
         sync_generic_tables_external(only=("fno_momo_paper_trades",))
@@ -44213,6 +44324,27 @@ def _fno_momo_due(now=None) -> bool:
 FNO_MOMO_STALL_S = 180
 _FNO_MOMO_HEALTH = {"pass_started_ts": None, "pass_done_ts": None, "last_error": None, "sweeps": 0,
                     "skipped_unhydrated": 0}
+
+
+FNO_MOMO_SCAN_LOG_KEEP_DAYS = 10  # B-1719: on-disk window; git history keeps every synced copy
+
+
+def _fno_momo_scan_log(conn, tag: str, day: str, scan: dict) -> None:
+    """B-1719: persists one scan (never raises: the log must not stop the paper step)."""
+    try:
+        cand = scan.get("candidate") or {}
+        cand_s = {k: cand.get(k) for k in ("contract", "underlying", "option_type", "lastPrice", "pChange", "rank")
+                  if k in cand} or None
+        conn.execute("INSERT INTO fno_momo_scan_log (tag, day, ts, entered, skip, candidate, checked) "
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                     (tag, day, scan.get("ts") or time.time(), 1 if scan.get("entered") else 0, scan.get("skip"),
+                      json.dumps(cand_s) if cand_s else None,
+                      json.dumps(scan.get("checked") or [], separators=(",", ":"), default=str)))
+        base = dt.date.fromisoformat(day) if day else (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)).date()
+        cutoff = (base - dt.timedelta(days=FNO_MOMO_SCAN_LOG_KEEP_DAYS)).isoformat()
+        conn.execute("DELETE FROM fno_momo_scan_log WHERE day < ?", (cutoff,))
+    except Exception as e:  # noqa: BLE001
+        print(f"[FNO_MOMO] scan log write failed (non-fatal): {str(e)[:160]}")
 
 
 def _fno_momo_table_ready() -> bool:
@@ -44322,7 +44454,7 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                 "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
             gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
             per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")),
-                                 "trail_pct": round(_fno_momo_trail(v) * 100, 2), "n": len(nets), "wins": sum(1 for x in nets if x > 0),
+                                 "trail_pct": round(_fno_momo_trail(v) * 100, 2), "target_pct": round((v.get("target") or 0) * 100, 2) or None, "n": len(nets), "wins": sum(1 for x in nets if x > 0),
                                  "net_pct_sum": round(sum(nets), 4),
                                  "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
     for r in rows:
