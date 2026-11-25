@@ -994,7 +994,7 @@
    "buy_amt": 1482.9,
    "sell_qty": 1.0,
    "sell_amt": 1486.3,
-   "updated_at": 1795589359.7010415
+   "updated_at": 1795589664.7898374
   },
   {
    "day": "2026-11-25",
@@ -1006,7 +1006,7 @@
    "buy_amt": 321.17,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795589359.7010415
+   "updated_at": 1795589664.7898374
   },
   {
    "day": "2026-11-25",
@@ -1018,7 +1018,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 885.65,
-   "updated_at": 1795589359.7010415
+   "updated_at": 1795589664.7898374
   },
   {
    "day": "2026-11-25",
@@ -1030,8 +1030,44 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 1792.3,
-   "updated_at": 1795589359.7010415
+   "updated_at": 1795589664.7898374
+  },
+  {
+   "day": "2026-11-25",
+   "trdsym": "NMDC-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 31.0,
+   "buy_amt": 2082.27,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795589664.7898374
+  },
+  {
+   "day": "2026-11-25",
+   "trdsym": "SBILIFE-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1837.0,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795589664.7898374
+  },
+  {
+   "day": "2026-11-25",
+   "trdsym": "SUPREMEIND-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 3164.3,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795589664.7898374
   }
  ],
- "synced_at_utc": "2026-11-25T06:49:26Z"
+ "synced_at_utc": "2026-11-25T06:54:54Z"
 }
