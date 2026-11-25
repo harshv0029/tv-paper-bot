@@ -144901,7 +144901,7 @@
    "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
   },
   {
-   "id": 12077,
+   "id": 12076,
    "ts": 1795586084.8841088,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -144913,7 +144913,7 @@
    "detail": "reason: real market BUY entry; Kotak accepted it"
   },
   {
-   "id": 12076,
+   "id": 12077,
    "ts": 1795586092.7334507,
    "symbol": "BANKINDIA.NS",
    "kotak_trading_symbol": "BANKINDIA-EQ",
@@ -144925,7 +144925,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 12079,
+   "id": 12078,
    "ts": 1795586419.8879704,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -144937,7 +144937,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 12078,
+   "id": 12079,
    "ts": 1795586433.7645676,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -144973,7 +144973,7 @@
    "detail": "reason: resting buy-stop placed so the open short is protected"
   },
   {
-   "id": 12083,
+   "id": 12082,
    "ts": 1795587798.8626604,
    "symbol": "APLAPOLLO.NS",
    "kotak_trading_symbol": "APLAPOLLO-EQ",
@@ -144985,7 +144985,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 12082,
+   "id": 12083,
    "ts": 1795587815.9779172,
    "symbol": "APLAPOLLO.NS",
    "kotak_trading_symbol": "APLAPOLLO-EQ",
@@ -145009,7 +145009,7 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=B qty=1"
   },
   {
-   "id": 12086,
+   "id": 12085,
    "ts": 1795588495.6526117,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145021,7 +145021,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 12085,
+   "id": 12086,
    "ts": 1795588506.478425,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145141,7 +145141,7 @@
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs3093.20 already covers the position (target stop Rs3093.12), adopted, nothing placed"
   },
   {
-   "id": 12097,
+   "id": 12096,
    "ts": 1795589955.7661905,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145153,7 +145153,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 12096,
+   "id": 12097,
    "ts": 1795589968.5832584,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145165,5 +145165,5 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1153.00 to Rs1155.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-25T07:01:16Z"
+ "synced_at_utc": "2026-11-25T07:18:24Z"
 }
