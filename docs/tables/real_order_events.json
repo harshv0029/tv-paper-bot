@@ -144947,7 +144947,19 @@
    "prev_state": "resting SELL trigger Rs1148.40",
    "new_state": "resting SELL trigger Rs1152.50",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1148.40 to Rs1152.50 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12080,
+   "ts": 1795586615.0371385,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261125000317669",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs1486.30",
+   "detail": "reason: paper short entry signal from strategy news_event__confirmed__short__1d__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-25T06:02:38Z"
+ "synced_at_utc": "2026-11-25T06:03:38Z"
 }
