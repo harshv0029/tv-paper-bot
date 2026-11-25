@@ -145175,7 +145175,19 @@
    "prev_state": null,
    "new_state": "no real short row in this app; no order sent",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12099,
+   "ts": 1795591722.68275,
+   "symbol": "IDEA.NS",
+   "kotak_trading_symbol": "IDEA-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261125000014951",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs11.71",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=20"
   }
  ],
- "synced_at_utc": "2026-11-25T07:23:27Z"
+ "synced_at_utc": "2026-11-25T07:29:17Z"
 }
