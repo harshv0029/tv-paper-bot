@@ -8,6 +8,7 @@ import main
 from tests.test_fno_momo_paper_b1676 import DET_UP, MON, T0, _open, _orow, _ssnap, db  # noqa: F401 (db autouse)
 
 V3 = main.FNO_MOMO_VARIANTS[0]
+V5 = main.FNO_MOMO_VARIANTS[1]  # B-1718: the 5% trail twin
 STRONG = {"NIFTY": 0.4, "INDIAVIX": 1.0}
 EXP = "30-Nov-2026"
 
@@ -91,3 +92,31 @@ def test_time_stop_15_min(db):
     acts = main._fno_momo_step(db, now=MON + dt.timedelta(minutes=16), snapshot=_ssnap([r], STRONG, DET_UP),
                                now_ts=T0 + 16 * 60, variant=V3)
     assert [a.get("reason") for a in acts] == ["time_exit_15min"] and _open(db) is None
+
+
+# ---- B-1718 (user 2026-11-25: "Do that along with 2%. I need to see both results") ------------------------------
+def test_b1718_two_trails_same_entry_compared(db):
+    v2, v5 = V3, V5
+    assert (v2["trail"], v5["trail"]) == (0.02, 0.05) and v2["gate"] == v5["gate"] == "fast_v3"
+    assert "trail2" in v2["tag"] and "trail5" in v5["tag"]
+    r = _orow(exp=EXP)
+    _hist(r["contract"], 146.0)
+    for v in (v2, v5):
+        main._FNO_MOMO_STATES[v["tag"]]["last_scan_ts"] = 0.0
+        main._fno_momo_step(db, now=MON, snapshot=_ssnap([r], STRONG, DET_UP), now_ts=T0, variant=v)
+    rows = {x["tag"]: x for x in db.execute("SELECT * FROM fno_momo_paper_trades").fetchall()}
+    assert rows[v2["tag"]]["contract"] == rows[v5["tag"]]["contract"]  # the same entry
+    assert rows[v2["tag"]]["stop_price"] == pytest.approx(150.0 * 0.98)
+    assert rows[v5["tag"]]["stop_price"] == pytest.approx(150.0 * 0.95)
+    down = dict(r, lastPrice=145.5)  # -3%: under the 2% stop, above the 5% stop
+    for v in (v2, v5):
+        main._fno_momo_step(db, now=MON + dt.timedelta(minutes=1), snapshot=_ssnap([down], STRONG, DET_UP),
+                            now_ts=T0 + 60, variant=v)
+    st = {x["tag"]: x["status"] for x in db.execute("SELECT tag, status FROM fno_momo_paper_trades").fetchall()}
+    assert st[v2["tag"]] != "open" and st[v5["tag"]] == "open"
+
+
+def test_b1718_route_shows_both_trails(db):
+    out = main.fno_momo_paper(tag=main.FNO_MOMO_V3B_T5_TAG)
+    assert out["tag"] == main.FNO_MOMO_V3B_T5_TAG and out["trail_pct"] == 5.0
+    assert out["variants"][main.FNO_MOMO_V3B_TAG]["trail_pct"] == 2.0
