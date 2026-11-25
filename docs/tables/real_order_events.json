@@ -144791,7 +144791,19 @@
    "prev_state": "resting SELL trigger Rs1141.20",
    "new_state": "resting SELL trigger Rs1146.70",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1141.20 to Rs1146.70 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12067,
+   "ts": 1795582718.75193,
+   "symbol": "HDFCLIFE.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-25T04:51:03Z"
+ "synced_at_utc": "2026-11-25T04:58:42Z"
 }
