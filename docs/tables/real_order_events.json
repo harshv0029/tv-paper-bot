@@ -145691,7 +145691,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1581: Kotak shows PIDILITIND-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
+  },
+  {
+   "id": 12142,
+   "ts": 1795600514.6841626,
+   "symbol": "MANKIND.NS",
+   "kotak_trading_symbol": "MANKIND-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1581: Kotak shows MANKIND-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
   }
  ],
- "synced_at_utc": "2026-11-25T09:55:11Z"
+ "synced_at_utc": "2026-11-25T09:55:30Z"
 }
