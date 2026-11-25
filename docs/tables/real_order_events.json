@@ -145223,7 +145223,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs362.55",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs362.55 already covers the position (target stop Rs362.53), adopted, nothing placed"
+  },
+  {
+   "id": 12103,
+   "ts": 1795597681.2319393,
+   "symbol": "PIIND.NS",
+   "kotak_trading_symbol": "PIIND-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261125000665062",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1574.20",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-25T09:03:08Z"
+ "synced_at_utc": "2026-11-25T09:08:08Z"
 }
