@@ -145009,6 +145009,18 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=B qty=1"
   },
   {
+   "id": 12086,
+   "ts": 1795588495.6526117,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261125000313462",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 12085,
    "ts": 1795588506.478425,
    "symbol": "ZYDUSLIFE.NS",
@@ -145021,5 +145033,5 @@
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1152.50 to Rs1153.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-11-25T06:35:28Z"
+ "synced_at_utc": "2026-11-25T06:36:58Z"
 }
