@@ -42885,7 +42885,8 @@ def _fno_kotak_spot(underlying: str):
     elif last and _fno_num((d0.get("ohlc") or {}).get("close")):
         pc = _fno_num(d0["ohlc"]["close"])
         pct = round((last - pc) / pc * 100.0, 2)
-    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct}
+    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct,
+                                         "open": _fno_num((d0.get("ohlc") or {}).get("open")) or None}
     return last, pct
 
 
@@ -43152,6 +43153,15 @@ FNO_CHG_WINDOW_S = 15 * 60
 FNO_HIST_KEEP_S = 20 * 60
 FNO_HIST_PER_INDEX = 50  # B-1684: every listed contract (was 20: rows 21-50 never got a 15-min base)
 _FNO_PX_HIST = {}  # contract -> [(ts, price), ...] oldest first; <= 5 x 20 contracts x ~20 samples
+# B-1713 (user 2026-11-25 "publish 1hour% change and 5min% change"): 5-min change reads _FNO_PX_HIST; the 1-hour
+# change keeps its own thinner samples (one per FNO_HIST_1H_STEP_S, 66 min) so memory stays small (~6 x 50 x 33 tuples).
+# Memory-only by choice: display/research, not trading state, and the Upstash budget is spent (B-1576), so after a
+# restart the 1h column shows "warming up" for an hour. The per-minute tape (B-1687) keeps every price for research.
+FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S = 5 * 60, 6 * 60
+FNO_CHG60_WINDOW_S, FNO_CHG60_MAX_BASE_AGE_S = 60 * 60, 62 * 60
+FNO_HIST_1H_STEP_S = 110
+FNO_HIST_1H_KEEP_S = 66 * 60
+_FNO_PX_HIST_1H = {}
 
 
 # B-1684: the 15-min samples were memory-only, so every restart blanked View 6's "15m %" column for 15 min. Mirrored to
@@ -43197,6 +43207,43 @@ def _fno_hist_save(now_ts: float) -> bool:
         return False
 
 
+# B-1714: Kotak quotes carry open interest but no change in OI, so the OI build-up label (and the entry gate that
+# needs it) was blank for every index served from Kotak. Fallback: OI now minus the first OI this app saw for the
+# contract this IST day (memory only; a restart re-bases it, so the change reads small until OI moves again).
+_FNO_OI_DAY_FIRST = {}  # contract -> (ist_day, oi, ts)
+_FNO_IDX_HIST = {}  # B-1715: underlying -> [(ts, index last)], 20 min, for the 5-min index confirmation (memory only)
+
+
+def _fno_idx_hist_note(detail: dict, now_ts: float) -> None:
+    for u, d in (detail or {}).items():
+        last = _fno_num((d or {}).get("last"))
+        if last <= 0:
+            continue
+        h = _FNO_IDX_HIST.setdefault(u, [])
+        if not h or now_ts - h[-1][0] >= 30:
+            h.append((now_ts, last))
+        _FNO_IDX_HIST[u] = [x for x in h if now_ts - x[0] <= FNO_HIST_KEEP_S]
+
+
+def _fno_oi_first_note(contract: str, oi: float, now_ts: float) -> None:
+    day = time.strftime("%Y-%m-%d", time.gmtime(now_ts + 19800))
+    cur = _FNO_OI_DAY_FIRST.get(contract)
+    if cur is None or cur[0] != day:
+        _FNO_OI_DAY_FIRST[contract] = (day, oi, now_ts)
+        if len(_FNO_OI_DAY_FIRST) > 4000:
+            for k in [k for k, v in _FNO_OI_DAY_FIRST.items() if v[0] != day]:
+                del _FNO_OI_DAY_FIRST[k]
+
+
+def _fno_oi_intraday_change(contract: str, oi: float, now_ts: float):
+    """(OI change since the first sighting today, basis 'HH:MM IST') or (None, None)."""
+    cur = _FNO_OI_DAY_FIRST.get(contract)
+    day = time.strftime("%Y-%m-%d", time.gmtime(now_ts + 19800))
+    if not cur or cur[0] != day or oi <= 0:
+        return None, None
+    return round(oi - cur[1], 2), time.strftime("%H:%M IST", time.gmtime(cur[2] + 19800))
+
+
 def _fno_hist_record(groups: dict, now_ts: float) -> None:
     _fno_hist_restore(now_ts)
     for u, rows in (groups or {}).items():
@@ -43206,6 +43253,18 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
                 h = _FNO_PX_HIST.setdefault(r["contract"], [])
                 if not h or now_ts - h[-1][0] >= 30:
                     h.append((now_ts, px))
+                oi = _fno_num(r.get("openInterest"))
+                if oi > 0:  # B-1714: first OI seen this IST day (Kotak gives no OI change)
+                    _fno_oi_first_note(r["contract"], oi, now_ts)
+                h1 = _FNO_PX_HIST_1H.setdefault(r["contract"], [])  # B-1713: thinner 1-hour samples
+                if not h1 or now_ts - h1[-1][0] >= FNO_HIST_1H_STEP_S:
+                    h1.append((now_ts, px))
+    for k in list(_FNO_PX_HIST_1H):
+        h1 = [s for s in _FNO_PX_HIST_1H[k] if now_ts - s[0] <= FNO_HIST_1H_KEEP_S]
+        if h1:
+            _FNO_PX_HIST_1H[k] = h1
+        else:
+            del _FNO_PX_HIST_1H[k]
     for k in list(_FNO_PX_HIST):
         h = [s for s in _FNO_PX_HIST[k] if now_ts - s[0] <= FNO_HIST_KEEP_S]
         if h:
@@ -43464,6 +43523,32 @@ def _fno_chg15_detail(contract: str, price, now_ts: float) -> dict:
                                .strftime("%H:%M:%S IST") if pct is not None else None)}
 
 
+def _fno_chg_window(hist: dict, contract: str, price, now_ts: float, window_s: float, max_age_s: float):
+    """B-1713: rolling % change vs the sample closest to `window_s` ago (window_s..max_age_s old), else (None, None)."""
+    px = _fno_num(price)
+    base = base_ts = None
+    for ts, p in hist.get(contract, []):
+        age = now_ts - ts
+        if window_s <= age <= max_age_s:
+            base, base_ts = p, ts
+        elif age < window_s:
+            break
+    if not base or px <= 0:
+        return None, None
+    return round((px / base - 1.0) * 100.0, 2), ((dt.datetime.utcfromtimestamp(base_ts)
+                                                  + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"))
+
+
+def _fno_chg_multi_detail(contract: str, price, now_ts: float) -> dict:
+    """B-1713: the 15-min change (B-1684) plus rolling 5-min and 1-hour changes for one View 6 row."""
+    out = _fno_chg15_detail(contract, price, now_ts)
+    out["chg5_pct"], out["chg5_from_ist"] = _fno_chg_window(_FNO_PX_HIST, contract, price, now_ts,
+                                                            FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S)
+    out["chg60_pct"], out["chg60_from_ist"] = _fno_chg_window(_FNO_PX_HIST_1H, contract, price, now_ts,
+                                                              FNO_CHG60_WINDOW_S, FNO_CHG60_MAX_BASE_AGE_S)
+    return out
+
+
 def _fno_chg15(contract: str, price, now_ts: float):
     """% change of the premium vs its price 15 min ago (rolling, see _fno_chg15_detail). None while warming up."""
     return _fno_chg15_detail(contract, price, now_ts)["chg15_pct"]
@@ -43501,8 +43586,13 @@ def _fno_by_index_snapshot() -> dict:
     for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1712: SENSEX day % from Kotak (NSE allIndices never lists it)
         if index_pct.get(u) is None and c.get("pct") is not None:
             index_pct[u] = c["pct"]
+    index_detail = dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {})
+    for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1714: SENSEX open/last for the strict sentiment gate
+        if u not in index_detail and c.get("last") and c.get("open"):
+            index_detail[u] = {"last": c["last"], "open": c["open"]}
+    _fno_idx_hist_note(index_detail, now)  # B-1715
     data = {"groups": groups, "sources": sources, "index_pct": index_pct,
-            "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
+            "index_detail": index_detail,
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}
     del raw, rows
@@ -43565,7 +43655,7 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
         if positive_only:
             rows = [r for r in rows if _fno_num(r.get("pChange")) > 0]
         now_ist = ist_now()
-        out[u] = {"rows": [dict(r, **_fno_chg15_detail(r.get("contract"), r.get("lastPrice"), now_ts),
+        out[u] = {"rows": [dict(r, **_fno_chg_multi_detail(r.get("contract"), r.get("lastPrice"), now_ts),
                                 **_fno_option_metrics(r, now_ist))  # B-1681: OI build-up, IV, Greeks
                            for r in rows[:n]],
                   "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active"),
@@ -43619,11 +43709,54 @@ FNO_MOMO_STRICT_VIX_MAX_UP = 5.0
 # + the OI/Greeks buy filter, under a new immutable tag. The three earlier tags are RETIRED: no new entries, their
 # history stays viewable, any row still open under them is closed by the sweep (retired_variant_close).
 FNO_MOMO_STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"
-FNO_MOMO_RETIRED_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic", "retired": True},
+# B-1714 (user 2026-11-25 "Research on your own on how to use OI, Greeks, % change and other factors for planning a
+# trade entry and based on that plan ur entry on paper"): v1 strict+OI/Greeks made 0 entries (one candidate per scan,
+# the largest DAY % - always a near-expiry lottery strike that failed theta - and OI build blank on Kotak rows). The new
+# plan checks EVERY top-5 contract of every index and takes the best that passes all of: strict sentiment (B-1677),
+# rising premium on 5 min AND 15 min (1 h not falling), no chasing a >10% 5-min spike, long build-up (premium up, OI up),
+# delta 0.35-0.65, >= 2 days to expiry, theta <= 15% of premium/day, IV not > 1.25x the index's median IV. Ranked by
+# 15-min change. Stated priors from the read-up (see learnings), PAPER ONLY; a sweep follows at >= 30 trades.
+FNO_MOMO_V2_TAG = "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"
+FNO_V2_TOP_N = 5
+FNO_V2_DELTA_MIN, FNO_V2_DELTA_MAX = 0.35, 0.65
+FNO_V2_THETA_MAX_FRAC = 0.15  # as v1 (ATM ~ 1/(2 x days): >= ~3.3 days); intraday holds pay a fraction of it
+FNO_V2_MIN_DTE = 2.0
+FNO_V2_IV_REL_MAX = 1.25
+FNO_V2_CHG5_MAX = 10.0
+FNO_MOMO_STRICT_OIG_VARIANT = {"tag": FNO_MOMO_STRICT_OIG_TAG, "gate": "strict_oigreeks", "retired": True}
+# B-1715 (user 2026-11-25 "U can't wait for 1 hour % change ... Most of single leg option trading exit within 15
+# minutes. So read some research paper first and then deduce the strategy"). Research read (search abstracts):
+# intraday return autocorrelation is most NEGATIVE at the 15-min horizon on normal days (reversal), continuation shows
+# on trend/news days and under negative dealer gamma; intraday option momentum sits in the morning (delayed reaction to
+# overnight news) and the afternoon, with mid-day reversal; index option buyers earn intraday but lose overnight; intraday
+# OI repositioning on NIFTY options has no robust predictive power (2026 NIFTY 50 study); spreads (1-3 pts per side) and
+# costs decide a 5-15 min scalp. Deduced v3 (fast) plan, PAPER ONLY, stated priors:
+#   window 09:30-11:15 and 13:15-14:30 IST (skip the mid-day reversal zone); strict sentiment = trend day; the INDEX
+#   itself moved >= 0.05% in the trade direction over the last 5 min; premium up over 5 min (<= 10%, no spike) and the
+#   15-min rise not past 20% (an exhausted 15-min run tends to reverse; unknown 15m does not block); delta 0.40-0.60
+#   (smallest spread %, most responsive); premium >= Rs 20; IV <= 1.25x the index median; OI recorded, not a gate.
+#   Ranked by the 5-min premium rise. Exits: 2% trail as before PLUS a 15-min time stop. No 1-hour input.
+FNO_MOMO_V3_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"
+FNO_V3_WINDOWS = ((9 * 60 + 30, 11 * 60 + 15), (13 * 60 + 15, 14 * 60 + 30))
+FNO_V3_IDX_MOVE_MIN_PCT = 0.05
+FNO_V3_CHG5_MAX = 10.0
+FNO_V3_CHG15_MAX = 20.0
+FNO_V3_DELTA_MIN, FNO_V3_DELTA_MAX = 0.40, 0.60
+FNO_V3_MIN_PREMIUM = 20.0
+FNO_V3_MAX_HOLD_S = 15 * 60
+FNO_MOMO_V2_VARIANT = {"tag": FNO_MOMO_V2_TAG, "gate": "mtf_v2", "retired": True}  # B-1715: never deployed, 0 trades
+FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V2_VARIANT, FNO_MOMO_STRICT_OIG_VARIANT,
+                             {"tag": FNO_MOMO_TAG, "gate": "basic", "retired": True},
                              {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict", "retired": True},
                              {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1",
                               "gate": "oigreeks", "retired": True})
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_STRICT_OIG_TAG, "gate": "strict_oigreeks"},)  # the ONLY one that enters
+# B-1717 (user 2026-11-25 "exclude the reason for expiring hence skipping, means u include all, because u have 2% max
+#   SL and then trail it"): same fast plan, expiry-day contracts are now checked too (the 2% trailing SL caps the loss).
+#   New tag (tags are immutable); the B-1715 tag is retired with 0 trades (never deployed).
+FNO_MOMO_V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1"
+FNO_MOMO_V3_VARIANT = {"tag": FNO_MOMO_V3_TAG, "gate": "fast_v3", "retired": True}
+FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_V3_VARIANT,) + FNO_MOMO_RETIRED_VARIANTS
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True},)  # B-1717: the ONLY one
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -43733,12 +43866,17 @@ def _fno_option_metrics(row: dict, now) -> dict:
     pc = _fno_num(row.get("pChange"))
     oi_raw = row.get("changeinOpenInterest")
     oi_chg = None if oi_raw in (None, "", "-") else _fno_num(oi_raw)
+    oi_basis = "prev_close" if oi_chg is not None else None
+    if oi_chg is None and row.get("contract"):  # B-1714: Kotak rows -> intraday change since first seen today
+        oi_chg, since = _fno_oi_intraday_change(row["contract"], _fno_num(row.get("openInterest")), time.time())
+        oi_basis = f"since {since}" if since else None
     build = None
     if oi_chg is not None:
         build = ("long_buildup" if pc > 0 and oi_chg > 0 else "short_covering" if pc > 0 and oi_chg < 0
                  else "short_buildup" if pc < 0 and oi_chg > 0 else "long_unwinding" if pc < 0 and oi_chg < 0
                  else "flat")
     m = {"oi": _fno_num(row.get("openInterest")) or None, "oi_change": oi_chg, "oi_build": build,
+         "oi_change_basis": oi_basis,
          "iv_pct": None, "delta": None, "gamma": None, "theta_per_day": None, "vega_per_vol_pt": None,
          "theta_frac": None, "days_to_expiry": round(T * 365.0, 2) if T else None}
     if ot and px > 0 and S > 0 and K > 0 and T > 0:
@@ -43779,6 +43917,127 @@ def _fno_momo_pick(groups: dict, day: str = ""):
                 best = {"contract": r["contract"], "underlying": u, "option_type": ot,
                         "lastPrice": px, "pChange": pc, "rank": rank, "row": r}
     return best
+
+
+def _fno_momo_v2_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str):
+    """B-1714: the first failing check for one contract (None = passes every check)."""
+    if day and _fno_momo_is_expiry_day(row.get("contract"), day):
+        return "skipped_expiry_day"
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    c5, c15, c60 = m.get("chg5_pct"), m.get("chg15_pct"), m.get("chg60_pct")
+    if c5 is None or c15 is None:
+        return "skipped_momentum_warming_up"
+    if c5 <= 0 or c15 <= 0:
+        return "skipped_momentum_not_rising"
+    if c60 is not None and c60 < 0:
+        return "skipped_1h_falling"
+    if c5 > FNO_V2_CHG5_MAX:
+        return "skipped_chasing_spike"
+    if m.get("oi_build") is None:
+        return "skipped_oi_unknown"
+    if m["oi_build"] != "long_buildup":
+        return "skipped_oi_" + m["oi_build"]
+    if m.get("delta") is None or m.get("theta_frac") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V2_DELTA_MIN <= abs(m["delta"]) <= FNO_V2_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if (m.get("days_to_expiry") or 0) < FNO_V2_MIN_DTE:
+        return "skipped_near_expiry"
+    if m["theta_frac"] > FNO_V2_THETA_MAX_FRAC:
+        return "skipped_theta_burden"
+    if iv_med and m.get("iv_pct") and m["iv_pct"] > FNO_V2_IV_REL_MAX * iv_med:
+        return "skipped_iv_rich"
+    return None
+
+
+def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
+                      mins: int, allow_expiry: bool = False):
+    """B-1715: the first failing check of the fast plan for one contract (None = passes). B-1717: allow_expiry."""
+    if day and not allow_expiry and _fno_momo_is_expiry_day(row.get("contract"), day):
+        return "skipped_expiry_day"
+    if not any(a <= mins <= b for a, b in FNO_V3_WINDOWS):
+        return "skipped_midday_reversal_window"
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    last = _fno_num((detail.get(u) or {}).get("last"))
+    idx5, _ = _fno_chg_window(_FNO_IDX_HIST, u, last, now_ts, FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S)
+    if idx5 is None:
+        return "skipped_index_5m_warming_up"
+    if (idx5 if ot == "CE" else -idx5) < FNO_V3_IDX_MOVE_MIN_PCT:
+        return "skipped_index_not_moving"
+    c5, c15 = m.get("chg5_pct"), m.get("chg15_pct")
+    if c5 is None:
+        return "skipped_momentum_warming_up"
+    if c5 <= 0:
+        return "skipped_momentum_not_rising"
+    if c5 > FNO_V3_CHG5_MAX:
+        return "skipped_chasing_spike"
+    if c15 is not None and c15 > FNO_V3_CHG15_MAX:
+        return "skipped_15m_exhausted"
+    if _fno_num(row.get("lastPrice")) < FNO_V3_MIN_PREMIUM:
+        return "skipped_premium_too_small"
+    if m.get("delta") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V3_DELTA_MIN <= abs(m["delta"]) <= FNO_V3_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if iv_med and m.get("iv_pct") and m["iv_pct"] > FNO_V2_IV_REL_MAX * iv_med:
+        return "skipped_iv_rich"
+    return None
+
+
+def _fno_momo_pick_v3(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
+                      allow_expiry: bool = False):
+    """B-1715: as v2's checked pick, with the fast-plan checks, ranked by the 5-min premium rise."""
+    mins = now.hour * 60 + now.minute
+    return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
+                             skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v3_skip(r, ot, u, m, iv, p, d, dy,
+                                                                                        now_ts, mins, allow_expiry),
+                             rank_key="chg5_pct")
+
+
+def _fno_momo_pick_v2(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "", skip_fn=None,
+                      rank_key: str = "chg15_pct"):
+    """B-1714: (candidate, metrics, checked) - every top-5 contract per index is checked; the passing one with the
+    largest 15-min change wins (ties: more contracts traded). checked = [{"contract", "skip"}] for View 6's why."""
+    skip_fn = skip_fn or _fno_momo_v2_skip
+    checked, passed = [], []
+    for u in _FNO_INDEX_UNDERLYINGS:
+        mets = []
+        for rank, r in enumerate((groups or {}).get(u, [])[:FNO_V2_TOP_N], 1):
+            px = _fno_num(r.get("lastPrice"))
+            ot = _fno_momo_opt_type(r.get("optionType")) or next(
+                (t for t in str(r.get("contract") or "").split() if t in ("CE", "PE")), "")
+            if px <= 0 or not ot or not r.get("contract"):
+                continue
+            m = _fno_option_metrics(r, now)
+            m.update(_fno_chg_multi_detail(r["contract"], px, now_ts))
+            mets.append((rank, r, ot, px, m))
+        ivs = sorted(m["iv_pct"] for *_, m in mets if m.get("iv_pct"))
+        iv_med = ivs[len(ivs) // 2] if len(ivs) >= 3 else None
+        for rank, r, ot, px, m in mets:
+            skip = skip_fn(r, ot, u, m, iv_med, pct, detail, day)
+            checked.append({"contract": r["contract"], "skip": skip})
+            if skip is None:
+                passed.append(({"contract": r["contract"], "underlying": u, "option_type": ot, "lastPrice": px,
+                                "pChange": _fno_num(r.get("pChange")), "rank": rank, "row": r, "iv_median": iv_med},
+                               m))
+    if not passed:
+        return None, None, checked
+    cand, m = max(passed, key=lambda cm: (cm[1][rank_key], _fno_num(cm[0]["row"].get("numberOfContractsTraded"))))
+    return cand, m, checked
+
+
+def _fno_momo_v2_top_skip(checked: list) -> str:
+    """The most common skip reason of a scan with no entry (View 6 shows it)."""
+    reasons = [c["skip"] for c in checked or [] if c.get("skip")]
+    return max(set(reasons), key=reasons.count) if reasons else "skipped_no_positive_candidate"
 
 
 def _fno_momo_net_pct(entry: float, exit_px: float) -> float:
@@ -43845,7 +44104,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
-        top = {r.get("contract") for r in groups.get(row["underlying"], [])[:FNO_MOMO_TOP_N]}
+        top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3") else FNO_MOMO_TOP_N  # B-1714: top 5
+        top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
         reason, fill = None, price
         if mins >= FNO_MOMO_FORCE_EXIT_MIN:
@@ -43854,6 +44114,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             # B-1679: the stop sits 2% under the entry from the first tick and trails 2% under the peak. The paper
             # fill is the resting stop level (an SL-M at the exchange); the observed price is kept beside it.
             reason, fill = "trailing_sl", row["stop_price"]
+        elif variant["gate"] == "fast_v3" and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S:
+            reason = "time_exit_15min"  # B-1715: the fast plan holds at most 15 min
         elif snap.get("ok") and row["contract"] not in top:
             reason = "confidence_lost_top3"
         elif senti is False:
@@ -43865,18 +44127,29 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                          "WHERE id = ?", (peak, stop, price, now_ts, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        cand = _fno_momo_pick(groups, day)
-        scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
-        if cand is None:
-            scan["skip"] = "skipped_no_positive_candidate"
+        v2 = variant["gate"] in ("mtf_v2", "fast_v3")
+        if v2:  # B-1714 / B-1715
+            if variant["gate"] == "fast_v3":
+                cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
+                                                       allow_expiry=bool(variant.get("allow_expiry")))
+            else:
+                cand, v2m, checked = _fno_momo_pick_v2(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+            scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None, "checked": checked[:30]}
         else:
-            if variant["gate"] in ("strict", "strict_oigreeks"):  # B-1686: strict replaced basic
+            cand = _fno_momo_pick(groups, day)
+            scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
+        if cand is None:
+            scan["skip"] = _fno_momo_v2_top_skip(checked) if v2 else "skipped_no_positive_candidate"
+        else:
+            if v2:
+                senti = True
+            elif variant["gate"] in ("strict", "strict_oigreeks"):  # B-1686: strict replaced basic
                 senti = _fno_momo_sentiment_strict(cand["option_type"], cand["underlying"], pct,
                                                    snap.get("index_detail") or {})
             else:
                 senti = _fno_momo_sentiment(cand["option_type"], pct.get(cand["underlying"]), pct.get("NIFTY"))
             # B-1681: OI build-up + Greeks of the candidate, recorded on every entry (any variant) for View 6's "why"
-            om = _fno_option_metrics(cand.get("row") or {}, now)
+            om = v2m if v2 else _fno_option_metrics(cand.get("row") or {}, now)
             scan["metrics"] = om
             oig_skip = None
             if senti is True and variant["gate"] in ("oigreeks", "strict_oigreeks"):  # B-1686: OI + Greeks decide the buy
@@ -43892,6 +44165,10 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                 if om.get("delta") is not None:
                     why += (f"; OI {om['oi_build'] or 'n/a'}, IV {om['iv_pct']}%, delta {om['delta']}, "
                             f"theta {om['theta_per_day']}/day ({round((om['theta_frac'] or 0) * 100, 1)}% of premium)")
+                if v2:
+                    why += (f"; 5m {om.get('chg5_pct')}% / 15m {om.get('chg15_pct')}% / 1h {om.get('chg60_pct')}%, "
+                            f"IV vs index median {cand.get('iv_median')}%, {om.get('days_to_expiry')} days to expiry, "
+                            f"OI change {om.get('oi_change')} ({om.get('oi_change_basis')})")
                 meta = {"metrics": om, "index_pct": pct.get(cand["underlying"]), "nifty_pct": pct.get("NIFTY"),
                         "rank": cand["rank"], "gate": variant["gate"]}
                 conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "

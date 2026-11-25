@@ -14,6 +14,7 @@ import strategy_registry as sr
 
 REAL_SYNC = main.sync_generic_tables_external
 REAL_SNAP = main._fno_by_index_snapshot
+SOIG = main.FNO_MOMO_STRICT_OIG_VARIANT  # B-1714: v1 gate logic still tested directly
 ACTIVE = main.FNO_MOMO_VARIANTS  # B-1686: the one real active strategy (strict sentiment + OI/Greeks)
 BASIC = next(v for v in main.FNO_MOMO_ALL_VARIANTS if v["gate"] == "basic")
 SYNCED = []
@@ -303,7 +304,7 @@ def test_tick_hook_runs_every_variant(monkeypatch):
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
     monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     main._fno_momo_tick_hook()
-    assert seen == ["strict_oigreeks"]  # B-1686: ONE strategy enters
+    assert seen == ["fast_v3"]  # B-1686/B-1715: ONE strategy enters
 
 
 # ---- B-1678 / B-1679 (d) / B-1680 (user 2026-11-23) ------------------------------------------------------------------
@@ -691,23 +692,25 @@ def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
 
 # ---- B-1686: one strategy = strict sentiment + OI/Greeks ------------------------------------------------------------
 def test_only_one_active_strategy_strict_plus_oi_greeks():
-    assert [v["gate"] for v in ACTIVE] == ["strict_oigreeks"]
-    assert ACTIVE[0]["tag"] == "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"
-    assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {"basic", "strict", "oigreeks"}
+    assert [v["gate"] for v in ACTIVE] == ["fast_v3"]
+    assert ACTIVE[0]["tag"] == (  # B-1717: expiry-day contracts included
+        "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1")
+    assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {
+        "basic", "strict", "oigreeks", "strict_oigreeks", "mtf_v2", "fast_v3"}
 
 
 def test_combined_needs_strict_sentiment_and_oi_greeks(db):
     det = {"NIFTY": {"last": 25100, "open": 25000, "advances": 35, "declines": 15}}
     strong, weak = {"NIFTY": 0.4, "INDIAVIX": 1.0}, {"NIFTY": 0.1, "INDIAVIX": 1.0}
-    st = main._FNO_MOMO_STATES[ACTIVE[0]["tag"]]
-    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], weak, det), now_ts=T0, variant=ACTIVE[0])
+    st = main._FNO_MOMO_STATES[SOIG["tag"]]
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], weak, det), now_ts=T0, variant=SOIG)
     assert st["last_scan"]["skip"] == "skipped_sentiment_disagrees"  # OI/Greeks fine, strict sentiment not
     main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow(oi_chg=-500)], strong, det), now_ts=T0 + 300,
-                        variant=ACTIVE[0])
+                        variant=SOIG)
     assert st["last_scan"]["skip"] == "skipped_oi_short_covering"  # strict fine, OI not
-    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], strong, det), now_ts=T0 + 600, variant=ACTIVE[0])
+    main._fno_momo_step(db, now=MON, snapshot=_ssnap([_orow()], strong, det), now_ts=T0 + 600, variant=SOIG)
     t = _open(db)
-    assert t["tag"] == ACTIVE[0]["tag"] and "strict_oigreeks" in t["open_reason"] and "delta" in t["open_reason"]
+    assert t["tag"] == SOIG["tag"] and "strict_oigreeks" in t["open_reason"] and "delta" in t["open_reason"]
 
 
 def test_retired_open_row_closed_in_window_by_the_sweep(db, monkeypatch):
@@ -720,7 +723,7 @@ def test_retired_open_row_closed_in_window_by_the_sweep(db, monkeypatch):
 def test_route_defaults_to_the_active_strategy(monkeypatch):
     monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     out = main.fno_momo_paper()
-    assert out["tag"] == ACTIVE[0]["tag"] and out["gate"] == "strict_oigreeks"
+    assert out["tag"] == ACTIVE[0]["tag"] and out["gate"] == "fast_v3"
     assert out["variants"][main.FNO_MOMO_TAG]["retired"] is True and out["variants"][ACTIVE[0]["tag"]]["retired"] is False
 
 
