@@ -145091,7 +145091,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1798.40",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12092,
+   "ts": 1795589560.7968113,
+   "symbol": "SBILIFE.NS",
+   "kotak_trading_symbol": "SBILIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261125000402336",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs1798.40",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1798.40 already covers the position (target stop Rs1798.35), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-25T06:52:41Z"
+ "synced_at_utc": "2026-11-25T06:52:56Z"
 }
