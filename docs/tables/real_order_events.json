@@ -144887,7 +144887,19 @@
    "prev_state": null,
    "new_state": "no real short row in this app; no order sent",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12075,
+   "ts": 1795586076.2666414,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261125000304326",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs160.60",
+   "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
   }
  ],
- "synced_at_utc": "2026-11-25T05:52:18Z"
+ "synced_at_utc": "2026-11-25T05:54:39Z"
 }
