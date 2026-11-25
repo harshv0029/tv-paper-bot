@@ -145187,7 +145187,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs11.71",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=20"
+  },
+  {
+   "id": 12100,
+   "ts": 1795597324.7501707,
+   "symbol": "ETERNAL.NS",
+   "kotak_trading_symbol": "ETERNAL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261125000655331",
+   "prev_state": "no position",
+   "new_state": "long 3 @ Rs372.10",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-25T07:53:02Z"
+ "synced_at_utc": "2026-11-25T09:02:12Z"
 }
