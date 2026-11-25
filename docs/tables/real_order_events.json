@@ -144875,7 +144875,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": false, \"error\": \"database is locked\", \"seconds\": 40.1}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 12074,
+   "ts": 1795585935.9186668,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-25T05:44:34Z"
+ "synced_at_utc": "2026-11-25T05:52:18Z"
 }
