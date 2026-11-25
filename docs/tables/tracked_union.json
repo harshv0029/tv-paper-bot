@@ -27,7 +27,7 @@
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": 143.54,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 134.85928290230888,
    "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
    "symbol": "BANKINDIA.NS"
@@ -59,7 +59,7 @@
    "owner": "swing",
    "qty": 3,
    "sl_trigger_price": 362.55,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 362.5340780628952,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "ETERNAL.NS"
@@ -203,7 +203,7 @@
    "owner": "swing",
    "qty": 31,
    "sl_trigger_price": 65.7,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 65.70088692791515,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "NMDC.NS"
@@ -219,7 +219,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1535.3,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1535.2961075272244,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "PIIND.NS"
@@ -251,7 +251,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1798.4,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 1798.350027656595,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "SBILIFE.NS"
@@ -267,7 +267,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 3093.2,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 3093.1246700034803,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "SUPREMEIND.NS"
