@@ -2606,3 +2606,8 @@ Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but e
 - Every index chain fetch failed live (404), but the 404 came from NSE's retired option-chain-indices fallback, not from the v3 call that matters. A fallback to a dead endpoint turns every upstream problem into the same misleading error.
 - Rule: name each step in the surfaced error, drop retired endpoints, and skip lapsed expiries (Nov 2026 monthly expiry moved for the 24-Nov holiday).
 - Profit-booking / exit takeaway: the paper option strategy's 2% trailing stop reads its premium from these chains when a contract leaves NSE's most-active list; a silent chain outage means the stop runs on stale prices, so chain health must be visible before any option variant is trusted for exits.
+
+## 2026-11-25 B-1713: View 6 adds rolling 5-min and 1-hour premium change
+- User asked for 5m and 1h % change beside 15m to raise confidence in option entries. Built as display fields (rolling, base 5:00-6:00 / 60:00-62:00 min old, "warming up" otherwise). 1h samples are thinned to one per 110 s to keep memory small and kept off Upstash (budget spent).
+- Lesson: a multi-horizon momentum view (5m > 0, 15m > 0, 1h > 0 all agreeing) is a hypothesis, not an edge, until it is replayed on the per-minute tape with the 0.8% cost model.
+- Profit-booking / exit takeaway: a fading 5m change while 15m/1h stay positive is a candidate early-trail signal for option premiums; test it on the tape before it changes any exit.

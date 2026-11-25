@@ -43152,6 +43152,15 @@ FNO_CHG_WINDOW_S = 15 * 60
 FNO_HIST_KEEP_S = 20 * 60
 FNO_HIST_PER_INDEX = 50  # B-1684: every listed contract (was 20: rows 21-50 never got a 15-min base)
 _FNO_PX_HIST = {}  # contract -> [(ts, price), ...] oldest first; <= 5 x 20 contracts x ~20 samples
+# B-1713 (user 2026-11-25 "publish 1hour% change and 5min% change"): 5-min change reads _FNO_PX_HIST; the 1-hour
+# change keeps its own thinner samples (one per FNO_HIST_1H_STEP_S, 66 min) so memory stays small (~6 x 50 x 33 tuples).
+# Memory-only by choice: display/research, not trading state, and the Upstash budget is spent (B-1576), so after a
+# restart the 1h column shows "warming up" for an hour. The per-minute tape (B-1687) keeps every price for research.
+FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S = 5 * 60, 6 * 60
+FNO_CHG60_WINDOW_S, FNO_CHG60_MAX_BASE_AGE_S = 60 * 60, 62 * 60
+FNO_HIST_1H_STEP_S = 110
+FNO_HIST_1H_KEEP_S = 66 * 60
+_FNO_PX_HIST_1H = {}
 
 
 # B-1684: the 15-min samples were memory-only, so every restart blanked View 6's "15m %" column for 15 min. Mirrored to
@@ -43206,6 +43215,15 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
                 h = _FNO_PX_HIST.setdefault(r["contract"], [])
                 if not h or now_ts - h[-1][0] >= 30:
                     h.append((now_ts, px))
+                h1 = _FNO_PX_HIST_1H.setdefault(r["contract"], [])  # B-1713: thinner 1-hour samples
+                if not h1 or now_ts - h1[-1][0] >= FNO_HIST_1H_STEP_S:
+                    h1.append((now_ts, px))
+    for k in list(_FNO_PX_HIST_1H):
+        h1 = [s for s in _FNO_PX_HIST_1H[k] if now_ts - s[0] <= FNO_HIST_1H_KEEP_S]
+        if h1:
+            _FNO_PX_HIST_1H[k] = h1
+        else:
+            del _FNO_PX_HIST_1H[k]
     for k in list(_FNO_PX_HIST):
         h = [s for s in _FNO_PX_HIST[k] if now_ts - s[0] <= FNO_HIST_KEEP_S]
         if h:
@@ -43464,6 +43482,32 @@ def _fno_chg15_detail(contract: str, price, now_ts: float) -> dict:
                                .strftime("%H:%M:%S IST") if pct is not None else None)}
 
 
+def _fno_chg_window(hist: dict, contract: str, price, now_ts: float, window_s: float, max_age_s: float):
+    """B-1713: rolling % change vs the sample closest to `window_s` ago (window_s..max_age_s old), else (None, None)."""
+    px = _fno_num(price)
+    base = base_ts = None
+    for ts, p in hist.get(contract, []):
+        age = now_ts - ts
+        if window_s <= age <= max_age_s:
+            base, base_ts = p, ts
+        elif age < window_s:
+            break
+    if not base or px <= 0:
+        return None, None
+    return round((px / base - 1.0) * 100.0, 2), ((dt.datetime.utcfromtimestamp(base_ts)
+                                                  + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"))
+
+
+def _fno_chg_multi_detail(contract: str, price, now_ts: float) -> dict:
+    """B-1713: the 15-min change (B-1684) plus rolling 5-min and 1-hour changes for one View 6 row."""
+    out = _fno_chg15_detail(contract, price, now_ts)
+    out["chg5_pct"], out["chg5_from_ist"] = _fno_chg_window(_FNO_PX_HIST, contract, price, now_ts,
+                                                            FNO_CHG5_WINDOW_S, FNO_CHG5_MAX_BASE_AGE_S)
+    out["chg60_pct"], out["chg60_from_ist"] = _fno_chg_window(_FNO_PX_HIST_1H, contract, price, now_ts,
+                                                              FNO_CHG60_WINDOW_S, FNO_CHG60_MAX_BASE_AGE_S)
+    return out
+
+
 def _fno_chg15(contract: str, price, now_ts: float):
     """% change of the premium vs its price 15 min ago (rolling, see _fno_chg15_detail). None while warming up."""
     return _fno_chg15_detail(contract, price, now_ts)["chg15_pct"]
@@ -43565,7 +43609,7 @@ def fno_most_active_by_index(per_index: int = 5, positive_only: int = 1):
         if positive_only:
             rows = [r for r in rows if _fno_num(r.get("pChange")) > 0]
         now_ist = ist_now()
-        out[u] = {"rows": [dict(r, **_fno_chg15_detail(r.get("contract"), r.get("lastPrice"), now_ts),
+        out[u] = {"rows": [dict(r, **_fno_chg_multi_detail(r.get("contract"), r.get("lastPrice"), now_ts),
                                 **_fno_option_metrics(r, now_ist))  # B-1681: OI build-up, IV, Greeks
                            for r in rows[:n]],
                   "day_change_pct": pct.get(u), "source": (snap.get("sources") or {}).get(u, "most_active"),

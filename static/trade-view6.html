@@ -55,16 +55,18 @@
   const lakh = v => { const n = num(v); return n === null ? "–" : (n / 1e5).toLocaleString("en-IN", {maximumFractionDigits: 2}); };
   const hm = s => s ? String(s).slice(11, 19) : "–";
 
+  // B-1713: rolling 5m / 15m / 1h change cells ("warming up" until a base sample of that age exists)
+  const chg = (v, from) => `<td class="num mono">${v == null ? '<span class="dim">warming up</span>' : pct(v) + '<br><span class="dim" style="font-size:11px">vs ' + esc(String(from||'').slice(0,5)) + '</span>'}</td>`;
   function table(u, d) {
     const rows = (d && d.rows) || [];
     const body = rows.length ? rows.map(r => `<tr><td>${esc(r.contract)}</td><td class="num mono">${f2(r.lastPrice)}</td>
-        <td class="num mono">${pct(r.pChange)}</td><td class="num mono">${r.chg15_pct == null ? '<span class="dim">warming up</span>' : pct(r.chg15_pct) + '<br><span class="dim" style="font-size:11px">vs ' + String(r.chg15_from_ist||'').slice(0,5) + '</span>'}</td><td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
+        <td class="num mono">${pct(r.pChange)}</td>${chg(r.chg5_pct, r.chg5_from_ist)}${chg(r.chg15_pct, r.chg15_from_ist)}${chg(r.chg60_pct, r.chg60_from_ist)}<td class="num mono">${lakh(r.numberOfContractsTraded)}</td>
         <td class="num mono">${f2(r.openInterest)}</td><td class="mono ${r.oi_build === "long_buildup" ? "up" : r.oi_build ? "down" : "dim"}">${esc(BUILD[r.oi_build] || "–")}</td>
         <td class="num mono">${r.iv_pct == null ? "–" : r.iv_pct.toFixed(1)}</td><td class="num mono">${r.delta == null ? "–" : r.delta.toFixed(2)}</td>
         <td class="num mono">${r.theta_frac == null ? "–" : (r.theta_frac * 100).toFixed(1) + "%"}</td></tr>`).join("")
-      : `<tr><td colspan="10" class="empty">No ${esc(u)} contract is up on the day right now.${d && d.error ? " " + esc(d.error) : ""}</td></tr>`;
+      : `<tr><td colspan="12" class="empty">No ${esc(u)} contract is up on the day right now.${d && d.error ? " " + esc(d.error) : ""}</td></tr>`;
     return `<div><h2>${esc(u)} <span class="dim mono">index ${pct(d && d.day_change_pct)}${d && d.source === "option_chain" ? " · from option chain" : d && d.source === "kotak" ? " · from Kotak" : ""}</span></h2><div class="wrap"><table>
-      <thead><tr><th>Contract</th><th class="num">Price</th><th class="num">Day %</th><th class="num">15m %</th><th class="num">Contracts traded (lakh)</th><th class="num">OI</th><th>OI build-up</th><th class="num">IV %</th><th class="num">Delta</th><th class="num">Theta/day</th></tr></thead>
+      <thead><tr><th>Contract</th><th class="num">Price</th><th class="num">Day %</th><th class="num">5m %</th><th class="num">15m %</th><th class="num">1h %</th><th class="num">Contracts traded (lakh)</th><th class="num">OI</th><th>OI build-up</th><th class="num">IV %</th><th class="num">Delta</th><th class="num">Theta/day</th></tr></thead>
       <tbody>${body}</tbody></table></div></div>`;
   }
 
