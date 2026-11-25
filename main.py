@@ -42726,11 +42726,14 @@ def _nse_opener(page="https://www.nseindia.com/option-chain"):
           "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     hdrs = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
-    try:
-        with opener.open(urllib.request.Request(page, headers=dict(hdrs, Accept="text/html,*/*")), timeout=12) as r:
-            r.read(2000)
-    except Exception:
-        pass
+    # B-1712: warm the home page first (Akamai session cookies), then the option-chain page (nsit/nseappid), as a
+    # browser does; each is best effort, the API call is the source of truth.
+    for url in ("https://www.nseindia.com/", page):
+        try:
+            with opener.open(urllib.request.Request(url, headers=dict(hdrs, Accept="text/html,*/*")), timeout=12) as r:
+                r.read(2000)
+        except Exception:
+            pass
     return opener, dict(hdrs, Accept="application/json, text/plain, */*", Referer=page)
 
 
@@ -42757,8 +42760,10 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
             if not isinstance(leg, dict):
                 continue
             exp = leg.get("expiryDate") or item.get("expiryDate") or item.get("expiryDates") or expiry
-            if expiry and exp and str(exp) != str(expiry):
+            if expiry and exp and _fno_expiry_iso(exp) != _fno_expiry_iso(expiry):  # B-1712: '25-NOV-2026' == '25-Nov-2026'
                 continue
+            if expiry:
+                exp = expiry
             n = _fno_num(leg.get("totalTradedVolume") if leg.get("totalTradedVolume") is not None
                          else leg.get("numberOfContractsTraded"))
             px = _fno_num(leg.get("lastPrice"))
@@ -42780,44 +42785,108 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
     return out
 
 
+def _fno_expiry_iso(v) -> str:
+    """B-1712: an NSE expiry label in any case/spelling ('25-Nov-2026', '25-NOV-2026', '25 Nov 2026') -> ISO date
+    string; the raw text upper-cased when it does not parse."""
+    t = str(v or "").strip()
+    for fmt in ("%d-%b-%Y", "%d %b %Y", "%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            return dt.datetime.strptime(t.title() if "b" in fmt else t, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return t.upper()
+
+
+def _fno_upcoming_expiries(dates, today=None, n=2) -> list:
+    """B-1712: the first `n` expiry labels dated today or later (contract-info can still list a lapsed or
+    holiday-moved expiry first, and v3 answers that with no rows). Unparseable labels keep their order."""
+    today = today or ist_now().strftime("%Y-%m-%d")
+    keep = []
+    for d in dates or []:
+        k = _fno_expiry_iso(d)
+        if len(k) == 10 and k[4] == "-" and k < today:
+            continue
+        keep.append(d)
+    return keep[:n]
+
+
+def _fno_v3_shape(payload) -> str:
+    """B-1712: a short description of an option-chain-v3 answer that parsed to no rows, so the live error names it."""
+    if not isinstance(payload, dict):
+        return "non-JSON-object " + type(payload).__name__
+    recs = payload.get("records") if isinstance(payload.get("records"), dict) else {}
+    data = recs.get("data") or (payload.get("filtered") or {}).get("data") or []
+    first = data[0] if data and isinstance(data[0], dict) else {}
+    leg = first.get("CE") or first.get("PE") or {}
+    return (f"keys {','.join(sorted(payload)[:6])}; records {','.join(sorted(recs)[:6])}; rows {len(data)}; "
+            f"item {','.join(sorted(first)[:8])}; leg {','.join(sorted(leg)[:12]) if isinstance(leg, dict) else '?'}")
+
+
 def _fno_chain_fetch(underlying, expiry=None, opener=None, ttl=None) -> list:
     """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S (or ttl,
-    B-1688 tape: 60 s). [] on failure."""
+    B-1688 tape: 60 s). [] on failure.
+    B-1712 (user 2026-11-25 "BANKNIFTY, SENSEX and a few more indices are not loading their contracts in View 6"): live
+    every chain failed with "HTTP Error 404". The legacy option-chain-indices endpoint is retired (404), and it ran as
+    the fallback whenever v3 parsed to no rows, so its 404 hid the real v3 result. Now: v3 only (contract-info ->
+    v3 per upcoming expiry, up to 2), one fresh-session retry on 401/403, and every step named in the error."""
+    import urllib.error as _ue
+    import urllib.parse as _up
     key = (underlying, expiry or "")
     now = time.time()
     hit = _FNO_CHAIN_CACHE.get(key)
     ttl = ttl or (FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S)
     if hit and now - hit["ts"] < ttl:
         return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
-    rows, err = [], None
+    rows, errs = [], []
     if underlying == "SENSEX":  # B-1681: a BSE index; NSE never lists it
         rows, err = _bse_sensex_chain(expiry)
         _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
         return rows
+    state = {"op": opener or _nse_opener(), "fresh": opener is None}
+
+    def _get(step, path, cap=4_000_000):
+        for attempt in range(2):
+            op, hdrs = state["op"]
+            try:
+                return _nse_get_json(op, hdrs, path, cap)
+            except _ue.HTTPError as e:
+                if e.code in (401, 403) and attempt == 0:  # an expired/blocked cookie: one fresh handshake
+                    state["op"] = _nse_opener()
+                    continue
+                errs.append(f"{step}: HTTP {e.code}")
+                return None
+            except Exception as e:  # noqa: BLE001
+                errs.append(f"{step}: {type(e).__name__}: {str(e)[:120]}")
+                return None
+        return None
+
     try:
-        op, hdrs = opener or _nse_opener()
-        exp = expiry
-        if not exp:
-            info = _nse_get_json(op, hdrs, "/api/option-chain-contract-info?symbol=" + underlying, 500_000)
-            dates = (info or {}).get("expiryDates") or []
-            exp = dates[0] if dates else None
-        if exp:
-            import urllib.parse as _up
-            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-v3?type=Indices&symbol=" + underlying
-                                                 + "&expiry=" + _up.quote(str(exp))), underlying, exp)
+        if expiry:
+            exps = [expiry]
         else:
-            err = "no expiryDates in option-chain-contract-info"
-        if not rows:  # legacy endpoint (all expiries) as the fallback
-            payload = _nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying)
+            info = _get("contract-info", "/api/option-chain-contract-info?symbol=" + underlying, 500_000)
+            dates = (info or {}).get("expiryDates") or ((info or {}).get("records") or {}).get("expiryDates") or []
+            exps = _fno_upcoming_expiries(dates)
+            if info is not None and not exps:
+                errs.append("contract-info: no upcoming expiryDates; keys "
+                            + ",".join(sorted(info)[:6] if isinstance(info, dict) else ["?"]))
+        for exp in exps:
+            payload = _get(f"v3 {exp}", "/api/option-chain-v3?type=Indices&symbol=" + underlying
+                           + "&expiry=" + _up.quote(str(exp)))
+            if payload is None:
+                continue
             rows = _fno_chain_rows(payload, underlying, exp)
-            if not rows:
-                err = (err or "") + " | empty chain; keys " + ",".join(sorted(payload)[:6] if isinstance(payload, dict) else ["?"])
-    except Exception as e:
-        err = (err + " | " if err else "") + type(e).__name__ + ": " + str(e)[:160]
-        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err}")
+            if rows:
+                break
+            errs.append(f"v3 {exp}: 0 rows ({_fno_v3_shape(payload)})")
+    except Exception as e:  # noqa: BLE001
+        errs.append(type(e).__name__ + ": " + str(e)[:160])
+    err = None if rows else (" | ".join(errs) or "no rows")
+    if err:
+        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err[:300]}")
     if len(_FNO_CHAIN_CACHE) > 12:
         _FNO_CHAIN_CACHE.clear()
-    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
+    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else err[:300]}
     return rows
 
 
@@ -42875,9 +42944,23 @@ def _bse_sensex_chain(expiry=None):
                           "Chrome/120.0 Safari/537.36", "Accept": "application/json, text/plain, */*",
             "Referer": "https://www.bseindia.com/", "Origin": "https://www.bseindia.com"}
     base = "https://api.bseindia.com/BseIndiaAPI/api/"
+    # B-1712: live 25-Nov the bare call got "HTTP Error 403". BSE's API wants the session cookies its own derivatives
+    # page sets and the browser's fetch headers, so warm that page first (best effort) on a cookie-keeping opener.
+    import http.cookiejar
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    try:
+        with opener.open(urllib.request.Request("https://www.bseindia.com/markets/Derivatives/DeriReports/DeriOptionchain.html",
+                                                headers=dict(hdrs, Accept="text/html,*/*")), timeout=10) as r:
+            r.read(2000)
+    except Exception:  # noqa: BLE001
+        pass
+    hdrs.update({"Accept-Language": "en-US,en;q=0.9", "Sec-Fetch-Site": "same-site", "Sec-Fetch-Mode": "cors",
+                 "Sec-Fetch-Dest": "empty"})
+    step = {"name": "ddlExpiry_IV"}
 
     def _get(path):
-        with urllib.request.urlopen(urllib.request.Request(base + path, headers=hdrs), timeout=8) as resp:
+        step["name"] = path.split("/")[0]
+        with opener.open(urllib.request.Request(base + path, headers=hdrs), timeout=8) as resp:
             return _json.loads(resp.read(4_000_000).decode("utf-8", "replace"))
     try:
         exp = None
@@ -42903,7 +42986,7 @@ def _bse_sensex_chain(expiry=None):
                       and isinstance(v[0], dict)), {})
         return [], "SENSEX chain parsed 0 rows; row keys " + ",".join(sorted(first)[:20])
     except Exception as e:
-        return [], type(e).__name__ + ": " + str(e)[:160]
+        return [], f"BSE {step['name']}: " + type(e).__name__ + ": " + str(e)[:160]
 
 
 def _fno_contract_ltp(contract: str, underlying: str):
