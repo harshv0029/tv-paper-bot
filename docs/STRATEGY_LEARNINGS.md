@@ -2636,3 +2636,7 @@ Profit-booking / exit takeaway: on expiry day the 2% trail is the whole defence;
 ## B-1718 (2026-11-25): 2% vs 5% trailing stop, run side by side on the same entries
 User asked to test a wider trail along with 2% and see both. Two paper twins share one entry rule (B-1717) and differ only in the trail (2% vs 5% below peak premium). Paired comparison removes entry luck: any P&L difference is the exit alone. Expected trade-off: 2% cuts losers fast but is inside one minute's premium noise, so it is likely stopped out of trades that later win; 5% gives room but each loser costs more. The 15-min time stop caps both.
 Profit-booking / exit takeaway: judge the trail on paired trades (same entry), by net P&L per trade and by "2% stopped, 5% later won" count, not by win % alone.
+
+### B-1719 (2026-11-25): keep the full path of every paper option trade
+User asked that every entry, exit and detail of single-leg paper option trades be kept for later analysis. Entry and exit fields were already stored and mirrored; missing were the lowest price while open (MAE), the price path, and the setups that were skipped. Without MAE and the path, a trail can only be judged on its exits, not on how close each loser came to recovering or each winner came to being stopped; without the skip log, "would the skipped setup have won?" cannot be answered.
+Profit-booking / exit takeaway: with MAE, peak (MFE) and the 30 s path per trade, any trail width (2%, 3%, 5%, ...) can be replayed on the recorded paths without waiting for new live trades.

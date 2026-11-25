@@ -1,6 +1,7 @@
 """B-1715: the fast 5-15 min View 6 paper plan (index 5-min confirmation, premium 5-min momentum, delta, IV, 15-min
 time stop). PAPER ONLY: the shared fixture fails the test on any Kotak/real-order call."""
 import datetime as dt
+import json
 
 import pytest
 
@@ -120,3 +121,38 @@ def test_b1718_route_shows_both_trails(db):
     out = main.fno_momo_paper(tag=main.FNO_MOMO_V3B_T5_TAG)
     assert out["tag"] == main.FNO_MOMO_V3B_T5_TAG and out["trail_pct"] == 5.0
     assert out["variants"][main.FNO_MOMO_V3B_TAG]["trail_pct"] == 2.0
+
+
+def test_b1719_trade_keeps_trough_path_and_scan_log(db):
+    """B-1719: every paper trade keeps its lowest price (MAE) and its [ts, price] path to the exit, and every scan
+    (entered or skipped) is logged for later replay."""
+    r = _orow(exp=EXP)
+    _hist(r["contract"], 146.0)
+    _run(db, [r])
+    row = db.execute("SELECT * FROM fno_momo_paper_trades WHERE tag = ?", (V3["tag"],)).fetchone()
+    assert row["trough_price"] == 150.0 and len(json.loads(row["price_path"])) == 1
+    for i, px in enumerate((149.0, 152.0), 1):
+        main._fno_momo_step(db, now=MON + dt.timedelta(minutes=i), snapshot=_ssnap([dict(r, lastPrice=px)], STRONG,
+                            DET_UP), now_ts=T0 + 60 * i, variant=V3)
+    main._fno_momo_step(db, now=MON + dt.timedelta(minutes=3), snapshot=_ssnap([dict(r, lastPrice=145.0)], STRONG,
+                        DET_UP), now_ts=T0 + 180, variant=V3)  # under the 2% trail of 152: closed
+    row = db.execute("SELECT * FROM fno_momo_paper_trades WHERE tag = ?", (V3["tag"],)).fetchone()
+    assert row["status"] == "closed" and row["trough_price"] == 145.0
+    assert [p for _, p in json.loads(row["price_path"])] == [150.0, 149.0, 152.0, 145.0]
+    logs = db.execute("SELECT * FROM fno_momo_scan_log WHERE tag = ?", (V3["tag"],)).fetchall()
+    assert len(logs) == 1 and logs[0]["entered"] == 1 and json.loads(logs[0]["candidate"])["contract"] == r["contract"]
+    assert "fno_momo_scan_log" in main._GENERIC_MIRROR_GIT_TIER  # git, never Upstash
+    assert "fno_momo_scan_log" not in main._GENERIC_MIRROR_UPSTASH_TABLES
+
+
+def test_b1719_path_is_capped(db):
+    row = {"entry_price": 100.0, "opened_ts": 1.0, "trough_price": 100.0,
+           "price_path": json.dumps([[float(i), 100.0] for i in range(main.FNO_MOMO_PATH_MAX)])}
+    trough, path = main._fno_momo_path_add(row, 90.0, 9999.0)
+    path = json.loads(path)
+    assert trough == 90.0 and len(path) <= main.FNO_MOMO_PATH_MAX and path[0][0] == 0.0 and path[-1] == [9999.0, 90.0]
+
+
+def test_b1719_export_route_lists_all_rows(db):
+    out = main.fno_momo_paper_export()
+    assert out["count"] == len(out["rows"])

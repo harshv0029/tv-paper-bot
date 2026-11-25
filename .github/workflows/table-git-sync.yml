@@ -26,7 +26,7 @@ jobs:
           mkdir -p docs/tables
           curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
-          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack real_order_events; do
+          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack real_order_events fno_momo_scan_log; do
             if ! curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
                  "https://tv-paper-bot-gdan.onrender.com/table-export/$t" -o /tmp/$t.json \
                || ! jq -e '.rows' /tmp/$t.json > /dev/null; then
@@ -41,6 +41,20 @@ jobs:
             fi
             jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{rows: .rows, synced_at_utc: $ts}' /tmp/$t.json > $f
           done
+      - name: Archive View 6 paper trades (B-1719)
+        run: |
+          # Upstash stays the restore source; this is the permanent copy. Rows only grow, so a server answer
+          # with fewer rows than git (a partial table after a restart) never replaces the archive.
+          f=docs/tables/fno_momo_paper_trades.json
+          if curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
+               "https://tv-paper-bot-gdan.onrender.com/fno-momo-paper-export" -o /tmp/fmp.json \
+             && jq -e '.rows' /tmp/fmp.json > /dev/null; then
+            n=$(jq '.rows|length' /tmp/fmp.json); g=0
+            [ -f $f ] && g=$(jq '.rows|length' $f)
+            if [ "$n" -lt "$g" ]; then echo "paper trades: server $n < git $g, keeping git copy"
+            elif [ -f $f ] && [ "$(jq -S .rows /tmp/fmp.json)" = "$(jq -S .rows $f)" ]; then echo "paper trades: no change"
+            else jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{rows: .rows, synced_at_utc: $ts}' /tmp/fmp.json > $f; fi
+          else echo "skip paper trades (fetch failed)"; fi
       - name: Commit if changed
         run: |
           git config user.name "tv-paper-bot journal sync"
