@@ -144803,7 +144803,19 @@
    "prev_state": null,
    "new_state": "no real short row in this app; no order sent",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12068,
+   "ts": 1795582977.3837557,
+   "symbol": "M&MFIN.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-25T04:58:42Z"
+ "synced_at_utc": "2026-11-25T05:03:00Z"
 }
