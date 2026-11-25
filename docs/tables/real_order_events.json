@@ -145067,7 +145067,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs65.70",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs65.70 already covers the position (target stop Rs65.70), adopted, nothing placed"
+  },
+  {
+   "id": 12090,
+   "ts": 1795589540.9554992,
+   "symbol": "SBILIFE.NS",
+   "kotak_trading_symbol": "SBILIFE-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261125000402073",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1837.00",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-25T06:51:46Z"
+ "synced_at_utc": "2026-11-25T06:52:23Z"
 }
