@@ -161,22 +161,6 @@
    "symbol": "MANKIND.NS"
   },
   {
-   "day": "2026-11-19",
-   "entry_order_id": "261119000615144",
-   "entry_price": 1842.3,
-   "first_seen_day": "2026-11-19",
-   "is_short": 0,
-   "kotak_trading_symbol": "MAZDOCK-EQ",
-   "opened_at": 1795075683.6021028,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 1792.3,
-   "source": "holding",
-   "stop_loss": 1792.2711182578487,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "MAZDOCK.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000159207",
    "entry_price": 244.24,
