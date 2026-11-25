@@ -17,6 +17,22 @@
    "symbol": "AMBUJACEM.NS"
   },
   {
+   "day": "2026-11-25",
+   "entry_order_id": "261125000304326",
+   "entry_price": 160.6,
+   "first_seen_day": "2026-11-25",
+   "is_short": 0,
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "opened_at": 1795586076.2116196,
+   "owner": "swing",
+   "qty": 2,
+   "sl_trigger_price": 143.54,
+   "source": "position",
+   "stop_loss": 134.85928290230888,
+   "strategy": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "symbol": "BANKINDIA.NS"
+  },
+  {
    "day": "2026-11-09",
    "entry_order_id": "261109000191497",
    "entry_price": 373.3,
