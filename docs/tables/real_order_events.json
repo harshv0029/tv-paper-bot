@@ -144671,7 +144671,19 @@
    "prev_state": "resting SELL trigger Rs1135.10",
    "new_state": "resting SELL trigger Rs1136.00",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1135.10 to Rs1136.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12057,
+   "ts": 1795578646.710953,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261125000042042",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs1136.00",
+   "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-25T03:50:46Z"
+ "synced_at_utc": "2026-11-25T03:51:08Z"
 }
