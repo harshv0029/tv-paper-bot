@@ -145115,7 +145115,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs3164.30",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12094,
+   "ts": 1795589593.1260512,
+   "symbol": "SUPREMEIND.NS",
+   "kotak_trading_symbol": "SUPREMEIND-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261125000402893",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs3093.20",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12095,
+   "ts": 1795589594.8783062,
+   "symbol": "SUPREMEIND.NS",
+   "kotak_trading_symbol": "SUPREMEIND-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261125000402893",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs3093.20",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs3093.20 already covers the position (target stop Rs3093.12), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-25T06:53:11Z"
+ "synced_at_utc": "2026-11-25T06:53:26Z"
 }
