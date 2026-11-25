@@ -5,7 +5,7 @@ import time
 import main
 from tests.test_fno_momo_paper_b1676 import DET_UP, MON, T0, _open, _orow, _ssnap, db  # noqa: F401 (db autouse)
 
-V2 = main.FNO_MOMO_VARIANTS[0]
+V2 = main.FNO_MOMO_V2_VARIANT  # B-1715: retired before deploy; its gate logic is still tested
 STRONG = {"NIFTY": 0.4, "INDIAVIX": 1.0}
 EXP = "30-Nov-2026"  # ~7 days out on MON: ATM theta well under the cap
 
@@ -19,9 +19,9 @@ def _run(db, rows, pct=STRONG):
     return main._FNO_MOMO_STATES[V2["tag"]]["last_scan"]
 
 
-def test_v2_is_the_only_active_variant_and_v1_retired():
+def test_v2_and_v1_retired():
     assert V2["gate"] == "mtf_v2" and V2["tag"] == main.FNO_MOMO_V2_TAG
-    assert main.FNO_MOMO_STRICT_OIG_VARIANT in main.FNO_MOMO_RETIRED_VARIANTS
+    assert main.FNO_MOMO_STRICT_OIG_VARIANT in main.FNO_MOMO_RETIRED_VARIANTS and V2 in main.FNO_MOMO_RETIRED_VARIANTS
 
 
 def test_enters_when_every_check_passes(db, monkeypatch):

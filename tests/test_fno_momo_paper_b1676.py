@@ -304,7 +304,7 @@ def test_tick_hook_runs_every_variant(monkeypatch):
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
     monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     main._fno_momo_tick_hook()
-    assert seen == ["mtf_v2"]  # B-1686/B-1714: ONE strategy enters
+    assert seen == ["fast_v3"]  # B-1686/B-1715: ONE strategy enters
 
 
 # ---- B-1678 / B-1679 (d) / B-1680 (user 2026-11-23) ------------------------------------------------------------------
@@ -692,10 +692,10 @@ def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
 
 # ---- B-1686: one strategy = strict sentiment + OI/Greeks ------------------------------------------------------------
 def test_only_one_active_strategy_strict_plus_oi_greeks():
-    assert [v["gate"] for v in ACTIVE] == ["mtf_v2"]
-    assert ACTIVE[0]["tag"] == "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"
+    assert [v["gate"] for v in ACTIVE] == ["fast_v3"]
+    assert ACTIVE[0]["tag"] == "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"
     assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {
-        "basic", "strict", "oigreeks", "strict_oigreeks"}
+        "basic", "strict", "oigreeks", "strict_oigreeks", "mtf_v2"}
 
 
 def test_combined_needs_strict_sentiment_and_oi_greeks(db):
@@ -722,7 +722,7 @@ def test_retired_open_row_closed_in_window_by_the_sweep(db, monkeypatch):
 def test_route_defaults_to_the_active_strategy(monkeypatch):
     monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     out = main.fno_momo_paper()
-    assert out["tag"] == ACTIVE[0]["tag"] and out["gate"] == "mtf_v2"
+    assert out["tag"] == ACTIVE[0]["tag"] and out["gate"] == "fast_v3"
     assert out["variants"][main.FNO_MOMO_TAG]["retired"] is True and out["variants"][ACTIVE[0]["tag"]]["retired"] is False
 
 
