@@ -983,7 +983,19 @@
    "sell_qty": 0.0,
    "sell_amt": 0.0,
    "updated_at": 1795458355.393772
+  },
+  {
+   "day": "2026-11-25",
+   "trdsym": "HINDALCO-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 885.65,
+   "updated_at": 1795578405.3828087
   }
  ],
- "synced_at_utc": "2026-11-25T03:36:46Z"
+ "synced_at_utc": "2026-11-25T03:47:37Z"
 }
