@@ -65,22 +65,6 @@
    "symbol": "HCLTECH.NS"
   },
   {
-   "day": "2026-11-20",
-   "entry_order_id": "261120000207212",
-   "entry_price": 911.35,
-   "first_seen_day": "2026-11-20",
-   "is_short": 0,
-   "kotak_trading_symbol": "HINDALCO-EQ",
-   "opened_at": 1795150250.5870216,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 885.65,
-   "source": "holding",
-   "stop_loss": 885.611472026624,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "HINDALCO.NS"
-  },
-  {
    "day": "2026-11-17",
    "entry_order_id": "261117000185584",
    "entry_price": 390.65,
