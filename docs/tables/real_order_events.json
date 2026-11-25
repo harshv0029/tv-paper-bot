@@ -144863,7 +144863,19 @@
    "prev_state": "resting SELL trigger Rs1146.70",
    "new_state": "resting SELL trigger Rs1148.40",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1146.70 to Rs1148.40 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12073,
+   "ts": 1795585464.26506,
+   "symbol": "MARKET:MCX",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: MCX market opened (live ticks: 2 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"2 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\"], \"count\": 2, \"segment\": \"mcx\"}, \"protection\": {\"ok\": false, \"error\": \"database is locked\", \"seconds\": 40.1}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
   }
  ],
- "synced_at_utc": "2026-11-25T05:43:21Z"
+ "synced_at_utc": "2026-11-25T05:44:34Z"
 }
