@@ -994,8 +994,20 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 885.65,
-   "updated_at": 1795580853.9421964
+   "updated_at": 1795581157.6072648
+  },
+  {
+   "day": "2026-11-25",
+   "trdsym": "MAZDOCK-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 1792.3,
+   "updated_at": 1795581157.6072648
   }
  ],
- "synced_at_utc": "2026-11-25T04:28:40Z"
+ "synced_at_utc": "2026-11-25T04:32:46Z"
 }
