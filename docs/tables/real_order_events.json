@@ -144661,6 +144661,18 @@
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=1"
   },
   {
+   "id": 12058,
+   "ts": 1795578630.7668555,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "cancel",
+   "event": "kotak_cancelled",
+   "order_id": "261125000017064",
+   "prev_state": "sent to Kotak",
+   "new_state": "cancel accepted",
+   "detail": "reason: cancel of a resting order; Kotak accepted it"
+  },
+  {
    "id": 12056,
    "ts": 1795578642.78529,
    "symbol": "ZYDUSLIFE.NS",
@@ -144685,5 +144697,5 @@
    "detail": "reason: a live SELL SL already covers it at Kotak (fresh order book), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-25T03:51:08Z"
+ "synced_at_utc": "2026-11-25T03:52:25Z"
 }
