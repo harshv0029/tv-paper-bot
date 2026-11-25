@@ -144901,6 +144901,18 @@
    "detail": "reason: swing entry signal from strategy oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2 passed the PFnet gate; B-1500 exit variant live (oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsbandfloor_rsnone__v2, 0.053548 %/day; no variant passed the viability gate, the strategy's own registry row did)"
   },
   {
+   "id": 12077,
+   "ts": 1795586084.8841088,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "entry",
+   "event": "kotak_placed",
+   "order_id": "261125000304501",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
    "id": 12076,
    "ts": 1795586092.7334507,
    "symbol": "BANKINDIA.NS",
@@ -144913,5 +144925,5 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-25T05:54:55Z"
+ "synced_at_utc": "2026-11-25T05:55:35Z"
 }
