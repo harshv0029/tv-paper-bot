@@ -6,7 +6,10 @@ import strategy_registry as sr
 TAG = "fno_mostactive_momo__top3_max_gain__long_opt__5m__trail2__v1"
 STRICT_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti__long_opt__5m__trail2__v1"  # B-1677
 OIG_TAG = "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1"  # B-1681
-STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"  # B-1686: the ONE active
+STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"  # B-1686
+V2_TAG = "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"  # B-1714: the ONE active
+RETIRED_V1 = ("RETIRED 2026-11-25 (B-1714, user: research OI/Greeks/% change and plan the paper entry): 0 entries in "
+              "its run (one largest-day-% candidate per scan, OI build blank on Kotak rows). ")
 RETIRED = "RETIRED 2026-11-23 (B-1686, user: one strategy = strict sentiment + OI/Greeks): no new entries. "
 
 
@@ -41,10 +44,23 @@ def build():
         status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
         source="main.py _fno_momo_step gate strict_oigreeks (B-1686), the single PAPER strategy",
         evidence="Paper forward test only; no intraday backtest possible yet (no free intraday option history).",
-        notes=("THE active paper strategy (user 2026-11-23). Every 5 min 09:30-14:30 IST: top 3 index options by "
+        notes=(RETIRED_V1 + "Was the active paper strategy (user 2026-11-23). Every 5 min 09:30-14:30 IST: top 3 index options by "
                "contracts traded per index, largest positive % change, not expiring today. Buy only if ALL hold: strict "
                "sentiment (index and NIFTY >= 0.25% in the trade direction, index beyond its day open, NIFTY breadth "
                ">= 1.5x, VIX up < 5% for a CE) AND OI rising with premium (long buildup) AND delta 0.30-0.65 AND theta "
                "<= 15% of premium per day. Missing datum = no entry. Exits: 2% stop from entry trailing the peak, out of "
                "top 3 or sentiment flip, forced 15:15 IST. Net of 0.8% cost. PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=V2_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py _fno_momo_pick_v2 / _fno_momo_v2_skip (B-1714), the single PAPER strategy",
+        evidence="Paper forward test only; replay on the per-minute View 6 tape (B-1687) once enough days exist.",
+        notes=("THE active paper strategy (user 2026-11-25). Every 5 min 09:30-14:30 IST, EVERY top-5 index option by "
+               "contracts traded per index is checked; buy the one with the largest 15-min premium rise that passes ALL: "
+               "not expiring today; strict sentiment (index and NIFTY >= 0.25% in the trade direction, index beyond its "
+               "day open, NIFTY breadth >= 1.5x, VIX up < 5% for a CE); premium rising over 5 min AND 15 min, 1 h not "
+               "falling, 5-min rise <= 10% (no chasing); long build-up (premium up with OI up; Kotak rows use OI change "
+               "since first seen today); delta 0.35-0.65; >= 2 days to expiry; theta <= 15% of premium per day; IV <= "
+               "1.25x the index's median IV. Missing datum = no entry. Exits: 2% stop trailing the peak, out of the top "
+               "5 or sentiment flip, forced 15:15 IST. Net of 0.8% cost. PAPER ONLY."),
     )]

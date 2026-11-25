@@ -2611,3 +2611,14 @@ Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but e
 - User asked for 5m and 1h % change beside 15m to raise confidence in option entries. Built as display fields (rolling, base 5:00-6:00 / 60:00-62:00 min old, "warming up" otherwise). 1h samples are thinned to one per 110 s to keep memory small and kept off Upstash (budget spent).
 - Lesson: a multi-horizon momentum view (5m > 0, 15m > 0, 1h > 0 all agreeing) is a hypothesis, not an edge, until it is replayed on the per-minute tape with the 0.8% cost model.
 - Profit-booking / exit takeaway: a fading 5m change while 15m/1h stay positive is a candidate early-trail signal for option premiums; test it on the tape before it changes any exit.
+
+## 2026-11-25 B-1714: View 6 paper entry plan v2 (OI, Greeks, multi-horizon % change, relative IV)
+- Why v1 never entered: it tested ONE contract per scan, the largest day % change. On most days that is a near-expiry strike up hundreds of percent (SENSEX 84000 CE +446%, 1.15 days, theta 29%/day), which fails the theta check, so the whole scan ended. Lesson: rank AFTER filtering, never filter one pre-ranked pick.
+- Read-up used for the plan (option buying, intraday):
+  - OI: premium up with OI up = long build-up (fresh positions, sturdier move); premium up with OI down = short covering (sharp but short-lived). Only long build-up is bought.
+  - Greeks: delta 0.35-0.65 keeps near the money (enough leverage, not a lottery ticket); theta per day vs premium caps time decay; >= 2 days to expiry avoids expiry-eve theta and gamma whipsaw.
+  - IV: buying when IV is rich vs the same index's other strikes risks an IV crush even if the index moves the right way; cap at 1.25x the median.
+  - % change: day % is the wrong momentum measure for a premium (it reflects yesterday's close and decay); use rolling 5m and 15m rises, require 1h not falling, and skip a >10% 5-min spike (chasing).
+  - Market: the strict sentiment gate (index and NIFTY >= 0.25% in direction, beyond the open, breadth >= 1.5x, VIX check) stays.
+- All thresholds are stated priors, not tuned; judge on the paper record and a tape replay at >= 30 trades.
+- Profit-booking / exit takeaway: a 2% trailing stop on an option premium is inside one minute's normal noise (premiums move 2-5% a minute on active strikes), so most entries will stop out on noise; test a wider or ATR-of-premium trail on the tape before trusting the v2 entry record.

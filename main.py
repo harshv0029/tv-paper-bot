@@ -42885,7 +42885,8 @@ def _fno_kotak_spot(underlying: str):
     elif last and _fno_num((d0.get("ohlc") or {}).get("close")):
         pc = _fno_num(d0["ohlc"]["close"])
         pct = round((last - pc) / pc * 100.0, 2)
-    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct}
+    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct,
+                                         "open": _fno_num((d0.get("ohlc") or {}).get("open")) or None}
     return last, pct
 
 
@@ -43206,6 +43207,31 @@ def _fno_hist_save(now_ts: float) -> bool:
         return False
 
 
+# B-1714: Kotak quotes carry open interest but no change in OI, so the OI build-up label (and the entry gate that
+# needs it) was blank for every index served from Kotak. Fallback: OI now minus the first OI this app saw for the
+# contract this IST day (memory only; a restart re-bases it, so the change reads small until OI moves again).
+_FNO_OI_DAY_FIRST = {}  # contract -> (ist_day, oi, ts)
+
+
+def _fno_oi_first_note(contract: str, oi: float, now_ts: float) -> None:
+    day = time.strftime("%Y-%m-%d", time.gmtime(now_ts + 19800))
+    cur = _FNO_OI_DAY_FIRST.get(contract)
+    if cur is None or cur[0] != day:
+        _FNO_OI_DAY_FIRST[contract] = (day, oi, now_ts)
+        if len(_FNO_OI_DAY_FIRST) > 4000:
+            for k in [k for k, v in _FNO_OI_DAY_FIRST.items() if v[0] != day]:
+                del _FNO_OI_DAY_FIRST[k]
+
+
+def _fno_oi_intraday_change(contract: str, oi: float, now_ts: float):
+    """(OI change since the first sighting today, basis 'HH:MM IST') or (None, None)."""
+    cur = _FNO_OI_DAY_FIRST.get(contract)
+    day = time.strftime("%Y-%m-%d", time.gmtime(now_ts + 19800))
+    if not cur or cur[0] != day or oi <= 0:
+        return None, None
+    return round(oi - cur[1], 2), time.strftime("%H:%M IST", time.gmtime(cur[2] + 19800))
+
+
 def _fno_hist_record(groups: dict, now_ts: float) -> None:
     _fno_hist_restore(now_ts)
     for u, rows in (groups or {}).items():
@@ -43215,6 +43241,9 @@ def _fno_hist_record(groups: dict, now_ts: float) -> None:
                 h = _FNO_PX_HIST.setdefault(r["contract"], [])
                 if not h or now_ts - h[-1][0] >= 30:
                     h.append((now_ts, px))
+                oi = _fno_num(r.get("openInterest"))
+                if oi > 0:  # B-1714: first OI seen this IST day (Kotak gives no OI change)
+                    _fno_oi_first_note(r["contract"], oi, now_ts)
                 h1 = _FNO_PX_HIST_1H.setdefault(r["contract"], [])  # B-1713: thinner 1-hour samples
                 if not h1 or now_ts - h1[-1][0] >= FNO_HIST_1H_STEP_S:
                     h1.append((now_ts, px))
@@ -43545,8 +43574,12 @@ def _fno_by_index_snapshot() -> dict:
     for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1712: SENSEX day % from Kotak (NSE allIndices never lists it)
         if index_pct.get(u) is None and c.get("pct") is not None:
             index_pct[u] = c["pct"]
+    index_detail = dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {})
+    for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1714: SENSEX open/last for the strict sentiment gate
+        if u not in index_detail and c.get("last") and c.get("open"):
+            index_detail[u] = {"last": c["last"], "open": c["open"]}
     data = {"groups": groups, "sources": sources, "index_pct": index_pct,
-            "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
+            "index_detail": index_detail,
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}
     del raw, rows
@@ -43663,11 +43696,27 @@ FNO_MOMO_STRICT_VIX_MAX_UP = 5.0
 # + the OI/Greeks buy filter, under a new immutable tag. The three earlier tags are RETIRED: no new entries, their
 # history stays viewable, any row still open under them is closed by the sweep (retired_variant_close).
 FNO_MOMO_STRICT_OIG_TAG = "fno_mostactive_momo__top3_max_gain_strictsenti_oigreeks__long_opt__5m__trail2__v1"
-FNO_MOMO_RETIRED_VARIANTS = ({"tag": FNO_MOMO_TAG, "gate": "basic", "retired": True},
+# B-1714 (user 2026-11-25 "Research on your own on how to use OI, Greeks, % change and other factors for planning a
+# trade entry and based on that plan ur entry on paper"): v1 strict+OI/Greeks made 0 entries (one candidate per scan,
+# the largest DAY % - always a near-expiry lottery strike that failed theta - and OI build blank on Kotak rows). The new
+# plan checks EVERY top-5 contract of every index and takes the best that passes all of: strict sentiment (B-1677),
+# rising premium on 5 min AND 15 min (1 h not falling), no chasing a >10% 5-min spike, long build-up (premium up, OI up),
+# delta 0.35-0.65, >= 2 days to expiry, theta <= 15% of premium/day, IV not > 1.25x the index's median IV. Ranked by
+# 15-min change. Stated priors from the read-up (see learnings), PAPER ONLY; a sweep follows at >= 30 trades.
+FNO_MOMO_V2_TAG = "fno_mostactive_momo__mtfmomo_oibuild_greeks_ivrel__long_opt__5m__trail2__v1"
+FNO_V2_TOP_N = 5
+FNO_V2_DELTA_MIN, FNO_V2_DELTA_MAX = 0.35, 0.65
+FNO_V2_THETA_MAX_FRAC = 0.15  # as v1 (ATM ~ 1/(2 x days): >= ~3.3 days); intraday holds pay a fraction of it
+FNO_V2_MIN_DTE = 2.0
+FNO_V2_IV_REL_MAX = 1.25
+FNO_V2_CHG5_MAX = 10.0
+FNO_MOMO_STRICT_OIG_VARIANT = {"tag": FNO_MOMO_STRICT_OIG_TAG, "gate": "strict_oigreeks", "retired": True}
+FNO_MOMO_RETIRED_VARIANTS = (FNO_MOMO_STRICT_OIG_VARIANT,
+                             {"tag": FNO_MOMO_TAG, "gate": "basic", "retired": True},
                              {"tag": FNO_MOMO_STRICT_TAG, "gate": "strict", "retired": True},
                              {"tag": "fno_mostactive_momo__top3_max_gain_oigreeks__long_opt__5m__trail2__v1",
                               "gate": "oigreeks", "retired": True})
-FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_STRICT_OIG_TAG, "gate": "strict_oigreeks"},)  # the ONLY one that enters
+FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V2_TAG, "gate": "mtf_v2"},)  # B-1714: the ONLY one that enters
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -43777,12 +43826,17 @@ def _fno_option_metrics(row: dict, now) -> dict:
     pc = _fno_num(row.get("pChange"))
     oi_raw = row.get("changeinOpenInterest")
     oi_chg = None if oi_raw in (None, "", "-") else _fno_num(oi_raw)
+    oi_basis = "prev_close" if oi_chg is not None else None
+    if oi_chg is None and row.get("contract"):  # B-1714: Kotak rows -> intraday change since first seen today
+        oi_chg, since = _fno_oi_intraday_change(row["contract"], _fno_num(row.get("openInterest")), time.time())
+        oi_basis = f"since {since}" if since else None
     build = None
     if oi_chg is not None:
         build = ("long_buildup" if pc > 0 and oi_chg > 0 else "short_covering" if pc > 0 and oi_chg < 0
                  else "short_buildup" if pc < 0 and oi_chg > 0 else "long_unwinding" if pc < 0 and oi_chg < 0
                  else "flat")
     m = {"oi": _fno_num(row.get("openInterest")) or None, "oi_change": oi_chg, "oi_build": build,
+         "oi_change_basis": oi_basis,
          "iv_pct": None, "delta": None, "gamma": None, "theta_per_day": None, "vega_per_vol_pt": None,
          "theta_frac": None, "days_to_expiry": round(T * 365.0, 2) if T else None}
     if ot and px > 0 and S > 0 and K > 0 and T > 0:
@@ -43823,6 +43877,77 @@ def _fno_momo_pick(groups: dict, day: str = ""):
                 best = {"contract": r["contract"], "underlying": u, "option_type": ot,
                         "lastPrice": px, "pChange": pc, "rank": rank, "row": r}
     return best
+
+
+def _fno_momo_v2_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str):
+    """B-1714: the first failing check for one contract (None = passes every check)."""
+    if day and _fno_momo_is_expiry_day(row.get("contract"), day):
+        return "skipped_expiry_day"
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    c5, c15, c60 = m.get("chg5_pct"), m.get("chg15_pct"), m.get("chg60_pct")
+    if c5 is None or c15 is None:
+        return "skipped_momentum_warming_up"
+    if c5 <= 0 or c15 <= 0:
+        return "skipped_momentum_not_rising"
+    if c60 is not None and c60 < 0:
+        return "skipped_1h_falling"
+    if c5 > FNO_V2_CHG5_MAX:
+        return "skipped_chasing_spike"
+    if m.get("oi_build") is None:
+        return "skipped_oi_unknown"
+    if m["oi_build"] != "long_buildup":
+        return "skipped_oi_" + m["oi_build"]
+    if m.get("delta") is None or m.get("theta_frac") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V2_DELTA_MIN <= abs(m["delta"]) <= FNO_V2_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if (m.get("days_to_expiry") or 0) < FNO_V2_MIN_DTE:
+        return "skipped_near_expiry"
+    if m["theta_frac"] > FNO_V2_THETA_MAX_FRAC:
+        return "skipped_theta_burden"
+    if iv_med and m.get("iv_pct") and m["iv_pct"] > FNO_V2_IV_REL_MAX * iv_med:
+        return "skipped_iv_rich"
+    return None
+
+
+def _fno_momo_pick_v2(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = ""):
+    """B-1714: (candidate, metrics, checked) - every top-5 contract per index is checked; the passing one with the
+    largest 15-min change wins (ties: more contracts traded). checked = [{"contract", "skip"}] for View 6's why."""
+    checked, passed = [], []
+    for u in _FNO_INDEX_UNDERLYINGS:
+        mets = []
+        for rank, r in enumerate((groups or {}).get(u, [])[:FNO_V2_TOP_N], 1):
+            px = _fno_num(r.get("lastPrice"))
+            ot = _fno_momo_opt_type(r.get("optionType")) or next(
+                (t for t in str(r.get("contract") or "").split() if t in ("CE", "PE")), "")
+            if px <= 0 or not ot or not r.get("contract"):
+                continue
+            m = _fno_option_metrics(r, now)
+            m.update(_fno_chg_multi_detail(r["contract"], px, now_ts))
+            mets.append((rank, r, ot, px, m))
+        ivs = sorted(m["iv_pct"] for *_, m in mets if m.get("iv_pct"))
+        iv_med = ivs[len(ivs) // 2] if len(ivs) >= 3 else None
+        for rank, r, ot, px, m in mets:
+            skip = _fno_momo_v2_skip(r, ot, u, m, iv_med, pct, detail, day)
+            checked.append({"contract": r["contract"], "skip": skip})
+            if skip is None:
+                passed.append(({"contract": r["contract"], "underlying": u, "option_type": ot, "lastPrice": px,
+                                "pChange": _fno_num(r.get("pChange")), "rank": rank, "row": r, "iv_median": iv_med},
+                               m))
+    if not passed:
+        return None, None, checked
+    cand, m = max(passed, key=lambda cm: (cm[1]["chg15_pct"], _fno_num(cm[0]["row"].get("numberOfContractsTraded"))))
+    return cand, m, checked
+
+
+def _fno_momo_v2_top_skip(checked: list) -> str:
+    """The most common skip reason of a scan with no entry (View 6 shows it)."""
+    reasons = [c["skip"] for c in checked or [] if c.get("skip")]
+    return max(set(reasons), key=reasons.count) if reasons else "skipped_no_positive_candidate"
 
 
 def _fno_momo_net_pct(entry: float, exit_px: float) -> float:
@@ -43889,7 +44014,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - FNO_MOMO_TRAIL_PCT), 4)
-        top = {r.get("contract") for r in groups.get(row["underlying"], [])[:FNO_MOMO_TOP_N]}
+        top_n = FNO_V2_TOP_N if variant["gate"] == "mtf_v2" else FNO_MOMO_TOP_N  # B-1714: v2 picks from the top 5
+        top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
         reason, fill = None, price
         if mins >= FNO_MOMO_FORCE_EXIT_MIN:
@@ -43909,18 +44035,25 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                          "WHERE id = ?", (peak, stop, price, now_ts, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        cand = _fno_momo_pick(groups, day)
-        scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
-        if cand is None:
-            scan["skip"] = "skipped_no_positive_candidate"
+        v2 = variant["gate"] == "mtf_v2"
+        if v2:  # B-1714
+            cand, v2m, checked = _fno_momo_pick_v2(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+            scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None, "checked": checked[:30]}
         else:
-            if variant["gate"] in ("strict", "strict_oigreeks"):  # B-1686: strict replaced basic
+            cand = _fno_momo_pick(groups, day)
+            scan = {"ts": now_ts, "candidate": cand, "entered": False, "skip": None}
+        if cand is None:
+            scan["skip"] = _fno_momo_v2_top_skip(checked) if v2 else "skipped_no_positive_candidate"
+        else:
+            if v2:
+                senti = True
+            elif variant["gate"] in ("strict", "strict_oigreeks"):  # B-1686: strict replaced basic
                 senti = _fno_momo_sentiment_strict(cand["option_type"], cand["underlying"], pct,
                                                    snap.get("index_detail") or {})
             else:
                 senti = _fno_momo_sentiment(cand["option_type"], pct.get(cand["underlying"]), pct.get("NIFTY"))
             # B-1681: OI build-up + Greeks of the candidate, recorded on every entry (any variant) for View 6's "why"
-            om = _fno_option_metrics(cand.get("row") or {}, now)
+            om = v2m if v2 else _fno_option_metrics(cand.get("row") or {}, now)
             scan["metrics"] = om
             oig_skip = None
             if senti is True and variant["gate"] in ("oigreeks", "strict_oigreeks"):  # B-1686: OI + Greeks decide the buy
@@ -43936,6 +44069,10 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                 if om.get("delta") is not None:
                     why += (f"; OI {om['oi_build'] or 'n/a'}, IV {om['iv_pct']}%, delta {om['delta']}, "
                             f"theta {om['theta_per_day']}/day ({round((om['theta_frac'] or 0) * 100, 1)}% of premium)")
+                if v2:
+                    why += (f"; 5m {om.get('chg5_pct')}% / 15m {om.get('chg15_pct')}% / 1h {om.get('chg60_pct')}%, "
+                            f"IV vs index median {cand.get('iv_median')}%, {om.get('days_to_expiry')} days to expiry, "
+                            f"OI change {om.get('oi_change')} ({om.get('oi_change_basis')})")
                 meta = {"metrics": om, "index_pct": pct.get(cand["underlying"]), "nifty_pct": pct.get("NIFTY"),
                         "rank": cand["rank"], "gate": variant["gate"]}
                 conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "
