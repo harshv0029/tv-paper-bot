@@ -144995,7 +144995,19 @@
    "prev_state": "Rs1530.50",
    "new_state": "Rs1482.90",
    "detail": "reason: stop-loss moved to follow the trailing stop"
+  },
+  {
+   "id": 12084,
+   "ts": 1795588214.8634505,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261125000355944",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs1482.90",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=B qty=1"
   }
  ],
- "synced_at_utc": "2026-11-25T06:23:58Z"
+ "synced_at_utc": "2026-11-25T06:31:13Z"
 }
