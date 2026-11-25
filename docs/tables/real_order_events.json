@@ -145249,7 +145249,7 @@
    "detail": "reason: resting stop-loss placed so the open position is protected"
   },
   {
-   "id": 12106,
+   "id": 12105,
    "ts": 1795599802.5732741,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145261,7 +145261,7 @@
    "detail": "reason: cancel of a resting order; Kotak accepted it"
   },
   {
-   "id": 12105,
+   "id": 12106,
    "ts": 1795599812.7871892,
    "symbol": "ZYDUSLIFE.NS",
    "kotak_trading_symbol": "ZYDUSLIFE-EQ",
@@ -145501,7 +145501,7 @@
    "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   },
   {
-   "id": 12128,
+   "id": 12126,
    "ts": 1795600163.9220293,
    "symbol": "IDFCFIRSTB.NS",
    "kotak_trading_symbol": "IDFCFIRSTB-EQ",
@@ -145513,7 +145513,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12129,
+   "id": 12127,
    "ts": 1795600164.0774975,
    "symbol": "PIDILITIND.NS",
    "kotak_trading_symbol": "PIDILITIND-EQ",
@@ -145525,7 +145525,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12126,
+   "id": 12128,
    "ts": 1795600164.1385546,
    "symbol": "BIOCON.NS",
    "kotak_trading_symbol": "BIOCON-EQ",
@@ -145537,7 +145537,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12130,
+   "id": 12129,
    "ts": 1795600164.1762402,
    "symbol": "UNIONBANK.NS",
    "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -145549,7 +145549,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12127,
+   "id": 12130,
    "ts": 1795600165.3138733,
    "symbol": "AMBUJACEM.NS",
    "kotak_trading_symbol": "AMBUJACEM-EQ",
@@ -145561,7 +145561,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12133,
+   "id": 12131,
    "ts": 1795600169.0746608,
    "symbol": "HCLTECH.NS",
    "kotak_trading_symbol": "HCLTECH-EQ",
@@ -145573,7 +145573,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12131,
+   "id": 12132,
    "ts": 1795600169.331677,
    "symbol": "PNB.NS",
    "kotak_trading_symbol": "PNB-EQ",
@@ -145585,7 +145585,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12132,
+   "id": 12133,
    "ts": 1795600169.8457184,
    "symbol": "FEDERALBNK.NS",
    "kotak_trading_symbol": "FEDERALBNK-EQ",
@@ -145621,7 +145621,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12137,
+   "id": 12136,
    "ts": 1795600176.768048,
    "symbol": "HINDPETRO.NS",
    "kotak_trading_symbol": "HINDPETRO-EQ",
@@ -145633,7 +145633,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12138,
+   "id": 12137,
    "ts": 1795600176.937355,
    "symbol": "INDUSTOWER.NS",
    "kotak_trading_symbol": "INDUSTOWER-EQ",
@@ -145645,7 +145645,7 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
-   "id": 12136,
+   "id": 12138,
    "ts": 1795600177.0309436,
    "symbol": "NHPC.NS",
    "kotak_trading_symbol": "NHPC-EQ",
@@ -145705,5 +145705,5 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | B-1581: Kotak shows MANKIND-EQ already sold/exiting today (start-of-day holding 1 + opened 0 - closed 1 = 0; asked qty 1); no new stop on a closed position"
   }
  ],
- "synced_at_utc": "2026-11-25T09:55:30Z"
+ "synced_at_utc": "2026-11-25T10:06:48Z"
 }
