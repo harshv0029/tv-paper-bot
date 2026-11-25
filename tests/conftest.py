@@ -391,3 +391,11 @@ def _b1709_upstash_offhours_clock_independent(monkeypatch):
     monkeypatch.setattr(_m, "_UPSTASH_OFFHOURS_ZERO_MONTHS", frozenset())
     monkeypatch.setitem(_m._UPSTASH_OFFHOURS, "catchup_pending", False)
     monkeypatch.setitem(_m._UPSTASH_OFFHOURS, "slot_select_deferred", False)
+
+
+@pytest.fixture(autouse=True)
+def _b1712_no_kotak_chain(request, monkeypatch):
+    """B-1712: View 6 chains try Kotak first; tests never reach Kotak unless they opt in (marker-free: a test that
+    wants the real function restores it with monkeypatch.setattr(main, "_fno_kotak_chain", REAL))."""
+    import main as _m
+    monkeypatch.setattr(_m, "_fno_kotak_chain", lambda u, e=None: ([], "Kotak off in tests"))

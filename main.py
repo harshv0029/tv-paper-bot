@@ -42726,11 +42726,14 @@ def _nse_opener(page="https://www.nseindia.com/option-chain"):
           "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     hdrs = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
-    try:
-        with opener.open(urllib.request.Request(page, headers=dict(hdrs, Accept="text/html,*/*")), timeout=12) as r:
-            r.read(2000)
-    except Exception:
-        pass
+    # B-1712: warm the home page first (Akamai session cookies), then the option-chain page (nsit/nseappid), as a
+    # browser does; each is best effort, the API call is the source of truth.
+    for url in ("https://www.nseindia.com/", page):
+        try:
+            with opener.open(urllib.request.Request(url, headers=dict(hdrs, Accept="text/html,*/*")), timeout=12) as r:
+                r.read(2000)
+        except Exception:
+            pass
     return opener, dict(hdrs, Accept="application/json, text/plain, */*", Referer=page)
 
 
@@ -42757,8 +42760,10 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
             if not isinstance(leg, dict):
                 continue
             exp = leg.get("expiryDate") or item.get("expiryDate") or item.get("expiryDates") or expiry
-            if expiry and exp and str(exp) != str(expiry):
+            if expiry and exp and _fno_expiry_iso(exp) != _fno_expiry_iso(expiry):  # B-1712: '25-NOV-2026' == '25-Nov-2026'
                 continue
+            if expiry:
+                exp = expiry
             n = _fno_num(leg.get("totalTradedVolume") if leg.get("totalTradedVolume") is not None
                          else leg.get("numberOfContractsTraded"))
             px = _fno_num(leg.get("lastPrice"))
@@ -42780,44 +42785,254 @@ def _fno_chain_rows(payload, underlying, expiry=None) -> list:
     return out
 
 
+def _fno_expiry_iso(v) -> str:
+    """B-1712: an NSE expiry label in any case/spelling ('25-Nov-2026', '25-NOV-2026', '25 Nov 2026') -> ISO date
+    string; the raw text upper-cased when it does not parse."""
+    t = str(v or "").strip()
+    for fmt in ("%d-%b-%Y", "%d %b %Y", "%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            return dt.datetime.strptime(t.title() if "b" in fmt else t, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return t.upper()
+
+
+def _fno_upcoming_expiries(dates, today=None, n=2) -> list:
+    """B-1712: the first `n` expiry labels dated today or later (contract-info can still list a lapsed or
+    holiday-moved expiry first, and v3 answers that with no rows). Unparseable labels keep their order."""
+    today = today or ist_now().strftime("%Y-%m-%d")
+    keep = []
+    for d in dates or []:
+        k = _fno_expiry_iso(d)
+        if len(k) == 10 and k[4] == "-" and k < today:
+            continue
+        keep.append(d)
+    return keep[:n]
+
+
+def _fno_v3_shape(payload) -> str:
+    """B-1712: a short description of an option-chain-v3 answer that parsed to no rows, so the live error names it."""
+    if not isinstance(payload, dict):
+        return "non-JSON-object " + type(payload).__name__
+    recs = payload.get("records") if isinstance(payload.get("records"), dict) else {}
+    data = recs.get("data") or (payload.get("filtered") or {}).get("data") or []
+    first = data[0] if data and isinstance(data[0], dict) else {}
+    leg = first.get("CE") or first.get("PE") or {}
+    return (f"keys {','.join(sorted(payload)[:6])}; records {','.join(sorted(recs)[:6])}; rows {len(data)}; "
+            f"item {','.join(sorted(first)[:8])}; leg {','.join(sorted(leg)[:12]) if isinstance(leg, dict) else '?'}")
+
+
+# ---- B-1712 (user 2026-11-25 "Use other sources"): Kotak Neo as the first option-chain source for View 6 -----------
+# NSE's option-chain API answered 404 for every index and BSE's 403 for SENSEX from Render. Kotak's scrip master
+# lists every index option (search_scrip, pSymbolName exact) and quotes(quote_type="all") returns ltp, per_change,
+# last_volume, open_int and ohlc for an option (live-confirmed 2026-11-25 on BANKNIFTY27JAN31500CE). Read-only quotes,
+# research/paper display only: never a real entry/SL source. Strikes: FNO_KOTAK_BAND either side of the spot.
+FNO_KOTAK_BAND = 10
+FNO_KOTAK_MIN_TTL_S = 60          # never more than one Kotak quote batch per index per minute (tape, View 6)
+FNO_KOTAK_QUOTE_CHUNK = 50
+_FNO_KOTAK_CONTRACTS = {}         # underlying -> {"day", "rows": [(expiry_date, strike, "CE"/"PE", token, lot)]}
+_FNO_KOTAK_SPOT_CACHE = {}        # underlying -> {"ts", "last", "pct"}
+_FNO_KOTAK_SPOT_TOKENS = {"SENSEX": ("bse_cm", "SENSEX")}  # live-confirmed 2026-11-25: ltp 83863.02
+
+
+def _fno_kotak_contracts(underlying: str) -> tuple:
+    """(slim contract rows, error) for one index from Kotak's scrip master, once per IST day. Only 5-tuples are
+    kept (the raw scrip rows are ~40 fields each and are dropped at once)."""
+    import nse_fo_chain
+    day = ist_now().strftime("%Y-%m-%d")
+    hit = _FNO_KOTAK_CONTRACTS.get(underlying)
+    if hit and hit["day"] == day and hit["rows"]:
+        return hit["rows"], None
+    out, errs = [], []
+    seg = nse_fo_chain._UNDERLYING_TO_SEGMENT.get(underlying)
+    for ot in ("ce", "pe"):
+        raw, err = nse_fo_chain._fo_rows_uncached(underlying, option_type=ot)
+        if err:
+            errs.append(f"scrip {ot}: {err}"[:120])
+            continue
+        for r in raw or []:
+            if str(r.get("pOptionType", "")).strip().lower() != ot:
+                continue
+            try:
+                exp = nse_fo_chain._parse_expiry(r["pExpiryDate"])
+                strike = float(r.get("dStrikePrice;")) / 100.0
+                out.append((exp, strike, ot.upper(), str(r["pSymbol"]), int(r.get("lLotSize") or 1)))
+            except Exception:  # noqa: BLE001
+                continue
+    if out:
+        _FNO_KOTAK_CONTRACTS[underlying] = {"day": day, "rows": out, "segment": seg}
+    return out, ("; ".join(errs) or None) if not out else None
+
+
+def _fno_kotak_spot(underlying: str):
+    """(last, day %) of the index: NSE allIndices (already fetched for View 6) or, for SENSEX, a Kotak quote."""
+    d = (_FNO_INDEX_DETAIL_CACHE.get("data") or {}).get(underlying) or {}
+    if d.get("last"):
+        return float(d["last"]), None
+    tok = _FNO_KOTAK_SPOT_TOKENS.get(underlying)
+    if not tok:
+        return None, None
+    c = _FNO_KOTAK_SPOT_CACHE.get(underlying) or {}
+    if c and time.time() - c["ts"] < FNO_KOTAK_MIN_TTL_S:
+        return c["last"], c["pct"]
+    import kotak_neo
+    q = kotak_neo.quotes([{"instrument_token": tok[1], "exchange_segment": tok[0]}], quote_type="all")
+    d0 = q[0] if isinstance(q, list) and q and isinstance(q[0], dict) else {}
+    last = _fno_num(d0.get("ltp")) or None
+    pct = None
+    if d0.get("per_change") not in (None, ""):
+        pct = _fno_num(d0.get("per_change"))
+    elif last and _fno_num((d0.get("ohlc") or {}).get("close")):
+        pc = _fno_num(d0["ohlc"]["close"])
+        pct = round((last - pc) / pc * 100.0, 2)
+    _FNO_KOTAK_SPOT_CACHE[underlying] = {"ts": time.time(), "last": last, "pct": pct}
+    return last, pct
+
+
+def _fno_kotak_quote_rows(tokens: list, segment: str) -> dict:
+    """{token: quote dict} for many option tokens, quotes(quote_type='all') in chunks."""
+    import kotak_neo
+    out = {}
+    for i in range(0, len(tokens), FNO_KOTAK_QUOTE_CHUNK):
+        chunk = tokens[i:i + FNO_KOTAK_QUOTE_CHUNK]
+        q = kotak_neo.quotes([{"instrument_token": t, "exchange_segment": segment} for t in chunk], quote_type="all")
+        if isinstance(q, dict):
+            raise RuntimeError("quotes error " + str(q.get("message") or q.get("error") or q)[:120])
+        for d in q or []:
+            if isinstance(d, dict) and d.get("exchange_token") is not None:
+                out[str(d["exchange_token"])] = d
+    return out
+
+
+def _fno_kotak_chain(underlying: str, expiry: str = None) -> tuple:
+    """(View 6 rows, error) for one index from Kotak: nearest upcoming expiry (or `expiry`, 'dd-Mon-YYYY'),
+    FNO_KOTAK_BAND strikes either side of the spot, CE and PE. Contracts traded = last_volume / lot size."""
+    try:
+        rows, err = _fno_kotak_contracts(underlying)
+        if not rows:
+            return [], "Kotak " + (err or "no contracts")
+        today = dt.date.fromisoformat(ist_now().strftime("%Y-%m-%d"))
+        if expiry:
+            want = dt.date.fromisoformat(_fno_expiry_iso(expiry))
+        else:
+            ups = sorted({r[0] for r in rows if r[0] >= today})
+            if not ups:
+                return [], "Kotak: no upcoming expiry"
+            want = ups[0]
+        legs = [r for r in rows if r[0] == want]
+        if not legs:
+            return [], f"Kotak: no contracts for expiry {want}"
+        spot, _pct = _fno_kotak_spot(underlying)
+        strikes = sorted({r[1] for r in legs})
+        if spot:
+            atm = min(range(len(strikes)), key=lambda i: abs(strikes[i] - spot))
+        else:
+            atm = len(strikes) // 2
+        band = set(strikes[max(0, atm - FNO_KOTAK_BAND): atm + FNO_KOTAK_BAND + 1])
+        legs = [r for r in legs if r[1] in band]
+        seg = (_FNO_KOTAK_CONTRACTS.get(underlying) or {}).get("segment") or "nse_fo"
+        quotes = _fno_kotak_quote_rows([r[3] for r in legs], seg)
+        label = want.strftime("%d-%b-%Y")
+        out = []
+        for exp, strike, ot, tok, lot in legs:
+            d = quotes.get(tok) or {}
+            px = _fno_num(d.get("ltp"))
+            n = round(_fno_num(d.get("last_volume")) / max(lot, 1))
+            if px <= 0 or n <= 0:
+                continue
+            pc = d.get("per_change")
+            if pc in (None, ""):
+                prev = _fno_num((d.get("ohlc") or {}).get("close"))
+                pc = round((px - prev) / prev * 100.0, 2) if prev > 0 else 0.0
+            oi = _fno_num(d.get("open_int"))
+            r = {"underlying": underlying, "strikePrice": strike, "optionType": ot, "expiryDate": label,
+                 "lastPrice": px, "pChange": _fno_num(pc), "numberOfContractsTraded": n,
+                 "openInterest": round(oi / max(lot, 1)) if oi else None, "changeinOpenInterest": None,
+                 "pchangeinOpenInterest": None, "impliedVolatility": None, "underlyingValue": spot,
+                 "source": "kotak"}
+            r["contract"] = _fno_label(r)
+            out.append(r)
+        if not out:
+            return [], f"Kotak: {len(legs)} contracts quoted, none traded today ({len(quotes)} answered)"
+        return out, None
+    except Exception as e:  # noqa: BLE001
+        return [], f"Kotak {type(e).__name__}: {str(e)[:140]}"
+
+
 def _fno_chain_fetch(underlying, expiry=None, opener=None, ttl=None) -> list:
     """Nearest-expiry (or the given expiry) option chain rows for one index, cached FNO_CHAIN_CACHE_S (or ttl,
-    B-1688 tape: 60 s). [] on failure."""
+    B-1688 tape: 60 s). [] on failure.
+    B-1712 (user 2026-11-25 "BANKNIFTY, SENSEX and a few more indices are not loading their contracts in View 6"): live
+    every chain failed with "HTTP Error 404". The legacy option-chain-indices endpoint is retired (404), and it ran as
+    the fallback whenever v3 parsed to no rows, so its 404 hid the real v3 result. Now: v3 only (contract-info ->
+    v3 per upcoming expiry, up to 2), one fresh-session retry on 401/403, and every step named in the error."""
+    import urllib.error as _ue
+    import urllib.parse as _up
     key = (underlying, expiry or "")
     now = time.time()
     hit = _FNO_CHAIN_CACHE.get(key)
     ttl = ttl or (FNO_QUOTE_CACHE_S if expiry else FNO_CHAIN_CACHE_S)
     if hit and now - hit["ts"] < ttl:
         return hit["rows"]  # B-1678 fix: a failure is cached too, so a down chain is retried every 120 s, not every tick
-    rows, err = [], None
+    rows, errs = [], []
+    # B-1712: Kotak first (one quote batch per index per minute at most), then the exchange's own site.
+    if hit and hit.get("kotak") and now - hit["ts"] < FNO_KOTAK_MIN_TTL_S:
+        return hit["rows"]
+    krows, kerr = _fno_kotak_chain(underlying, expiry)
+    if krows:
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": krows, "error": None, "kotak": True}
+        return krows
     if underlying == "SENSEX":  # B-1681: a BSE index; NSE never lists it
         rows, err = _bse_sensex_chain(expiry)
-        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
+        _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows,
+                                 "error": None if rows else f"{kerr} | {err or 'no rows'}"[:300]}
         return rows
+    errs.append(kerr or "Kotak: no rows")
+    state = {"op": opener or _nse_opener(), "fresh": opener is None}
+
+    def _get(step, path, cap=4_000_000):
+        for attempt in range(2):
+            op, hdrs = state["op"]
+            try:
+                return _nse_get_json(op, hdrs, path, cap)
+            except _ue.HTTPError as e:
+                if e.code in (401, 403) and attempt == 0:  # an expired/blocked cookie: one fresh handshake
+                    state["op"] = _nse_opener()
+                    continue
+                errs.append(f"{step}: HTTP {e.code}")
+                return None
+            except Exception as e:  # noqa: BLE001
+                errs.append(f"{step}: {type(e).__name__}: {str(e)[:120]}")
+                return None
+        return None
+
     try:
-        op, hdrs = opener or _nse_opener()
-        exp = expiry
-        if not exp:
-            info = _nse_get_json(op, hdrs, "/api/option-chain-contract-info?symbol=" + underlying, 500_000)
-            dates = (info or {}).get("expiryDates") or []
-            exp = dates[0] if dates else None
-        if exp:
-            import urllib.parse as _up
-            rows = _fno_chain_rows(_nse_get_json(op, hdrs, "/api/option-chain-v3?type=Indices&symbol=" + underlying
-                                                 + "&expiry=" + _up.quote(str(exp))), underlying, exp)
+        if expiry:
+            exps = [expiry]
         else:
-            err = "no expiryDates in option-chain-contract-info"
-        if not rows:  # legacy endpoint (all expiries) as the fallback
-            payload = _nse_get_json(op, hdrs, "/api/option-chain-indices?symbol=" + underlying)
+            info = _get("contract-info", "/api/option-chain-contract-info?symbol=" + underlying, 500_000)
+            dates = (info or {}).get("expiryDates") or ((info or {}).get("records") or {}).get("expiryDates") or []
+            exps = _fno_upcoming_expiries(dates)
+            if info is not None and not exps:
+                errs.append("contract-info: no upcoming expiryDates; keys "
+                            + ",".join(sorted(info)[:6] if isinstance(info, dict) else ["?"]))
+        for exp in exps:
+            payload = _get(f"v3 {exp}", "/api/option-chain-v3?type=Indices&symbol=" + underlying
+                           + "&expiry=" + _up.quote(str(exp)))
+            if payload is None:
+                continue
             rows = _fno_chain_rows(payload, underlying, exp)
-            if not rows:
-                err = (err or "") + " | empty chain; keys " + ",".join(sorted(payload)[:6] if isinstance(payload, dict) else ["?"])
-    except Exception as e:
-        err = (err + " | " if err else "") + type(e).__name__ + ": " + str(e)[:160]
-        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err}")
+            if rows:
+                break
+            errs.append(f"v3 {exp}: 0 rows ({_fno_v3_shape(payload)})")
+    except Exception as e:  # noqa: BLE001
+        errs.append(type(e).__name__ + ": " + str(e)[:160])
+    err = None if rows else (" | ".join(errs) or "no rows")
+    if err:
+        print(f"[FNO_CHAIN] {underlying} {expiry or ''} fetch failed (non-fatal): {err[:300]}")
     if len(_FNO_CHAIN_CACHE) > 12:
         _FNO_CHAIN_CACHE.clear()
-    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else (err or "no rows")[:300]}
+    _FNO_CHAIN_CACHE[key] = {"ts": now, "rows": rows, "error": None if rows else err[:300]}
     return rows
 
 
@@ -42875,9 +43090,23 @@ def _bse_sensex_chain(expiry=None):
                           "Chrome/120.0 Safari/537.36", "Accept": "application/json, text/plain, */*",
             "Referer": "https://www.bseindia.com/", "Origin": "https://www.bseindia.com"}
     base = "https://api.bseindia.com/BseIndiaAPI/api/"
+    # B-1712: live 25-Nov the bare call got "HTTP Error 403". BSE's API wants the session cookies its own derivatives
+    # page sets and the browser's fetch headers, so warm that page first (best effort) on a cookie-keeping opener.
+    import http.cookiejar
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    try:
+        with opener.open(urllib.request.Request("https://www.bseindia.com/markets/Derivatives/DeriReports/DeriOptionchain.html",
+                                                headers=dict(hdrs, Accept="text/html,*/*")), timeout=10) as r:
+            r.read(2000)
+    except Exception:  # noqa: BLE001
+        pass
+    hdrs.update({"Accept-Language": "en-US,en;q=0.9", "Sec-Fetch-Site": "same-site", "Sec-Fetch-Mode": "cors",
+                 "Sec-Fetch-Dest": "empty"})
+    step = {"name": "ddlExpiry_IV"}
 
     def _get(path):
-        with urllib.request.urlopen(urllib.request.Request(base + path, headers=hdrs), timeout=8) as resp:
+        step["name"] = path.split("/")[0]
+        with opener.open(urllib.request.Request(base + path, headers=hdrs), timeout=8) as resp:
             return _json.loads(resp.read(4_000_000).decode("utf-8", "replace"))
     try:
         exp = None
@@ -42903,7 +43132,7 @@ def _bse_sensex_chain(expiry=None):
                       and isinstance(v[0], dict)), {})
         return [], "SENSEX chain parsed 0 rows; row keys " + ",".join(sorted(first)[:20])
     except Exception as e:
-        return [], type(e).__name__ + ": " + str(e)[:160]
+        return [], f"BSE {step['name']}: " + type(e).__name__ + ": " + str(e)[:160]
 
 
 def _fno_contract_ltp(contract: str, underlying: str):
@@ -43252,6 +43481,10 @@ def _fno_by_index_snapshot() -> dict:
     rows = (raw.get("lists", {}).get("index_calls") or []) + (raw.get("lists", {}).get("index_puts") or [])
     groups = _fno_group_by_index(rows, 50)
     sources = {u: "most_active" for u in _FNO_INDEX_UNDERLYINGS}
+    try:
+        index_pct = dict(_fno_index_day_changes() or {})  # B-1712: first, so the Kotak chain centres on the spot
+    except Exception:  # noqa: BLE001
+        index_pct = {}
     short = [u for u in _FNO_INDEX_UNDERLYINGS if len(groups.get(u) or []) < FNO_VIEW6_MIN_ROWS]
     if short:
         cold = [u for u in short if time.time() - (_FNO_CHAIN_CACHE.get((u, "")) or {}).get("ts", 0.0) >= FNO_CHAIN_CACHE_S]
@@ -43264,8 +43497,11 @@ def _fno_by_index_snapshot() -> dict:
             if chain:
                 merged = _fno_group_by_index((groups.get(u) or []) + chain, 50).get(u) or []
                 groups[u] = merged
-                sources[u] = "option_chain"
-    data = {"groups": groups, "sources": sources, "index_pct": _fno_index_day_changes(),
+                sources[u] = "kotak" if any(r.get("source") == "kotak" for r in chain) else "option_chain"
+    for u, c in _FNO_KOTAK_SPOT_CACHE.items():  # B-1712: SENSEX day % from Kotak (NSE allIndices never lists it)
+        if index_pct.get(u) is None and c.get("pct") is not None:
+            index_pct[u] = c["pct"]
+    data = {"groups": groups, "sources": sources, "index_pct": index_pct,
             "index_detail": dict(_FNO_INDEX_DETAIL_CACHE.get("data") or {}),
             "errors": raw.get("errors") or {}, "ok": bool(rows),
             "fetched_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S IST"), "fetched_ts": now}

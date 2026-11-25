@@ -2600,3 +2600,9 @@ Profit-booking / exit takeaway: a cheaper cost model widens what is wired, but e
 - The user made off-hours Upstash use strictly zero for Nov 2026. Per-writer throttles (B-1569/B-1576/B-1697/B-1698) never reached zero because ~60 call sites, the lease module and the PING each talk to Upstash directly; one guard on requests.Session.request is the only way to guarantee it.
 - Render wipes the disk on restart, so an off-hours boot restores nothing from Upstash. Writes must stay held at the open until the restores re-run, or the first push would overwrite the mirror with the journal-only state.
 - Profit-booking / exit takeaway: real exits placed off-hours (MCX/F&O) are not mirrored until 09:00; the exit itself is unaffected (Kotak is ground truth, governance re-reads it every 5 min), but any off-hours exit should be checked against Kotak at the next open.
+
+
+## 2026-11-25 B-1712: View 6 index chains, a retired fallback hid the real error
+- Every index chain fetch failed live (404), but the 404 came from NSE's retired option-chain-indices fallback, not from the v3 call that matters. A fallback to a dead endpoint turns every upstream problem into the same misleading error.
+- Rule: name each step in the surfaced error, drop retired endpoints, and skip lapsed expiries (Nov 2026 monthly expiry moved for the 24-Nov holiday).
+- Profit-booking / exit takeaway: the paper option strategy's 2% trailing stop reads its premium from these chains when a contract leaves NSE's most-active list; a silent chain outage means the stop runs on stale prices, so chain health must be visible before any option variant is trusted for exits.
