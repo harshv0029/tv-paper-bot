@@ -145163,7 +145163,19 @@
    "prev_state": "resting SELL trigger Rs1153.00",
    "new_state": "resting SELL trigger Rs1155.20",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1153.00 to Rs1155.20 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12098,
+   "ts": 1795591403.9770274,
+   "symbol": "LTF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-25T07:18:24Z"
+ "synced_at_utc": "2026-11-25T07:23:27Z"
 }
