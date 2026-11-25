@@ -145031,7 +145031,19 @@
    "prev_state": "resting SELL trigger Rs1152.50",
    "new_state": "resting SELL trigger Rs1153.00",
    "detail": "reason: minervini_vcp_livermore trail rule raised the stop from Rs1152.50 to Rs1153.00 | daily minervini_vcp_livermore stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 12087,
+   "ts": 1795589467.8742952,
+   "symbol": "NMDC.NS",
+   "kotak_trading_symbol": "NMDC-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261125000400461",
+   "prev_state": "no position",
+   "new_state": "long 31 @ Rs67.17",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-25T06:36:58Z"
+ "synced_at_utc": "2026-11-25T06:51:10Z"
 }
