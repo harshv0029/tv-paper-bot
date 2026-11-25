@@ -2640,3 +2640,10 @@ Profit-booking / exit takeaway: judge the trail on paired trades (same entry), b
 ### B-1719 (2026-11-25): keep the full path of every paper option trade
 User asked that every entry, exit and detail of single-leg paper option trades be kept for later analysis. Entry and exit fields were already stored and mirrored; missing were the lowest price while open (MAE), the price path, and the setups that were skipped. Without MAE and the path, a trail can only be judged on its exits, not on how close each loser came to recovering or each winner came to being stopped; without the skip log, "would the skipped setup have won?" cannot be answered.
 Profit-booking / exit takeaway: with MAE, peak (MFE) and the 30 s path per trade, any trail width (2%, 3%, 5%, ...) can be replayed on the recorded paths without waiting for new live trades.
+
+### 2026-11-25 B-1725: evidence for the View 6 fast-plan rules
+An 89-day replay (5-min index proxies, synthetic Black-Scholes premiums, 0.8% cost) plus a literature pass.
+- The strict whole-day direction gate is the only entry rule with an edge: CE next-15-min hit rate 53.7%; without the gate PF falls from 0.755 to 0.508.
+- The "index moving now" 5-min rule points the wrong way: over 5-15 min, index moves tend to reverse (hit rate 44.3%).
+- SEBI: about 91% of individual F&O traders lost money (FY24), mostly option buyers. A buying edge must be shown, not assumed.
+Profit-booking / exit takeaway: a 2% trail on an option premium sits inside normal 5-min noise (96% of exits are stop-outs, average peak gain only 2.25%). 15-25% trails with a 60-min hold come close to break-even (PF up to 1.006) where 2-5% with 15 min loses (PF 0.76-0.78). The trail width and hold time are the biggest levers, so test them next on the real recorded paths from B-1719.
