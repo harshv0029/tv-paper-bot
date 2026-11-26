@@ -49,6 +49,22 @@
    "symbol": "BIOCON.NS"
   },
   {
+   "day": "2026-11-26",
+   "entry_order_id": "261126000057778",
+   "entry_price": 3118.4,
+   "first_seen_day": "2026-11-26",
+   "is_short": 1,
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "opened_at": 1795665217.9842155,
+   "owner": "short",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "symbol": "ENRIN.NS"
+  },
+  {
    "day": "2026-11-25",
    "entry_order_id": "261125000655331",
    "entry_price": 372.1,
