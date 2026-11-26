@@ -146291,7 +146291,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs417.75",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 12192,
+   "ts": 1795666672.0162475,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 9",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T03:55:03Z"
+ "synced_at_utc": "2026-11-26T04:17:54Z"
 }
