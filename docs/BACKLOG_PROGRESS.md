@@ -491,7 +491,7 @@ Total rows: 1498 | closed: 1047 | not closed: 451
 | B-1190 | P2 | PARTIAL | 2026-10-14 IST, main.py port step for B-937 (viable family base/cup_cheat_3c/long/1h, swing) | owed, needs |
 | B-1190 | P2 | PARTIAL | 2026-10-14 IST, main.py port step for B-937 (viable family base/cup_cheat_3c/long/1h, swing) | owed, needs |
 | B-1705 | P2 | OPEN | Research a breakeven ratchet for swing trades (from the B-1702 5-loser review: IRFC +2.4% and Cochin Shipya... |  |
-| B-1746 | P2 | OPEN | 2026-11-27 01:30 IST, user: "why no viable strategy picked nifty or sensex -- investigate". Findings (code ... | blocked, needs |
+| B-1746 | P2 | OPEN | 2026-11-27 01:30 IST, user: "why no viable strategy picked nifty or sensex -- investigate". Findings (code ... | blocked, needs, unverified |
 | B-443 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-444 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-445 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |

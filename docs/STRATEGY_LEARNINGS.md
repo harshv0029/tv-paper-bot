@@ -2699,3 +2699,10 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - Surprise: the 60-day long-only pass was regime, but the 2-year test shows a two-sided intraday index momentum effect on the proxy. It is not uniform: BANKNIFTY fails IS on the long ORB combo.
 - Reuse: retest a short-window result on the longest TF that has multi-regime history before deciding. Run per-index splits before pooling hides a loser.
 - Profit-booking / exit takeaway: on 1h the edge is in quick exits (1 bar) for long breakouts. Shorts did better held into the close with a 10% premium trail. The proxy is still not real-money evidence; paper premiums must confirm it.
+
+## B-1746 index ATM-option paper engine: novol vs futures-volume twins (2026-11-27 IST)
+- Mechanism: on NIFTY and SENSEX hourly bars, an opening-range break (first 3 hours) buys the ATM call and holds it 1 hour; an EMA 9/21 cross-down buys the ATM put and holds it to the close. Each trigger runs twice: with no volume gate, and with a gate requiring the near-month future's hour volume to beat its 20-hour average.
+- Result: built and tested (paper only); live paper premiums will decide. Not deployed yet.
+- Surprise: index volume needed its own source. Yahoo index bars have none, so the futures twin samples the Kotak quote's cumulative day volume at each hourly boundary and differences it into hourly bars.
+- Reuse: run "same trigger, gate on/off" twins side by side when a user rule (volume mandatory) conflicts with what the evidence tested.
+- Profit-booking / exit takeaway: the long side exits fast (60 min or a 5% trail after +5%); the put side rides to the close with a 10% trail. Compare the twins' net % per day after 2-3 weeks before any real wiring.
