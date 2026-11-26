@@ -146387,7 +146387,43 @@
    "prev_state": "short 1",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12200,
+   "ts": 1795668764.9220176,
+   "symbol": "ENRIN.NS",
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000058981",
+   "prev_state": "resting @ Rs3156.6",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12201,
+   "ts": 1795668765.680341,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261126000243491",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs793.65",
+   "detail": "reason: swing entry signal from strategy reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12202,
+   "ts": 1795668772.496467,
+   "symbol": "ENRIN.NS",
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261126000243731",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T04:52:44Z"
+ "synced_at_utc": "2026-11-26T04:53:05Z"
 }
