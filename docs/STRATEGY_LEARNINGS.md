@@ -2667,3 +2667,9 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - 90-day replay: dropping only the breadth part gives more trades and a better PF (1.11 vs 1.07, n 358 vs 284). Also removing the midday gap gives many more trades (n 562), but PF falls to 1.02 and the first half is below 1 (0.87).
 - Loosening the trend size (0.15%) or removing the trend-day check makes it lose (PF 0.98 / 0.82). The trend-day direction is the edge; breadth is not.
 - Profit-booking / exit takeaway: exits were not changed (12% trail, +12% target, 15-min time stop). The extra midday entries in (b) dilute the edge, so if (b) trails (a) on paper, the time window and not the exit is what to drop.
+
+### B-1732 (2026-11-26): pullback_v4 now skips expiry-day contracts (user "Yes implement")
+- 90-day replay: skipping contracts that expire today raised PF for every pullback variant (12%: 1.07 to 1.21; 5%: 1.01 to 1.07; no-breadth: 1.11 to 1.25; no-breadth all-window: 1.02 to 1.11) for about 5% fewer trades.
+- Expiry-day option premiums swing on gamma and theta, so a 5-min pullback is noise there more than a trend dip.
+- fast_v3 keeps expiry-day contracts (B-1717, the user's separate call for that plan).
+- Profit-booking / exit takeaway: on expiry day even a 12% trail cannot save a buy, because premium decay is faster than the 15-min hold; not entering is the better exit.

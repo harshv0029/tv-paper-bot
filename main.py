@@ -43808,15 +43808,27 @@ FNO_MOMO_V4NB_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_i
 FNO_MOMO_V4NBW_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte_0930to1430__long_opt__5m__"
                       "trail12_tgt12_hold15__v1")
 FNO_V4_WIDE_WINDOWS = ((9 * 60 + 30, 14 * 60 + 30),)
+# B-1732 (user 2026-11-26 "Yes implement"): the pullback plan skips contracts that expire today (replay 90 days, 12%
+#   trail: PF 1.07 -> 1.21; no-breadth 1.11 -> 1.25; no-breadth all-window 1.02 -> 1.11). Tags are immutable, so the
+#   four pullback tags above are retired (0 paper trades each) and replaced by "_noexp" tags with the same rule
+#   otherwise. fast_v3 keeps expiry-day contracts (B-1717, the user's call for that plan).
+FNO_MOMO_V4X_T12_TAG = FNO_MOMO_V4_T12_TAG.replace("_alldte__", "_noexp__")
+FNO_MOMO_V4X_T5_TAG = FNO_MOMO_V4_T5_TAG.replace("_alldte__", "_noexp__")
+FNO_MOMO_V4XNB_TAG = FNO_MOMO_V4NB_TAG.replace("_alldte__", "_noexp__")
+FNO_MOMO_V4XNBW_TAG = FNO_MOMO_V4NBW_TAG.replace("_alldte_0930to1430__", "_noexp_0930to1430__")
+FNO_MOMO_RETIRED_VARIANTS = tuple(
+    {"tag": t, "gate": "pullback_v4", "retired": True, "trail": tr, "target": FNO_V4_TARGET_PCT}
+    for t, tr in ((FNO_MOMO_V4_T12_TAG, 0.12), (FNO_MOMO_V4_T5_TAG, 0.05), (FNO_MOMO_V4NB_TAG, 0.12),
+                  (FNO_MOMO_V4NBW_TAG, 0.12))) + FNO_MOMO_RETIRED_VARIANTS
 FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": FNO_MOMO_TRAIL_PCT},
                      {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05},
-                     {"tag": FNO_MOMO_V4_T12_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                     {"tag": FNO_MOMO_V4X_T12_TAG, "gate": "pullback_v4", "allow_expiry": False, "trail": 0.12,
                       "target": FNO_V4_TARGET_PCT},
-                     {"tag": FNO_MOMO_V4_T5_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.05,
+                     {"tag": FNO_MOMO_V4X_T5_TAG, "gate": "pullback_v4", "allow_expiry": False, "trail": 0.05,
                       "target": FNO_V4_TARGET_PCT},
-                     {"tag": FNO_MOMO_V4NB_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                     {"tag": FNO_MOMO_V4XNB_TAG, "gate": "pullback_v4", "allow_expiry": False, "trail": 0.12,
                       "target": FNO_V4_TARGET_PCT, "breadth": False},
-                     {"tag": FNO_MOMO_V4NBW_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                     {"tag": FNO_MOMO_V4XNBW_TAG, "gate": "pullback_v4", "allow_expiry": False, "trail": 0.12,
                       "target": FNO_V4_TARGET_PCT, "breadth": False, "windows": FNO_V4_WIDE_WINDOWS})
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
@@ -44061,9 +44073,11 @@ def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
 
 
 def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
-                      mins: int, breadth: bool = True, windows=None):
+                      mins: int, breadth: bool = True, windows=None, allow_expiry: bool = True):
     """B-1728: the first failing check of the trend-day pullback plan for one contract (None = passes).
-    B-1744: breadth=False / windows=FNO_V4_WIDE_WINDOWS for the wider paper twins."""
+    B-1744: breadth=False / windows=FNO_V4_WIDE_WINDOWS for the wider paper twins. B-1732: allow_expiry=False."""
+    if day and not allow_expiry and _fno_momo_is_expiry_day(row.get("contract"), day):
+        return "skipped_expiry_day"
     if not any(a <= mins <= b for a, b in (windows or FNO_V3_WINDOWS)):
         return "skipped_midday_reversal_window"
     senti = _fno_momo_sentiment_strict(ot, u, pct, detail, breadth)
@@ -44091,12 +44105,13 @@ def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
 
 
 def _fno_momo_pick_v4(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
-                      breadth: bool = True, windows=None):
+                      breadth: bool = True, windows=None, allow_expiry: bool = True):
     """B-1728: v2's checked pick with the pullback checks, ranked by the 5-min premium change (as the B-1727 study)."""
     mins = now.hour * 60 + now.minute
     return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
                              skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v4_skip(r, ot, u, m, iv, p, d, dy,
-                                                                                        now_ts, mins, breadth, windows),
+                                                                                        now_ts, mins, breadth, windows,
+                                                                                        allow_expiry),
                              rank_key="chg5_pct")
 
 
@@ -44271,7 +44286,8 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
             if variant["gate"] == "pullback_v4":
                 cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        breadth=variant.get("breadth", True),
-                                                       windows=variant.get("windows"))
+                                                       windows=variant.get("windows"),
+                                                       allow_expiry=variant.get("allow_expiry", True))
             elif variant["gate"] == "fast_v3":
                 cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        allow_expiry=bool(variant.get("allow_expiry")))

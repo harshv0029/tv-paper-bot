@@ -25,7 +25,7 @@ RETIRED_V1 = ("RETIRED 2026-11-25 (B-1714, user: research OI/Greeks/% change and
 RETIRED = "RETIRED 2026-11-23 (B-1686, user: one strategy = strict sentiment + OI/Greeks): no new entries. "
 
 
-def build():
+def _build_base():
     return [sr.StrategyDef(
         name=TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
         status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
@@ -155,3 +155,33 @@ def build():
                "first half 0.87, second half 1.10, so weaker and less stable than the breadth-only twin. Net of 0.8% "
                "cost. PAPER ONLY."),
     )]
+
+
+RETIRED_X = ("RETIRED 2026-11-26, 0 paper trades (B-1732, user 'Yes implement': the pullback plan skips expiry-day "
+             "contracts; replaced by the _noexp tag of the same rule). ")
+NOEXP = {V4_T12_TAG: ("[2]", "1.21 (n=270), H1 1.16, H2 1.25"), V4_T5_TAG: ("[3]", "1.07 (n=293), H1 1.17, H2 1.01"),
+         V4NB_TAG: ("[4]", "1.25 (n=343), H1 1.02, H2 1.36"), V4NBW_TAG: ("[5]", "1.11 (n=536), H1 0.77, H2 1.30")}
+
+
+def _noexp_name(tag):
+    return tag.replace("_alldte_0930to1430__", "_noexp_0930to1430__").replace("_alldte__", "_noexp__")
+
+
+def build():
+    """B-1732: the four pullback tags are retired and each gets a _noexp twin (expiry-day contracts skipped)."""
+    import dataclasses
+    out = []
+    for d in _build_base():
+        if d.name in NOEXP:
+            idx, pf = NOEXP[d.name]
+            out.append(dataclasses.replace(d, notes=RETIRED_X + d.notes))
+            out.append(dataclasses.replace(
+                d, name=_noexp_name(d.name),
+                source="main.py FNO_MOMO_VARIANTS" + idx + " (B-1732), replaces " + d.name,
+                evidence="Paper forward test; B-1732 90-day replay with expiry-day contracts skipped.",
+                notes=("ACTIVE paper plan (user 2026-11-26 'Yes implement', B-1732). The same rule as " + d.name +
+                       " except contracts expiring today are skipped (skipped_expiry_day). Replay 16-Jul..25-Nov, "
+                       "synthetic premiums, net of 0.8% cost: PF " + pf + ". PAPER ONLY.")))
+        else:
+            out.append(d)
+    return out

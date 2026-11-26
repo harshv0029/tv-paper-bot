@@ -67,10 +67,15 @@ def test_skips_named(db):
     assert _open(db) is None
 
 
-def test_expiry_day_included(db):
-    r = _orow(exp="23-Nov-2026")
+def test_expiry_day_skipped_b1732(db):
+    r = _orow(exp="23-Nov-2026")  # MON is 23-Nov: this contract expires today
     _hist(r["contract"], 152.0)
-    assert _run(db, [r])["entered"] is True
+    for v in main.FNO_MOMO_VARIANTS[2:]:
+        assert v["allow_expiry"] is False and "_noexp" in v["tag"]
+        assert _run(db, [r], v=v)["skip"] == "skipped_expiry_day"
+    assert _open(db) is None
+    retired = {v["tag"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")}
+    assert {main.FNO_MOMO_V4_T12_TAG, main.FNO_MOMO_V4_T5_TAG, main.FNO_MOMO_V4NB_TAG, main.FNO_MOMO_V4NBW_TAG} <= retired
 
 
 def test_target_hit_fills_at_target(db):

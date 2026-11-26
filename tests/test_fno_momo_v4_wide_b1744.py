@@ -8,8 +8,8 @@ from tests.test_fno_momo_v4_b1728 import EXP, _hist, _idx, _run, V12  # noqa: F4
 from tests.test_fno_momo_paper_b1676 import _open, _orow, db  # noqa: F401 (db autouse)
 
 ACTIVE = main.FNO_MOMO_VARIANTS
-VA = next(v for v in ACTIVE if v["tag"] == main.FNO_MOMO_V4NB_TAG)
-VB = next(v for v in ACTIVE if v["tag"] == main.FNO_MOMO_V4NBW_TAG)
+VA = next(v for v in ACTIVE if v["tag"] == main.FNO_MOMO_V4XNB_TAG)
+VB = next(v for v in ACTIVE if v["tag"] == main.FNO_MOMO_V4XNBW_TAG)
 WEAK_BREADTH = {"NIFTY": {"last": 25700, "open": 25600, "advances": 20, "declines": 18}}
 
 
@@ -28,7 +28,7 @@ def test_tags_registered_and_shape():
         assert v["breadth"] is False and v["tag"] in names
     assert "windows" not in VA and VB["windows"] == ((570, 870),)
     assert [v["tag"] for v in ACTIVE[:4]] == [main.FNO_MOMO_V3B_TAG, main.FNO_MOMO_V3B_T5_TAG,
-                                             main.FNO_MOMO_V4_T12_TAG, main.FNO_MOMO_V4_T5_TAG]  # old ones unchanged
+                                             main.FNO_MOMO_V4X_T12_TAG, main.FNO_MOMO_V4X_T5_TAG]  # old ones unchanged
 
 
 def test_strict_breadth_flag():
