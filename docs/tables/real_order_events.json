@@ -146459,7 +146459,19 @@
    "prev_state": "resting @ Rs1512.7",
    "new_state": "cancelled (position covering)",
    "detail": "reason: news_exit: sentiment weak (score -0.00, peak 0.27)"
+  },
+  {
+   "id": 12206,
+   "ts": 1795670313.8109355,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261126000307738",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: news_exit: sentiment weak (score -0.00, peak 0.27)"
   }
  ],
- "synced_at_utc": "2026-11-26T05:18:29Z"
+ "synced_at_utc": "2026-11-26T05:18:46Z"
 }
