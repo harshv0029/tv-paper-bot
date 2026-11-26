@@ -17478,6 +17478,14 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
             return
         _sl_after_1515_logged.add(_k)
         event = "skipped_after_1515"
+    elif event == "failed" and "already sold/exiting today" in str(detail or ""):
+        # B-1730 (MANKIND/PIDILITIND 25-Nov): the B-1581 guard refused an SL because Kotak shows the shares already
+        # sold today (a manual exit). A correct refusal, not a protection failure: one row per symbol per leg per day.
+        _k = (symbol, leg, ist_now().strftime("%Y-%m-%d"), "sold")
+        if _k in _sl_after_1515_logged:
+            return
+        _sl_after_1515_logged.add(_k)
+        event = "skipped_already_sold"
     if not reason:
         reason = _default_order_reason(leg, event)
     if reason:
