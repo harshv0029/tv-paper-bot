@@ -146665,6 +146665,18 @@
    "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   },
   {
+   "id": 12225,
+   "ts": 1795680183.4718099,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000014146",
+   "prev_state": "resting @ Rs338.25",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: envelope__0d05_fade__long__1h__atr6_h30__v1 paper swing exit: envelope_max_hold_timeout"
+  },
+  {
    "id": 12223,
    "ts": 1795680184.5346062,
    "symbol": "VAML.NS",
@@ -146687,7 +146699,55 @@
    "prev_state": "long 1 @ Rs367.60",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: retry of paper swing exit already recorded: envelope_max_hold_timeout"
+  },
+  {
+   "id": 12226,
+   "ts": 1795680185.0679069,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs367.60",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: envelope__0d05_fade__long__1h__atr6_h30__v1 paper swing exit: envelope_max_hold_timeout"
+  },
+  {
+   "id": 12227,
+   "ts": 1795680192.3052092,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261126000648459",
+   "prev_state": "long 1 @ Rs367.60",
+   "new_state": "closed",
+   "detail": "reason: retry of paper swing exit already recorded: envelope_max_hold_timeout"
+  },
+  {
+   "id": 12228,
+   "ts": 1795680197.4251938,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "exit",
+   "event": "kotak_rejected",
+   "order_id": "261126000648745",
+   "prev_state": "sent to Kotak",
+   "new_state": "rejected",
+   "detail": "reason: real market SELL exit; Kotak rejected it | Kotak rejRsn: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product"
+  },
+  {
+   "id": 12229,
+   "ts": 1795680197.4483092,
+   "symbol": "VAML.NS",
+   "kotak_trading_symbol": "VAML-EQ",
+   "leg": "exit",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs367.60",
+   "new_state": "still open (exit attempt failed)",
+   "detail": "reason: envelope__0d05_fade__long__1h__atr6_h30__v1 paper swing exit: envelope_max_hold_timeout | order 261126000648745 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-*** across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-11-26T08:03:07Z"
+ "synced_at_utc": "2026-11-26T08:03:24Z"
 }
