@@ -2685,3 +2685,10 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - Surprise: "no signal" for two months looked like a quiet market. It was a data artefact. The attempt log also had no November in-market index snapshots, so it could not show absence.
 - Reuse: an index needs a volume source of its own (the near-month future), or volume-free triggers. Check vol_nonzero_bars before reading any "never fired" result.
 - Profit-booking / exit takeaway: fires are not profit. Any index trigger has to pass a premium-proxy replay with a trailing premium SL and quick exits before wiring.
+
+## B-1746 index ATM-option premium-proxy replay: long only "passes", inside one rally (2026-11-27 IST)
+- Mechanism: index trigger fires (live ORB without the volume gate, ORB, ATR range break, EMA cross, RSI thrust) on NIFTY, SENSEX and BANKNIFTY, 5m and 15m, 1 Oct to 26 Nov. Each fire is bought as 1 ATM option (call for long, put for short) on a Black-Scholes proxy, with IV from the previous day's India VIX, a premium trailing SL, and a quick exit at or before 15:10.
+- Result: pooled at 0.8% cost, long passes 70 of 75 combos in both IS and OOS. The best is the live ORB rule with stop 30% / trail 15% held to the end of the day: OOS PF 6.79 on 52 trades. Short passes 0 of 75.
+- Surprise: the one-sidedness is the tell. NIFTY rose 13.8% in a month from its 8 Oct 52-week low, so calls won and puts bled. On a random walk with matched IV, the same code passes 0 of 150 pooled combos, so the model is not biased. The window is.
+- Reuse: when a direction-symmetric test passes on one side only, check the window's index trend before believing it. Re-run on a multi-regime window (1h over 2 years) before wiring.
+- Profit-booking / exit takeaway: wider premium stops with a 15% trail held into the afternoon beat the live 3%/1% trail in a trend, because the live trail stops out on normal premium noise. Re-check this on falling regimes before changing any exit.

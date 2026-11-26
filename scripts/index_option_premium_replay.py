@@ -34,7 +34,7 @@ import option_premium_proxy as P  # noqa: E402
 UNDERLYING = {"^NSEI": ("NIFTY", 50, 1, True), "^BSESN": ("SENSEX", 100, 3, True), "^NSEBANK": ("BANKNIFTY", 100, 1, False)}
 DEFAULT_IV = {"NIFTY": 0.13, "SENSEX": 0.13, "BANKNIFTY": 0.15}
 DEFAULT_LOT = {"NIFTY": 65, "SENSEX": 20, "BANKNIFTY": 30}
-TFS = ("5m", "15m")
+TFS = tuple(os.environ.get("TFS", "5m,15m").split(","))  # 1h gives ~2y of Yahoo history (5m/15m only 60d)
 # (initial_stop_pct, trail_arm_pct, trail_pct) of premium; first row = live FO_OPTION_* constants (3/1/1)
 EXIT_GRID = [(3.0, 1.0, 1.0), (10.0, 5.0, 5.0), (15.0, 10.0, 10.0), (20.0, 10.0, 10.0), (30.0, 15.0, 15.0)]
 MAX_HOLD_MIN = (30, 60, 375)  # 375 = rest of the session
@@ -133,7 +133,7 @@ def vix_by_day():
     """IST date -> PREVIOUS session's India VIX close / 100 (no look-ahead). Empty dict on any failure."""
     try:
         import yfinance as yf
-        v = yf.Ticker("^INDIAVIX").history(period="1y", interval="1d", auto_adjust=False)["Close"].dropna()
+        v = yf.Ticker("^INDIAVIX").history(period="3y", interval="1d", auto_adjust=False)["Close"].dropna()
         days = [str(d)[:10] for d in v.index]
         return {days[k]: float(v.iloc[k - 1]) / 100.0 for k in range(1, len(days))}
     except Exception:
@@ -244,10 +244,10 @@ def main_cli():
     out = run(M, lo, hi_, synth=os.environ.get("SYNTH") == "1", is_frac=float(os.environ.get("IS_FRAC", "0.6")))
     od = os.environ.get("OUT_DIR", "docs")
     os.makedirs(od, exist_ok=True)
-    json.dump(out, open(os.path.join(od, "index_option_premium_replay.json"), "w"), indent=1, sort_keys=True,
-              default=str)
+    stem = os.environ.get("OUT_STEM", "index_option_premium_replay")
+    json.dump(out, open(os.path.join(od, stem + ".json"), "w"), indent=1, sort_keys=True, default=str)
     md = to_md(out)
-    open(os.path.join(od, "index_option_premium_replay.md"), "w").write(md)
+    open(os.path.join(od, stem + ".md"), "w").write(md)
     print(md)
 
 
