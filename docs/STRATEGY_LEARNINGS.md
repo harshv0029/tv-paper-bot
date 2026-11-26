@@ -2692,3 +2692,10 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - Surprise: the one-sidedness is the tell. NIFTY rose 13.8% in a month from its 8 Oct 52-week low, so calls won and puts bled. On a random walk with matched IV, the same code passes 0 of 150 pooled combos, so the model is not biased. The window is.
 - Reuse: when a direction-symmetric test passes on one side only, check the window's index trend before believing it. Re-run on a multi-regime window (1h over 2 years) before wiring.
 - Profit-booking / exit takeaway: wider premium stops with a 15% trail held into the afternoon beat the live 3%/1% trail in a trend, because the live trail stops out on normal premium noise. Re-check this on falling regimes before changing any exit.
+
+## B-1746 index ATM-option proxy, 2-year 1h retest: both directions pass pooled (2026-11-27 IST)
+- Mechanism: the same premium-proxy replay on 1h candles, Dec 2024 to Nov 2026. That covers rising and falling regimes; the OOS part (Feb to Nov 2026) includes NIFTY's fall from its January high to the October low.
+- Result: pooled at 0.8% cost, long passes 49 of 75 combos and short 45 of 75. The best long is an opening-range break (first 3 hourly bars) held 1 bar: IS 1.92, OOS 2.86, 326 trades. The best short is EMA 9/21 cross-down buying a put, held to the close: IS 1.81, OOS 4.00, 171 trades.
+- Surprise: the 60-day long-only pass was regime, but the 2-year test shows a two-sided intraday index momentum effect on the proxy. It is not uniform: BANKNIFTY fails IS on the long ORB combo.
+- Reuse: retest a short-window result on the longest TF that has multi-regime history before deciding. Run per-index splits before pooling hides a loser.
+- Profit-booking / exit takeaway: on 1h the edge is in quick exits (1 bar) for long breakouts. Shorts did better held into the close with a 10% premium trail. The proxy is still not real-money evidence; paper premiums must confirm it.
