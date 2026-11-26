@@ -146375,7 +146375,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs1512.70",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 12199,
+   "ts": 1795668761.5337508,
+   "symbol": "ENRIN.NS",
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T04:31:43Z"
+ "synced_at_utc": "2026-11-26T04:52:44Z"
 }
