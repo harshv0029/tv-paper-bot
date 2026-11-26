@@ -146315,7 +146315,19 @@
    "prev_state": "resting @ Rs417.75",
    "new_state": "cancelled (position covering)",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12194,
+   "ts": 1795666701.9096794,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261126000148786",
+   "prev_state": "short 9",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T04:18:22Z"
+ "synced_at_utc": "2026-11-26T04:18:40Z"
 }
