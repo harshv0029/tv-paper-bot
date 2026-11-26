@@ -146627,7 +146627,31 @@
    "prev_state": "long 1 @ Rs390.65",
    "new_state": "closed",
    "detail": "reason: reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12220,
+   "ts": 1795679908.7870386,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000244075",
+   "prev_state": "resting @ Rs764.85",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12221,
+   "ts": 1795679908.8225389,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs793.65",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T07:48:27Z"
+ "synced_at_utc": "2026-11-26T07:58:32Z"
 }
