@@ -146303,7 +146303,19 @@
    "prev_state": "short 9",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12193,
+   "ts": 1795666675.586524,
+   "symbol": "HINDCOPPER.NS",
+   "kotak_trading_symbol": "HINDCOPPER-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000064241",
+   "prev_state": "resting @ Rs417.75",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T04:17:54Z"
+ "synced_at_utc": "2026-11-26T04:18:22Z"
 }
