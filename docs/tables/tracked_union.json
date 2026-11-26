@@ -177,6 +177,22 @@
    "symbol": "IRCTC.NS"
   },
   {
+   "day": "2026-11-26",
+   "entry_order_id": "261126000372894",
+   "entry_price": 1817.9,
+   "first_seen_day": "2026-11-26",
+   "is_short": 0,
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "opened_at": 1795672085.385494,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": 1776.6933967360478,
+   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "MAZDOCK.NS"
+  },
+  {
    "day": "2026-11-11",
    "entry_order_id": "261111000159207",
    "entry_price": 244.24,
