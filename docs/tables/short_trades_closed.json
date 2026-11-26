@@ -299,7 +299,55 @@
       "pnl_inr": -23.99923670714861,
       "exit_reason": "short_swing_stop_hit",
       "strategy": "swingminrr__brk20_gate__short__1h__atr3_rr4__v1"
+    },
+    {
+      "id": 26,
+      "ts": 1795666671.770522,
+      "symbol": "HINDCOPPER.NS",
+      "qty": 10.0,
+      "entry_price": 411.25,
+      "exit_price": 411.7,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -4.499999999999886,
+      "exit_reason": "state_exit",
+      "strategy": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2"
+    },
+    {
+      "id": 27,
+      "ts": 1795668761.2665255,
+      "symbol": "ENRIN.NS",
+      "qty": 1.0,
+      "entry_price": 3118.699951171875,
+      "exit_price": 3107.7,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 10.999951171875182,
+      "exit_reason": "state_exit",
+      "strategy": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2"
+    },
+    {
+      "id": 28,
+      "ts": 1795671537.6968334,
+      "symbol": "HINDZINC.NS",
+      "qty": 1.0,
+      "entry_price": 554.8499755859375,
+      "exit_price": 536.5,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 18.3499755859375,
+      "exit_reason": "short_swing_rule_exit",
+      "strategy": "reversal__island_px20_tfs__short__1d__atr4_within8__nonovl__v2"
+    },
+    {
+      "id": 29,
+      "ts": 1795673302.500059,
+      "symbol": "TATASTEEL.NS",
+      "qty": 1.0,
+      "entry_price": 160.62,
+      "exit_price": 162.72,
+      "fx_to_inr": 1.0,
+      "pnl_inr": -2.0999999999999943,
+      "exit_reason": "stale_timeout",
+      "strategy": "news_event__confirmed__short__1d__v1"
     }
   ],
-  "synced_at_utc": "2026-11-20T10:41:52Z"
+  "synced_at_utc": "2026-11-26T11:39:39Z"
 }

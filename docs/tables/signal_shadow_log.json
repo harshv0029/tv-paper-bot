@@ -304996,7 +304996,172 @@
       "taken": 1,
       "reason": "real swing entry placed",
       "hard_gate": 0
+    },
+    {
+      "id": 27728,
+      "ts": 1795664999.8967624,
+      "day": "2026-11-26",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "POLYCAB.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27729,
+      "ts": 1795664999.920484,
+      "day": "2026-11-26",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "POLYCAB.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27730,
+      "ts": 1795665219.2291539,
+      "day": "2026-11-26",
+      "strategy_tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "symbol": "ENRIN.NS",
+      "direction": "short",
+      "taken": 1,
+      "reason": "real short entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27731,
+      "ts": 1795665284.1112778,
+      "day": "2026-11-26",
+      "strategy_tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "short",
+      "taken": 1,
+      "reason": "real short entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27732,
+      "ts": 1795666729.8566349,
+      "day": "2026-11-26",
+      "strategy_tag": "news_event__confirmed__short__1d__v1",
+      "symbol": "TATASTEEL.NS",
+      "direction": "short",
+      "taken": 1,
+      "reason": "real short entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27733,
+      "ts": 1795667153.6766286,
+      "day": "2026-11-26",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "VEDL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27734,
+      "ts": 1795667153.707605,
+      "day": "2026-11-26",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "VEDL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27735,
+      "ts": 1795667153.7715745,
+      "day": "2026-11-26",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "HINDZINC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27736,
+      "ts": 1795667153.7894242,
+      "day": "2026-11-26",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "HINDZINC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27737,
+      "ts": 1795667478.5230308,
+      "day": "2026-11-26",
+      "strategy_tag": "news_event__confirmed__short__1d__v1",
+      "symbol": "APLAPOLLO.NS",
+      "direction": "short",
+      "taken": 1,
+      "reason": "real short entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27738,
+      "ts": 1795668765.6871123,
+      "day": "2026-11-26",
+      "strategy_tag": "reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2",
+      "symbol": "CGPOWER.NS",
+      "direction": "long",
+      "taken": 1,
+      "reason": "real swing entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27739,
+      "ts": 1795670245.1972973,
+      "day": "2026-11-26",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "ADANIENSOL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27740,
+      "ts": 1795670245.2692232,
+      "day": "2026-11-26",
+      "strategy_tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "ADANIENSOL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 27741,
+      "ts": 1795672085.4097264,
+      "day": "2026-11-26",
+      "strategy_tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+      "symbol": "MAZDOCK.NS",
+      "direction": "long",
+      "taken": 1,
+      "reason": "real swing entry placed",
+      "hard_gate": 0
+    },
+    {
+      "id": 27742,
+      "ts": 1795672135.49599,
+      "day": "2026-11-26",
+      "strategy_tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+      "symbol": "OIL.NS",
+      "direction": "long",
+      "taken": 1,
+      "reason": "real swing entry placed",
+      "hard_gate": 0
     }
   ],
-  "synced_at_utc": "2026-11-23T11:27:53Z"
+  "synced_at_utc": "2026-11-26T11:39:38Z"
 }
