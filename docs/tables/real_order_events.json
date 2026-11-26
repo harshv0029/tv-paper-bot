@@ -146591,7 +146591,31 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs362.55",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=3"
+  },
+  {
+   "id": 12217,
+   "ts": 1795679285.2638502,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000014530",
+   "prev_state": "resting @ Rs352.95",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12218,
+   "ts": 1795679285.2915056,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs390.65",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T07:22:15Z"
+ "synced_at_utc": "2026-11-26T07:48:09Z"
 }
