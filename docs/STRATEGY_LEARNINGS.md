@@ -2679,3 +2679,9 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - Surprise: the one "viable" index row (rsi thrust 1d atr6, PF 1.92) is an underlying-move proxy with OOS n<30. It is not wired, and its premium-proxy twin loses.
 - Reuse: an index signal must be expressed as an option (1 lot, small premium), not the future, and judged on the premium proxy, never the underlying move.
 - Profit-booking / exit takeaway: index edges that survive 0.8% costs are fat 1d moves; anything wired for index options must book fast on a trailing premium stop, never hold for days.
+## B-1746 index triggers are blocked by zero index volume, not by a quiet market (2026-11-27 IST)
+- Mechanism: per-day replay of the live ORB rule and 4 non-volume triggers on ^NSEI, ^BSESN and ^NSEBANK, 5m/15m/1h, long and short, 1 Oct to 26 Nov (37 sessions).
+- Result: Yahoo index bars have zero volume on every bar. The mandatory, fail-closed volume gate therefore kills every index entry: 0 fires. Without the gate, the same ORB rule fires on 13-21 of 37 days per side (5m), and ORB / EMA / RSI / ATR triggers fire on 20-34 days.
+- Surprise: "no signal" for two months looked like a quiet market. It was a data artefact. The attempt log also had no November in-market index snapshots, so it could not show absence.
+- Reuse: an index needs a volume source of its own (the near-month future), or volume-free triggers. Check vol_nonzero_bars before reading any "never fired" result.
+- Profit-booking / exit takeaway: fires are not profit. Any index trigger has to pass a premium-proxy replay with a trailing premium SL and quick exits before wiring.
