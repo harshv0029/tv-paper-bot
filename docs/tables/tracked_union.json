@@ -113,22 +113,6 @@
    "symbol": "HCLTECH.NS"
   },
   {
-   "day": "2026-11-26",
-   "entry_order_id": "261126000062922",
-   "entry_price": 410.75,
-   "first_seen_day": "2026-11-26",
-   "is_short": 1,
-   "kotak_trading_symbol": "HINDCOPPER-EQ",
-   "opened_at": 1795665282.7801034,
-   "owner": "short",
-   "qty": 9,
-   "sl_trigger_price": 417.75,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "symbol": "HINDCOPPER.NS"
-  },
-  {
    "day": "2026-11-17",
    "entry_order_id": "261117000185584",
    "entry_price": 390.65,
@@ -303,6 +287,22 @@
    "stop_loss": 3093.1246700034803,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "SUPREMEIND.NS"
+  },
+  {
+   "day": "2026-11-26",
+   "entry_order_id": "261126000150273",
+   "entry_price": 160.55,
+   "first_seen_day": "2026-11-26",
+   "is_short": 1,
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "opened_at": 1795666728.5742774,
+   "owner": "short",
+   "qty": 1,
+   "sl_trigger_price": 165.44,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "news_event__confirmed__short__1d__v1",
+   "symbol": "TATASTEEL.NS"
   },
   {
    "day": "2026-11-23",
