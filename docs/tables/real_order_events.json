@@ -146543,7 +146543,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs421.70",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs421.70 already covers the position (target stop Rs421.68), adopted, nothing placed"
+  },
+  {
+   "id": 12213,
+   "ts": 1795673303.4208388,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_stale_timeout"
   }
  ],
- "synced_at_utc": "2026-11-26T05:49:29Z"
+ "synced_at_utc": "2026-11-26T06:08:25Z"
 }
