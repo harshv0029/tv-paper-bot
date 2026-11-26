@@ -146471,7 +146471,19 @@
    "prev_state": "short 1",
    "new_state": "no position",
    "detail": "reason: news_exit: sentiment weak (score -0.00, peak 0.27)"
+  },
+  {
+   "id": 12207,
+   "ts": 1795672085.3973558,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261126000372894",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1817.90",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-26T05:18:46Z"
+ "synced_at_utc": "2026-11-26T05:48:08Z"
 }
