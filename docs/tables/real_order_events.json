@@ -146327,7 +146327,19 @@
    "prev_state": "short 9",
    "new_state": "no position",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12195,
+   "ts": 1795666729.8132663,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261126000150273",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs160.55",
+   "detail": "reason: paper short entry signal from strategy news_event__confirmed__short__1d__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-26T04:18:40Z"
+ "synced_at_utc": "2026-11-26T04:18:55Z"
 }
