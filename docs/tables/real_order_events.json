@@ -146351,7 +146351,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs165.44",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 12197,
+   "ts": 1795667478.5090895,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261126000188353",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs1467.30",
+   "detail": "reason: paper short entry signal from strategy news_event__confirmed__short__1d__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-26T04:19:14Z"
+ "synced_at_utc": "2026-11-26T04:31:25Z"
 }
