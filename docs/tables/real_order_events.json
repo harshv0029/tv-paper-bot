@@ -146255,7 +146255,19 @@
    "prev_state": "no position",
    "new_state": "short 1 @ Rs3118.40",
    "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12189,
+   "ts": 1795665237.5999706,
+   "symbol": "ENRIN.NS",
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "leg": "short_sl",
+   "event": "placed",
+   "order_id": "261126000058981",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs3156.60",
+   "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-11-26T03:53:41Z"
+ "synced_at_utc": "2026-11-26T03:54:01Z"
 }
