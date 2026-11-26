@@ -146555,7 +146555,31 @@
    "prev_state": "short 1",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_stale_timeout"
+  },
+  {
+   "id": 12214,
+   "ts": 1795673307.9123077,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000151409",
+   "prev_state": "resting @ Rs165.44",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_stale_timeout"
+  },
+  {
+   "id": 12215,
+   "ts": 1795673315.3970823,
+   "symbol": "TATASTEEL.NS",
+   "kotak_trading_symbol": "TATASTEEL-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261126000424650",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_stale_timeout"
   }
  ],
- "synced_at_utc": "2026-11-26T06:08:25Z"
+ "synced_at_utc": "2026-11-26T06:08:47Z"
 }
