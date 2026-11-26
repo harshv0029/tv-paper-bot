@@ -1127,7 +1127,31 @@
    "sell_qty": 0.0,
    "sell_amt": 0.0,
    "updated_at": 1795631291.9853778
+  },
+  {
+   "day": "2026-11-26",
+   "trdsym": "ENRIN-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 3118.4,
+   "updated_at": 1795665331.0366144
+  },
+  {
+   "day": "2026-11-26",
+   "trdsym": "HINDCOPPER-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 9.0,
+   "sell_amt": 3696.75,
+   "updated_at": 1795665331.0366144
   }
  ],
- "synced_at_utc": "2026-11-25T18:28:55Z"
+ "synced_at_utc": "2026-11-26T03:56:28Z"
 }
