@@ -146243,7 +146243,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"14 nse symbols printed new trades today within 120s\", \"symbols\": [\"SBIN.NS\", \"SHRIRAMFIN.NS\", \"SUZLON.NS\", \"TATACAP.NS\", \"TATAPOWER.NS\", \"TATASTEEL.NS\", \"TCS.NS\", \"TMCV.NS\", \"TMPV.NS\", \"TRENT.NS\"], \"count\": 14, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 35.4}, \"replay\": {\"placed\": 0, \"dropped\": 0, \"requeued\": 0, \"considered\": 0}}"
+  },
+  {
+   "id": 12188,
+   "ts": 1795665219.2183201,
+   "symbol": "ENRIN.NS",
+   "kotak_trading_symbol": "ENRIN-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261126000057778",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs3118.40",
+   "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-26T03:45:46Z"
+ "synced_at_utc": "2026-11-26T03:53:41Z"
 }
