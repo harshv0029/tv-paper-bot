@@ -49,22 +49,6 @@
    "symbol": "BIOCON.NS"
   },
   {
-   "day": "2026-11-26",
-   "entry_order_id": "261126000243491",
-   "entry_price": 793.65,
-   "first_seen_day": "2026-11-26",
-   "is_short": 0,
-   "kotak_trading_symbol": "CGPOWER-EQ",
-   "opened_at": 1795668765.6575706,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 764.85,
-   "source": "position",
-   "stop_loss": 764.8502044855419,
-   "strategy": "reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2",
-   "symbol": "CGPOWER.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000298121",
    "entry_price": 357.1,
@@ -303,22 +287,6 @@
    "stop_loss": 178.49500383649553,
    "strategy": "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2",
    "symbol": "UNIONBANK.NS"
-  },
-  {
-   "day": "2026-11-19",
-   "entry_order_id": "261119000441547",
-   "entry_price": 367.6,
-   "first_seen_day": "2026-11-19",
-   "is_short": 0,
-   "kotak_trading_symbol": "VAML-EQ",
-   "opened_at": 1795069708.6061375,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 338.25,
-   "source": "holding",
-   "stop_loss": 324.9357430594308,
-   "strategy": "envelope__0d05_fade__long__1h__atr6_h30__v1",
-   "symbol": "VAML.NS"
   },
   {
    "day": "2026-11-09",
