@@ -146579,7 +146579,19 @@
    "prev_state": "short 1",
    "new_state": "no position",
    "detail": "reason: short paper exit: exited_short_stale_timeout"
+  },
+  {
+   "id": 12216,
+   "ts": 1795677716.9621212,
+   "symbol": "ETERNAL.NS",
+   "kotak_trading_symbol": "ETERNAL-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261126000015123",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs362.55",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=3"
   }
  ],
- "synced_at_utc": "2026-11-26T06:08:47Z"
+ "synced_at_utc": "2026-11-26T07:22:15Z"
 }
