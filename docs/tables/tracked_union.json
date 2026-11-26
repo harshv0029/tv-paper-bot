@@ -321,22 +321,6 @@
    "symbol": "SUPREMEIND.NS"
   },
   {
-   "day": "2026-11-26",
-   "entry_order_id": "261126000150273",
-   "entry_price": 160.55,
-   "first_seen_day": "2026-11-26",
-   "is_short": 1,
-   "kotak_trading_symbol": "TATASTEEL-EQ",
-   "opened_at": 1795666728.5742774,
-   "owner": "short",
-   "qty": 1,
-   "sl_trigger_price": 165.44,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": "news_event__confirmed__short__1d__v1",
-   "symbol": "TATASTEEL.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000433268",
    "entry_price": 211.55,
