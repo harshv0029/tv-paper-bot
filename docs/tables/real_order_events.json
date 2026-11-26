@@ -146507,7 +146507,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs1776.70",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs1776.70 already covers the position (target stop Rs1776.69), adopted, nothing placed"
+  },
+  {
+   "id": 12210,
+   "ts": 1795672135.4883902,
+   "symbol": "OIL.NS",
+   "kotak_trading_symbol": "OIL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261126000375138",
+   "prev_state": "no position",
+   "new_state": "long 2 @ Rs431.15",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-26T05:48:41Z"
+ "synced_at_utc": "2026-11-26T05:48:57Z"
 }
