@@ -146435,7 +146435,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs764.85",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12204,
+   "ts": 1795670301.1763334,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: news_exit: sentiment weak (score -0.00, peak 0.27)"
+  },
+  {
+   "id": 12205,
+   "ts": 1795670305.800621,
+   "symbol": "APLAPOLLO.NS",
+   "kotak_trading_symbol": "APLAPOLLO-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261126000189132",
+   "prev_state": "resting @ Rs1512.7",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: news_exit: sentiment weak (score -0.00, peak 0.27)"
   }
  ],
- "synced_at_utc": "2026-11-26T04:53:22Z"
+ "synced_at_utc": "2026-11-26T05:18:29Z"
 }
