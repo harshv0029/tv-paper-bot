@@ -65,22 +65,6 @@
    "symbol": "CGPOWER.NS"
   },
   {
-   "day": "2026-11-25",
-   "entry_order_id": "261125000655331",
-   "entry_price": 372.1,
-   "first_seen_day": "2026-11-25",
-   "is_short": 0,
-   "kotak_trading_symbol": "ETERNAL-EQ",
-   "opened_at": 1795597324.697547,
-   "owner": "swing",
-   "qty": 3,
-   "sl_trigger_price": 362.55,
-   "source": "holding",
-   "stop_loss": 362.5340780628952,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "ETERNAL.NS"
-  },
-  {
    "day": "2026-11-11",
    "entry_order_id": "261111000298121",
    "entry_price": 357.1,
