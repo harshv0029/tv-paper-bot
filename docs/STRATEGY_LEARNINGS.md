@@ -2661,3 +2661,9 @@ Profit-booking / exit takeaway: hold a pullback trade 10-15 min, not 5 (exits at
 ### 2026-11-26 Daily review: 1-share stop-outs and cost drag (25-26 Nov)
 Five closed trades had both prices in the data, all net losers: four macddiv 1h longs stopped out (HINDALCO, MAZDOCK, IDEA, ETERNAL, Rs-154.7 net) and one news short (APLAPOLLO) closed +Rs3.40 gross but Rs-8.49 net. 7 of 9 new long entries came from macddiv 1h, so one family carries most of the window's risk. On real Kotak terms the eight 1-share delivery sells paid about Rs189 in DP charges, more than the known gross loss (Rs118).
 Profit-booking / exit takeaway: a trail that moves the stop past entry before the open gain exceeds the round-trip cost books a "win" that loses money; on 1-share delivery trades the fixed per-sell charge can outweigh the move, so exits there need room to pay more than the fixed cost.
+
+### B-1744 (2026-11-26): View 6 had no entries, so two wider pullback_v4 paper twins were added
+- 26-Nov was the first full live day for the pullback plan and was not a trend day (NIFTY +0.25%, close only 11 pts over its open, breadth 1.16). The strict check blocked every contract, which is correct.
+- 90-day replay: dropping only the breadth part gives more trades and a better PF (1.11 vs 1.07, n 358 vs 284). Also removing the midday gap gives many more trades (n 562), but PF falls to 1.02 and the first half is below 1 (0.87).
+- Loosening the trend size (0.15%) or removing the trend-day check makes it lose (PF 0.98 / 0.82). The trend-day direction is the edge; breadth is not.
+- Profit-booking / exit takeaway: exits were not changed (12% trail, +12% target, 15-min time stop). The extra midday entries in (b) dilute the edge, so if (b) trails (a) on paper, the time window and not the exit is what to drop.

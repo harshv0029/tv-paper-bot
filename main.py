@@ -43800,12 +43800,24 @@ FNO_MOMO_V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte
 FNO_V4_TARGET_PCT = 0.12
 FNO_MOMO_V4_T12_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"
 FNO_MOMO_V4_T5_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail5_tgt12_hold15__v1"
+# B-1744 (user 2026-11-26 "build both a and b"): two more PAPER twins of the 12% pullback plan, to get entries on
+#   ordinary up/down days. (a) drops the breadth >= 1.5x part of the strict mood check (replay 90 days: PF 1.11, n=358,
+#   vs 1.07, n=284); (b) also trades 09:30-14:30 straight through (PF 1.02, n=562). Everything else as B-1728.
+FNO_MOMO_V4NB_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte__long_opt__5m__"
+                     "trail12_tgt12_hold15__v1")
+FNO_MOMO_V4NBW_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte_0930to1430__long_opt__5m__"
+                      "trail12_tgt12_hold15__v1")
+FNO_V4_WIDE_WINDOWS = ((9 * 60 + 30, 14 * 60 + 30),)
 FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": FNO_MOMO_TRAIL_PCT},
                      {"tag": FNO_MOMO_V3B_T5_TAG, "gate": "fast_v3", "allow_expiry": True, "trail": 0.05},
                      {"tag": FNO_MOMO_V4_T12_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
                       "target": FNO_V4_TARGET_PCT},
                      {"tag": FNO_MOMO_V4_T5_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.05,
-                      "target": FNO_V4_TARGET_PCT})
+                      "target": FNO_V4_TARGET_PCT},
+                     {"tag": FNO_MOMO_V4NB_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                      "target": FNO_V4_TARGET_PCT, "breadth": False},
+                     {"tag": FNO_MOMO_V4NBW_TAG, "gate": "pullback_v4", "allow_expiry": True, "trail": 0.12,
+                      "target": FNO_V4_TARGET_PCT, "breadth": False, "windows": FNO_V4_WIDE_WINDOWS})
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -43816,20 +43828,22 @@ def _fno_momo_trail(variant) -> float:
     return float((variant or {}).get("trail") or FNO_MOMO_TRAIL_PCT)
 
 
-def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict):
-    """B-1677 strict entry gate. True / False, or None when any datum is missing (no entry then)."""
+def _fno_momo_sentiment_strict(opt_type: str, underlying: str, pct: dict, detail: dict, breadth: bool = True):
+    """B-1677 strict entry gate. True / False, or None when any datum is missing (no entry then).
+    B-1744: breadth=False drops the advances/declines >= 1.5x part (and its data need)."""
     pct, detail = pct or {}, detail or {}
     ip, npct, vix = pct.get(underlying), pct.get("NIFTY"), pct.get("INDIAVIX")
     di, dn = detail.get(underlying) or {}, detail.get("NIFTY") or {}
     adv, dec = dn.get("advances") or 0.0, dn.get("declines") or 0.0
     if (opt_type not in ("CE", "PE") or ip is None or npct is None or vix is None or not di.get("open")
-            or not di.get("last") or (adv + dec) <= 0):
+            or not di.get("last") or (breadth and (adv + dec) <= 0)):
         return None
     if opt_type == "CE":
         return bool(ip >= FNO_MOMO_STRICT_MIN_PCT and npct >= FNO_MOMO_STRICT_MIN_PCT and di["last"] > di["open"]
-                    and adv >= FNO_MOMO_STRICT_BREADTH * max(dec, 1.0) and vix < FNO_MOMO_STRICT_VIX_MAX_UP)
+                    and (not breadth or adv >= FNO_MOMO_STRICT_BREADTH * max(dec, 1.0))
+                    and vix < FNO_MOMO_STRICT_VIX_MAX_UP)
     return bool(ip <= -FNO_MOMO_STRICT_MIN_PCT and npct <= -FNO_MOMO_STRICT_MIN_PCT and di["last"] < di["open"]
-                and dec >= FNO_MOMO_STRICT_BREADTH * max(adv, 1.0))
+                and (not breadth or dec >= FNO_MOMO_STRICT_BREADTH * max(adv, 1.0)))
 
 
 def _fno_momo_is_expiry_day(contract: str, day: str) -> bool:
@@ -44047,11 +44061,12 @@ def _fno_momo_v3_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
 
 
 def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, detail: dict, day: str, now_ts: float,
-                      mins: int):
-    """B-1728: the first failing check of the trend-day pullback plan for one contract (None = passes)."""
-    if not any(a <= mins <= b for a, b in FNO_V3_WINDOWS):
+                      mins: int, breadth: bool = True, windows=None):
+    """B-1728: the first failing check of the trend-day pullback plan for one contract (None = passes).
+    B-1744: breadth=False / windows=FNO_V4_WIDE_WINDOWS for the wider paper twins."""
+    if not any(a <= mins <= b for a, b in (windows or FNO_V3_WINDOWS)):
         return "skipped_midday_reversal_window"
-    senti = _fno_momo_sentiment_strict(ot, u, pct, detail)
+    senti = _fno_momo_sentiment_strict(ot, u, pct, detail, breadth)
     if senti is None:
         return "skipped_sentiment_unknown"
     if senti is False:
@@ -44075,12 +44090,13 @@ def _fno_momo_v4_skip(row: dict, ot: str, u: str, m: dict, iv_med, pct: dict, de
     return None
 
 
-def _fno_momo_pick_v4(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = ""):
+def _fno_momo_pick_v4(groups: dict, pct: dict, detail: dict, now, now_ts: float, day: str = "",
+                      breadth: bool = True, windows=None):
     """B-1728: v2's checked pick with the pullback checks, ranked by the 5-min premium change (as the B-1727 study)."""
     mins = now.hour * 60 + now.minute
     return _fno_momo_pick_v2(groups, pct, detail, now, now_ts, day,
                              skip_fn=lambda r, ot, u, m, iv, p, d, dy: _fno_momo_v4_skip(r, ot, u, m, iv, p, d, dy,
-                                                                                        now_ts, mins),
+                                                                                        now_ts, mins, breadth, windows),
                              rank_key="chg5_pct")
 
 
@@ -44253,7 +44269,9 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         v2 = variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4")
         if v2:  # B-1714 / B-1715 / B-1728
             if variant["gate"] == "pullback_v4":
-                cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day)
+                cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
+                                                       breadth=variant.get("breadth", True),
+                                                       windows=variant.get("windows"))
             elif variant["gate"] == "fast_v3":
                 cand, v2m, checked = _fno_momo_pick_v3(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        allow_expiry=bool(variant.get("allow_expiry")))

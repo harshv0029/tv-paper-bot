@@ -275,6 +275,7 @@ ROWS = (  # B-1731: one row of the View 6 table changed at a time, everything el
     ("time|no_windows", {"windows": False}), ("time|morning_only", {"win": ((570, 675),)}),
     ("time|afternoon_only", {"win": ((795, 870),)}), ("time|midday_only", {"win": ((675, 795),)}),
     ("mood|no_strict", {"strict": False}), ("mood|no_breadth", {"breadth": False}),
+    ("mood|no_breadth_no_windows", {"breadth": False, "windows": False}),  # B-1744 paper variant (b)
     ("mood|k=0.15", {"k": 0.15}), ("mood|k=0.40", {"k": 0.40}),
     ("idx5|move=0.03", {"move": 0.03}), ("idx5|move=0.10", {"move": 0.10}), ("idx5|no_move5", {"move5": False}),
     ("chg|no_chg", {"chg": False}),

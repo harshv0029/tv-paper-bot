@@ -304,7 +304,7 @@ def test_tick_hook_runs_every_variant(monkeypatch):
     monkeypatch.setattr(main, "_fno_momo_step", lambda conn, variant=None, **k: seen.append(variant["gate"]))
     monkeypatch.setattr(main, "FNO_MOMO_VARIANTS", ACTIVE)
     main._fno_momo_tick_hook()
-    assert seen == ["fast_v3", "fast_v3", "pullback_v4", "pullback_v4"]  # B-1718 twins + the B-1728 pullback twins
+    assert seen == ["fast_v3", "fast_v3"] + ["pullback_v4"] * 4  # B-1718 twins + B-1728 pullback twins + B-1744 wide twins
 
 
 # ---- B-1678 / B-1679 (d) / B-1680 (user 2026-11-23) ------------------------------------------------------------------
@@ -692,7 +692,7 @@ def test_view_cold_cache_answers_loading_instead_of_hanging(monkeypatch):
 
 # ---- B-1686: one strategy = strict sentiment + OI/Greeks ------------------------------------------------------------
 def test_only_one_active_strategy_strict_plus_oi_greeks():
-    assert [v["gate"] for v in ACTIVE] == ["fast_v3", "fast_v3", "pullback_v4", "pullback_v4"]  # B-1718 / B-1728
+    assert [v["gate"] for v in ACTIVE] == ["fast_v3", "fast_v3"] + ["pullback_v4"] * 4  # B-1718 / B-1728 / B-1744
     assert ACTIVE[0]["tag"] == (  # B-1717: expiry-day contracts included
         "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail2_hold15__v1")
     assert {v["gate"] for v in main.FNO_MOMO_ALL_VARIANTS if v.get("retired")} == {
