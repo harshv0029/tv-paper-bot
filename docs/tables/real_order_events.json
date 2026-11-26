@@ -146423,7 +146423,19 @@
    "prev_state": "short 1",
    "new_state": "no position",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12203,
+   "ts": 1795668784.2753046,
+   "symbol": "CGPOWER.NS",
+   "kotak_trading_symbol": "CGPOWER-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261126000244075",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs764.85",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-26T04:53:05Z"
+ "synced_at_utc": "2026-11-26T04:53:22Z"
 }
