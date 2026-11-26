@@ -146615,7 +146615,19 @@
    "prev_state": "long 1 @ Rs390.65",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12219,
+   "ts": 1795679293.9527233,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261126000612406",
+   "prev_state": "long 1 @ Rs390.65",
+   "new_state": "closed",
+   "detail": "reason: reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-26T07:48:09Z"
+ "synced_at_utc": "2026-11-26T07:48:27Z"
 }
