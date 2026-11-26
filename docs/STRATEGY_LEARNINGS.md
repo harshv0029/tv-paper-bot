@@ -2673,3 +2673,9 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - Expiry-day option premiums swing on gamma and theta, so a 5-min pullback is noise there more than a trend dip.
 - fast_v3 keeps expiry-day contracts (B-1717, the user's separate call for that plan).
 - Profit-booking / exit takeaway: on expiry day even a 12% trail cannot save a buy, because premium decay is faster than the 15-min hold; not entering is the better exit.
+## B-1746 why no strategy has traded NIFTY 50 or SENSEX (2026-11-27 IST)
+- Mechanism: index triggers exist in 3 places (WATCHLIST ORB+SMA paper, the gap_and_go index-option scan, View 6), plus 160 researched index-option cells.
+- Result: no trade from 3 Sep to 20 Nov. The research cells fail OOS on the premium proxy (best 0.77 at 0.8% cost). The ORB paper path floors to a whole lot, about Rs 15-17 lakh notional, which no budget reaches. The gap_and_go scan is real-only and gated. View 6 is 2 days old.
+- Surprise: the one "viable" index row (rsi thrust 1d atr6, PF 1.92) is an underlying-move proxy with OOS n<30. It is not wired, and its premium-proxy twin loses.
+- Reuse: an index signal must be expressed as an option (1 lot, small premium), not the future, and judged on the premium proxy, never the underlying move.
+- Profit-booking / exit takeaway: index edges that survive 0.8% costs are fat 1d moves; anything wired for index options must book fast on a trailing premium stop, never hold for days.
