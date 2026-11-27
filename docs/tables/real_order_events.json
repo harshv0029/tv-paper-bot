@@ -148763,7 +148763,19 @@
    "prev_state": "tracked qty 5",
    "new_state": "corrected to Kotak's actual 7",
    "detail": "reason: automatic qty reconciled by the real-order engine"
+  },
+  {
+   "id": 12398,
+   "ts": 1795754238.4141917,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "qty",
+   "event": "reconciled",
+   "order_id": null,
+   "prev_state": "tracked qty 5",
+   "new_state": "corrected to Kotak's actual 7",
+   "detail": "reason: automatic qty reconciled by the real-order engine"
   }
  ],
- "synced_at_utc": "2026-11-27T04:32:20Z"
+ "synced_at_utc": "2026-11-27T04:38:41Z"
 }
