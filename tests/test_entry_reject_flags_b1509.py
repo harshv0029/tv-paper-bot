@@ -19,7 +19,15 @@ def db(monkeypatch):
     os.unlink(path)
 
 
-def test_one_share_floor_when_stop_loss_fits_1pct_of_free_net():
+def test_one_share_floor_off_by_default_b1761():
+    # B-1761 (user 2026-11-27): the round-up is off; a 0-share risk size stays 0 (logged skip by the caller)
+    assert main.REAL_ONE_SHARE_FLOOR_ENABLED is False
+    assert main._real_one_share_floor(0, 5904.53, 300.0, 45.0, 2952.0) == 0
+    assert main._real_one_share_floor(3, 5904.53, 300.0, 45.0, 2952.0) == 3
+
+
+def test_one_share_floor_when_stop_loss_fits_1pct_of_free_net(monkeypatch):
+    monkeypatch.setattr(main, "REAL_ONE_SHARE_FLOOR_ENABLED", True)  # legacy B-1509 behaviour, if ever re-enabled
     # Net Rs5,904 -> limit Rs59.05 at the stop; usable tranche Rs2,952
     assert main._real_one_share_floor(0, 5904.53, 300.0, 45.0, 2952.0) == 1
     assert main._real_one_share_floor(0, 5904.53, 300.0, 60.0, 2952.0) == 0     # stop loss Rs60 > Rs59
@@ -29,11 +37,14 @@ def test_one_share_floor_when_stop_loss_fits_1pct_of_free_net():
 
 
 def test_real_swing_risk_qty_uses_the_floor(monkeypatch):
+    monkeypatch.setattr(main, "REAL_ONE_SHARE_FLOOR_ENABLED", True)
     monkeypatch.setattr(main, "_refresh_real_capital_cache", lambda: None)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 5904.53)
     monkeypatch.setattr(main, "_swing_stopout_cluster", lambda conn: False)
     assert main._real_swing_qty_by_risk(None, "ZZTEST.NS", 300.0, 255.0) == 1
     assert main._real_swing_qty_by_risk(None, "ZZTEST.NS", 300.0, 230.0) == 0   # Rs70 stop loss > 1% of Net
+    monkeypatch.setattr(main, "REAL_ONE_SHARE_FLOOR_ENABLED", False)
+    assert main._real_swing_qty_by_risk(None, "ZZTEST.NS", 300.0, 255.0) == 0   # B-1761: no round-up
 
 
 def test_reject_flag_classes():

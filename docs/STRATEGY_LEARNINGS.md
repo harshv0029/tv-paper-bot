@@ -2738,3 +2738,17 @@ quote, and judge exits on "Seen %", not on the paper fill at the stop level.
 - View 4 Since start -6.1% = net -Rs923.63 on Rs15,114 average deployed (2-26 Nov, 61 trades). The trades were +Rs119.84 gross; charges Rs1,043.47, of which Kotak DP Rs944 (Rs23.60 per scrip per delivery-sell day, confirmed by ledger JVs in B-1659). The 33 DP-charged rows had median sell value Rs557, so DP alone was 4.2% of each sale; 25 of them were 1-share sells. The number is right; the loss is cost drag on tiny delivery sells, not bad entries. The B-1659 DP gate (since 21-Nov) now blocks entries whose PFnet falls to 1.00 or below once DP is added.
 - View 5: no news trades in the window; the IRCTC "scam case" headline (politicians' court case) was read as adverse company news (B-1759).
 Profit-booking / exit takeaway: on a 1-share delivery holding, Rs23.60 DP is paid on exit whatever the P&L, so a small swing exit needs about 4-5% gross just to break even; exit small CNC lots in one sell day (DP is per scrip per day) and prefer MIS for same-day exits.
+
+### 2026-11-27 night: small delivery trades, tranche exits, DP floor, trail gap, news case names (B-1736/1737/1759/1761/1762/1763)
+- 1-share round-up (B-1509) switched off by the user: the risk formula said 0 shares, the floor bought 1 anyway. All 33
+  closed delivery rows 16-25 Nov were under Rs4,720; together -Rs729 net on +Rs109 gross, the Rs23.60 DP charge per sell
+  day being most of the cost. A 0-share size is now a logged skip.
+- Tranche exits off: each sell day of the same ISIN is another DP charge; one full-qty exit per position.
+- 0.5% DP floor (B-1662, parked) = Rs4,720 minimum per delivery position; it would have blocked every closed delivery row
+  and all 25 open lots; with ~Rs15k deployed it allows ~3 positions. The B-1659 PFnet-with-DP gate is per strategy and
+  let a Rs1,116 ETERNAL entry through on 25-Nov.
+- Trail ratchets now modify the resting SL in place (no 7-17 s bare window); raises under 0.10% are skipped.
+- News: "IRCTC scam case" headlines are a politicians' court case; scam/fraud inside court-case wording with no company
+  words is now a soft 0.3 hit, never a hard event (6/6 replayed headlines fixed, IDFC First Bank fraud stays hard).
+- Profit-booking / exit takeaway: on a small account an exit's fixed costs (DP per sell day) decide whether a winner is
+  a winner: sell a delivery position once, in full, and do not open positions so small that one DP charge is >1% of them.

@@ -1860,6 +1860,64 @@ def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_pri
     return res
 
 
+# B-1737 (live 25-26 Nov IST: ZYDUSLIFE 10 trail ratchets ~112 s with no resting stop, gaps 7-14 s; APLAPOLLO short
+# 17.1 s): a trail raise used to cancel the live SL and then place a new one, so the position was bare between the
+# cancel and the new order's confirmation. The trigger is now moved IN PLACE with Kotak's modify-order (the same
+# order keeps resting the whole time); only if Kotak refuses the modify does the old cancel-then-place run.
+# A raise smaller than TRAIL_MIN_STEP_PCT of the price (e.g. Rs1135.10 -> Rs1136.00) is skipped: it adds a Kotak
+# call for no real protection (the stop is never lowered by this; a later bigger raise still moves it).
+TRAIL_MIN_STEP_PCT = 0.10
+_MODIFY_DONE_STATES = ("complete", "traded", "cancelled", "canceled", "rejected")
+
+
+def trail_step_too_small(current_trigger: float, desired: float) -> bool:
+    """B-1737: True when a ratchet from current_trigger to desired is under TRAIL_MIN_STEP_PCT of the price."""
+    try:
+        cur, new = float(current_trigger), float(desired)
+        return cur > 0 and abs(new - cur) < cur * TRAIL_MIN_STEP_PCT / 100.0
+    except (TypeError, ValueError):
+        return False
+
+
+@_records_send("sl", "real SL trigger modify in place (trail ratchet, B-1737)")
+def modify_resting_stop(kotak_trading_symbol: str, order_id: str, qty: int, new_trigger: float,
+                        limit_price: float = None, cash_session: bool = True) -> dict:
+    """Moves a resting SL order's trigger (and its limit, = trigger, same as _place_real_stop_loss_once) in place.
+    Returns {"ok", "order_id", "trigger_price", "action": "modified"} or ok False with `detail`; `terminal`=True
+    when the order is no longer live (it triggered, filled or was cancelled) so the caller must NOT place a new
+    stop on top of it. Never raises."""
+    if _before_equity_open() or (cash_session and _in_closing_session()):
+        return {"ok": False, "order_id": order_id, "detail": "no SL modify outside the session"}
+    trig = (float(new_trigger) if limit_price is not None
+            else _round_to_tick(new_trigger, _tick_size_for(kotak_trading_symbol)))
+    price = trig if limit_price is None else float(limit_price)  # options: the precheck's limit under the trigger
+    try:
+        client = kotak_neo.login()
+        resp = client.modify_order(order_id=str(order_id), price=str(price), order_type="SL", quantity=str(int(qty)),
+                                   validity="DAY", trigger_price=str(trig))
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "order_id": order_id, "detail": f"modify_order raised: {e}"}
+    bad = (not isinstance(resp, dict) or resp.get("Error") or resp.get("error")
+           or str(resp.get("stat", "ok")).lower() not in ("ok", "success"))
+    if bad:
+        return {"ok": False, "order_id": order_id, "detail": f"modify refused: {str(resp)[:200]}", "raw_response": resp}
+    status = _confirm_order_status(order_id)
+    st = str(status.get("status") or "").lower()
+    if st in _MODIFY_DONE_STATES:
+        return {"ok": False, "order_id": order_id, "terminal": True, "detail": f"order is {st} after modify",
+                "raw_response": resp}
+    row = status.get("row") or {}
+    try:
+        seen = float(row.get("trgPrc") or 0)
+    except (TypeError, ValueError):
+        seen = 0.0
+    if seen and abs(seen - trig) > 0.005:
+        return {"ok": False, "order_id": order_id, "detail": f"order book shows trigger {seen}, wanted {trig}",
+                "raw_response": resp}
+    return {"ok": True, "order_id": str(order_id), "trigger_price": trig, "action": "modified", "raw_response": resp,
+            "status_confirmed": bool(seen)}
+
+
 def _ensure_resting_sl_decide(kotak_trading_symbol: str, qty: int, trigger_price: float, desired: float,
                               live: list) -> dict:
     if live:
@@ -1873,6 +1931,20 @@ def _ensure_resting_sl_decide(kotak_trading_symbol: str, qty: int, trigger_price
             return {"ok": False, "order_id": best["order_id"], "trigger_price": best["trigger"],
                     "action": "skipped_closing_session", "detail": "no SL replace after 15:15 IST",
                     "raw_response": None}
+        if sum(o["qty"] for o in live) >= qty and trail_step_too_small(best["trigger"], desired):
+            return {"ok": True, "order_id": best["order_id"], "trigger_price": best["trigger"],
+                    "action": "adopted_small_step", "raw_response": None,
+                    "detail": f"raise {best['trigger']} -> {desired} under {TRAIL_MIN_STEP_PCT}% (B-1737)"}
+        if len(live) == 1 and best["qty"] == qty:
+            mod = modify_resting_stop(kotak_trading_symbol, best["order_id"], qty, desired)
+            if mod.get("ok"):
+                _RECENT_SL_PLACED[kotak_trading_symbol] = {"order_id": str(mod["order_id"]), "qty": int(qty),
+                                                           "trigger": float(mod["trigger_price"]), "ts": time.time()}
+                return mod
+            if mod.get("terminal"):
+                mod["action"] = "modify_order_not_live"
+                return mod  # the stop triggered/filled meanwhile: an exit is in progress, never stack a new SL
+            print(f"[REAL] B-1737 SL modify failed for {kotak_trading_symbol}: {mod.get('detail')} - cancel+place")
         for o in live:
             cancel_real_order(o["order_id"])
         res = place_real_stop_loss(kotak_trading_symbol, qty, desired)

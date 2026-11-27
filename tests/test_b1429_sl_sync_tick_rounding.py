@@ -61,6 +61,7 @@ def _run_short(paper_stop, place_ret=None):
         with patch("kotak_real_orders._tick_size_for", return_value=0.05), \
              patch("kotak_neo.positions", return_value=_SHORT_POS), \
              patch("kotak_neo.order_report", return_value=_LIVE_SL), \
+             patch("kotak_real_orders.modify_resting_stop", return_value={"ok": False}), \
              patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}) as c, \
              patch("kotak_real_orders.place_real_short_stop_loss", return_value=place_ret) as p:
             main._maybe_sync_real_stop_loss_short(conn, "DABUR.NS")
@@ -75,6 +76,7 @@ def _run_long(paper_stop, place_ret=None):
         with patch("kotak_real_orders._tick_size_for", return_value=0.05), \
              patch("kotak_neo.positions", return_value=_LONG_POS), \
              patch("kotak_neo.order_report", return_value=_LIVE_SL), \
+             patch("kotak_real_orders.modify_resting_stop", return_value={"ok": False}), \
              patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}) as c, \
              patch("kotak_real_orders.place_real_stop_loss", return_value=place_ret) as p:
             main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
@@ -90,11 +92,11 @@ def test_short_sub_tick_trail_does_not_cancel_or_replace():
 
 
 def test_short_full_tick_move_replaces_once_and_stores_rounded_trigger():
-    c, p, row = _run_short(382.98, {"ok": True, "order_id": "SL-NEW", "trigger_price": 383.0})
+    c, p, row = _run_short(382.48, {"ok": True, "order_id": "SL-NEW", "trigger_price": 382.5})  # B-1737: >=0.10% step
     c.assert_called_once_with("SL-OLD")
     p.assert_called_once()
-    assert p.call_args[0][2] == 383.0  # sent on the tick, not 382.98
-    assert row["sl_order_id"] == "SL-NEW" and row["sl_trigger_price"] == 383.0
+    assert p.call_args[0][2] == 382.5  # sent on the tick, not 382.48
+    assert row["sl_order_id"] == "SL-NEW" and row["sl_trigger_price"] == 382.5
 
 
 def test_long_sub_tick_trail_does_not_cancel_or_replace():
@@ -105,11 +107,11 @@ def test_long_sub_tick_trail_does_not_cancel_or_replace():
 
 
 def test_long_full_tick_move_replaces_once_and_stores_rounded_trigger():
-    c, p, row = _run_long(97.04, {"ok": True, "order_id": "SL-NEW", "trigger_price": 97.05})
+    c, p, row = _run_long(97.14, {"ok": True, "order_id": "SL-NEW", "trigger_price": 97.15})  # B-1737: >=0.10% step
     c.assert_called_once_with("SL-OLD")
     p.assert_called_once()
-    assert p.call_args[0][2] == 97.05
-    assert row["sl_order_id"] == "SL-NEW" and row["sl_trigger_price"] == 97.05
+    assert p.call_args[0][2] == 97.15
+    assert row["sl_order_id"] == "SL-NEW" and row["sl_trigger_price"] == 97.15
 
 
 def test_helper_matches_placement_rounding():

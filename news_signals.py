@@ -126,20 +126,46 @@ _FOREIGN_RE = re.compile(r"(?<![a-z])(wall street|nasdaq|dow jones|s&p 500|asian
 _MARKET_RE = re.compile("|".join(_WORD.format(re.escape(k)) for k in sorted(MARKET_KEYWORDS, key=len, reverse=True)))
 
 
+# B-1759 (user 2026-11-27 "avoid false positives in future"): "IRCTC scam case: Delhi HC upholds charges against
+# Lalu Prasad..." is a court case against politicians that carries the company's name, not adverse company news.
+# A scam/fraud word is read as a case name (weight 0.3, never a hard event) only when the headline is about court
+# proceedings AND says nothing about the company itself (its shares, regulator, books, promoters or management).
+CASE_NAME_WORDS = ("scam", "fraud")
+CASE_NAME_WEIGHT = 0.3
+_LEGAL_CASE_RE = re.compile(_WORD.format(r"(?:high court|supreme court|special court|cbi court|court|hc|sc|charges"
+                                         r"|chargesheet|charge sheet|framing of charges|pleas?|bail|trial|accused"
+                                         r"|hearing|verdict|acquitt?ed|convicted|discharge)"))
+_COMPANY_IMPACT_RE = re.compile(_WORD.format(r"(?:shares?|stocks?|scrip|sebi|nse|bse|exchange|auditors?|audit"
+                                             r"|accounts?|accounting|books|promoters?|management|ceo|md|cfo|cmd"
+                                             r"|chairman|directors?|board|investors?|shareholders?|results|earnings"
+                                             r"|probe into|raids? (?:on|at)|company|firm|ltd|limited)"))
+
+
+def is_case_name_headline(title: str) -> bool:
+    """B-1759: True when a scam/fraud word names a court case about people, not an event at the company."""
+    t = " " + re.sub(r"\s+", " ", (title or "").lower()) + " "
+    return bool(_LEGAL_CASE_RE.search(t)) and not _COMPANY_IMPACT_RE.search(t)
+
+
 def score_headline(title: str) -> dict:
     """Lexicon score of one headline: {"score": -1..1, "hard_neg": [...], "hard_pos": [...], "hits": n}."""
     t = " " + re.sub(r"\s+", " ", (title or "").lower()) + " "
+    case_name = is_case_name_headline(title)
+    soft = set()  # B-1759: phrases read as a case name, never hard
     hits = []  # (phrase, signed weight)
     for rx_list, sign in ((_NEG, -1.0), (_POS, 1.0)):
         for rx, phrase, w in rx_list:
             if rx.search(t):
+                if sign < 0 and case_name and phrase in CASE_NAME_WORDS:
+                    w = CASE_NAME_WEIGHT
+                    soft.add(phrase)
                 hits.append((phrase, sign * w))
                 t = rx.sub(" _ ", t)  # consume, so a shorter phrase inside it is not counted again
     pos = sum(w for _, w in hits if w > 0)
     neg = -sum(w for _, w in hits if w < 0)
     score = (pos - neg) / (pos + neg) if (pos + neg) > 0 else 0.0
     return {"score": round(score, 3), "hits": len(hits),
-            "hard_neg": [p for p, w in hits if w < 0 and p in HARD_NEGATIVE],
+            "hard_neg": [p for p, w in hits if w < 0 and p in HARD_NEGATIVE and p not in soft],
             "hard_pos": [p for p, w in hits if w > 0 and p in HARD_POSITIVE]}
 
 

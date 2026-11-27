@@ -455,3 +455,13 @@ def _no_orphan_reroute(monkeypatch):
     # (B-68) has its own tests in test_orphan_reroute_to_swing.py.
     import main as _m
     monkeypatch.setattr(_m, "_reroute_orphan_intraday_to_swing", lambda conn, row: False)
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _tranche_exits_on_for_legacy_ladder_tests(monkeypatch):
+    """B-1762: real tranche exits are off by default; these tests cover the ladder code if it is ever re-enabled."""
+    import main as _m
+    monkeypatch.setattr(_m, "REAL_TRANCHE_EXITS_ENABLED", True)
