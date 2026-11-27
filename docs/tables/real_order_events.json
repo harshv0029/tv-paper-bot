@@ -149401,6 +149401,18 @@
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
   },
   {
+   "id": 12453,
+   "ts": 1795772808.0432868,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": "ZYDUSLIFE-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
    "id": 12450,
    "ts": 1795772808.0532072,
    "symbol": "OIL.NS",
@@ -149411,7 +149423,91 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12452,
+   "ts": 1795772809.9075284,
+   "symbol": "SUPREMEIND.NS",
+   "kotak_trading_symbol": "SUPREMEIND-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12454,
+   "ts": 1795772810.0789268,
+   "symbol": "PIIND.NS",
+   "kotak_trading_symbol": "PIIND-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12456,
+   "ts": 1795772810.160866,
+   "symbol": "SBILIFE.NS",
+   "kotak_trading_symbol": "SBILIFE-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12455,
+   "ts": 1795772810.162707,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12457,
+   "ts": 1795772814.1633432,
+   "symbol": "INDUSTOWER.NS",
+   "kotak_trading_symbol": "INDUSTOWER-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12458,
+   "ts": 1795772815.8680847,
+   "symbol": "MAZDOCK.NS",
+   "kotak_trading_symbol": "MAZDOCK-EQ",
+   "leg": "sl",
+   "event": "skipped_after_1515",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no SL placement after 15:15 IST"
+  },
+  {
+   "id": 12459,
+   "ts": 1795772852.5603545,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "short_cover",
+   "event": "skipped_no_real_row",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "no real short row in this app; no order sent",
+   "detail": "reason: short paper exit: exited_short_eod_squareoff"
   }
  ],
- "synced_at_utc": "2026-11-27T09:46:51Z"
+ "synced_at_utc": "2026-11-27T09:47:35Z"
 }
