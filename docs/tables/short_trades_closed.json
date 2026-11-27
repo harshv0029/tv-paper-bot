@@ -347,7 +347,31 @@
       "pnl_inr": -2.0999999999999943,
       "exit_reason": "stale_timeout",
       "strategy": "news_event__confirmed__short__1d__v1"
+    },
+    {
+      "id": 30,
+      "ts": 1795757236.7784007,
+      "symbol": "BANKINDIA.NS",
+      "qty": 8.0,
+      "entry_price": 168.60000610351562,
+      "exit_price": 166.78,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 14.560048828124991,
+      "exit_reason": "state_exit",
+      "strategy": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2"
+    },
+    {
+      "id": 31,
+      "ts": 1795772852.5241103,
+      "symbol": "IRCTC.NS",
+      "qty": 1.0,
+      "entry_price": 461.85,
+      "exit_price": 458.4,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 3.4500000000000455,
+      "exit_reason": "eod_squareoff",
+      "strategy": "news_event__confirmed__short__1d__v1"
     }
   ],
-  "synced_at_utc": "2026-11-26T11:39:39Z"
+  "synced_at_utc": "2026-11-27T11:33:02Z"
 }
