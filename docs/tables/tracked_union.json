@@ -289,6 +289,22 @@
    "symbol": "SUPREMEIND.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 1856.4,
+   "first_seen_day": "2026-11-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "TECHM-EQ",
+   "opened_at": null,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": 1764.4856480189733,
+   "strategy": "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2",
+   "symbol": null
+  },
+  {
    "day": "2026-11-23",
    "entry_order_id": "261123000433268",
    "entry_price": 211.55,
