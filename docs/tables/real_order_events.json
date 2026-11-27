@@ -149015,7 +149015,19 @@
    "prev_state": "long 1 @ Rs892.90",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12419,
+   "ts": 1795762425.9618719,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261127000361124",
+   "prev_state": "long 1 @ Rs892.90",
+   "new_state": "closed",
+   "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-27T06:53:44Z"
+ "synced_at_utc": "2026-11-27T06:53:58Z"
 }
