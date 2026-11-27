@@ -129,22 +129,6 @@
    "symbol": "INDUSTOWER.NS"
   },
   {
-   "day": "2026-11-11",
-   "entry_order_id": "261111000158129",
-   "entry_price": 461.7,
-   "first_seen_day": "2026-11-11",
-   "is_short": 0,
-   "kotak_trading_symbol": "IRCTC-EQ",
-   "opened_at": 1794410852.1073081,
-   "owner": "short",
-   "qty": 1,
-   "sl_trigger_price": 475.7,
-   "source": "holding",
-   "stop_loss": 404.39286150251115,
-   "strategy": "news_event__confirmed__short__1d__v1",
-   "symbol": "IRCTC.NS"
-  },
-  {
    "day": "2026-11-26",
    "entry_order_id": "261126000372894",
    "entry_price": 1817.9,
