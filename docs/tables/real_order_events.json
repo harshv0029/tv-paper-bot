@@ -148703,7 +148703,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs475.70",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 12393,
+   "ts": 1795752803.8796575,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "exit",
+   "event": "skipped_duplicate",
+   "order_id": null,
+   "prev_state": "tracked open (stale), long 1 @ Rs479.05",
+   "new_state": "cleared - Kotak already shows this closed",
+   "detail": "reason: news_exit: confirmed news against a long: 'scam' reported by cnbctv18, economictimes, moneycontrol; stock news score -0.52 - Delhi HC rejects Lalu Prasad Yadav, Rabri Devi, Tejashwi's pleas in IRCTC scam case, upholds charges - Moneyco"
   }
  ],
- "synced_at_utc": "2026-11-27T04:13:20Z"
+ "synced_at_utc": "2026-11-27T04:13:35Z"
 }
