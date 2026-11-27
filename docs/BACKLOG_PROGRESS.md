@@ -17,22 +17,23 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
-| DONE-PENDING-VERIFY | 21 |
 | SUPERSEDED | 19 |
+| DONE-PENDING-VERIFY | 16 |
 | BUILT | 11 |
 | UNKNOWN | 10 |
 | P3 | 9 |
 | PARKED | 8 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
+| USER | 7 |
 | RESEARCH | 7 |
 | OPEN-PARKED | 6 |
-| USER | 5 |
 | FROM | 5 |
 | PENDING | 4 |
 | PARKED-REASONED | 4 |
 | BUILT-DISPATCH-OWED | 4 |
 | OWNER-ACTION | 3 |
 | DEPLOYED | 3 |
+| DAILY | 3 |
 | PORT | 3 |
 | TODO | 2 |
 | DISPATCH-READY | 2 |
@@ -56,13 +57,13 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | O | 1 |
 | NEEDS | 1 |
 | KOTAK | 1 |
-| DAILY | 1 |
 | OPEN-RECURRING | 1 |
 | BUG | 1 |
 | TICK | 1 |
 | COST | 1 |
 | UNIVERSE | 1 |
 | NSE | 1 |
+| VIEW | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -84,7 +85,7 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 | B-1670 | P? | OWNER-ACTION | 2026-11-23 IST |  |
 
-## waiting-on-workflow/deploy (183)
+## waiting-on-workflow/deploy (178)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -152,10 +153,6 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
 | B-1547 | P1 | DONE-PENDING-VERIFY | 2026-11-11 IST | pending, verify, follow-up, awaiting, waiting |
 | B-1578 | P1 | BUILT-ON-BRANCH | DONE-PENDING-VERIFY [2026-11-16 09:55 IST live check (diag-curl 43803547325, /real-order-log 136 events 09:... | owed, pending, verify, owner |
-| B-1736 | P1 | DONE-PENDING-VERIFY | 2026-11-26 15:55 IST | blocked, pending |
-| B-1737 | P1 | DONE-PENDING-VERIFY | 2026-11-26 15:55 IST | pending |
-| B-1761 | P1 | DONE-PENDING-VERIFY | 2026-11-27 IST | pending |
-| B-1762 | P1 | DONE-PENDING-VERIFY | 2026-11-27 IST | pending |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
 | B-357 | P2 | BLOCKED | User 2026-10-11 "yes": short-selling engine on futures | owed, blocked, needs |
 | B-366 | P2 | BLOCKED | Spun out of B-365: order-book imbalance (Level 2 depth at best bid/ask, 5-level quote depth from Kotak) as ... | owed, blocked, needs |
@@ -197,7 +194,6 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-1221 | P2 | DONE-PENDING-VERIFY | pl1d SHORT main.py replay (run 38501324353, 1d, cost 0.8%): only 2 of the cells were readable from the job ... | owed, remaining, pending, verify, needs |
 | B-1380 | P2 | BUILT-ON-BRANCH | 2026-10-27 09:55 IST | owed, pending |
 | B-1477 | P2 | BLOCKED | 2026-11-05 | blocked, needs, follow-up |
-| B-1759 | P2 | DONE-PENDING-VERIFY | 2026-11-27 23:00 IST | pending |
 | B-438 | P3 | BLOCKED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, blocked, needs |
 | B-522 | P3 | BLOCKED | 2026-10-11 IST, source: William O'Neil, How to Make Money in Stocks (docs/ on main; 4 readers) | owed, blocked, needs, owner |
 | B-523 | P3 | BLOCKED | 2026-10-11 IST, source: William O'Neil, How to Make Money in Stocks (docs/ on main; 4 readers) | owed, blocked, needs, owner |
@@ -272,7 +268,7 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-789 | P? | DONE-PENDING-VERIFY | [2026-11-15 IST: EP 4h run 43689024308 registered (strategy_registry_ep4h.py): island long 4h 1.63-1.67 n~9... | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | owed, pending, verify, needs |
 
-## ready-to-build (158)
+## ready-to-build (163)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -312,11 +308,15 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-1723 | P1 | OPEN | 2026-11-25 14:35 IST | owed, blocked |
 | B-1724 | P1 | OPEN | 2026-11-25 14:35 IST |  |
 | B-1726 | P1 | OPEN | 2026-11-25 15:30 IST | needs |
+| B-1736 | P1 | DAILY | 2026-11-26 15:55 IST | blocked, pending |
+| B-1737 | P1 | DAILY | 2026-11-26 15:55 IST | pending |
 | B-1750 | P1 | BUILT | 2026-11-27 14:05 IST |  |
 | B-1754 | P1 | PARKED | 2026-11-27 15:50 IST | owed, needs, owner |
 | B-1755 | P1 | BUILT | 2026-11-27 15:50 IST | needs, awaiting, waiting |
 | B-1757 | P1 | BUILT | 2026-11-27 20:15 IST | needs |
 | B-1758 | P1 | OPEN | 2026-11-27 23:00 IST |  |
+| B-1761 | P1 | USER | 2026-11-27 IST | pending |
+| B-1762 | P1 | USER | 2026-11-27 IST | pending |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |
@@ -384,6 +384,7 @@ Total rows: 1514 | closed: 1050 | not closed: 464
 | B-1751 | P2 | OPEN | 2026-11-27 14:05 IST |  |
 | B-1752 | P2 | BUILT | 2026-11-27 14:30 IST | needs, awaiting, waiting |
 | B-1756 | P2 | OPEN | 2026-11-27 15:50 IST | blocked |
+| B-1759 | P2 | VIEW | 2026-11-27 23:00 IST | pending |
 | B-1456 | P3 | PARKED | 2026-11-03 00:35 IST |  |
 | B-1457 | P3 | FROM | 2026-11-03 00:35 IST | owed, needs |
 | B-1503 | P3 | OPEN | 2026-11-06 | owed, follow-up |
