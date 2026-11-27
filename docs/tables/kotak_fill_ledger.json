@@ -1247,7 +1247,43 @@
    "sell_qty": 1.0,
    "sell_amt": 354.45,
    "updated_at": 1795717557.9926379
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "ABCAPITAL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 416.15,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795751505.9284313
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "TECHM-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 1856.4,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795751505.9284313
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "WIPRO-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 193.54,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795751505.9284313
   }
  ],
- "synced_at_utc": "2026-11-27T03:38:53Z"
+ "synced_at_utc": "2026-11-27T03:52:54Z"
 }
