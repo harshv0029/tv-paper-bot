@@ -149027,7 +149027,31 @@
    "prev_state": "long 1 @ Rs892.90",
    "new_state": "closed",
    "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12420,
+   "ts": 1795772162.4162996,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261127000548119",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Nov-2026 15:05:21 B L qty 1 trg 0.00 status complete rejRsn --"
+  },
+  {
+   "id": 12421,
+   "ts": 1795772162.4182558,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261127000548118",
+   "prev_state": null,
+   "new_state": "complete",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Nov-2026 15:05:21 B L qty 2 trg 0.00 status complete rejRsn --"
   }
  ],
- "synced_at_utc": "2026-11-27T06:53:58Z"
+ "synced_at_utc": "2026-11-27T09:36:25Z"
 }
