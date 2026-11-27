@@ -148967,7 +148967,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs377.90",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12415,
+   "ts": 1795762317.2106233,
+   "symbol": "ATGL.NS",
+   "kotak_trading_symbol": "ATGL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261127000359476",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs547.70",
+   "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T06:00:49Z"
+ "synced_at_utc": "2026-11-27T06:51:59Z"
 }
