@@ -1258,7 +1258,7 @@
    "buy_amt": 416.15,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795754908.6862116
+   "updated_at": 1795755209.0251093
   },
   {
    "day": "2026-11-27",
@@ -1270,7 +1270,19 @@
    "buy_amt": 0.0,
    "sell_qty": 7.0,
    "sell_amt": 1177.61,
-   "updated_at": 1795754908.6862116
+   "updated_at": 1795755209.0251093
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "INDHOTEL-EQ",
+   "prod": "CNC",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 1.0,
+   "buy_amt": 892.9,
+   "sell_qty": 0.0,
+   "sell_amt": 0.0,
+   "updated_at": 1795755209.0251093
   },
   {
    "day": "2026-11-27",
@@ -1282,7 +1294,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 461.7,
-   "updated_at": 1795754908.6862116
+   "updated_at": 1795755209.0251093
   },
   {
    "day": "2026-11-27",
@@ -1294,7 +1306,7 @@
    "buy_amt": 3704.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795754908.6862116
+   "updated_at": 1795755209.0251093
   },
   {
    "day": "2026-11-27",
@@ -1306,8 +1318,8 @@
    "buy_amt": 386.41,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795754908.6862116
+   "updated_at": 1795755209.0251093
   }
  ],
- "synced_at_utc": "2026-11-27T04:48:41Z"
+ "synced_at_utc": "2026-11-27T04:53:50Z"
 }
