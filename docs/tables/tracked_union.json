@@ -1,6 +1,22 @@
 {
  "rows": [
   {
+   "day": "2026-11-27",
+   "entry_order_id": "261127000019570",
+   "entry_price": 416.15,
+   "first_seen_day": "2026-11-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "ABCAPITAL-EQ",
+   "opened_at": 1795751156.0356934,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 373.25,
+   "source": "position",
+   "stop_loss": 348.38214547293524,
+   "strategy": "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2",
+   "symbol": "ABCAPITAL.NS"
+  },
+  {
    "day": "2026-11-23",
    "entry_order_id": "261123000031453",
    "entry_price": 400.4,
