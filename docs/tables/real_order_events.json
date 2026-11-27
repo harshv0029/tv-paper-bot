@@ -147167,7 +147167,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: MCX market opened (live ticks: 3 mcx symbols printed new trades today within 120s): protection pass, then queued-entry replay | {\"segment\": \"mcx\", \"calendar_open\": false, \"ticks\": {\"open\": true, \"reason\": \"3 mcx symbols printed new trades today within 120s\", \"symbols\": [\"CL=F\", \"GC=F\", \"SI=F\"], \"count\": 3, \"segment\": \"mcx\"}, \"protection\": {\"ok\": true, \"ran\": \"reconcile adopt=*\", \"seconds\": 4.2}, \"replay\": {\"note\": \"no queued-entry engine for mcx\"}}"
+  },
+  {
+   "id": 12265,
+   "ts": 1795751125.8979843,
+   "symbol": "FEDERALBNK.NS",
+   "kotak_trading_symbol": "FEDERALBNK-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261127000015982",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs322.15",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs322.15 already covers the position (target stop Rs310.60), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-27T03:30:13Z"
+ "synced_at_utc": "2026-11-27T03:45:28Z"
 }
