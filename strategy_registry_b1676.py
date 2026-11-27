@@ -16,6 +16,7 @@ V4_T5_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_o
 V4NB_TAG = "fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"  # B-1744
 V4NBW_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte_0930to1430__long_opt__5m__"
              "trail12_tgt12_hold15__v1")  # B-1744
+ATMC_TAG = "fno_atmchain_momo__atm10_mom5m15m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"  # B-1757
 RETIRED_V3 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1717, user: include expiry-day contracts, the 2% max SL "
               "then trail caps the loss; replaced by " + V3B_TAG + "). ")
 RETIRED_V2 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1715, user: trades exit within 15 min, do not wait for "
@@ -184,4 +185,18 @@ def build():
                        "synthetic premiums, net of 0.8% cost: PF " + pf + ". PAPER ONLY.")))
         else:
             out.append(d)
+    out.append(sr.StrategyDef(
+        name=ATMC_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py FNO_MOMO_VARIANTS gate atmchain_v1 / _fno_momo_pick_atmc / _fno_atmc_skip (B-1757)",
+        evidence="Paper forward test only; replay on the per-minute ATM-chain tape (B-1688) once enough days exist.",
+        notes=("ACTIVE paper plan (user rule 'Single-leg option candidate universe', B-1757). Every 5 min 09:30-14:30 "
+               "IST, EVERY index's ATM +-10 strike legs (CE and PE, nearest expiry, from the tape's cached chain, no "
+               "new fetch) are checked; buy the single best leg across all indices by score (5-min premium change + "
+               "15-min change / 3) that passes ALL: fresh quote (premium moved within 5 min, B-1750); >= 1000 "
+               "contracts traded; index day direction confirms the type (CE: index and NIFTY up; PE: both down); "
+               "premium up over 5 min AND 15 min; |delta| 0.35-0.65; IV not above the same-type ATM leg's IV. Exits: "
+               "2% stop from entry trailing the peak, 15-min time stop, sentiment flip, frozen quote, forced 15:15 "
+               "IST; never the most-active rank exit. Net of 0.8% cost. PAPER ONLY."),
+    ))
     return out

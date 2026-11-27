@@ -43500,6 +43500,7 @@ def _fno_tape_record(groups: dict, index_pct: dict, now=None, conn=None, index_d
         _FNO_TAPE_STATE["last_minute"] = (day, minute)  # claimed first: a slow chain fetch is never repeated
         if chains is None:
             chains = _fno_tape_chains()
+        _fno_atmc_note(chains, time.time())  # B-1757: the atmchain paper variant reads this window (no new fetch)
         _FNO_TAPE_STATE["atm_indices"] = sorted(chains)
         payload = json.dumps(_fno_tape_payload(groups, index_pct, chains, index_detail, now), separators=(",", ":"))
         own = conn is None
@@ -43638,6 +43639,75 @@ def _fno_chg_multi_detail(contract: str, price, now_ts: float) -> dict:
 def _fno_chg15(contract: str, price, now_ts: float):
     """% change of the premium vs its price 15 min ago (rolling, see _fno_chg15_detail). None while warming up."""
     return _fno_chg15_detail(contract, price, now_ts)["chg15_pct"]
+
+
+# B-1750 (2026-11-27: FINNIFTY premiums froze, the same price on every 30 s tick, and 3 of 7 paper trades closed at
+# entry for the 0.8% cost only): a quote whose premium has not changed over >= FNO_STALE_QUOTE_S of OBSERVED samples is
+# stale. Entry refuses it (skipped_stale_quote); a held contract frozen that long is closed (stale_quote_exit) and the
+# row is left out of the View 6 stats. A gap with no observations is not evidence: at least FNO_STALE_MIN_SAMPLES equal
+# samples (the current price counts) must cover the window. Every active FNO_MOMO_VARIANTS gate. PAPER ONLY.
+FNO_STALE_QUOTE_S = 5 * 60
+FNO_STALE_MIN_SAMPLES = 4
+FNO_STALE_EXIT_REASON = "stale_quote_exit"
+
+
+def _fno_unchanged_run(samples, price, now_ts: float) -> tuple:
+    """(seconds, n): how long `price` has been the premium in the trailing run of equal samples (oldest first, the
+    current price counts as one sample at now_ts). (0.0, 0) for no price."""
+    px = _fno_num(price)
+    if px <= 0:
+        return 0.0, 0
+    since, n = now_ts, 1
+    for s in reversed(list(samples or [])):
+        try:
+            ts, p = float(s[0]), _fno_num(s[1])
+        except (TypeError, ValueError, IndexError):
+            break
+        if ts > now_ts:
+            continue
+        if abs(p - px) > 1e-9:
+            break
+        if ts < now_ts:
+            n += 1
+        since = min(since, ts)
+    return now_ts - since, n
+
+
+def _fno_quote_stale(samples, price, now_ts: float) -> bool:
+    """B-1750: True when the premium is unchanged for >= FNO_STALE_QUOTE_S across >= FNO_STALE_MIN_SAMPLES samples."""
+    secs, n = _fno_unchanged_run(samples, price, now_ts)
+    return secs >= FNO_STALE_QUOTE_S and n >= FNO_STALE_MIN_SAMPLES
+
+
+# B-1757: the tape's ATM +-10 chain window (_fno_tape_chains, fetched once a minute by _fno_tape_record) is kept here
+# for the atmchain paper variant: no extra network fetch. Its legs get their own rolling premium samples (memory only,
+# like _FNO_IDX_HIST: a restart only re-warms the 5/15-min momentum) so every leg has a 5m/15m change and a staleness
+# check, not only the most-active rows in _FNO_PX_HIST.
+_FNO_ATMC_CACHE = {"ts": 0.0, "chains": {}}
+_FNO_ATMC_HIST = {}  # contract -> [(ts, price)], oldest first, FNO_HIST_KEEP_S; <= 6 indices x 42 legs
+
+
+def _fno_atmc_note(chains: dict, now_ts: float) -> None:
+    """B-1757: caches the tape's ATM windows and samples every leg's premium (>= 30 s apart). Never raises."""
+    try:
+        if not chains:
+            return
+        _FNO_ATMC_CACHE.update(ts=now_ts, chains=dict(chains))
+        for w, _atm in chains.values():
+            for r in w or []:
+                px = _fno_num(r.get("lastPrice"))
+                if px > 0 and r.get("contract"):
+                    h = _FNO_ATMC_HIST.setdefault(r["contract"], [])
+                    if not h or now_ts - h[-1][0] >= 30:
+                        h.append((now_ts, px))
+        for k in list(_FNO_ATMC_HIST):
+            h = [s for s in _FNO_ATMC_HIST[k] if now_ts - s[0] <= FNO_HIST_KEEP_S]
+            if h:
+                _FNO_ATMC_HIST[k] = h
+            else:
+                del _FNO_ATMC_HIST[k]
+    except Exception as e:  # noqa: BLE001
+        _FNO_TAPE_STATE["last_error"] = f"atmc note: {str(e)[:120]}"
 
 
 def _fno_by_index_snapshot() -> dict:
@@ -43883,6 +43953,20 @@ FNO_MOMO_VARIANTS = ({"tag": FNO_MOMO_V3B_TAG, "gate": "fast_v3", "allow_expiry"
                       "target": FNO_V4_TARGET_PCT, "breadth": False},
                      {"tag": FNO_MOMO_V4XNBW_TAG, "gate": "pullback_v4", "allow_expiry": False, "trail": 0.12,
                       "target": FNO_V4_TARGET_PCT, "breadth": False, "windows": FNO_V4_WIDE_WINDOWS})
+# B-1757 (user rule "Single-leg option candidate universe"): a PAPER variant whose candidates are EVERY index's ATM +-10
+#   strike legs, CE and PE, nearest expiry, from the tape's cached chain window (_FNO_ATMC_CACHE, no new fetch). Own
+#   score per leg: premium up over 5 min AND 15 min (score = 5-min change + 15-min change / 3); the index's day
+#   direction confirms the type (_fno_momo_sentiment: CE needs index and NIFTY up, PE both down); |delta| 0.35-0.65;
+#   IV not above the same-type ATM leg's IV; >= FNO_ATMC_MIN_CONTRACTS contracts traded; fresh quote (B-1750). The best
+#   leg across all indices per scan. Exits as fast_v3 (2% trail from entry trailing the peak, 15-min hold, 15:15
+#   forced, sentiment flip, stale quote) and NEVER the most-active top-N rank exit (the leg was never picked by rank).
+FNO_MOMO_ATMC_TAG = "fno_atmchain_momo__atm10_mom5m15m_idxconfirm_delta_ivrel__long_opt__5m__trail2_hold15__v1"
+FNO_ATMC_GATE = "atmchain_v1"
+FNO_ATMC_MIN_CONTRACTS = 1000
+FNO_ATMC_IV_REL_MAX = 1.0
+FNO_ATMC_CHAIN_MAX_AGE_S = 180
+FNO_MOMO_VARIANTS = FNO_MOMO_VARIANTS + ({"tag": FNO_MOMO_ATMC_TAG, "gate": FNO_ATMC_GATE, "allow_expiry": True,
+                                          "trail": FNO_MOMO_TRAIL_PCT},)
 FNO_MOMO_ALL_VARIANTS = FNO_MOMO_VARIANTS + FNO_MOMO_RETIRED_VARIANTS
 _FNO_MOMO_STATES = {v["tag"]: (_FNO_MOMO_STATE if v["tag"] == FNO_MOMO_TAG else {"last_scan_ts": 0.0, "last_scan": None})
                     for v in FNO_MOMO_ALL_VARIANTS}
@@ -44198,7 +44282,8 @@ def _fno_momo_pick_v2(groups: dict, pct: dict, detail: dict, now, now_ts: float,
         ivs = sorted(m["iv_pct"] for *_, m in mets if m.get("iv_pct"))
         iv_med = ivs[len(ivs) // 2] if len(ivs) >= 3 else None
         for rank, r, ot, px, m in mets:
-            skip = skip_fn(r, ot, u, m, iv_med, pct, detail, day)
+            skip = ("skipped_stale_quote" if _fno_quote_stale(_FNO_PX_HIST.get(r["contract"]), px, now_ts)  # B-1750
+                    else skip_fn(r, ot, u, m, iv_med, pct, detail, day))
             checked.append({"contract": r["contract"], "skip": skip})
             if skip is None:
                 passed.append(({"contract": r["contract"], "underlying": u, "option_type": ot, "lastPrice": px,
@@ -44214,6 +44299,77 @@ def _fno_momo_v2_top_skip(checked: list) -> str:
     """The most common skip reason of a scan with no entry (View 6 shows it)."""
     reasons = [c["skip"] for c in checked or [] if c.get("skip")]
     return max(set(reasons), key=reasons.count) if reasons else "skipped_no_positive_candidate"
+
+
+def _fno_atmc_skip(row: dict, ot: str, u: str, m: dict, atm_iv, pct: dict, now_ts: float):
+    """B-1757: the first failing check of the ATM-chain plan for one leg (None = passes)."""
+    px = _fno_num(row.get("lastPrice"))
+    if _fno_quote_stale(_FNO_ATMC_HIST.get(row.get("contract")), px, now_ts):
+        return "skipped_stale_quote"  # B-1750
+    if _fno_num(row.get("numberOfContractsTraded")) < FNO_ATMC_MIN_CONTRACTS:
+        return "skipped_low_contracts_traded"
+    senti = _fno_momo_sentiment(ot, (pct or {}).get(u), (pct or {}).get("NIFTY"))
+    if senti is None:
+        return "skipped_sentiment_unknown"
+    if senti is False:
+        return "skipped_sentiment_disagrees"
+    c5, c15 = m.get("chg5_pct"), m.get("chg15_pct")
+    if c5 is None or c15 is None:
+        return "skipped_momentum_warming_up"
+    if c5 <= 0 or c15 <= 0:
+        return "skipped_momentum_not_rising"
+    if m.get("delta") is None or m.get("iv_pct") is None:
+        return "skipped_greeks_unknown"
+    if not (FNO_V2_DELTA_MIN <= abs(m["delta"]) <= FNO_V2_DELTA_MAX):
+        return "skipped_delta_out_of_band"
+    if not atm_iv:
+        return "skipped_atm_iv_unknown"
+    if m["iv_pct"] > FNO_ATMC_IV_REL_MAX * atm_iv:
+        return "skipped_iv_above_atm"
+    return None
+
+
+def _fno_momo_pick_atmc(chains: dict, pct: dict, now, now_ts: float):
+    """B-1757: (candidate, metrics, checked) over every index's cached ATM +-10 window (nearest expiry, CE + PE). The
+    passing leg with the largest score (5-min change + 15-min change / 3) wins; ties: more contracts traded."""
+    checked, passed = [], []
+    for u in _FNO_INDEX_UNDERLYINGS:
+        w, atm = (chains or {}).get(u) or ([], None)
+        legs = []
+        for r in w or []:
+            px = _fno_num(r.get("lastPrice"))
+            ot = _fno_momo_opt_type(r.get("optionType")) or next(
+                (t for t in str(r.get("contract") or "").split() if t in ("CE", "PE")), "")
+            if px <= 0 or not ot or not r.get("contract"):
+                continue
+            m = _fno_option_metrics(r, now)
+            m["chg15_pct"] = _fno_chg_window(_FNO_ATMC_HIST, r["contract"], px, now_ts, FNO_CHG_WINDOW_S,
+                                             FNO_CHG_MAX_BASE_AGE_S)[0]
+            m["chg5_pct"] = _fno_chg_window(_FNO_ATMC_HIST, r["contract"], px, now_ts, FNO_CHG5_WINDOW_S,
+                                            FNO_CHG5_MAX_BASE_AGE_S)[0]
+            legs.append((r, ot, px, m))
+        strikes = sorted({_fno_num(r.get("strikePrice")) for r, *_ in legs})
+        atm_iv = {ot: m.get("iv_pct") for r, ot, px, m in legs if atm is not None
+                  and _fno_num(r.get("strikePrice")) == _fno_num(atm)}
+        for r, ot, px, m in legs:
+            skip = _fno_atmc_skip(r, ot, u, m, atm_iv.get(ot), pct, now_ts)
+            checked.append({"contract": r["contract"], "skip": skip})
+            if skip is None:
+                k = _fno_num(r.get("strikePrice"))
+                off = (strikes.index(k) - strikes.index(_fno_num(atm))) if _fno_num(atm) in strikes else None
+                m["score"] = round(m["chg5_pct"] + m["chg15_pct"] / 3.0, 4)
+                passed.append(({"contract": r["contract"], "underlying": u, "option_type": ot, "lastPrice": px,
+                                "pChange": _fno_num(r.get("pChange")), "rank": off, "row": r,
+                                "atm_strike": atm, "atm_iv": atm_iv.get(ot), "iv_median": atm_iv.get(ot)}, m))
+    if not passed:
+        return None, None, checked
+    cand, m = max(passed, key=lambda cm: (cm[1]["score"], _fno_num(cm[0]["row"].get("numberOfContractsTraded"))))
+    return cand, m, checked
+
+
+def _fno_momo_is_stale_close(reason) -> bool:
+    """B-1750: a paper row closed on a frozen quote (left out of the View 6 stats; the row itself stays)."""
+    return str(reason or "").startswith(FNO_STALE_EXIT_REASON)
 
 
 def _fno_momo_net_pct(entry: float, exit_px: float) -> float:
@@ -44300,11 +44456,18 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                 price = 0.0
         if price <= 0:
             cur = next((r for r in groups.get(row["underlying"], []) if r.get("contract") == row["contract"]), None)
+            if cur is None and variant["gate"] == FNO_ATMC_GATE:  # B-1757: the leg may never be most-active
+                cur = next((r for r in ((_FNO_ATMC_CACHE.get("chains") or {}).get(row["underlying"]) or ([], None))[0]
+                            if r.get("contract") == row["contract"]), None)
             price = _fno_num(cur.get("lastPrice")) if cur else 0.0
         price = price if price > 0 else (row["last_price"] or row["entry_price"])
         peak = max(row["peak_price"], price)
         stop = round(peak * (1.0 - _fno_momo_trail(variant)), 4)
         top_n = FNO_V2_TOP_N if variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4") else FNO_MOMO_TOP_N  # B-1714
+        try:  # B-1750: the observed premium path (one point per tick) decides a frozen quote
+            held_path = json.loads(row["price_path"]) if "price_path" in row.keys() and row["price_path"] else []
+        except (TypeError, ValueError):
+            held_path = []
         target = variant.get("target")  # B-1728
         top = {r.get("contract") for r in groups.get(row["underlying"], [])[:top_n]}
         senti = _fno_momo_sentiment(row["option_type"], pct.get(row["underlying"]), pct.get("NIFTY"))
@@ -44318,10 +44481,12 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
         elif target and price >= round(row["entry_price"] * (1.0 + target), 4):
             # B-1728: profit target; paper fill = the resting limit level (the observed price is kept beside it)
             reason, fill = "target_hit", round(row["entry_price"] * (1.0 + target), 4)
-        elif (variant["gate"] in ("fast_v3", "pullback_v4")
+        elif _fno_quote_stale(held_path, price, now_ts):
+            reason = FNO_STALE_EXIT_REASON  # B-1750: frozen quote; the row is left out of the View 6 stats
+        elif (variant["gate"] in ("fast_v3", "pullback_v4", FNO_ATMC_GATE)
               and now_ts - (row["opened_ts"] or now_ts) >= FNO_V3_MAX_HOLD_S):
             reason = "time_exit_15min"  # B-1715: the fast plan holds at most 15 min
-        elif snap.get("ok") and row["contract"] not in top:
+        elif variant["gate"] != FNO_ATMC_GATE and snap.get("ok") and row["contract"] not in top:  # B-1757: never atmc
             reason = "confidence_lost_top3"
         elif senti is False:
             reason = "confidence_lost_sentiment"
@@ -44334,9 +44499,16 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                          (peak, stop, price, now_ts, trough, path, row["id"]))
     elif scan_due and snap.get("ok"):
         state["last_scan_ts"] = now_ts
-        v2 = variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4")
-        if v2:  # B-1714 / B-1715 / B-1728
-            if variant["gate"] == "pullback_v4":
+        v2 = variant["gate"] in ("mtf_v2", "fast_v3", "pullback_v4", FNO_ATMC_GATE)
+        if v2:  # B-1714 / B-1715 / B-1728 / B-1757
+            if variant["gate"] == FNO_ATMC_GATE:
+                chains = _FNO_ATMC_CACHE.get("chains") or {}
+                if now_ts - (_FNO_ATMC_CACHE.get("ts") or 0.0) > FNO_ATMC_CHAIN_MAX_AGE_S:
+                    chains = {}
+                cand, v2m, checked = _fno_momo_pick_atmc(chains, pct, now, now_ts)
+                if not chains:
+                    checked = [{"contract": None, "skip": "skipped_atm_chain_unavailable"}]
+            elif variant["gate"] == "pullback_v4":
                 cand, v2m, checked = _fno_momo_pick_v4(groups, pct, snap.get("index_detail") or {}, now, now_ts, day,
                                                        breadth=variant.get("breadth", True),
                                                        windows=variant.get("windows"),
@@ -44374,6 +44546,13 @@ def _fno_momo_step(conn, now=None, snapshot=None, now_ts=None, variant=None, quo
                 stop = round(px * (1.0 - _fno_momo_trail(variant)), 4)
                 why = (f"top{cand['rank']} {cand['underlying']} by contracts traded, +{cand['pChange']}% (largest), "
                        f"index {pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%, gate {variant['gate']}")
+                if variant["gate"] == FNO_ATMC_GATE:  # B-1757: picked by its own score, not by rank
+                    why = (f"ATM{cand['rank']:+d} {cand['underlying']} (ATM {cand.get('atm_strike')}) best score "
+                           f"{om.get('score')} of all ATM +-{FNO_TAPE_ATM_STRIKES} legs, "
+                           f"{_fno_num(cand['row'].get('numberOfContractsTraded')):.0f} contracts, index "
+                           f"{pct.get(cand['underlying'])}% / NIFTY {pct.get('NIFTY')}%, gate {variant['gate']}"
+                           if isinstance(cand.get("rank"), int) else
+                           f"{cand['underlying']} ATM-chain best score {om.get('score')}, gate {variant['gate']}")
                 if om.get("delta") is not None:
                     why += (f"; OI {om['oi_build'] or 'n/a'}, IV {om['iv_pct']}%, delta {om['delta']}, "
                             f"theta {om['theta_per_day']}/day ({round((om['theta_frac'] or 0) * 100, 1)}% of premium)")
@@ -44859,13 +45038,15 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
                                               (tag, max(1, min(int(limit), 500)))).fetchall()]
         per_var = {}
         for v in FNO_MOMO_ALL_VARIANTS:  # B-1677: totals per tag; B-1686: retired tags flagged
-            nets = [r[0] or 0.0 for r in conn.execute(
-                "SELECT net_pct FROM fno_momo_paper_trades WHERE tag = ? AND status = 'closed'", (v["tag"],)).fetchall()]
+            allr = conn.execute("SELECT net_pct, close_reason FROM fno_momo_paper_trades WHERE tag = ? AND "
+                                "status = 'closed'", (v["tag"],)).fetchall()
+            nets = [r[0] or 0.0 for r in allr if not _fno_momo_is_stale_close(r[1])]  # B-1750: frozen quotes excluded
             gw, gl = sum(x for x in nets if x > 0), -sum(x for x in nets if x < 0)
             per_var[v["tag"]] = {"gate": v["gate"], "retired": bool(v.get("retired")),
                                  "trail_pct": round(_fno_momo_trail(v) * 100, 2), "target_pct": round((v.get("target") or 0) * 100, 2) or None, "n": len(nets), "wins": sum(1 for x in nets if x > 0),
                                  "net_pct_sum": round(sum(nets), 4),
-                                 "pf_net": round(gw / gl, 3) if gl > 0 else None}  # B-1681: profit factor, net
+                                 "pf_net": round(gw / gl, 3) if gl > 0 else None,  # B-1681: profit factor, net
+                                 "stale_excluded": len(allr) - len(nets)}
     for r in rows:
         r["opened_ist"], r["closed_ist"] = _ist(r.get("opened_ts")), _ist(r.get("close_ts"))
         # user 2026-11-23: running P&L on the open row (last seen premium vs entry, net of the 0.8% cost model)
@@ -44882,8 +45063,10 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
     closed = [r for r in rows if r["status"] == "closed"]
 
     def _tot(lst):
+        n_all = len(lst)
+        lst = [r for r in lst if not _fno_momo_is_stale_close(r.get("close_reason"))]  # B-1750
         nets = [r["net_pct"] or 0.0 for r in lst]
-        return {"n": len(lst), "wins": sum(1 for x in nets if x > 0), "net_pct_sum": round(sum(nets), 4),
+        return {"n": len(lst), "stale_excluded": n_all - len(lst), "wins": sum(1 for x in nets if x > 0), "net_pct_sum": round(sum(nets), 4),
                 "avg_net_pct": round(sum(nets) / len(nets), 4) if nets else None}
     last = _FNO_MOMO_STATES[tag].get("last_scan")
     import strategy_registry as sr
