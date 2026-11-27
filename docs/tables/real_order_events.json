@@ -148799,7 +148799,19 @@
    "prev_state": "tracked qty 5",
    "new_state": "corrected to Kotak's actual 7",
    "detail": "reason: automatic qty reconciled by the real-order engine"
+  },
+  {
+   "id": 12401,
+   "ts": 1795755067.1072116,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261127000177319",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs892.90",
+   "detail": "reason: swing entry signal from strategy reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T04:47:17Z"
+ "synced_at_utc": "2026-11-27T04:51:09Z"
 }
