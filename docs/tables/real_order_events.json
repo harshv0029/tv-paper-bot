@@ -148381,6 +148381,18 @@
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs1776.70 already covers the position (target stop Rs1776.70), adopted, nothing placed"
   },
   {
+   "id": 12381,
+   "ts": 1795751200.187861,
+   "symbol": "TECHM.NS",
+   "kotak_trading_symbol": "TECHM-EQ",
+   "leg": "entry",
+   "event": "kotak_placed",
+   "order_id": "261127000023155",
+   "prev_state": "sent to Kotak",
+   "new_state": "accepted",
+   "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
    "id": 12366,
    "ts": 1795751200.5390606,
    "symbol": "UPL.NS",
@@ -148475,7 +148487,127 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs1764.50",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs1764.50 (target stop Rs1764.49)"
+  },
+  {
+   "id": 12374,
+   "ts": 1795751224.2140787,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261127000025024",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs180.88",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12375,
+   "ts": 1795751224.230231,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_placed",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "placed",
+   "detail": "reason: trigger queued at 2026-11-27 08:53:23 IST (market closed) passed fresh re-validation at the open; placed by the swing engine with its SL | swing gaps__common_fade__long__1d__atr3_nb4__v1: confirmed"
+  },
+  {
+   "id": 12376,
+   "ts": 1795751224.288275,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1: skipped_strategy_not_viable: strategy 'volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 12377,
+   "ts": 1795751224.58814,
+   "symbol": "ZYDUSLIFE.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing minervini_vcp_livermore: skipped_already_open: "
+  },
+  {
+   "id": 12378,
+   "ts": 1795751227.1945727,
+   "symbol": "LODHA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1275.00 - capped to 0 by remaining daily cap Rs9018.20 (max 7) and/or real capital Rs9627.89 (max 7)"
+  },
+  {
+   "id": 12379,
+   "ts": 1795751229.303289,
+   "symbol": "OBEROIRLTY.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_insufficient_real_qty | swing sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l1_n3__v1: skipped_insufficient_real_qty: paper qty 1, real risk qty 0, 1 share = Rs1929.30 - capped to 0 by remaining daily cap Rs9018.20 (max 4) and/or real capital Rs9627.89 (max 4)"
+  },
+  {
+   "id": 12380,
+   "ts": 1795751230.0517554,
+   "symbol": "DLF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: skipped_strategy_not_viable: strategy 'sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 12382,
+   "ts": 1795751230.7444568,
+   "symbol": "PHOENIXLTD.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_strategy_not_viable | swing sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1: skipped_strategy_not_viable: strategy 'sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py viability_reason=below_floor"
+  },
+  {
+   "id": 12383,
+   "ts": 1795751231.6694138,
+   "symbol": "GODREJPROP.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_price_out_of_tolerance | swing sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1: skipped_price_out_of_tolerance: live price Rs2032.80 is 5.9% away from the signal's entry_price Rs1920.00 (tolerance 2.0%) - not chasing"
+  },
+  {
+   "id": 12384,
+   "ts": 1795751231.6788278,
+   "symbol": "MARKET:NSE",
+   "kotak_trading_symbol": null,
+   "leg": "market",
+   "event": "market_open_event",
+   "order_id": null,
+   "prev_state": "closed",
+   "new_state": "open",
+   "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"186 nse symbols printed new trades today within 120s\", \"symbols\": [\"360ONE.NS\", \"ABB.NS\", \"ABCAPITAL.NS\", \"ADANIENSOL.NS\", \"ADANIENT.NS\", \"ADANIGREEN.NS\", \"ADANIPORTS.NS\", \"ADANIPOWER.NS\", \"APLAPOLLO.NS\", \"APOLLOHOSP.NS\"], \"count\": 186, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"joined the in-flight 5-min reconcile\", \"seconds\": 39.7}, \"replay\": {\"placed\": 2, \"dropped\": 35, \"requeued\": 1, \"considered\": 38}}"
   }
  ],
- "synced_at_utc": "2026-11-27T03:47:00Z"
+ "synced_at_utc": "2026-11-27T03:47:15Z"
 }
