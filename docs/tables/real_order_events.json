@@ -148991,7 +148991,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs535.65",
    "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12417,
+   "ts": 1795762418.97536,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261127000177593",
+   "prev_state": "resting @ Rs867.0",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
+  },
+  {
+   "id": 12418,
+   "ts": 1795762418.9786792,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs892.90",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 paper swing exit: island_rule_exit"
   }
  ],
- "synced_at_utc": "2026-11-27T06:52:21Z"
+ "synced_at_utc": "2026-11-27T06:53:44Z"
 }
