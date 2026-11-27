@@ -148835,7 +148835,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs867.00",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs867.00 already covers the position (target stop Rs866.96), adopted, nothing placed"
+  },
+  {
+   "id": 12404,
+   "ts": 1795755142.247354,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "qty",
+   "event": "reconciled",
+   "order_id": null,
+   "prev_state": "tracked qty 5",
+   "new_state": "corrected to Kotak's actual 7",
+   "detail": "reason: automatic qty reconciled by the real-order engine"
   }
  ],
- "synced_at_utc": "2026-11-27T04:51:31Z"
+ "synced_at_utc": "2026-11-27T04:52:24Z"
 }
