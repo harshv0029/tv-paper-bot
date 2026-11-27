@@ -41,7 +41,7 @@
    "kotak_trading_symbol": "BANKINDIA-EQ",
    "opened_at": 1795753392.640597,
    "owner": "short",
-   "qty": 7,
+   "qty": 5,
    "sl_trigger_price": 173.26,
    "source": "position",
    "stop_loss": 134.85928290230888,
@@ -111,6 +111,22 @@
    "stop_loss": 71.73857879638672,
    "strategy": "sector_rotation__momentum_n200_main1p__long__1d__atr6d0_flclose_h20_l3_n5__v1",
    "symbol": "IDFCFIRSTB.NS"
+  },
+  {
+   "day": "2026-11-27",
+   "entry_order_id": "261127000177319",
+   "entry_price": 892.9,
+   "first_seen_day": "2026-11-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "opened_at": 1795755067.0911572,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 867.0,
+   "source": "position",
+   "stop_loss": 866.9580306828178,
+   "strategy": "reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2",
+   "symbol": "INDHOTEL.NS"
   },
   {
    "day": "2026-11-11",
