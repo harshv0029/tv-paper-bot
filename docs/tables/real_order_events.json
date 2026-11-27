@@ -148715,7 +148715,19 @@
    "prev_state": "tracked open (stale), long 1 @ Rs479.05",
    "new_state": "cleared - Kotak already shows this closed",
    "detail": "reason: news_exit: confirmed news against a long: 'scam' reported by cnbctv18, economictimes, moneycontrol; stock news score -0.52 - Delhi HC rejects Lalu Prasad Yadav, Rabri Devi, Tejashwi's pleas in IRCTC scam case, upholds charges - Moneyco"
+  },
+  {
+   "id": 12394,
+   "ts": 1795753394.0182338,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261127000122546",
+   "prev_state": "no position",
+   "new_state": "short 7 @ Rs168.23",
+   "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T04:13:35Z"
+ "synced_at_utc": "2026-11-27T04:23:18Z"
 }
