@@ -105073,7 +105073,7 @@
   {
    "day": "2026-11-27",
    "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-   "n": 1068
+   "n": 1069
   },
   {
    "day": "2026-11-27",
@@ -105193,47 +105193,47 @@
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "n": 128282
+   "n": 128287
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-   "n": 128267
+   "n": 128272
   },
   {
    "day": "2026-11-27",
@@ -105323,17 +105323,17 @@
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z1d0__v1",
-   "n": 128264
+   "n": 128269
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve10d0e4_z2d0__v1",
-   "n": 128272
+   "n": 128277
   },
   {
    "day": "2026-11-27",
    "tag": "chan_kalman__band_srcmain__long__15m__atr4d0_hold40_ve1d0e4_z2d0__v1",
-   "n": 128231
+   "n": 128236
   },
   {
    "day": "2026-11-27",
@@ -114028,7 +114028,7 @@
   {
    "day": "2026-11-27",
    "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
-   "n": 1073
+   "n": 1074
   },
   {
    "day": "2026-11-27",
@@ -114948,7 +114948,7 @@
   {
    "day": "2026-11-27",
    "tag": "supertrend__cl__long__1d__atrnone__v1",
-   "n": 1062
+   "n": 1063
   },
   {
    "day": "2026-11-27",
@@ -115101,5 +115101,5 @@
    "n": 182
   }
  ],
- "synced_at_utc": "2026-11-27T14:50:08Z"
+ "synced_at_utc": "2026-11-27T14:51:16Z"
 }
