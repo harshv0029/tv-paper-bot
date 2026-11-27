@@ -148631,7 +148631,43 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs1847.60",
    "detail": "reason: swing entry signal from strategy oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12387,
+   "ts": 1795751689.0766249,
+   "symbol": "TECHM.NS",
+   "kotak_trading_symbol": "TECHM-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261127000024333",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs1764.50",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12388,
+   "ts": 1795751696.0793347,
+   "symbol": "ABCAPITAL.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "373.25",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 12389,
+   "ts": 1795751696.0881815,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "180.88",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-11-27T03:54:44Z"
+ "synced_at_utc": "2026-11-27T03:55:00Z"
 }
