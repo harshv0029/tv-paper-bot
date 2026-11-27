@@ -148619,7 +148619,19 @@
    "prev_state": "queued at open",
    "new_state": "dropped",
    "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2: skipped_already_open: "
+  },
+  {
+   "id": 12386,
+   "ts": 1795751681.6997533,
+   "symbol": "TECHM.NS",
+   "kotak_trading_symbol": "TECHM-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261127000051405",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs1847.60",
+   "detail": "reason: swing entry signal from strategy oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T03:48:31Z"
+ "synced_at_utc": "2026-11-27T03:54:44Z"
 }
