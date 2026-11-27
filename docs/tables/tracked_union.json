@@ -298,7 +298,7 @@
    "opened_at": null,
    "owner": "swing",
    "qty": 1,
-   "sl_trigger_price": null,
+   "sl_trigger_price": 1764.5,
    "source": "position",
    "stop_loss": 1764.4856480189733,
    "strategy": "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2",
