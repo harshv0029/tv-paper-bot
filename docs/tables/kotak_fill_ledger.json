@@ -1258,7 +1258,19 @@
    "buy_amt": 416.15,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795752742.921163
+   "updated_at": 1795753046.8264182
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "IRCTC-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 1.0,
+   "sell_amt": 461.7,
+   "updated_at": 1795753046.8264182
   },
   {
    "day": "2026-11-27",
@@ -1270,7 +1282,7 @@
    "buy_amt": 3704.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795752742.921163
+   "updated_at": 1795753046.8264182
   },
   {
    "day": "2026-11-27",
@@ -1282,8 +1294,8 @@
    "buy_amt": 386.41,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795752742.921163
+   "updated_at": 1795753046.8264182
   }
  ],
- "synced_at_utc": "2026-11-27T04:13:14Z"
+ "synced_at_utc": "2026-11-27T04:18:24Z"
 }
