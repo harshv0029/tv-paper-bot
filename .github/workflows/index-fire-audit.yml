@@ -1,0 +1,35 @@
+name: Index fire audit (B-1746)
+
+# Research only, read-only: no orders, no Render, no Kotak, no Upstash. Per-day count of how often each index
+# trigger (live ORB rule with and without the volume gate, plus 4 non-volume triggers) would have fired on
+# ^NSEI / ^BSESN / ^NSEBANK, 5m / 15m / 1h, long and short. Prints the table; uploads the JSON.
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: "First IST date (YYYY-MM-DD)"
+        default: "2026-10-01"
+      to_date:
+        description: "Last IST date (YYYY-MM-DD)"
+        default: "2026-11-26"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run audit
+        env:
+          FROM: ${{ inputs.from_date }}
+          TO: ${{ inputs.to_date }}
+          PYTHONPATH: scripts
+        run: python3 scripts/index_fire_audit.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: index-fire-audit
+          path: docs/index_fire_audit.*

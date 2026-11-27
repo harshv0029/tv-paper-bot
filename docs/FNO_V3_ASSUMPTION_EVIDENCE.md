@@ -84,3 +84,37 @@ The edge is not robust:
 - It flips between the two halves of the sample (H1 1.23, H2 0.93).
 
 Verdict: no quick-trade configuration shows an edge after the 0.8% cost on NIFTY or BANKNIFTY at 5-min resolution. A pullback entry is the only direction worth a paper trial.
+
+## Per-row test of all four live View 6 variants (B-1731, 2026-11-25 19:40 IST)
+
+Request (user, 25 Nov): test each row of the entry and exit table against a backtest or the literature. Pullback_v4 stays on paper.
+- Method: `python3 scripts/fno_v3_assumption_study.py --part-c` changes one row at a time and keeps everything else live, with the live exits, a 15-min hold and gap-aware stops.
+- Data: the same 89 days. Raw output: `docs/fno_view6_row_ablation.json`.
+- Each row is split by index (N/B/F), by half of the sample (H1/H2), and expiry day against other days.
+- Reading the table: "f2" and "f5" are fast_v3 with a 2% and 5% trail; "p12" and "p5" are pullback_v4 with a 12% and 5% trail. "live" is each variant unchanged.
+
+**Live baseline PF:** fast_v3 2% 0.417 · fast_v3 5% 0.631 · pullback_v4 12% 1.052 · pullback_v4 5% 1.003.
+
+| Row | Backtest (PF when only this row changes) | Literature (new + earlier) | Verdict |
+|---|---|---|---|
+| Time windows | Morning (09:30–11:15) is worst for pullback: p12 0.83, p5 0.84. Afternoon (13:15–14:30) is best: p12 1.38 (n=132), p5 1.21. Midday only: p12 1.17, f5 0.48. No windows ≈ live. | NSE equity spreads are lowest 11:00–14:00, so cost does not argue against midday (NSE comp. paper 128). Morning and afternoon option momentum (Da-Goyenko-Zhang). | **Contradicted for pullback**: its edge sits after 11:15, not in the morning. Fast_v3: weakly supported, midday is worse. |
+| Market mood (strict) | Removing it is worst in all 4: f2 0.34, f5 0.52, p12 0.82, p5 0.77. k=0.40 is slightly better than 0.25 in all 4, k=0.15 slightly worse. Breadth is neutral: removing it gives p12 1.09, f5 0.60. | Intraday momentum on trend days (Gao et al. 2018, US). | **Supported**, the strongest row. The 0.25 level is an untested setting; breadth is neutral. |
+| Index 5 min, fast_v3 (with the trade) | Removing it: f5 0.707 vs 0.631. A 0.03 threshold: f5 0.69. A 0.10 threshold: worse. | Negative 15-min autocorrelation (Baule-Schlie-Zhou 2025; Grant-Wolf-Yu 2005). | **Contradicted** (again) |
+| Index 5 min, pullback_v4 (against the trade) | 0.05 is the best of the three thresholds: 0.03 gives p12 0.96, 0.10 gives p12 1.02. | The same reversal evidence, but most of it is a short-lived bid-ask bounce (Heston-Korajczyk-Sadka 2010), which a 0.8% cost can absorb. | **Weakly supported**; FINNIFTY carries it |
+| Premium change 5 / 15 min (fast_v3) | Removing the caps is worse: f2 0.44 (avg −1.66%), f5 0.52. | Option returns show momentum within a session (Da-Goyenko-Zhang; Bali et al. 2026), at half-hour scale and before costs. | **Weakly supported** |
+| Premium ≥ ₹20 | Untestable: synthetic ATM premiums are always above ₹100, so floors of 0, 20 and 100 give identical results. | Tick floors inflate % spreads on cheap options, about 7% for OTM against 1.2% for ITM (CFA 2022); the B-1310 real incident. | **Supported by literature and incident** |
+| Delta 0.40–0.60 | Pullback: ATM is best, and moving away from it is monotonic. OTM 1% / 2%: p12 0.98 / 0.92, p5 0.92 / 0.89. ITM 1%: about equal (1.03). Fast_v3 is mixed. | Lottery-like OTM options earn less (Boyer-Vorkink 2014; Coval-Shumway 2001). | **Supported** |
+| IV ≤ 1.25× median | Untestable: the model uses a fixed IV. | Buy when IV is low against RV (Goyal-Saretto 2009, monthly, stocks). Nifty IV is a biased forecast (UoH thesis). | **Direction supported; 1.25 is an untested setting** |
+| Expiry-day contracts allowed (B-1717) | Pullback expiry-day trades lose: p12 PF 0.27 (n=14), p5 0.49 (n=15). Excluding them lifts p12 1.05 → **1.19**, p5 1.00 → 1.07. Fast_v3 rarely trades on expiry day. | Retail 0DTE buyers lose on average (Beckmeyer-Branger-Gayda 2023, US); no NSE study. | **Contradicted** (small n, synthetic gamma) |
+| Pick / ranking | Ranking by index move instead of the 5-min premium change: p12 1.10, p5 1.12 (vs 1.05 / 1.00); fast_v3 is worse. 15-min change: about equal. | Attention-driven option buying is overpriced (Choy-Wei 2023). Retail cheap-weekly buying loses (Bryzgalova et al. 2023). Most-active volume does not predict option returns (Pan-Poteshman is about stock returns). | **Most-active pick contradicted by literature** (untestable here); ranking weak |
+| 15-min time stop | Pullback: 10 min ≈ 15 min (1.03 / 1.01); 5 min is bad (0.79 / 0.88); 30 min ≈ 1.0. Fast_v3: under 0.7 at every hold. | Reversal and bounce effects are under 1 h. | **Supported (10–15 min) for pullback** |
+| VIX veto, OI | Untestable: there is no intraday VIX or OI history. | As above (NSE WP9; OI heuristics untested). | Unproven |
+
+**Robustness, the key caveat:** pullback_v4's edge comes from FINNIFTY (FINIETF proxy, PF 1.3–1.5). On NIFTY it is 0.70 and on BANKNIFTY 0.90 (p12 live). Every row result above is one 89-day regime on ETF proxies with a synthetic fixed-IV premium. India-specific literature is missing for every row; all the new sources come from search summaries.
+
+**What would change, all paper only, nothing decided yet:**
+- (a) Exclude expiry-day contracts for pullback_v4. This reverses B-1717 and needs the user's call.
+- (b) Pullback windows after 11:15 only.
+- (c) Rank pullback by the index move.
+
+None of these is applied: each needs its own walk-forward test and the 30 real-premium paper trades first, because tuning off one result is not allowed.

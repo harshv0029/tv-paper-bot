@@ -2652,3 +2652,57 @@ Correction (B-1727): with gap-aware stop fills the live 2% plan is PF 0.417. Ins
 ### 2026-11-25 B-1728: trend-day pullback paper twins built (View 6)
 Inside the user's short-trade rule (single leg, quick entry and exit, at most 15 min), the only replay setup above PF 1 was buying the 5-min pullback on a strict trend day. Built as two paper twins (12% and 5% trailing stop, both with a +12% target and the 15-min time stop) beside the fast_v3 2%/5% twins, so all four are judged on the same real 30-s premiums. No real-order path touched.
 Profit-booking / exit takeaway: a quick option trade needs room (a wide stop) and a fixed target that pays well over the 0.8% cost; a 2% trailing stop on a premium is inside normal noise and books losses, not profits.
+
+### 2026-11-25 B-1731: every View 6 entry and exit row tested (replay plus literature)
+Changing one row at a time shows the strict trend-day mood is the only row that clearly carries profit: removing it is the worst change in all four variants. Near-ATM delta and a 10-15 min hold also hold up for pullback. Rows that fail: the fast_v3 "index moving with the trade" rule (again); allowing expiry-day contracts for pullback (PF 0.27); the morning window for pullback (afternoon is better); and, in the literature, picking from the most-active (attention) list. The IV, VIX, OI and ₹20 rows cannot be tested on synthetic premiums; the 30-s real paths will test them. The pullback edge still comes from the thin FINNIFTY proxy only.
+Profit-booking / exit takeaway: hold a pullback trade 10-15 min, not 5 (exits at 5 min give back the bounce before it pays); a 0DTE premium's gamma turns a 12% target into a stop-out, so expiry-day exits lose.
+
+
+### 2026-11-26 Daily review: 1-share stop-outs and cost drag (25-26 Nov)
+Five closed trades had both prices in the data, all net losers: four macddiv 1h longs stopped out (HINDALCO, MAZDOCK, IDEA, ETERNAL, Rs-154.7 net) and one news short (APLAPOLLO) closed +Rs3.40 gross but Rs-8.49 net. 7 of 9 new long entries came from macddiv 1h, so one family carries most of the window's risk. On real Kotak terms the eight 1-share delivery sells paid about Rs189 in DP charges, more than the known gross loss (Rs118).
+Profit-booking / exit takeaway: a trail that moves the stop past entry before the open gain exceeds the round-trip cost books a "win" that loses money; on 1-share delivery trades the fixed per-sell charge can outweigh the move, so exits there need room to pay more than the fixed cost.
+
+### B-1744 (2026-11-26): View 6 had no entries, so two wider pullback_v4 paper twins were added
+- 26-Nov was the first full live day for the pullback plan and was not a trend day (NIFTY +0.25%, close only 11 pts over its open, breadth 1.16). The strict check blocked every contract, which is correct.
+- 90-day replay: dropping only the breadth part gives more trades and a better PF (1.11 vs 1.07, n 358 vs 284). Also removing the midday gap gives many more trades (n 562), but PF falls to 1.02 and the first half is below 1 (0.87).
+- Loosening the trend size (0.15%) or removing the trend-day check makes it lose (PF 0.98 / 0.82). The trend-day direction is the edge; breadth is not.
+- Profit-booking / exit takeaway: exits were not changed (12% trail, +12% target, 15-min time stop). The extra midday entries in (b) dilute the edge, so if (b) trails (a) on paper, the time window and not the exit is what to drop.
+
+### B-1732 (2026-11-26): pullback_v4 now skips expiry-day contracts (user "Yes implement")
+- 90-day replay: skipping contracts that expire today raised PF for every pullback variant (12%: 1.07 to 1.21; 5%: 1.01 to 1.07; no-breadth: 1.11 to 1.25; no-breadth all-window: 1.02 to 1.11) for about 5% fewer trades.
+- Expiry-day option premiums swing on gamma and theta, so a 5-min pullback is noise there more than a trend dip.
+- fast_v3 keeps expiry-day contracts (B-1717, the user's separate call for that plan).
+- Profit-booking / exit takeaway: on expiry day even a 12% trail cannot save a buy, because premium decay is faster than the 15-min hold; not entering is the better exit.
+## B-1746 why no strategy has traded NIFTY 50 or SENSEX (2026-11-27 IST)
+- Mechanism: index triggers exist in 3 places (WATCHLIST ORB+SMA paper, the gap_and_go index-option scan, View 6), plus 160 researched index-option cells.
+- Result: no trade from 3 Sep to 20 Nov. The research cells fail OOS on the premium proxy (best 0.77 at 0.8% cost). The ORB paper path floors to a whole lot, about Rs 15-17 lakh notional, which no budget reaches. The gap_and_go scan is real-only and gated. View 6 is 2 days old.
+- Surprise: the one "viable" index row (rsi thrust 1d atr6, PF 1.92) is an underlying-move proxy with OOS n<30. It is not wired, and its premium-proxy twin loses.
+- Reuse: an index signal must be expressed as an option (1 lot, small premium), not the future, and judged on the premium proxy, never the underlying move.
+- Profit-booking / exit takeaway: index edges that survive 0.8% costs are fat 1d moves; anything wired for index options must book fast on a trailing premium stop, never hold for days.
+## B-1746 index triggers are blocked by zero index volume, not by a quiet market (2026-11-27 IST)
+- Mechanism: per-day replay of the live ORB rule and 4 non-volume triggers on ^NSEI, ^BSESN and ^NSEBANK, 5m/15m/1h, long and short, 1 Oct to 26 Nov (37 sessions).
+- Result: Yahoo index bars have zero volume on every bar. The mandatory, fail-closed volume gate therefore kills every index entry: 0 fires. Without the gate, the same ORB rule fires on 13-21 of 37 days per side (5m), and ORB / EMA / RSI / ATR triggers fire on 20-34 days.
+- Surprise: "no signal" for two months looked like a quiet market. It was a data artefact. The attempt log also had no November in-market index snapshots, so it could not show absence.
+- Reuse: an index needs a volume source of its own (the near-month future), or volume-free triggers. Check vol_nonzero_bars before reading any "never fired" result.
+- Profit-booking / exit takeaway: fires are not profit. Any index trigger has to pass a premium-proxy replay with a trailing premium SL and quick exits before wiring.
+
+## B-1746 index ATM-option premium-proxy replay: long only "passes", inside one rally (2026-11-27 IST)
+- Mechanism: index trigger fires (live ORB without the volume gate, ORB, ATR range break, EMA cross, RSI thrust) on NIFTY, SENSEX and BANKNIFTY, 5m and 15m, 1 Oct to 26 Nov. Each fire is bought as 1 ATM option (call for long, put for short) on a Black-Scholes proxy, with IV from the previous day's India VIX, a premium trailing SL, and a quick exit at or before 15:10.
+- Result: pooled at 0.8% cost, long passes 70 of 75 combos in both IS and OOS. The best is the live ORB rule with stop 30% / trail 15% held to the end of the day: OOS PF 6.79 on 52 trades. Short passes 0 of 75.
+- Surprise: the one-sidedness is the tell. NIFTY rose 13.8% in a month from its 8 Oct 52-week low, so calls won and puts bled. On a random walk with matched IV, the same code passes 0 of 150 pooled combos, so the model is not biased. The window is.
+- Reuse: when a direction-symmetric test passes on one side only, check the window's index trend before believing it. Re-run on a multi-regime window (1h over 2 years) before wiring.
+- Profit-booking / exit takeaway: wider premium stops with a 15% trail held into the afternoon beat the live 3%/1% trail in a trend, because the live trail stops out on normal premium noise. Re-check this on falling regimes before changing any exit.
+
+## B-1746 index ATM-option proxy, 2-year 1h retest: both directions pass pooled (2026-11-27 IST)
+- Mechanism: the same premium-proxy replay on 1h candles, Dec 2024 to Nov 2026. That covers rising and falling regimes; the OOS part (Feb to Nov 2026) includes NIFTY's fall from its January high to the October low.
+- Result: pooled at 0.8% cost, long passes 49 of 75 combos and short 45 of 75. The best long is an opening-range break (first 3 hourly bars) held 1 bar: IS 1.92, OOS 2.86, 326 trades. The best short is EMA 9/21 cross-down buying a put, held to the close: IS 1.81, OOS 4.00, 171 trades.
+- Surprise: the 60-day long-only pass was regime, but the 2-year test shows a two-sided intraday index momentum effect on the proxy. It is not uniform: BANKNIFTY fails IS on the long ORB combo.
+- Reuse: retest a short-window result on the longest TF that has multi-regime history before deciding. Run per-index splits before pooling hides a loser.
+- Profit-booking / exit takeaway: on 1h the edge is in quick exits (1 bar) for long breakouts. Shorts did better held into the close with a 10% premium trail. The proxy is still not real-money evidence; paper premiums must confirm it.
+
+## B-1746 index ATM-option paper engine: novol vs futures-volume twins (2026-11-27 IST)
+- Mechanism: on NIFTY and SENSEX hourly bars, an opening-range break (first 3 hours) buys the ATM call and holds it 1 hour; an EMA 9/21 cross-down buys the ATM put and holds it to the close. Each trigger runs twice: with no volume gate, and with a gate requiring the near-month future's hour volume to beat its 20-hour average.
+- Result: built and tested (paper only); live paper premiums will decide. Not deployed yet.
+- Surprise: index volume needed its own source. Yahoo index bars have none, so the futures twin samples the Kotak quote's cumulative day volume at each hourly boundary and differences it into hourly bars.
+- Reuse: run "same trigger, gate on/off" twins side by side when a user rule (volume mandatory) conflicts with what the evidence tested.
+- Profit-booking / exit takeaway: the long side exits fast (60 min or a 5% trail after +5%); the put side rides to the close with a 10% trail. Compare the twins' net % per day after 2-3 weeks before any real wiring.

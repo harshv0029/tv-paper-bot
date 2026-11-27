@@ -90,14 +90,14 @@ def build(days):
     return out
 
 
-def strict(ot, u, snap, adv, dec, need_breadth=True):
+def strict(ot, u, snap, adv, dec, need_breadth=True, k=None):
     if u not in snap or "NIFTY" not in snap or adv + dec <= 0:
         return None
     x, ip, op = snap[u]
     npct = snap["NIFTY"][1]
     br_ok = (adv >= main.FNO_MOMO_STRICT_BREADTH * max(dec, 1)) if ot == "CE" else \
         (dec >= main.FNO_MOMO_STRICT_BREADTH * max(adv, 1))
-    k = main.FNO_MOMO_STRICT_MIN_PCT
+    k = main.FNO_MOMO_STRICT_MIN_PCT if k is None else k
     if ot == "CE":
         return ip >= k and npct >= k and x[3] > op and (br_ok or not need_breadth)
     return ip <= -k and npct <= -k and x[3] < op and (br_ok or not need_breadth)
@@ -200,6 +200,7 @@ def part_b(B, trail, hold_min, flt, target=None, mode="momentum"):
                 if reason:
                     gross = (fill / pos["px"] - 1) * 100
                     trades.append({"d": d, "u": u, "ot": ot, "m": pos["m"], "net": gross - COST, "why": reason,
+                                   "dte": pos.get("dte"), "delta": pos.get("delta"),
                                    "held": m - pos["m"], "mfe": (pos["peak"] / pos["px"] - 1) * 100})
                     pos = None
                     continue
@@ -209,7 +210,7 @@ def part_b(B, trail, hold_min, flt, target=None, mode="momentum"):
                 continue
             if not (WIN_LO <= m <= WIN_HI) or m - 5 not in rows or m - 15 not in rows:
                 continue
-            if flt.get("windows", True) and not any(a <= m <= b for a, b in main.FNO_V3_WINDOWS):
+            if flt.get("windows", True) and not any(a <= m <= b for a, b in flt.get("win", main.FNO_V3_WINDOWS)):
                 continue
             best_c = None
             for u in PROXY:
@@ -217,29 +218,36 @@ def part_b(B, trail, hold_min, flt, target=None, mode="momentum"):
                     continue
                 c, c5, c15 = snap[u][0][3], rows[m - 5][0][u][0][3], rows[m - 15][0][u][0][3]
                 sc = LEVEL[u]
-                K = round(c * sc / 100.0) * 100.0
+                mny = flt.get("mny", 0.0) / 100.0  # B-1731: + = OTM, - = ITM (delta band test)
+                if flt.get("no_expiry") and expiry_days(u, d, m) * 365 < 1.0:
+                    continue
                 for ot, sg in (("CE", 1), ("PE", -1)):
-                    if flt.get("strict", True) and not strict(ot, u, snap, adv, dec, flt.get("breadth", True)):
+                    K = round(c * sc * (1 + sg * mny) / 100.0) * 100.0
+                    if flt.get("strict", True) and not strict(ot, u, snap, adv, dec, flt.get("breadth", True), flt.get("k")):
                         continue
                     if flt.get("loose_entry") and not loose(ot, u, snap):
                         continue
                     mv = sg * (c / c5 - 1) * 100
                     if mode == "pullback":  # B-1727: trend day (strict gate) + the last 5 min moved AGAINST it
-                        if mv > -main.FNO_V3_IDX_MOVE_MIN_PCT:
+                        if mv > -flt.get("move", main.FNO_V3_IDX_MOVE_MIN_PCT):
                             continue
-                    elif flt.get("move5", True) and mv < main.FNO_V3_IDX_MOVE_MIN_PCT:
+                    elif flt.get("move5", True) and mv < flt.get("move", main.FNO_V3_IDX_MOVE_MIN_PCT):
                         continue
                     p, p5, p15 = (prem(u, v * sc, K, d, mm, ot) for v, mm in ((c, m), (c5, m - 5), (c15, m - 15)))
                     ch5, ch15 = (p / p5 - 1) * 100, (p / p15 - 1) * 100
                     if mode == "momentum" and flt.get("chg", True) and not (0 < ch5 <= main.FNO_V3_CHG5_MAX and ch15 <= main.FNO_V3_CHG15_MAX):
                         continue
-                    if p < main.FNO_V3_MIN_PREMIUM:
+                    if p < flt.get("min_prem", main.FNO_V3_MIN_PREMIUM):
                         continue
-                    if best_c is None or ch5 > best_c[0]:
-                        best_c = (ch5, u, ot, K, p)
+                    key = {"ch5": ch5, "ch15": ch15, "mv": abs(mv)}[flt.get("rank", "ch5")]
+                    if best_c is None or key > best_c[0]:
+                        best_c = (key, u, ot, K, p, c * sc)
             if best_c:
-                _, u, ot, K, p = best_c
-                pos = {"u": u, "ot": ot, "K": K, "px": p, "peak": p, "m": m,
+                _, u, ot, K, p, S = best_c
+                T = expiry_days(u, d, m)
+                dl = main._bs_greeks(S, K, T, IV[u], ot).get("delta")
+                pos = {"u": u, "ot": ot, "K": K, "px": p, "peak": p, "m": m, "dte": round(T * 365, 2),
+                       "delta": round(abs(dl), 2) if dl is not None else None,
                        "stop": p * (1 - trail) if trail is not None else 0.0}
     return trades
 
@@ -260,7 +268,67 @@ def summ(tr):
             "avg_mfe_pct": round(sum(t["mfe"] for t in tr) / len(tr), 2), "trade_days": days, "exits": why}
 
 
-if __name__ == "__main__":
+LIVE = (("fast_v3_t2", "momentum", 0.02, None), ("fast_v3_t5", "momentum", 0.05, None),
+        ("pullback_v4_t12", "pullback", 0.12, 0.12), ("pullback_v4_t5", "pullback", 0.05, 0.12))
+ROWS = (  # B-1731: one row of the View 6 table changed at a time, everything else live
+    ("live", {}),
+    ("time|no_windows", {"windows": False}), ("time|morning_only", {"win": ((570, 675),)}),
+    ("time|afternoon_only", {"win": ((795, 870),)}), ("time|midday_only", {"win": ((675, 795),)}),
+    ("mood|no_strict", {"strict": False}), ("mood|no_breadth", {"breadth": False}),
+    ("mood|no_breadth_no_windows", {"breadth": False, "windows": False}),  # B-1744 paper variant (b)
+    ("mood|no_breadth+no_expiry", {"breadth": False, "no_expiry": True}),  # B-1732 + B-1744 (a)
+    ("mood|no_breadth_no_windows+no_expiry", {"breadth": False, "windows": False, "no_expiry": True}),  # B-1732 (b)
+    ("mood|k=0.15", {"k": 0.15}), ("mood|k=0.40", {"k": 0.40}),
+    ("idx5|move=0.03", {"move": 0.03}), ("idx5|move=0.10", {"move": 0.10}), ("idx5|no_move5", {"move5": False}),
+    ("chg|no_chg", {"chg": False}),
+    ("premium|floor=0", {"min_prem": 0.0}), ("premium|floor=100", {"min_prem": 100.0}),
+    ("delta|ITM_1pct", {"mny": -1.0}), ("delta|OTM_1pct", {"mny": 1.0}), ("delta|OTM_2pct", {"mny": 2.0}),
+    ("expiry|no_expiry_day", {"no_expiry": True}),
+    ("rank|ch15", {"rank": "ch15"}), ("rank|idx_move", {"rank": "mv"}),
+)
+
+
+def split(tr):
+    """Robustness: per index, per half of the sample, expiry day vs not, delta at entry."""
+    if not tr:
+        return {}
+    days = sorted({t["d"] for t in tr})
+    mid = days[len(days) // 2]
+    out = {f"u={u}": summ([t for t in tr if t["u"] == u]) for u in PROXY}
+    out["H1"] = summ([t for t in tr if t["d"] < mid])
+    out["H2"] = summ([t for t in tr if t["d"] >= mid])
+    out["expiry_day"] = summ([t for t in tr if (t.get("dte") or 9) < 1])
+    out["not_expiry_day"] = summ([t for t in tr if (t.get("dte") or 9) >= 1])
+    out["delta_mean"] = round(sum(t["delta"] or 0 for t in tr) / len(tr), 3)
+    return {k: (v if not isinstance(v, dict) else {x: v.get(x) for x in ("n", "pf", "avg_net_pct", "win_pct")})
+            for k, v in out.items()}
+
+
+def part_c(B):
+    res = {}
+    for name, mode, tr, tg in LIVE:
+        for row, flt in ROWS:
+            if mode == "pullback" and row.startswith(("chg|", "idx5|no_move5")):
+                continue  # pullback has no premium-change caps; no_move5 = fast_v3 without its move rule
+            f = dict(flt, chg=flt.get("chg", True))
+            t = part_b(B, tr, 15, f, tg, mode)
+            r = summ(t)
+            r.pop("exits", None)
+            r["split"] = split(t)
+            res[f"{name}|{row}"] = r
+        for hold in (5, 10, 30):
+            r = summ(part_b(B, tr, hold, {}, tg, mode))
+            r.pop("exits", None)
+            res[f"{name}|exit|hold={hold}"] = r
+    return res
+
+
+if __name__ == "__main__" and "--part-c" in sys.argv:  # B-1731: per-row ablation of the 4 live View 6 variants
+    B = build(load())
+    out = {"days": len(B), "first": min(B), "last": max(B), "part_c": part_c(B)}
+    json.dump(out, open("docs/fno_view6_row_ablation.json", "w"), indent=1)
+    print("ok", out["days"], out["first"], out["last"])
+elif __name__ == "__main__":
     B = build(load())
     out = {"days": len(B), "first": min(B), "last": max(B), "part_a": part_a(B), "part_b": {}}
     base = {}

@@ -13,6 +13,9 @@ V3B_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__
 V3B_T5_TAG = "fno_mostactive_momo__fast5m_idxconfirm_delta_ivrel_alldte__long_opt__5m__trail5_hold15__v1"  # B-1718
 V4_T12_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"  # B-1728
 V4_T5_TAG = "fno_mostactive_momo__trendday_pullback5m_delta_ivrel_alldte__long_opt__5m__trail5_tgt12_hold15__v1"  # B-1728
+V4NB_TAG = "fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte__long_opt__5m__trail12_tgt12_hold15__v1"  # B-1744
+V4NBW_TAG = ("fno_mostactive_momo__trendday_nobreadth_pullback5m_delta_ivrel_alldte_0930to1430__long_opt__5m__"
+             "trail12_tgt12_hold15__v1")  # B-1744
 RETIRED_V3 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1717, user: include expiry-day contracts, the 2% max SL "
               "then trail caps the loss; replaced by " + V3B_TAG + "). ")
 RETIRED_V2 = ("RETIRED 2026-11-25 before deploy, 0 trades (B-1715, user: trades exit within 15 min, do not wait for "
@@ -22,7 +25,7 @@ RETIRED_V1 = ("RETIRED 2026-11-25 (B-1714, user: research OI/Greeks/% change and
 RETIRED = "RETIRED 2026-11-23 (B-1686, user: one strategy = strict sentiment + OI/Greeks): no new entries. "
 
 
-def build():
+def _build_base():
     return [sr.StrategyDef(
         name=TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
         status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
@@ -132,4 +135,53 @@ def build():
                "Evidence: B-1727 89-day 5-min replay, synthetic premiums, gap-aware stops: PF 1.05 (n=278) for 12%/12%, "
                "but the edge came from the thin FINNIFTY proxy and was unstable across halves. Net of 0.8% cost. "
                "PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=V4NB_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py FNO_MOMO_VARIANTS[4] / _fno_momo_v4_skip(breadth=False) (B-1744), twin of " + V4_T12_TAG,
+        evidence="Paper forward test; B-1744 90-day replay row mood|no_breadth (docs/fno_view6_row_ablation.json).",
+        notes=("ACTIVE paper twin (user 2026-11-26 'build both a and b'). As " + V4_T12_TAG + " but the strict mood "
+               "check drops the breadth >= 1.5x part (index and NIFTY >= 0.25% with the trade, index past its open, "
+               "VIX rise < 5% for CE still apply). Replay 16-Jul..25-Nov, synthetic premiums: PF 1.11 net (n=358, 74 "
+               "days) vs 1.07 (n=284) live rule; edge FINNIFTY-led (NIFTY 0.76, BANKNIFTY 0.90). Net of 0.8% cost. "
+               "PAPER ONLY."),
+    ), sr.StrategyDef(
+        name=V4NBW_TAG, asset_class=sr.AssetClass.OPTIONS, categories=(sr.TradeCategory.OPTIONS,), timeframe="5m",
+        status=sr.StrategyStatus.RESEARCH, entry_fn=None, metrics=None,
+        source="main.py FNO_MOMO_VARIANTS[5] / _fno_momo_v4_skip(breadth=False, FNO_V4_WIDE_WINDOWS) (B-1744)",
+        evidence="Paper forward test; B-1744 90-day replay row mood|no_breadth_no_windows.",
+        notes=("ACTIVE paper twin (user 2026-11-26 'build both a and b'). As " + V4NB_TAG + " and entries allowed "
+               "09:30-14:30 IST straight through (no 11:15-13:15 midday gap). Replay: PF 1.02 net (n=562, 78 days); "
+               "first half 0.87, second half 1.10, so weaker and less stable than the breadth-only twin. Net of 0.8% "
+               "cost. PAPER ONLY."),
     )]
+
+
+RETIRED_X = ("RETIRED 2026-11-26, 0 paper trades (B-1732, user 'Yes implement': the pullback plan skips expiry-day "
+             "contracts; replaced by the _noexp tag of the same rule). ")
+NOEXP = {V4_T12_TAG: ("[2]", "1.21 (n=270), H1 1.16, H2 1.25"), V4_T5_TAG: ("[3]", "1.07 (n=293), H1 1.17, H2 1.01"),
+         V4NB_TAG: ("[4]", "1.25 (n=343), H1 1.02, H2 1.36"), V4NBW_TAG: ("[5]", "1.11 (n=536), H1 0.77, H2 1.30")}
+
+
+def _noexp_name(tag):
+    return tag.replace("_alldte_0930to1430__", "_noexp_0930to1430__").replace("_alldte__", "_noexp__")
+
+
+def build():
+    """B-1732: the four pullback tags are retired and each gets a _noexp twin (expiry-day contracts skipped)."""
+    import dataclasses
+    out = []
+    for d in _build_base():
+        if d.name in NOEXP:
+            idx, pf = NOEXP[d.name]
+            out.append(dataclasses.replace(d, notes=RETIRED_X + d.notes))
+            out.append(dataclasses.replace(
+                d, name=_noexp_name(d.name),
+                source="main.py FNO_MOMO_VARIANTS" + idx + " (B-1732), replaces " + d.name,
+                evidence="Paper forward test; B-1732 90-day replay with expiry-day contracts skipped.",
+                notes=("ACTIVE paper plan (user 2026-11-26 'Yes implement', B-1732). The same rule as " + d.name +
+                       " except contracts expiring today are skipped (skipped_expiry_day). Replay 16-Jul..25-Nov, "
+                       "synthetic premiums, net of 0.8% cost: PF " + pf + ". PAPER ONLY.")))
+        else:
+            out.append(d)
+    return out

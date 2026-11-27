@@ -25,7 +25,11 @@ def test_sl_sync_logs_move_intent_before_cancel():
             seen["rows"] = [tuple(r) for r in _event_rows(conn)]
             return {"ok": True}
 
+        # B-1747: pin the Kotak ground-truth check; under xdist an earlier test can leave kotak_neo state whose
+        # positions() lacks TESTSTOCK, making _kotak_symbol_still_open False and returning before the cancel.
         with patch("main._real_sl_order_is_live", return_value=True), \
+             patch("main._kotak_symbol_still_open", return_value=True), \
+             patch("main._is_t1_restricted", return_value=False), \
              patch("kotak_real_orders.cancel_real_order", side_effect=_cancel), \
              patch("main._place_real_stop_loss_with_retry",
                    return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 92.0}):

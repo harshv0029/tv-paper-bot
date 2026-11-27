@@ -1,0 +1,352 @@
+diff --git a/.github/workflows/table-git-sync.yml b/.github/workflows/table-git-sync.yml
+index 67b47691c..8863ae47f 100644
+--- a/.github/workflows/table-git-sync.yml
++++ b/.github/workflows/table-git-sync.yml
+@@ -26,7 +26,7 @@ jobs:
+           mkdir -p docs/tables
+           curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+           echo
+-          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack real_order_events fno_momo_scan_log; do
++          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack real_order_events fno_momo_scan_log idxopt_futvol; do
+             if ! curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
+                  "https://tv-paper-bot-gdan.onrender.com/table-export/$t" -o /tmp/$t.json \
+                || ! jq -e '.rows' /tmp/$t.json > /dev/null; then
+diff --git a/main.py b/main.py
+index 3c9a1c4d1..880978977 100644
+--- a/main.py
++++ b/main.py
+@@ -1133,6 +1133,14 @@ def init_db():
+                 pass
+         # B-1719: one row per View 6 paper scan per tag (entered or the skip reason, plus each checked contract's
+         # skip), so skipped setups can be replayed later. Git tier (no Upstash use); 10 days kept on disk.
++        conn.execute(
++            """
++            CREATE TABLE IF NOT EXISTS idxopt_futvol (
++                underlying TEXT NOT NULL, day TEXT NOT NULL, boundary TEXT NOT NULL, ts REAL NOT NULL,
++                cum_volume REAL NOT NULL, PRIMARY KEY (underlying, day, boundary)
++            )
++            """
++        )  # B-1746: near-month index future cumulative volume at each hourly boundary (paper volume gate)
+         conn.execute(
+             """
+             CREATE TABLE IF NOT EXISTS fno_momo_scan_log (
+@@ -25045,6 +25053,7 @@ _GENERIC_MIRROR_TABLES = (
+     "pending_open_triggers",  # B-1512
+     "fno_momo_paper_trades",  # B-1676 (paper only)
+     "fno_momo_scan_log",  # B-1719 (paper only, git tier)
++    "idxopt_futvol",  # B-1746 (paper only, git tier)
+ )
+ _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
+ # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
+@@ -25055,7 +25064,8 @@ _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
+ # restart wiped the day's reasons (0 events on 2026-10-21). Git is the durable tier that works.
+ _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
+                             "strategy_scan_counts", "short_trades_closed",
+-                            "strategy_viable_stack", "real_order_events", "fno_momo_scan_log")
++                            "strategy_viable_stack", "real_order_events", "fno_momo_scan_log",
++                            "idxopt_futvol")
+ # B-1302 tiers: T1 safety-critical tables (kill switches, positions, signal state, stops) restore and push FIRST in
+ # every pass, so a restart or a pass cut short by an Upstash failure still covers real-money state; T2 audit/log
+ # tables (trades, real_trades, ...) follow; T3 counters/caches are _GENERIC_MIRROR_SLOW_TABLES (pushed at most every
+@@ -44409,7 +44419,7 @@ def _fno_momo_eod_sweep(conn, now=None, now_ts=None, include_late=True) -> list:
+     now_ts = now_ts if now_ts is not None else time.time()
+     day = now.strftime("%Y-%m-%d")
+     late = include_late and now.hour * 60 + now.minute >= FNO_MOMO_FORCE_EXIT_MIN
+-    active = {v["tag"] for v in FNO_MOMO_VARIANTS}
++    active = {v["tag"] for v in FNO_MOMO_VARIANTS} | set(IDXOPT_TAGS)  # B-1746 engine rows are active too
+     acts = []
+     for row in conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open'").fetchall():
+         if row["day"] != day:
+@@ -44459,6 +44469,7 @@ def _fno_momo_tick_hook() -> None:
+                 except Exception as e:  # noqa: BLE001
+                     _FNO_MOMO_HEALTH["last_error"] = f"{v['gate']}: {str(e)[:200]}"
+                     print(f"[FNO_MOMO] paper pass {v['gate']} failed (non-fatal): {str(e)[:200]}")
++            _idxopt_tick(conn)  # B-1746 index ATM option paper engine (never raises)
+     except Exception as e:  # noqa: BLE001
+         _FNO_MOMO_HEALTH["last_error"] = str(e)[:200]
+         print(f"[FNO_MOMO] paper pass failed (non-fatal): {str(e)[:200]}")
+@@ -44466,6 +44477,284 @@ def _fno_momo_tick_hook() -> None:
+         _FNO_MOMO_HEALTH["pass_done_ts"] = time.time()
+ 
+ 
++# ---------------------------------------------------------------------------------------------------------------
++# B-1746 (user 2026-11-27 "C"): index ATM single-leg option PAPER engine, two triggers x two volume treatments run
++# side by side so real paper premiums decide. PAPER ONLY: no Kotak order call anywhere in this block (Kotak is read
++# for quotes only). Evidence: docs/index_option_premium_replay_1h.md (2-year 1h premium proxy, pooled at 0.8%):
++#   long  = opening-range break (close > high of the first 3 hourly bars, first break per day) -> buy the ATM CALL,
++#           1-hour hold, stop 10% / trail arms at +5% / trails 5% below the peak premium;
++#   short = EMA 9/21 cross DOWN on the hourly close (computed on 1/close, exactly as the replay) -> buy the ATM PUT,
++#           held to the session end, stop 15% / arm +10% / trail 10%.
++# "novol" twins have no volume gate (what the replay tested); "futvol" twins keep the user's 2026-09-08 volume rule by
++# requiring the signal hour's near-month FUTURE volume (Kotak quote last_volume, sampled at every :15 boundary) to beat
++# the average of up to 20 earlier hours (>= 6 needed, fails closed). BANKNIFTY is excluded: it failed in-sample on
++# both combos (IS PF 0.67 long, 0.75 short). Every trade carries a trailing SL, exits by 15:13 IST, never overnight.
++IDXOPT_UNDERLYINGS = {"^NSEI": "NIFTY", "^BSESN": "SENSEX"}
++IDXOPT_BOUNDARIES = ("10:15", "11:15", "12:15", "13:15", "14:15", "15:15")  # hourly bar ends (09:15 session open)
++IDXOPT_SAMPLE_WINDOW_S = 5 * 60
++IDXOPT_FRESH_S = 15 * 60          # act only on an hourly bar that closed within the last 15 min
++IDXOPT_FIRST_ENTRY_MIN = 10 * 60 + 15
++IDXOPT_LAST_ENTRY_MIN = 14 * 60 + 20
++IDXOPT_FORCE_EXIT_MIN = 15 * 60 + 13
++IDXOPT_FUTVOL_LOOKBACK, IDXOPT_FUTVOL_MIN_BARS = 20, 6
++IDXOPT_FUTVOL_KEEP_DAYS = 15
++_IDXOPT_BASE = (
++    {"key": "orb_long", "trigger": "orb3", "right": "CE", "stop": 0.10, "arm": 0.05, "trail": 0.05,
++     "max_hold_s": 3600, "tag_fmt": "idxopt_momo__orb3_{v}__long_opt__1h__s10_a5_t5_hold60__v1"},
++    {"key": "ema_short", "trigger": "ema9x21_down", "right": "PE", "stop": 0.15, "arm": 0.10, "trail": 0.10,
++     "max_hold_s": None, "tag_fmt": "idxopt_momo__ema9x21_{v}__short_opt__1h__s15_a10_t10_eod__v1"},
++)
++IDXOPT_VARIANTS = tuple({**{k: b[k] for k in b if k != "tag_fmt"}, "futvol": fv,
++                         "tag": b["tag_fmt"].format(v="futvol" if fv else "novol")}
++                        for b in _IDXOPT_BASE for fv in (False, True))
++IDXOPT_TAGS = tuple(v["tag"] for v in IDXOPT_VARIANTS)
++_IDXOPT_STATE = {"last_error": None, "last_pass_ts": None, "futures": {}, "last_signal": {}}
++
++
++def _idxopt_hourly(df, now):
++    """(starts, opens/highs/closes, days) of COMPLETED hourly bars, IST-naive; None when the frame is unusable (bars
++    not on the NSE :15 grid, e.g. a UTC-naive fallback source - never guess the timezone)."""
++    if df is None or not len(df):
++        return None
++    idx = pd.to_datetime(df["Date"]) if "Date" in df.columns else pd.DatetimeIndex(df.index)
++    if getattr(idx, "tz", None) is not None:
++        idx = idx.tz_convert("Asia/Kolkata").tz_localize(None)
++    starts = list(idx)
++    keep = [i for i, s in enumerate(starts) if s + dt.timedelta(hours=1) <= now or
++            (s.strftime("%H:%M") == "15:15" and s.date() < now.date())]
++    if not keep:
++        return None
++    if any(starts[i].minute != 15 or not (9 <= starts[i].hour <= 15) for i in keep[-12:]):
++        return None
++    return {"start": [starts[i] for i in keep], "high": df["High"].to_numpy(float)[keep],
++            "close": df["Close"].to_numpy(float)[keep], "day": [starts[i].strftime("%Y-%m-%d") for i in keep]}
++
++
++def _idxopt_orb3(days, highs, closes, or_bars=3):
++    """Same rule as scripts/index_option_trigger_research.trig_orb: close above the high of the first or_bars bars of
++    the session, first break per day only."""
++    sig = [False] * len(closes)
++    start, fired, orh = 0, False, None
++    for i in range(len(closes)):
++        if i == 0 or days[i] != days[i - 1]:
++            start, fired, orh = i, False, None
++        pos = i - start
++        if pos == or_bars - 1:
++            orh = max(highs[start:i + 1])
++        elif pos >= or_bars and not fired and orh is not None and closes[i] > orh:
++            sig[i], fired = True, True
++    return sig
++
++
++def _idxopt_ema_cross_down(closes, fast=9, slow=21):
++    """EMA fast crosses above slow on 1/close (the replay's short mirror) = a cross DOWN on the real price."""
++    c = pd.Series(1.0 / pd.Series(closes, dtype=float))
++    f, s_ = c.ewm(span=fast, adjust=False).mean(), c.ewm(span=slow, adjust=False).mean()
++    return ((f > s_) & (f.shift(1) <= s_.shift(1))).fillna(False).tolist()
++
++
++def _idxopt_future(underlying, day):
++    """Near-month future contract for the volume samples, resolved once per IST day. None when not resolvable."""
++    hit = _IDXOPT_STATE["futures"].get(underlying)
++    if hit and hit[0] == day:
++        return hit[1]
++    fut = None
++    try:
++        fut, _err = nse_fo_chain.select_nse_future(underlying)
++    except Exception as e:  # noqa: BLE001
++        print(f"[IDXOPT] future resolve {underlying} failed (non-fatal): {str(e)[:120]}")
++    _IDXOPT_STATE["futures"][underlying] = (day, fut)
++    return fut
++
++
++def _idxopt_sample_futvol(conn, now, quote_rows=None) -> int:
++    """At each hourly boundary (first 5 min), stores the near-month future's cumulative day volume once. Returns rows."""
++    day, n = now.strftime("%Y-%m-%d"), 0
++    for b in IDXOPT_BOUNDARIES:
++        bt = dt.datetime.combine(now.date(), dt.time(int(b[:2]), int(b[3:])))
++        if not (0 <= (now - bt).total_seconds() < IDXOPT_SAMPLE_WINDOW_S):
++            continue
++        for u in IDXOPT_UNDERLYINGS.values():
++            if conn.execute("SELECT 1 FROM idxopt_futvol WHERE underlying = ? AND day = ? AND boundary = ?",
++                            (u, day, b)).fetchone():
++                continue
++            fut = _idxopt_future(u, day)
++            if not fut:
++                continue
++            tok = str(fut["instrument_token"])
++            q = (quote_rows or _fno_kotak_quote_rows)([tok], fut["exchange_segment"]).get(tok) or {}
++            vol = _fno_num(q.get("last_volume"))
++            if vol > 0:
++                conn.execute("INSERT OR IGNORE INTO idxopt_futvol (underlying, day, boundary, ts, cum_volume) "
++                             "VALUES (?, ?, ?, ?, ?)", (u, day, b, time.time(), vol))
++                n += 1
++    if n:
++        cutoff = (now.date() - dt.timedelta(days=IDXOPT_FUTVOL_KEEP_DAYS)).isoformat()
++        conn.execute("DELETE FROM idxopt_futvol WHERE day < ?", (cutoff,))
++        conn.commit()
++    return n
++
++
++def _idxopt_futvol_gate(conn, underlying, day, boundary):
++    """(ok, reason, detail): the hour ending at `boundary` today vs the mean of up to 20 earlier full hours. Fails
++    closed on a missing sample or < IDXOPT_FUTVOL_MIN_BARS of history. The 15:15-15:30 stub hour is never used."""
++    rows = conn.execute("SELECT day, boundary, cum_volume FROM idxopt_futvol WHERE underlying = ? AND day <= ? "
++                        "ORDER BY day, boundary", (underlying, day)).fetchall()
++    by_day = {}
++    for r in rows:
++        by_day.setdefault(r["day"], {})[r["boundary"]] = float(r["cum_volume"])
++    bars = []  # (day, boundary, volume) in time order
++    for d in sorted(by_day):
++        cum = by_day[d]
++        for k, b in enumerate(IDXOPT_BOUNDARIES):
++            prev = 0.0 if k == 0 else cum.get(IDXOPT_BOUNDARIES[k - 1])
++            if b in cum and prev is not None and cum[b] >= prev:
++                bars.append((d, b, cum[b] - prev))
++    cur = next((x for x in bars if x[0] == day and x[1] == boundary), None)
++    if cur is None:
++        return False, "skipped_futvol_missing_sample", {}
++    hist = [x[2] for x in bars if (x[0], x[1]) < (day, boundary)][-IDXOPT_FUTVOL_LOOKBACK:]
++    if len(hist) < IDXOPT_FUTVOL_MIN_BARS:
++        return False, "skipped_futvol_warmup", {"hist_bars": len(hist)}
++    avg = sum(hist) / len(hist)
++    det = {"bar_volume": cur[2], "avg_volume": round(avg, 1), "hist_bars": len(hist)}
++    return (True, None, det) if cur[2] > avg else (False, "skipped_futvol_below_avg", det)
++
++
++def _idxopt_atm(underlying, right):
++    """(row, None) for the nearest-expiry ATM contract of `right` with a live premium, or (None, skip reason)."""
++    rows = _fno_chain_fetch(underlying)
++    cands = [r for r in rows if _fno_momo_opt_type(r.get("optionType")) == right and _fno_num(r.get("lastPrice")) > 0]
++    spot = next((_fno_num(r.get("underlyingValue")) for r in cands if _fno_num(r.get("underlyingValue")) > 0), 0.0)
++    if not cands or spot <= 0:
++        return None, "skipped_no_chain"
++    return min(cands, key=lambda r: abs(_fno_num(r.get("strikePrice")) - spot)), None
++
++
++def _idxopt_manage(conn, row, v, now, now_ts, quote) -> dict | None:
++    """Exit checks for one open paper row: forced 15:13, trailing SL (fill at the resting stop), 1-hour time exit."""
++    price = 0.0
++    try:
++        price = _fno_num(quote(row["contract"], row["underlying"]))
++    except Exception:
++        price = 0.0
++    price = price if price > 0 else (row["last_price"] or row["entry_price"])
++    mins = now.hour * 60 + now.minute
++    if mins >= IDXOPT_FORCE_EXIT_MIN:
++        return _fno_momo_close(conn, row, price, "forced_exit_1513", now_ts, observed=price)
++    if price <= row["stop_price"]:
++        return _fno_momo_close(conn, row, row["stop_price"], "trailing_sl", now_ts, observed=price)
++    if v["max_hold_s"] and now_ts - (row["opened_ts"] or now_ts) >= v["max_hold_s"]:
++        return _fno_momo_close(conn, row, price, "time_exit_60min", now_ts, observed=price)
++    peak = max(row["peak_price"], price)
++    stop = row["stop_price"]
++    if peak >= row["entry_price"] * (1.0 + v["arm"]):
++        stop = max(stop, round(peak * (1.0 - v["trail"]), 4))
++    trough, path = _fno_momo_path_add(row, price, now_ts)
++    conn.execute("UPDATE fno_momo_paper_trades SET peak_price = ?, stop_price = ?, last_price = ?, last_ts = ?, "
++                 "trough_price = ?, price_path = ? WHERE id = ?", (peak, stop, price, now_ts, trough, path, row["id"]))
++    return None
++
++
++def _idxopt_signal_bar(bars, trigger):
++    """(bar_end datetime, True) when the LAST completed hourly bar fired `trigger`, else (bar_end, False)."""
++    if trigger == "orb3":
++        sig = _idxopt_orb3(bars["day"], list(bars["high"]), list(bars["close"]))
++    else:
++        sig = _idxopt_ema_cross_down(list(bars["close"]))
++    return bars["start"][-1] + dt.timedelta(hours=1), bool(sig[-1])
++
++
++def _idxopt_step(conn, now=None, now_ts=None, bars_by_sym=None, quote=None, chain=None) -> list:
++    """B-1746 one pass (PAPER ONLY): manage every open idxopt row, then act on fresh hourly signals."""
++    now = now or ist_now()
++    now_ts = now_ts if now_ts is not None else time.time()
++    if not _nse_regular_trading_day(now):
++        return []
++    quote = quote or _fno_contract_ltp
++    day, mins, acts = now.strftime("%Y-%m-%d"), now.hour * 60 + now.minute, []
++    seen = _IDXOPT_STATE["last_signal"]
++    for k in [k for k in seen if f"|{day} " not in k]:  # keep only today's acted-on bars
++        seen.pop(k, None)
++    for v in IDXOPT_VARIANTS:
++        for sym, u in IDXOPT_UNDERLYINGS.items():
++            row = conn.execute("SELECT * FROM fno_momo_paper_trades WHERE status = 'open' AND tag = ? AND underlying = ? "
++                               "ORDER BY id DESC LIMIT 1", (v["tag"], u)).fetchone()
++            if row is not None:
++                a = _idxopt_manage(conn, row, v, now, now_ts, quote)
++                if a:
++                    acts.append(a)
++                continue
++            if not (IDXOPT_FIRST_ENTRY_MIN <= mins <= IDXOPT_LAST_ENTRY_MIN):
++                continue
++            bars = (bars_by_sym or {}).get(sym) if bars_by_sym is not None else _idxopt_hourly(
++                fetch_ohlc(sym, "60d", "1h"), now)
++            if not bars or len(bars["close"]) < 30:
++                continue
++            bar_end, fired = _idxopt_signal_bar(bars, v["trigger"])
++            if not fired or not (0 <= (now - bar_end).total_seconds() <= IDXOPT_FRESH_S):
++                continue
++            key = f"{v['tag']}|{u}|{bar_end:%Y-%m-%d %H:%M}"
++            if _IDXOPT_STATE["last_signal"].get(key) or conn.execute(
++                    "SELECT 1 FROM fno_momo_paper_trades WHERE tag = ? AND underlying = ? AND day = ? AND entry_meta "
++                    "LIKE ?", (v["tag"], u, day, f'%"signal_bar": "{bar_end:%H:%M}"%')).fetchone():
++                continue  # this bar already acted on (in memory, or a row restored after a restart)
++            _IDXOPT_STATE["last_signal"][key] = now_ts
++            scan = {"ts": now_ts, "candidate": None, "entered": False, "skip": None,
++                    "checked": [{"underlying": u, "trigger": v["trigger"], "signal_bar": f"{bar_end:%H:%M}"}]}
++            det = {}
++            if v["futvol"]:
++                ok, why, det = _idxopt_futvol_gate(conn, u, day, f"{bar_end:%H:%M}")
++                scan["checked"][0]["futvol"] = det
++                if not ok:
++                    scan["skip"] = why
++            if scan["skip"] is None:
++                cand, why = (chain or _idxopt_atm)(u, v["right"])
++                if cand is None:
++                    scan["skip"] = why
++                else:
++                    px = _fno_num(cand["lastPrice"])
++                    stop = round(px * (1.0 - v["stop"]), 4)
++                    reason = (f"{u} 1h {v['trigger']} fired on the bar ending {bar_end:%H:%M} IST, ATM "
++                              f"{v['right']} {cand.get('strikePrice')} (spot {cand.get('underlyingValue')}), stop "
++                              f"{int(v['stop'] * 100)}%, trail {int(v['trail'] * 100)}% after +{int(v['arm'] * 100)}%"
++                              + (f", future volume {det.get('bar_volume')} > avg {det.get('avg_volume')}" if v["futvol"] else
++                                 ", no volume gate (B-1746 novol twin)"))
++                    meta = {"signal_bar": f"{bar_end:%H:%M}", "trigger": v["trigger"], "futvol": det,
++                            "spot": cand.get("underlyingValue"), "strike": cand.get("strikePrice"), "engine": "idxopt"}
++                    conn.execute("INSERT INTO fno_momo_paper_trades (tag, day, status, contract, underlying, option_type, "
++                                 "opened_ts, entry_price, peak_price, stop_price, last_price, last_ts, entry_pchange, "
++                                 "open_reason, entry_meta, trough_price, price_path) "
++                                 "VALUES (?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
++                                 (v["tag"], day, cand["contract"], u, v["right"], now_ts, px, px, stop, px, now_ts,
++                                  _fno_num(cand.get("pChange")), reason, json.dumps(meta, default=str), px,
++                                  json.dumps([[round(now_ts, 1), px]])))
++                    scan.update(entered=True, candidate={"contract": cand["contract"], "underlying": u,
++                                                         "option_type": v["right"], "lastPrice": px})
++                    acts.append({"action": "entry", "tag": v["tag"], "contract": cand["contract"], "price": px,
++                                 "reason": reason})
++                    print(f"[IDXOPT] PAPER entry {v['tag']} {cand['contract']} @ {px} ({reason})")
++            if scan["skip"]:
++                print(f"[IDXOPT] {v['tag']} {u} signal on bar {bar_end:%H:%M} not entered: {scan['skip']}")
++            _fno_momo_scan_log(conn, v["tag"], day, scan)  # a fired trigger is never dropped silently
++    conn.commit()
++    if acts:
++        sync_generic_tables_external(only=("fno_momo_paper_trades",))
++    return acts
++
++
++def _idxopt_tick(conn) -> None:
++    """Scheduler entry (inside _fno_momo_tick_hook's window). Never raises."""
++    try:
++        now = ist_now()
++        _idxopt_sample_futvol(conn, now)
++        _idxopt_step(conn, now=now)
++        _IDXOPT_STATE["last_pass_ts"] = time.time()
++    except Exception as e:  # noqa: BLE001
++        _IDXOPT_STATE["last_error"] = str(e)[:200]
++        print(f"[IDXOPT] paper pass failed (non-fatal): {str(e)[:200]}")
++
++
+ def _fno_momo_health(now_ts=None) -> dict:
+     """B-1684 (3): pass liveness + mirror state for /fno-momo-paper."""
+     now_ts = now_ts if now_ts is not None else time.time()
