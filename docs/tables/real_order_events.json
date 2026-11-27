@@ -148919,7 +148919,31 @@
    "prev_state": "short 5",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12411,
+   "ts": 1795757242.669462,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261127000123220",
+   "prev_state": "resting @ Rs173.26",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12412,
+   "ts": 1795757249.7971306,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261127000241580",
+   "prev_state": "short 5",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-27T05:27:20Z"
+ "synced_at_utc": "2026-11-27T05:27:34Z"
 }
