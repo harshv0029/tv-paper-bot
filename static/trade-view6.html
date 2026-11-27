@@ -39,8 +39,8 @@
 <div class="cards" id="paper"><div class="empty">loading…</div></div>
 <div class="card" style="margin-top:10px"><div class="k">Why this strategy enters · what backtesting showed</div><div class="d" id="why" style="font-size:11.5px;color:var(--text)">loading…</div></div>
 <div class="wrap" style="margin-top:10px"><table>
-  <thead><tr><th>Opened (IST)</th><th>Contract</th><th class="num">Entry</th><th class="num">Peak</th><th class="num">SL</th><th class="num">Last / Exit</th><th>Closed (IST)</th><th>Reason</th><th class="num">Running / Net %</th><th class="num">Seen %</th><th>Why taken</th></tr></thead>
-  <tbody id="ptrades"><tr><td colspan="11" class="empty">loading…</td></tr></tbody>
+  <thead><tr><th>Opened (IST)</th><th>Contract</th><th class="num">Entry</th><th class="num">Peak</th><th class="num">SL</th><th class="num">Last / Exit</th><th>Closed (IST)</th><th>Reason</th><th class="num">Running / Net %</th><th class="num">Seen %</th><th class="num">Min capital (1 lot)</th><th>Why taken</th></tr></thead>
+  <tbody id="ptrades"><tr><td colspan="12" class="empty">loading…</td></tr></tbody>
 </table></div>
 
 <div class="grid" id="indices"></div>
@@ -111,8 +111,9 @@
       <td class="num mono">${x.status === "open" ? f2(x.last_price) + ' <span class="dim">open</span>' : f2(x.close_price)}</td><td class="mono">${hm(x.closed_ist)}</td>
       <td>${esc(x.close_reason || "")}</td><td class="num mono">${x.status === "open" ? pct(x.running_net_pct) : (x.net_pct == null ? "–" : pct(x.net_pct))}</td>
       <td class="num mono">${x.observed_net_pct == null ? "–" : pct(x.observed_net_pct)}</td>
+      <td class="num mono" title="${x.lot_size ? "entry premium x lot " + x.lot_size + ", before charges" : "lot size unavailable"}">${x.min_capital_inr == null ? "–" : "₹" + Math.round(x.min_capital_inr).toLocaleString("en-IN")}</td>
       <td style="white-space:normal;min-width:260px;font-size:11px">${esc(x.open_reason || "")}</td></tr>`).join("")
-      : `<tr><td colspan="11" class="empty">No paper trades today.</td></tr>`;
+      : `<tr><td colspan="12" class="empty">No paper trades today.</td></tr>`;
     const bt = j.backtest || {}, me = (j.variants || {})[j.tag] || {};
     const sm = s && s.metrics;
     document.getElementById("why").innerHTML = `<b>Entry rule:</b> ${esc(bt.rule || "–")}<br><b>Backtest:</b> ${esc(bt.why || "–")}<br>

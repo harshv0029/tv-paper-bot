@@ -44769,6 +44769,41 @@ def _fno_momo_health(now_ts=None) -> dict:
     return h
 
 
+_FNO_LOT_CACHE: dict = {}  # B-1752: underlying -> (lot_size or None, fetched_ts)
+
+
+def _fno_lot_size_cached(underlying: str, now_ts=None, resolver=None):
+    """B-1752: real exchange lot size for an index-option underlying, for display only (min capital per trade).
+    Resolved via nse_fo_chain.select_nse_future (the same source the paper/real F&O paths trust); a hit is cached
+    for 12 h and a miss for 10 min so a page load never hammers the broker search. Returns None when unknown."""
+    now_ts = time.time() if now_ts is None else now_ts
+    key = (underlying or "").upper()
+    if not key:
+        return None
+    hit = _FNO_LOT_CACHE.get(key)
+    if hit and now_ts - hit[1] < (43200 if hit[0] else 600):
+        return hit[0]
+    lot = None
+    try:
+        if resolver is None:
+            import nse_fo_chain
+            resolver = nse_fo_chain.select_nse_future
+        fut, _err = resolver(key)
+        lot = int(fut["lot_size"]) if fut and int(fut.get("lot_size") or 0) > 0 else None
+    except Exception:
+        lot = None
+    _FNO_LOT_CACHE[key] = (lot, now_ts)
+    return lot
+
+
+def _fno_min_capital_inr(entry_price, lot_size):
+    """B-1752: premium outlay for 1 lot (the minimum a long option entry needs), before charges."""
+    try:
+        return round(float(entry_price) * int(lot_size), 2) if entry_price and lot_size else None
+    except (TypeError, ValueError):
+        return None
+
+
 @app.get("/fno-momo-paper")
 def fno_momo_paper(limit: int = 100, tag: str = ""):
     """B-1676 PAPER strategy state: open position, recent trades (IST times), totals net of the 0.8% cost model."""
@@ -44794,6 +44829,8 @@ def fno_momo_paper(limit: int = 100, tag: str = ""):
         r["running_net_pct"] = (_fno_momo_net_pct(r["entry_price"], r.get("last_price") or r["entry_price"])
                                 if r["status"] == "open" else None)
         r["last_ist"] = _ist(r.get("last_ts"))
+        r["lot_size"] = _fno_lot_size_cached(r.get("underlying") or (r.get("contract") or "").split(" ")[0])
+        r["min_capital_inr"] = _fno_min_capital_inr(r.get("entry_price"), r["lot_size"])  # B-1752
         try:
             r["entry_meta"] = json.loads(r["entry_meta"]) if r.get("entry_meta") else None
         except (TypeError, ValueError):
