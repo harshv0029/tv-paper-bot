@@ -1,20 +1,20 @@
 {
  "rows": [
   {
-   "day": null,
-   "entry_order_id": null,
+   "day": "2026-11-27",
+   "entry_order_id": "261127000019570",
    "entry_price": 416.15,
    "first_seen_day": "2026-11-27",
    "is_short": 0,
    "kotak_trading_symbol": "ABCAPITAL-EQ",
-   "opened_at": null,
+   "opened_at": 1795751692.4360433,
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 373.25,
    "source": "position",
    "stop_loss": 348.38214547293524,
    "strategy": "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2",
-   "symbol": null
+   "symbol": "ABCAPITAL.NS"
   },
   {
    "day": "2026-11-23",
@@ -321,20 +321,20 @@
    "symbol": "UNIONBANK.NS"
   },
   {
-   "day": null,
-   "entry_order_id": null,
+   "day": "2026-11-27",
+   "entry_order_id": "261127000024027",
    "entry_price": 193.54,
    "first_seen_day": "2026-11-27",
    "is_short": 0,
    "kotak_trading_symbol": "WIPRO-EQ",
-   "opened_at": null,
+   "opened_at": 1795751693.6058924,
    "owner": "swing",
-   "qty": 1,
+   "qty": 2,
    "sl_trigger_price": 180.88,
    "source": "position",
    "stop_loss": 180.8786425213618,
    "strategy": "gaps__common_fade__long__1d__atr3_nb4__v1",
-   "symbol": null
+   "symbol": "WIPRO.NS"
   },
   {
    "day": "2026-11-09",
