@@ -81,6 +81,22 @@
    "symbol": "HCLTECH.NS"
   },
   {
+   "day": "2026-11-27",
+   "entry_order_id": "261127000295672",
+   "entry_price": 386.3,
+   "first_seen_day": "2026-11-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "opened_at": 1795759230.8167868,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 377.9,
+   "source": "position",
+   "stop_loss": 377.87084878641423,
+   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "HINDPETRO.NS"
+  },
+  {
    "day": "2026-11-18",
    "entry_order_id": "261118000051330",
    "entry_price": 83.72,
