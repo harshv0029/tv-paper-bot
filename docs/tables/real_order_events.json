@@ -148943,7 +148943,19 @@
    "prev_state": "short 5",
    "new_state": "no position",
    "detail": "reason: short paper exit: exited_short_state_exit"
+  },
+  {
+   "id": 12413,
+   "ts": 1795759230.8389266,
+   "symbol": "HINDPETRO.NS",
+   "kotak_trading_symbol": "HINDPETRO-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261127000295672",
+   "prev_state": "no position",
+   "new_state": "long 1 @ Rs386.30",
+   "detail": "reason: swing entry signal from strategy macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T05:27:34Z"
+ "synced_at_utc": "2026-11-27T06:00:33Z"
 }
