@@ -1258,7 +1258,19 @@
    "buy_amt": 416.15,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795753370.6556778
+   "updated_at": 1795753674.746515
+  },
+  {
+   "day": "2026-11-27",
+   "trdsym": "BANKINDIA-EQ",
+   "prod": "MIS",
+   "source": "kotak_positions",
+   "seg": "nse_cm",
+   "buy_qty": 0.0,
+   "buy_amt": 0.0,
+   "sell_qty": 7.0,
+   "sell_amt": 1177.61,
+   "updated_at": 1795753674.746515
   },
   {
    "day": "2026-11-27",
@@ -1270,7 +1282,7 @@
    "buy_amt": 0.0,
    "sell_qty": 1.0,
    "sell_amt": 461.7,
-   "updated_at": 1795753370.6556778
+   "updated_at": 1795753674.746515
   },
   {
    "day": "2026-11-27",
@@ -1282,7 +1294,7 @@
    "buy_amt": 3704.0,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795753370.6556778
+   "updated_at": 1795753674.746515
   },
   {
    "day": "2026-11-27",
@@ -1294,8 +1306,8 @@
    "buy_amt": 386.41,
    "sell_qty": 0.0,
    "sell_amt": 0.0,
-   "updated_at": 1795753370.6556778
+   "updated_at": 1795753674.746515
   }
  ],
- "synced_at_utc": "2026-11-27T04:23:02Z"
+ "synced_at_utc": "2026-11-27T04:28:11Z"
 }
