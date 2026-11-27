@@ -14694,9 +14694,23 @@ def _chan_short_df_for(symbol, iv):
 
 
 assert CHAN_SHORT_TAG in CHAN_SHORT_CELLS
-CHAN_SHORT_ENTRY_CUTOFF_MIN = 15 * 60       # no new entries from 15:00 IST
-CHAN_SHORT_FLATTEN_START_MIN = 15 * 60 + 10  # flatten pass 15:10-15:14 IST
-CHAN_SHORT_FLATTEN_END_MIN = 15 * 60 + 15
+# B-1755 (user 2026-11-27 "Yes": close intraday shorts before 15:00 IST). Kotak auto-squared-off MIS shorts at
+# 15:05:21 IST on 27-Nov (a broker square-off carries a charge), before our old 15:10 flatten. Intraday shorts now
+# stop new real entries at 14:45 and flatten 14:50-14:59 IST, so we are flat before Kotak's own cut-off.
+INTRADAY_SHORT_ENTRY_CUTOFF_MIN = 14 * 60 + 45   # no new real intraday short from 14:45 IST
+INTRADAY_SHORT_SQUAREOFF_MIN = 14 * 60 + 50      # intraday shorts flattened from 14:50 IST
+INTRADAY_SHORT_FLATTEN_END_MIN = 15 * 60         # ... and retried every tick until 14:59 IST
+CHAN_SHORT_ENTRY_CUTOFF_MIN = INTRADAY_SHORT_ENTRY_CUTOFF_MIN
+CHAN_SHORT_FLATTEN_START_MIN = INTRADAY_SHORT_SQUAREOFF_MIN  # flatten pass 14:50-14:59 IST
+CHAN_SHORT_FLATTEN_END_MIN = INTRADAY_SHORT_FLATTEN_END_MIN
+
+
+def _intraday_short_squareoff_min(symbol: str, tz_offset_min: int, squareoff_min: int) -> int:
+    """B-1755: the short engine's square-off minute. NSE symbols on IST square off no later than 14:50 IST; every
+    other market (crypto, US, MCX configs) keeps its own config unchanged."""
+    if tz_offset_min == IST_OFFSET_MIN and _is_nse_symbol(symbol):
+        return min(int(squareoff_min), INTRADAY_SHORT_SQUAREOFF_MIN)
+    return squareoff_min
 
 
 def _chan_live_masks(index, interval: str):
@@ -14752,9 +14766,9 @@ def _chan_long_srcmain_15m_tag(atr_mult, ve, z):
 CHAN_LONG_CELLS.update({_chan_long_srcmain_15m_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_15M_SPECS})
 CHAN_LONG_CELL_INTERVAL = {_t: ("15m" if "__long__15m__" in _t else "5m") for _t in CHAN_LONG_CELLS}
 CHAN_LONG_HOLD_BARS = 40
-CHAN_LONG_ENTRY_CUTOFF_MIN = CHAN_SHORT_ENTRY_CUTOFF_MIN
-CHAN_LONG_FLATTEN_START_MIN = CHAN_SHORT_FLATTEN_START_MIN
-CHAN_LONG_FLATTEN_END_MIN = CHAN_SHORT_FLATTEN_END_MIN
+CHAN_LONG_ENTRY_CUTOFF_MIN = 15 * 60        # B-1755: longs keep 15:00 / 15:10-15:14 (only shorts moved earlier)
+CHAN_LONG_FLATTEN_START_MIN = 15 * 60 + 10
+CHAN_LONG_FLATTEN_END_MIN = 15 * 60 + 15
 
 
 def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted, symbol=None):
@@ -17768,6 +17782,14 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _log_real_attempt(conn, symbol, "S", "skipped_not_eligible_asset_class")
         return
 
+    _n_b1755 = ist_now()
+    if _n_b1755.hour * 60 + _n_b1755.minute >= INTRADAY_SHORT_ENTRY_CUTOFF_MIN:
+        # B-1755: every intraday real short (generic, chan, news) is flattened from 14:50 IST, before Kotak's own
+        # ~15:05 MIS square-off; a new short this late would be covered within minutes for costs only.
+        _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff",
+                          detail="intraday short: no new real entries from 14:45 IST (flatten at 14:50, B-1755)")
+        return
+
     _etf_ok, _etf_why = _etf_entry_range_ok(symbol)
     if not _etf_ok:
         _log_real_attempt(conn, symbol, "S", "skipped_etf_range_gate", detail="ETF entry range gate: " + _etf_why)
@@ -17835,7 +17857,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_SHORT_ENTRY_CUTOFF_MIN:
             _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff",
-                              detail="chan_kalman short: no new real entries from 15:00 IST (flatten at 15:10)")
+                              detail="chan_kalman short: no new real entries from 14:45 IST (flatten at 14:50, B-1755)")
             return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
@@ -23649,6 +23671,11 @@ def _news_trades_step(conn, symbol: str, stock: dict, now_ts: float, ltp: float)
             why = f"news reversed: {against['event']}"
         elif score < max(NEWS_TRADE_WEAK_FLOOR, peak * NEWS_TRADE_WEAK_FRACTION):
             why = f"sentiment weak (score {score:.2f}, peak {peak:.2f})"
+        elif direction == "short" and (INTRADAY_SHORT_SQUAREOFF_MIN <= int((now_ts + 19800) % 86400 // 60)
+                                       < NSE_REGULAR_CLOSE_MIN):
+            # B-1755: a news short is intraday (MIS); cover it from 14:50 IST, before Kotak's own ~15:05 square-off,
+            # even when its symbol is outside the scan list (27-Nov IRCTC was squared off by Kotak instead).
+            why = "intraday short flatten 14:50 IST (B-1755)"
         elif now_ts - float(row["opened_ts"]) >= NEWS_TRADE_MAX_HOLD_DAYS * 86400:
             why = "max hold reached"
         if why:
@@ -23806,7 +23833,7 @@ def _news_real_open(conn, symbol: str, direction: str, ltp: float, stop: float, 
         return False
 
 
-NEWS_SHORT_ENTRY_CUTOFF_MIN = 14 * 60 + 30  # B-1552: an intraday news short needs time to work before the 15:10 cover
+NEWS_SHORT_ENTRY_CUTOFF_MIN = 14 * 60 + 30  # B-1552: an intraday news short needs time to work before the 14:50 cover (B-1755)
 
 
 def _news_real_open_short(conn, symbol: str, ltp: float, stop: float, now_ts: float) -> bool:
@@ -34078,7 +34105,8 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
                     stop_pct=cfg["stop_pct"], rr=live_rr,
                     sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
                     interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
-                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                    close_min=cfg["close_min"],
+                    squareoff_min=_intraday_short_squareoff_min(cfg["symbol"], cfg["tz_offset_min"], cfg["squareoff_min"]),  # B-1755
                     trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
                     max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "ema"),
                     require_real_tradability=cfg["symbol"].endswith(".NS"),

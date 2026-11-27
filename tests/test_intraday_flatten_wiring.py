@@ -113,10 +113,10 @@ def test_flatten_due_window_and_ownership():
         conn.execute("INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, entry_order_id, "
                      "opened_at, day, strategy) VALUES ('OTHER.NS', 'O-EQ', 10, 100.0, 'E2', 0, '2026-10-14', 'orb-range-short')")
         conn.commit()
-    with patch("main.ist_now", return_value=_Clock(15, 12)):
+    with patch("main.ist_now", return_value=_Clock(14, 52)):
         assert main._chan_short_flatten_due(SYM)
         assert not main._chan_short_flatten_due("OTHER.NS")
-    with patch("main.ist_now", return_value=_Clock(15, 9)):
+    with patch("main.ist_now", return_value=_Clock(14, 49)):
         assert not main._chan_short_flatten_due(SYM)
-    with patch("main.ist_now", return_value=_Clock(15, 15)):
+    with patch("main.ist_now", return_value=_Clock(15, 0)):
         assert not main._chan_short_flatten_due(SYM)

@@ -172,7 +172,8 @@ def test_short_entry_blocked_for_range_short():
         with closing(main.get_db()) as conn:
             _enable_real_trading(conn)
             _insert_paper_short_signal(conn, "TESTSTOCK.NS", strategy="orb-range-short")
-            with patch("kotak_live_feed.get_live_ticks",
+            with patch("main.ist_now", return_value=main.dt.datetime(2026, 11, 27, 10, 0)), \
+                 patch("kotak_live_feed.get_live_ticks",
                        return_value={"TESTSTOCK.NS": {"ltp": 100.0, "trading_symbol": "TESTSTOCK-EQ"}}), \
                  patch("main.get_scheduler_capital_inr", return_value=1000000.0), \
                  patch("main._real_today_spent_inr", return_value=0.0), \
