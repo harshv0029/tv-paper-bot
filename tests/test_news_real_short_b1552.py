@@ -69,7 +69,7 @@ def test_news_short_is_flattened_before_the_1515_cancel():
     _db()
     with closing(main.get_db()) as c:
         _fill(c, SYM)
-    with _at(15, 11):
+    with _at(14, 51):
         assert main._chan_short_flatten_due(SYM)
     with _at(14, 0):
         assert not main._chan_short_flatten_due(SYM)

@@ -167,6 +167,7 @@ def test_intraday_short_entry_refuses_swing_short_symbol():
                      "day, stop_loss, strategy) VALUES ('ABC.NS','ABC-EQ',3,100,1,'2026-10-12',108,'t')")
         conn.commit()
         with patch("main.is_real_trading_enabled", return_value=True), \
+                patch("main.ist_now", return_value=main.dt.datetime(2026, 11, 27, 10, 0)), \
                 patch("main._asset_class_and_source", return_value=("nse_equity", None, None)), \
                 patch("main._etf_entry_range_ok", return_value=(True, "")), \
                 patch.dict("sys.modules", {"kotak_real_orders": MagicMock()}) as _:
