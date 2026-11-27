@@ -1,22 +1,6 @@
 {
  "rows": [
   {
-   "day": "2026-11-27",
-   "entry_order_id": "261127000019570",
-   "entry_price": 416.15,
-   "first_seen_day": "2026-11-27",
-   "is_short": 0,
-   "kotak_trading_symbol": "ABCAPITAL-EQ",
-   "opened_at": 1795751692.4360433,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 373.25,
-   "source": "position",
-   "stop_loss": 348.38214547293524,
-   "strategy": "oneil_leaders__firsthigh__long__1w__atr3_h26_srcmain__nonovl__v2",
-   "symbol": "ABCAPITAL.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000031453",
    "entry_price": 400.4,
@@ -31,22 +15,6 @@
    "stop_loss": 362.39073460490215,
    "strategy": "reversal__island_none_tfs__long__1d__atr4_within8__nonovl__v2",
    "symbol": "AMBUJACEM.NS"
-  },
-  {
-   "day": "2026-11-27",
-   "entry_order_id": "261127000359476",
-   "entry_price": 547.7,
-   "first_seen_day": "2026-11-27",
-   "is_short": 0,
-   "kotak_trading_symbol": "ATGL-EQ",
-   "opened_at": 1795762317.2044663,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 535.65,
-   "source": "position",
-   "stop_loss": 535.6217000688629,
-   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "ATGL.NS"
   },
   {
    "day": "2026-11-27",
@@ -111,22 +79,6 @@
    "stop_loss": 1301.2711921765795,
    "strategy": "reversal__island_turn1cr_tfs__long__4h__atr2d5_within8__nonovl__v2",
    "symbol": "HCLTECH.NS"
-  },
-  {
-   "day": "2026-11-27",
-   "entry_order_id": "261127000295672",
-   "entry_price": 386.3,
-   "first_seen_day": "2026-11-27",
-   "is_short": 0,
-   "kotak_trading_symbol": "HINDPETRO-EQ",
-   "opened_at": 1795759230.8167868,
-   "owner": "swing",
-   "qty": 1,
-   "sl_trigger_price": 377.9,
-   "source": "position",
-   "stop_loss": 377.87084878641423,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "HINDPETRO.NS"
   },
   {
    "day": "2026-11-18",
@@ -321,22 +273,6 @@
    "symbol": "SUPREMEIND.NS"
   },
   {
-   "day": "2026-11-27",
-   "entry_order_id": "261127000051405",
-   "entry_price": 1847.6,
-   "first_seen_day": "2026-11-27",
-   "is_short": 0,
-   "kotak_trading_symbol": "TECHM-EQ",
-   "opened_at": 1795751681.6931684,
-   "owner": "swing",
-   "qty": 2,
-   "sl_trigger_price": 1764.5,
-   "source": "position",
-   "stop_loss": 1764.4856480189733,
-   "strategy": "oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2",
-   "symbol": "TECHM.NS"
-  },
-  {
    "day": "2026-11-23",
    "entry_order_id": "261123000433268",
    "entry_price": 211.55,
@@ -351,22 +287,6 @@
    "stop_loss": 178.49500383649553,
    "strategy": "oneil_rsscreen__top__long__1w__atr3_h26_rs90_rsn200_srcmain__nonovl__v2",
    "symbol": "UNIONBANK.NS"
-  },
-  {
-   "day": "2026-11-27",
-   "entry_order_id": "261127000024027",
-   "entry_price": 193.54,
-   "first_seen_day": "2026-11-27",
-   "is_short": 0,
-   "kotak_trading_symbol": "WIPRO-EQ",
-   "opened_at": 1795751693.6058924,
-   "owner": "swing",
-   "qty": 2,
-   "sl_trigger_price": 180.88,
-   "source": "position",
-   "stop_loss": 180.8786425213618,
-   "strategy": "gaps__common_fade__long__1d__atr3_nb4__v1",
-   "symbol": "WIPRO.NS"
   },
   {
    "day": "2026-11-09",
