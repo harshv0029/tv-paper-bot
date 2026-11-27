@@ -2712,3 +2712,8 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - FINNIFTY Dec PE quotes never moved during 15-min holds (entry = exit = peak = trough). 5 of 7 closed pullback trades are pure -0.8% cost on a frozen quote. The replay's pullback edge came only from the stale FINNIFTY proxy, so it is probably an artefact too.
 - Live real premiums beat the synthetic fixed-IV replay for fast_v3 on a trend day. One day and n=6 is not evidence; the 30-trade gate stands.
 - Profit-booking / exit takeaway: on a trend day the exits gave back about 2.3 points of gross from the peak (NIFTY peak +15.9% vs exit +13.5%). Test a profit-lock (tighten the trail after +X%) on the recorded 30-s paths before changing exits, and never count trades on a frozen quote.
+
+### 2026-11-27 Daily review: share-count drift and broker square-off on real shorts
+- BANKINDIA: the app sold 7 short but tracked 5. A reconcile "correction" repeated 12 times without sticking, and the cover bought only 5, so Kotak squared the other 2 at 15:05.
+- IRCTC: a news short of 1 was placed against an existing 1-share long holding. The account went net flat, so the long's news exit was skipped and Kotak squared the short at 15:05.
+- Profit-booking / exit takeaway: an exit must size from Kotak's live net quantity at send time, never from the app's tracked quantity. Intraday shorts must be closed before the broker's own square-off (about 15:05 IST), or the broker closes them at its own price and charge.
