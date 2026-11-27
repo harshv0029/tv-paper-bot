@@ -4179,5 +4179,61 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": null
+  },
+  {
+    "symbol": "ASTRAL.NS",
+    "exit_time_utc": 1795754952.646205,
+    "entry_price_native": null,
+    "exit_price_native": 1271.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 12.0,
+    "pnl_pct_of_capital": 0.003,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "RECLTD.NS",
+    "exit_time_utc": 1795755199.6016555,
+    "entry_price_native": null,
+    "exit_price_native": 297.5,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
+  },
+  {
+    "symbol": "SBICARD.NS",
+    "exit_time_utc": 1795755205.3509524,
+    "entry_price_native": null,
+    "exit_price_native": 590.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
+  },
+  {
+    "symbol": "INDHOTEL.NS",
+    "exit_time_utc": 1795762412.2790093,
+    "entry_price_native": null,
+    "exit_price_native": 888.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -4.45,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "island_rule_exit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
