@@ -139,7 +139,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 1776.7,
-   "source": "holding",
+   "source": "position",
    "stop_loss": 1776.6933967360478,
    "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "MAZDOCK.NS"
@@ -203,7 +203,7 @@
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": 421.7,
-   "source": "holding",
+   "source": "position",
    "stop_loss": 421.6791073057634,
    "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
    "symbol": "OIL.NS"
