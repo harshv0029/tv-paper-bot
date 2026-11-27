@@ -148679,7 +148679,19 @@
    "prev_state": "sent to Kotak",
    "new_state": "accepted",
    "detail": "reason: real market BUY entry; Kotak accepted it"
+  },
+  {
+   "id": 12391,
+   "ts": 1795752778.2700744,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261127000101060",
+   "prev_state": "no position",
+   "new_state": "short 1 @ Rs461.70",
+   "detail": "reason: paper short entry signal from strategy news_event__confirmed__short__1d__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-11-27T03:56:19Z"
+ "synced_at_utc": "2026-11-27T04:13:00Z"
 }
