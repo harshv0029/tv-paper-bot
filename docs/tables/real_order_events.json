@@ -148607,7 +148607,19 @@
    "prev_state": "closed",
    "new_state": "open",
    "detail": "reason: NSE market opened (calendar session window): protection pass, then queued-entry replay | {\"segment\": \"nse\", \"calendar_open\": true, \"ticks\": {\"open\": true, \"reason\": \"186 nse symbols printed new trades today within 120s\", \"symbols\": [\"360ONE.NS\", \"ABB.NS\", \"ABCAPITAL.NS\", \"ADANIENSOL.NS\", \"ADANIENT.NS\", \"ADANIGREEN.NS\", \"ADANIPORTS.NS\", \"ADANIPOWER.NS\", \"APLAPOLLO.NS\", \"APOLLOHOSP.NS\"], \"count\": 186, \"segment\": \"nse\"}, \"protection\": {\"ok\": true, \"ran\": \"joined the in-flight 5-min reconcile\", \"seconds\": 39.7}, \"replay\": {\"placed\": 2, \"dropped\": 35, \"requeued\": 1, \"considered\": 38}}"
+  },
+  {
+   "id": 12385,
+   "ts": 1795751308.3185718,
+   "symbol": "TECHM.NS",
+   "kotak_trading_symbol": null,
+   "leg": "entry",
+   "event": "queued_trigger_dropped",
+   "order_id": null,
+   "prev_state": "queued at open",
+   "new_state": "dropped",
+   "detail": "reason: queued trigger failed fresh re-validation at the open: skipped_already_open | swing oneil_rsscreen__top__long__1d__atr2_h40_rs90_rsn200_srcmain__nonovl__v2: skipped_already_open: "
   }
  ],
- "synced_at_utc": "2026-11-27T03:47:15Z"
+ "synced_at_utc": "2026-11-27T03:48:31Z"
 }
