@@ -18050,6 +18050,10 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
                      new_state="NSE market closed; no cover sent (Kotak cannot fill). Re-checked at the open")
         return
 
+    # B-1753: size the cover from Kotak's live short qty (flSellQty - flBuyQty), not the app row; a failed read
+    # keeps the row's qty (never guessed).
+    real_row = _reconcile_real_qty_short(conn, real_row)
+
     import kotak_real_orders
     _why_log(
         conn, symbol, "short_cover", "intent", kotak_trading_symbol=real_row["kotak_trading_symbol"],
@@ -18698,6 +18702,8 @@ def _real_held_qty_short(kotak_trading_symbol: str) -> float | None:
     for row in rows:
         if row.get("trdSym") != kotak_trading_symbol or row.get("exSeg") != "nse_cm":
             continue
+        if str(row.get("prod", "")).upper() == "CNC":
+            continue  # B-1753: every real intraday short is MIS; a delivery row of the same symbol is not its qty
         try:
             fl_buy = float(row.get("flBuyQty", 0) or 0)
             fl_sell = float(row.get("flSellQty", 0) or 0)
@@ -18729,7 +18735,7 @@ def _reconcile_real_qty_short(conn, real_row):
         conn, real_row["symbol"], "qty", "reconciled", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         prev_state=f"tracked qty {real_row['qty']}", new_state=f"corrected to Kotak's actual {held:.0f}",
     )
-    conn.execute("UPDATE real_positions_short SET qty = ? WHERE symbol = ?", (held, real_row["symbol"]))
+    conn.execute("UPDATE real_positions_short SET qty = ? WHERE symbol = ?", (int(held), real_row["symbol"]))  # B-1753: whole shares
     conn.commit()
     _sync_real_positions_short_external(conn)
     return conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],)).fetchone()
@@ -23254,10 +23260,9 @@ def _real_open_positions_build():
                 fl_buy = float(kr.get("flBuyQty", 0) or 0)
                 fl_sell = float(kr.get("flSellQty", 0) or 0)
                 net_qty = fl_buy - fl_sell
-                if net_qty < 0 and kr.get("trdSym") in _gross_holdings:
-                    # B-1395: a delivery holding sold today is net-short in positions() until T+1, not a short
-                    # (same netting as reconcile's B-306). GSEC5IETF/COALINDIA showed as untracked shorts.
-                    net_qty += min(-net_qty, _gross_holdings[kr.get("trdSym")])
+                # B-1395: a delivery holding sold today is net-short in positions() until T+1, not a short
+                # (same netting as reconcile's B-306). GSEC5IETF/COALINDIA showed as untracked shorts. B-1753: never MIS.
+                net_qty = _net_sold_delivery_holding(kr, net_qty, _gross_holdings)
                 if _is_delivery_sell_not_short(kr, net_qty):
                     net_qty = 0  # B-1403
                 if net_qty == 0:
@@ -39469,6 +39474,17 @@ def _is_delivery_sell_not_short(row, net_qty) -> bool:
     return net_qty < 0 and str((row or {}).get("prod", "")).upper() == "CNC"
 
 
+def _net_sold_delivery_holding(row, net_qty, gross_holdings) -> float:
+    """B-306/B-1395 netting with the B-1753 product guard. A net-short nse_cm row for a symbol that holdings() still
+    lists is a delivery share sold today (T+1), so it is netted against the holding. An MIS row is never netted: it
+    is a genuine intraday short, kept apart from a delivery holding of the same symbol (27-Nov BANKINDIA: a 7-share
+    MIS short was netted against a 2-share swing holding to 5, the cover bought 5 and Kotak squared off the other 2)."""
+    trd = (row or {}).get("trdSym")
+    if net_qty < 0 and trd in gross_holdings and str((row or {}).get("prod", "")).upper() != "MIS":
+        net_qty += min(-net_qty, gross_holdings[trd])
+    return net_qty
+
+
 def _kotak_holdings_gross_qty() -> dict:
     """{trdSym: qty} straight from holdings(), NOT netted against today's sells
     (B-306). Empty on any failure (then no netting happens: fail-safe)."""
@@ -41455,13 +41471,12 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             fl_buy = float(row.get("flBuyQty", 0) or 0)
             fl_sell = float(row.get("flSellQty", 0) or 0)
             net_qty = fl_buy - fl_sell
-            if net_qty < 0 and row.get("trdSym") in _gross_holdings:
-                # B-306: selling a DELIVERY holding today shows as net-short in
-                # positions() (flSellQty > flBuyQty) while holdings() still lists
-                # it (T+1). That is a sold swing share, not a short: net it
-                # against the holding, never adopt a phantom short (NYKAA 3:33 PM
-                # IST BUY SL + BUY exit, both rejected).
-                net_qty += min(-net_qty, _gross_holdings[row.get("trdSym")])
+            # B-306: selling a DELIVERY holding today shows as net-short in
+            # positions() (flSellQty > flBuyQty) while holdings() still lists
+            # it (T+1). That is a sold swing share, not a short: net it
+            # against the holding, never adopt a phantom short (NYKAA 3:33 PM
+            # IST BUY SL + BUY exit, both rejected). B-1753: an MIS row is a real short, never netted.
+            net_qty = _net_sold_delivery_holding(row, net_qty, _gross_holdings)
             if _is_delivery_sell_not_short(row, net_qty):
                 net_qty = 0  # B-1403: a sold delivery holding, not a short
             if net_qty == 0:
