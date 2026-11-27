@@ -2717,3 +2717,19 @@ Profit-booking / exit takeaway: a trail that moves the stop past entry before th
 - BANKINDIA: the app sold 7 short but tracked 5. A reconcile "correction" repeated 12 times without sticking, and the cover bought only 5, so Kotak squared the other 2 at 15:05.
 - IRCTC: a news short of 1 was placed against an existing 1-share long holding. The account went net flat, so the long's news exit was skipped and Kotak squared the short at 15:05.
 - Profit-booking / exit takeaway: an exit must size from Kotak's live net quantity at send time, never from the app's tracked quantity. Intraday shorts must be closed before the broker's own square-off (about 15:05 IST), or the broker closes them at its own price and charge.
+
+## 2026-11-27 evening: View 6 single-leg option exit replay (B-1750, B-1751, B-1757)
+Data: the 13:43 IST export (Upstash is off outside market hours, so the rest of the day restores at Monday's open).
+7 unique closed trades (variants share entries). 3 were FINNIFTY with a 100%-frozen quote path: each closed at
+the entry price for the 0.8% cost only. The 4 live-quote trades (SENSEX, NIFTY, 2x BANKNIFTY, all PE on a bearish
+trend day) all won: +19.1% net summed with the current trail 2% / 15-min hold. Peak came 0.6, 12.8, 8.6 and 13.6 min
+after entry, so a shorter hold would have cut the two big winners. Exit replay on the 30-s paths (trail 2/3/5/8%,
+hold 5/10/15/30 min, target 5/8/12%, profit lock): best was +21.0% (a lock tightening to 1.5% under the peak once
++5% is reached), +1.9 points over 4 trades: too few to tune (no change shipped, B-1751 keeps its 30-trade test).
+The paper fill at the stop level read 2.84% where the seen premium was 1.67%: a 30-s tick lets the price run past
+the stop, so the live SL-M slippage is real and the "Seen %" column is the honest number.
+Biggest lever: candidate choice, not the exit. Most-active rank put three trades into a contract with a dead quote.
+User rule from today: candidates are every index's ATM +-10 strike legs, chosen by our own score (B-1757), with a
+fresh-quote check (B-1750).
+Profit-booking / exit takeaway: keep the trail 2% / 15-min hold (winners peaked at 9-14 min), never enter on a frozen
+quote, and judge exits on "Seen %", not on the paper fill at the stop level.

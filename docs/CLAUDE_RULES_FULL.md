@@ -681,3 +681,11 @@ scheduler stalled > 10 min); the fix touches only memory / crash / startup / sch
 sizing, exit, SL, order or kill-switch code); the full suite is green and ast.parse passes; the time is not
 09:05-09:35 IST. It reports each such deploy right after with evidence and verifies /health. Every other deploy still
 needs the user's explicit word.
+
+## Single-leg option candidate universe (user 2026-11-27 20:05 IST, B-1757)
+User: "Always remember / You should look into each index's ATM plus minus 10 strike legs / Then apply logic of your
+own / Mossy trader 5 contracts on view 6 is for my EYe's visibility". The View 6 "most traded 5 contracts" list is a
+DISPLAY for the user only. Every single-leg option engine (paper and, once wired, real) picks its candidates from each
+index's ATM +-10 strike legs, CE and PE, nearest expiry (the B-1688 chain window), and selects/exits by its own logic
+(momentum, direction confirmation, greeks, liquidity), never by most-active rank. An exit must never fire because a
+contract dropped out of the most-active list. Still: short movement only, quick entry, quick exit, single leg, trailing SL.
