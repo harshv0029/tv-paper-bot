@@ -46,6 +46,17 @@ is a bug or within existing rules), or queued as research/backlog with a validat
 real main.py functions, no tuning off one day's result). Rule changes that decide real-money entries, sizing or
 exits go to the user as "Input required", never shipped alone. Add a learnings entry with the profit takeaway.
 
+## 2c. News learning (View 5, required every run; user 2026-11-27 "investigate and do daily learning as a part of 3:40pm review")
+From `/news-monitor?days=N` and the news rows in the Kotak trade book for the window:
+- Every headline the news module acted on (entry, exit, block, skip): IST time, symbol, tag/sentiment, action, and
+  the price move 15 min, 60 min and at close after the headline (right or wrong direction, how big).
+- Accuracy and value: hit rate by headline type/source, net INR of news-driven trades and of news-blocked or
+  news-forced exits (what the position did afterwards), headlines missed (a big mover with news the module skipped).
+- pass_state health: errors, stuck passes, stale feeds, latency from publish time to action.
+- Write a learnings entry "<date> View 5 news daily learning" (with a "Profit-booking / exit takeaway" line) even on
+  a quiet day (state "no news trades, N headlines seen"). Any rule change it suggests goes to "Input required" with
+  the evidence; never tune off one day.
+
 ## 3. Heal (inside the rules only)
 - Allowed: bug fixes with tests on `claude/confident-fermi-mlqbka`, full suite green + `ast.parse`, commit, push;
   dispatching diagnostic / reconcile / audit workflows; backlog + learnings entries.

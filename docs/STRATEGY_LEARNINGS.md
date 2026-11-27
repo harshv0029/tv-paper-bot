@@ -2733,3 +2733,8 @@ User rule from today: candidates are every index's ATM +-10 strike legs, chosen 
 fresh-quote check (B-1750).
 Profit-booking / exit takeaway: keep the trail 2% / 15-min hold (winners peaked at 9-14 min), never enter on a frozen
 quote, and judge exits on "Seen %", not on the paper fill at the stop level.
+
+### 2026-11-27 night: View 4 loss of 6% and View 5 news check
+- View 4 Since start -6.1% = net -Rs923.63 on Rs15,114 average deployed (2-26 Nov, 61 trades). The trades were +Rs119.84 gross; charges Rs1,043.47, of which Kotak DP Rs944 (Rs23.60 per scrip per delivery-sell day, confirmed by ledger JVs in B-1659). The 33 DP-charged rows had median sell value Rs557, so DP alone was 4.2% of each sale; 25 of them were 1-share sells. The number is right; the loss is cost drag on tiny delivery sells, not bad entries. The B-1659 DP gate (since 21-Nov) now blocks entries whose PFnet falls to 1.00 or below once DP is added.
+- View 5: no news trades in the window; the IRCTC "scam case" headline (politicians' court case) was read as adverse company news (B-1759).
+Profit-booking / exit takeaway: on a 1-share delivery holding, Rs23.60 DP is paid on exit whatever the P&L, so a small swing exit needs about 4-5% gross just to break even; exit small CNC lots in one sell day (DP is per scrip per day) and prefer MIS for same-day exits.
