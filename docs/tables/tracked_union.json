@@ -49,20 +49,20 @@
    "symbol": "ATGL.NS"
   },
   {
-   "day": null,
+   "day": "2026-11-27",
    "entry_order_id": null,
    "entry_price": 160.615,
    "first_seen_day": "2026-11-27",
    "is_short": 0,
    "kotak_trading_symbol": "BANKINDIA-EQ",
-   "opened_at": null,
+   "opened_at": 1795772796.7706723,
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": null,
    "source": "holding",
    "stop_loss": 126.73,
    "strategy": "holding_atr_stop",
-   "symbol": null
+   "symbol": "BANKINDIA.NS"
   },
   {
    "day": "2026-11-09",
