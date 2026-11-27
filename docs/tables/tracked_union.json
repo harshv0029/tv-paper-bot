@@ -56,12 +56,12 @@
    "is_short": 0,
    "kotak_trading_symbol": "BANKINDIA-EQ",
    "opened_at": null,
-   "owner": "untracked",
+   "owner": "swing",
    "qty": 2,
    "sl_trigger_price": null,
    "source": "holding",
-   "stop_loss": null,
-   "strategy": null,
+   "stop_loss": 126.73,
+   "strategy": "holding_atr_stop",
    "symbol": null
   },
   {
