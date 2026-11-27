@@ -148739,7 +148739,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs173.26",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 12396,
+   "ts": 1795753675.9227467,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "qty",
+   "event": "reconciled",
+   "order_id": null,
+   "prev_state": "tracked qty 5",
+   "new_state": "corrected to Kotak's actual 7",
+   "detail": "reason: automatic qty reconciled by the real-order engine"
   }
  ],
- "synced_at_utc": "2026-11-27T04:24:08Z"
+ "synced_at_utc": "2026-11-27T04:27:57Z"
 }
