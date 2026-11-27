@@ -12,16 +12,16 @@ Total rows: 1508 | closed: 1047 | not closed: 461
 | CLOSED | 186 |
 | CLOSED-AS-EXPLAINED | 168 |
 | PARTIAL | 104 |
-| OPEN | 85 |
+| OPEN | 83 |
 | BLOCKED | 58 |
 | P1 | 39 |
 | P2 | 38 |
 | DONE-MERGED | 22 |
 | SUPERSEDED | 19 |
 | DONE-PENDING-VERIFY | 16 |
+| BUILT | 11 |
 | UNKNOWN | 10 |
 | P3 | 9 |
-| BUILT | 9 |
 | PARKED | 8 |
 | HARNESS-BUILT-RUN-PENDING | 7 |
 | RESEARCH | 7 |
@@ -309,10 +309,10 @@ Total rows: 1508 | closed: 1047 | not closed: 461
 | B-1726 | P1 | OPEN | 2026-11-25 15:30 IST | needs |
 | B-1736 | P1 | OPEN | 2026-11-26 15:55 IST | blocked, pending |
 | B-1737 | P1 | OPEN | 2026-11-26 15:55 IST |  |
-| B-1750 | P1 | OPEN | 2026-11-27 14:05 IST |  |
+| B-1750 | P1 | BUILT | 2026-11-27 14:05 IST |  |
 | B-1754 | P1 | PARKED | 2026-11-27 15:50 IST | owed, needs, owner |
 | B-1755 | P1 | BUILT | 2026-11-27 15:50 IST | needs, awaiting, waiting |
-| B-1757 | P1 | OPEN | 2026-11-27 20:15 IST | needs |
+| B-1757 | P1 | BUILT | 2026-11-27 20:15 IST | needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | needs, follow-up |
