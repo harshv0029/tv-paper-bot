@@ -148691,7 +148691,19 @@
    "prev_state": "no position",
    "new_state": "short 1 @ Rs461.70",
    "detail": "reason: paper short entry signal from strategy news_event__confirmed__short__1d__v1 passed the PFnet gate"
+  },
+  {
+   "id": 12392,
+   "ts": 1795752791.603089,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "short_sl",
+   "event": "placed",
+   "order_id": "261127000101522",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs475.70",
+   "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-11-27T04:13:00Z"
+ "synced_at_utc": "2026-11-27T04:13:20Z"
 }
