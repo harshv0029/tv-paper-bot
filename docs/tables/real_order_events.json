@@ -148907,7 +148907,19 @@
    "prev_state": "tracked qty 5",
    "new_state": "corrected to Kotak's actual 7",
    "detail": "reason: automatic qty reconciled by the real-order engine"
+  },
+  {
+   "id": 12410,
+   "ts": 1795757237.949637,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 5",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_state_exit"
   }
  ],
- "synced_at_utc": "2026-11-27T05:19:17Z"
+ "synced_at_utc": "2026-11-27T05:27:20Z"
 }
