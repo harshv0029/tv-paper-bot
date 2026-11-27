@@ -148811,7 +148811,31 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs892.90",
    "detail": "reason: swing entry signal from strategy reversal__island_turn1cr_tfs__long__1h__atr4_within8__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 12402,
+   "ts": 1795755081.730907,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261127000177593",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs867.00",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
+  },
+  {
+   "id": 12403,
+   "ts": 1795755083.4062998,
+   "symbol": "INDHOTEL.NS",
+   "kotak_trading_symbol": "INDHOTEL-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261127000177593",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs867.00",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs867.00 already covers the position (target stop Rs866.96), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-11-27T04:51:09Z"
+ "synced_at_utc": "2026-11-27T04:51:31Z"
 }
