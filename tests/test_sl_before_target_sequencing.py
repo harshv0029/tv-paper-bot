@@ -150,3 +150,13 @@ def test_staged_leg_advance_cancels_by_id_when_target_id_is_known():
     _, mock_target, mock_cancel_by_id, mock_sweep = _run_partial_exit(sl_ok=True, target_order_id="T0")
     mock_cancel_by_id.assert_any_call("T0")
     mock_sweep.assert_not_called()
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _tranche_exits_on_for_legacy_ladder_tests(monkeypatch):
+    """B-1762: real tranche exits are off by default; these tests cover the ladder code if it is ever re-enabled."""
+    import main as _m
+    monkeypatch.setattr(_m, "REAL_TRANCHE_EXITS_ENABLED", True)

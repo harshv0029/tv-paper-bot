@@ -216,6 +216,7 @@ def test_swing_exit_syncs_to_upstash():
         with closing(main.get_db()) as conn:
             _insert_real_position_swing(conn, symbol="NYKAA.NS")
             fake_kotak_real_orders = MagicMock()
+            fake_kotak_real_orders._exit_in_flight.return_value = False
             fake_kotak_real_orders.place_real_exit.return_value = {
                 "ok": True, "order_id": "9", "qty": 1, "fill_price": 339.55, "fill_price_confirmed": True,
             }

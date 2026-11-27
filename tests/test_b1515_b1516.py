@@ -8,6 +8,7 @@ import main
 # ---------------------------------------------------------------- B-1515
 
 def _sized(monkeypatch, net, ltp, stop):
+    monkeypatch.setattr(main, "REAL_ONE_SHARE_FLOOR_ENABLED", True)  # legacy B-1509 path (off since B-1761)
     monkeypatch.setattr(main, "_refresh_real_capital_cache", lambda: None)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: net)
     monkeypatch.setattr(main, "_swing_stopout_cluster", lambda conn: False)
@@ -26,6 +27,7 @@ def test_zyduslife_refused_on_earlier_net(monkeypatch):
 
 
 def test_intraday_path_same_floor(monkeypatch):
+    monkeypatch.setattr(main, "REAL_ONE_SHARE_FLOOR_ENABLED", True)  # legacy B-1509 path
     monkeypatch.setattr(main, "_refresh_real_capital_cache", lambda: None)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 5900.0)
     assert main._real_qty_by_risk(1207.50, 1123.70, 1.0) == 0

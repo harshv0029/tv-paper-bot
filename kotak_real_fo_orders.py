@@ -384,6 +384,19 @@ def ensure_option_trailing_sl(kotak_trading_symbol: str, exchange_segment: str, 
         if not allow_replace:
             return {"ok": False, "action": "skipped_no_replace", "order_id": best["order_id"],
                     "trigger_price": best["trigger"], "detail": "replace not allowed now"}
+        if sum(o["qty"] for o in live_sls) >= qty and _kro.trail_step_too_small(best["trigger"], desired):
+            return {"ok": True, "action": "adopted_small_step", "order_id": best["order_id"],
+                    "trigger_price": best["trigger"]}  # B-1737
+        _ok, _why, _trig, _lim = option_sl_precheck(desired)
+        if _ok and len(live_sls) == 1 and best["qty"] == qty:  # B-1737: move the trigger in place, no bare window
+            mod = _kro.modify_resting_stop(kotak_trading_symbol, best["order_id"], qty, _trig, limit_price=_lim,
+                                           cash_session=False)
+            if mod.get("ok"):
+                return mod
+            if mod.get("terminal"):
+                mod["action"] = "modify_order_not_live"
+                return mod
+            print(f"[REAL FO] B-1737 SL modify failed for {kotak_trading_symbol}: {mod.get('detail')} - cancel+place")
         for o in live_sls:
             _kro.cancel_real_order(o["order_id"])
         res = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, desired)

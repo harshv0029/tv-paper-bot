@@ -67,7 +67,8 @@ full file wins.
 - A rule that blocks or decides real entries is shown to the user before it ships. The
   sector cap is 25% of the whole account.
 - A fired trigger is never dropped silently. It is rejected only under the viability, money
-  or other-rule flags, with a logged `skipped_*`. The 1-share real minimum applies.
+  or other-rule flags, with a logged `skipped_*`. The 1-share round-up (B-1509) is OFF since 2026-11-27 (B-1761);
+  real positions exit in one order, no tranches (B-1762).
 - Single-strike options always use a trailing SL.
 - Every resolution is applied to every category it can touch: buy, short, swing,
   bidirectional, futures, options, options_multi, commodity, currency. Add a per-category

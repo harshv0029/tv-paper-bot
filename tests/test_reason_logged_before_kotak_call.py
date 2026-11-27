@@ -62,3 +62,13 @@ def test_partial_exit_logs_intent_before_cancel():
              patch("kotak_real_orders.cancel_existing_resting_target", return_value={"ok": True}):
             main._maybe_place_real_partial_exit(conn, "TESTSTOCK.NS", {"leg": "T1"})
     assert ("staged_T1", "intent") in seen["rows"]
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _tranche_exits_on_for_legacy_ladder_tests(monkeypatch):
+    """B-1762: real tranche exits are off by default; these tests cover the ladder code if it is ever re-enabled."""
+    import main as _m
+    monkeypatch.setattr(_m, "REAL_TRANCHE_EXITS_ENABLED", True)

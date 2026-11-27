@@ -172,3 +172,13 @@ def test_a_rejection_with_no_competing_order_still_gets_permanently_flagged():
                    return_value={"ok": False, "detail": _T1_REJECTION_DETAIL}):
             main._maybe_place_real_exit(conn, "TESTSTOCK.NS")
         assert main._is_t1_restricted(conn, "TESTSTOCK.NS") is True
+
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _tranche_exits_on_for_legacy_ladder_tests(monkeypatch):
+    """B-1762: real tranche exits are off by default; these tests cover the ladder code if it is ever re-enabled."""
+    import main as _m
+    monkeypatch.setattr(_m, "REAL_TRANCHE_EXITS_ENABLED", True)

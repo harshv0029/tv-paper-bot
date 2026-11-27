@@ -17289,15 +17289,21 @@ REAL_LOW_BALANCE_STATUS = "skipped_low_balance"
 # one share's stop loss (|price - stop|) is at most REAL_ONE_SHARE_RISK_PCT of Kotak's free cash (Net) and the share
 # is affordable. Live example: Net Rs5,904 -> limit Rs59 per share at the stop.
 REAL_ONE_SHARE_RISK_PCT = 1.0
+# B-1761 (user 2026-11-27 IST: "stop entering those symbols trade where you entered using 1 stock from an angle that
+# risk is not allowing it"): the B-1509 round-up is OFF. When the risk formula sizes a real entry to 0 shares the
+# entry is skipped and logged (the caller's sized-to-0 / low-balance row), never bought as 1 share. Evidence: all 33
+# closed 1-share-floor-era delivery rows (16-25 Nov) netted -Rs729 on +Rs109 gross, mostly the Rs23.60 DP charge.
+# A trade the formula itself sizes to 1 share (risk allows it) is unaffected.
+REAL_ONE_SHARE_FLOOR_ENABLED = False
 
 
 def _real_one_share_floor(qty: int, net_inr: float, ltp: float, dist: float, usable_inr: float) -> int:
     """B-1509: qty, or 1 when qty < 1 and one share's stop loss fits REAL_ONE_SHARE_RISK_PCT of free Net and
-    one share fits the usable tranche. Never raises."""
+    one share fits the usable tranche. Disabled by B-1761 (REAL_ONE_SHARE_FLOOR_ENABLED). Never raises."""
     try:
         if qty >= 1:
             return int(qty)
-        if (net_inr > 0 and ltp > 0 and 0 < dist <= net_inr * REAL_ONE_SHARE_RISK_PCT / 100.0
+        if (REAL_ONE_SHARE_FLOOR_ENABLED and net_inr > 0 and ltp > 0 and 0 < dist <= net_inr * REAL_ONE_SHARE_RISK_PCT / 100.0
                 and ltp <= usable_inr):
             return 1
     except (TypeError, ValueError):
@@ -18007,6 +18013,43 @@ def _nse_closed_for_short_cover() -> bool:
         return False
 
 
+_REAL_EXIT_FLIGHT_LOCKS: dict = {}
+_REAL_EXIT_FLIGHT_GUARD = threading.Lock()
+
+
+def _single_flight_real_exit(engine: str):
+    """B-1736 (VAML.NS 26-Nov 13:33 IST, live): the paper swing exit and the swing retry pass each called the real
+    exit 0.5 s apart, so two market SELLs went out for a 1-share holding (Kotak RMS rejected the second "Check T1
+    holdings"). One exit per (engine, symbol) at a time inside this process: a second call that arrives while the
+    first is still sending or confirming is skipped and logged (skipped_exit_in_flight), never queued behind it.
+    The first call clears the row on success; a failed first call releases the lock, so the next retry pass still
+    sends. Applies to every real exit engine (intraday buy, short, swing, swing short, single-strike options)."""
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(conn, symbol, *a, **k):
+            key = (engine, symbol)
+            with _REAL_EXIT_FLIGHT_GUARD:
+                lk = _REAL_EXIT_FLIGHT_LOCKS.setdefault(key, threading.Lock())
+            if not lk.acquire(blocking=False):
+                reason = k.get("reason") if "reason" in k else (a[-1] if a and isinstance(a[-1], str) else None)
+                try:
+                    _log_real_attempt(conn, symbol, "S" if engine not in ("short", "swing_short") else "B",
+                                      "skipped_exit_in_flight", leg="exit",
+                                      detail=f"{engine} exit already being sent for this symbol; second call skipped "
+                                             f"({reason or 'no reason'})")
+                except Exception as e:
+                    print(f"[REAL EXIT] in-flight skip log failed for {symbol}: {e}")
+                print(f"[REAL EXIT] {engine} exit for {symbol} already in flight - duplicate call skipped")
+                return None
+            try:
+                return fn(conn, symbol, *a, **k)
+            finally:
+                lk.release()
+        return wrapper
+    return deco
+
+
+@_single_flight_real_exit("short")
 def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     """Short mirror of _maybe_place_real_exit - covers a real short
     position when the paper short (_short_signal_core) has already
@@ -18326,7 +18369,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         # (paper_row["exit_legs_json"] is None there) - falls through to
         # the pre-revamp single-target behavior unchanged.
         real_exit_legs = None
-        if paper_row and paper_row["exit_legs_json"] and paper_row["stop_loss"]:
+        if REAL_TRANCHE_EXITS_ENABLED and paper_row and paper_row["exit_legs_json"] and paper_row["stop_loss"]:
             paper_legs = json.loads(paper_row["exit_legs_json"])
             real_r = real_entry_price - paper_row["stop_loss"]
             if real_r > 0:
@@ -18741,6 +18784,14 @@ def _reconcile_real_qty_short(conn, real_row):
     return conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],)).fetchone()
 
 
+# B-1762 (user 2026-11-27 IST: "exit of trade in tranches, lead to multiple dp charges for same ISIN. stop exiting in
+# tranches for now"): a real position is sold in ONE order. New real entries get no staged ladder (one resting
+# target for the full qty, the pre-2026-09-09 behaviour), and a paper leg booking is no longer mirrored as a real
+# partial sell; the real position stays whole, under its full-qty SL, until its full exit fires. Paper keeps its
+# ladder (research only). Re-enable by setting this True.
+REAL_TRANCHE_EXITS_ENABLED = False
+
+
 def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     """Mirrors ONE staged profit-booking LEG (see _execute_staged_leg_exit)
     as a REAL partial sell - 2026-09-09 architecture revamp. Unlike
@@ -18774,6 +18825,12 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
             or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
         print(f"[REAL] intraday partial exit REFUSED for {symbol}: owned by the swing engine")
+        return
+    if not REAL_TRANCHE_EXITS_ENABLED:  # B-1762: no real tranche sells; the full exit path closes it in one order
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_tranche_exit_disabled", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], leg="exit",
+            detail=f"paper booked leg {staged_exit.get('leg')}; real position kept whole (one sell = one DP charge)")
         return
     leg_name = staged_exit.get("leg")
     # The PAPER side's `staged_exit` only tells us WHICH leg just fired -
@@ -19118,6 +19175,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     _sync_real_positions_external(conn)
 
 
+@_single_flight_real_exit("buy")
 def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
     """Mirrors a paper exit (any exit_reason) as a REAL sell that closes
     the matching real_positions row, if one exists. Deliberately NOT
@@ -19700,6 +19758,37 @@ def _real_stop_on_tick(kotak_trading_symbol: str, raw_stop: float) -> float:
     return round(round(float(raw_stop) / 0.05) * 0.05, 2)  # _round_to_tick's own formula, default tick
 
 
+def _try_modify_real_trail_sl(conn, symbol, real_row, current_sl_price, new_stop, table: str) -> bool:
+    """B-1737: move a tracked resting SL's trigger in place (Kotak modify-order) instead of cancel-then-place, so the
+    position always has a live stop. A raise under TRAIL_MIN_STEP_PCT is skipped (the current stop keeps resting).
+    True = handled (moved or deliberately kept); False = fall back to the cancel-then-place path. Never raises."""
+    import kotak_real_orders
+    try:
+        oid = real_row["sl_order_id"]
+        if not oid or current_sl_price is None:
+            return False
+        if kotak_real_orders.trail_step_too_small(current_sl_price, new_stop):
+            return True
+        mod = kotak_real_orders.modify_resting_stop(real_row["kotak_trading_symbol"], oid, real_row["qty"], new_stop)
+        if not mod.get("ok"):
+            print(f"[REAL] B-1737 SL modify failed for {real_row['kotak_trading_symbol']}: {mod.get('detail')}"
+                  + (" - order no longer live, leaving it to the exit path" if mod.get("terminal") else
+                     " - falling back to cancel+place"))
+            return bool(mod.get("terminal"))
+        conn.execute(f"UPDATE {table} SET sl_trigger_price = ? WHERE symbol = ?", (mod["trigger_price"], symbol))
+        conn.commit()
+        _log_real_order_event(
+            conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"], order_id=oid,
+            prev_state=f"Rs{float(current_sl_price):.2f}", new_state=f"Rs{mod['trigger_price']:.2f} (modified in place)",
+            reason="trailing stop-loss tightened; same order modified, no gap without a stop (B-1737)")
+        if table == "real_positions":
+            _sync_real_positions_external(conn)
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[REAL] B-1737 modify path error for {symbol}: {e} - falling back to cancel+place")
+        return False
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -19926,6 +20015,8 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         new_state=f"cancel resting SL, then place SL at Rs{new_stop:.2f}",
         reason="trailing stop-loss tightened",
     )
+    if _try_modify_real_trail_sl(conn, symbol, real_row, current_sl_price, new_stop, "real_positions"):
+        return  # B-1737
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
         if not cancel_result.get("ok"):
@@ -20141,6 +20232,8 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
         return
 
     import kotak_real_orders
+    if _try_modify_real_trail_sl(conn, symbol, real_row, current_sl_price, new_stop, "real_positions_short"):
+        return  # B-1737
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
         if not cancel_result.get("ok"):
@@ -20685,6 +20778,7 @@ def _cancel_live_option_sls(kotak_trading_symbol: str, state: dict | None = None
     return cancelled
 
 
+@_single_flight_real_exit("option")
 def _maybe_place_real_fo_option_exit(conn, symbol: str, right: str, reason: str = "UNSTATED"):
     """Closes the real single-strike option leg opened by
     _maybe_place_real_fo_option_entry when the SAME underlying's paper index
@@ -20901,7 +20995,7 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
         conn.commit()
         _fo_sl_unprotected_since.pop(leg_key, None)
         _fo_last_sl_cause.pop(leg_key, None)
-        if res["action"] != "adopted_existing":
+        if res["action"] not in ("adopted_existing", "adopted_small_step"):  # B-1737
             _log_real_fo_attempt(conn, leg_key, "S", f"sl_{res['action']}", kotak_trading_symbol=sym, qty=qty,
                                  order_id=res["order_id"], price_est=res["trigger_price"],
                                  detail=f"reason: {reason}; trailing SL trigger {res['trigger_price']} (peak {peak}, ltp {ltp})")
@@ -28078,6 +28172,7 @@ def _log_swing_exit_deferred_once(conn, symbol, reason, leg="exit"):
         reason=f"B-1645 outside NSE session; deferred: {reason or _REASON_UNSTATED}")
 
 
+@_single_flight_real_exit("swing")
 def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -28125,6 +28220,15 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
             prev_state=f"tracked open (stale), long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="cleared - Kotak already shows this closed",
         )
+        return
+
+    _inflight = kotak_real_orders._exit_in_flight(row["kotak_trading_symbol"], "S")
+    if _inflight:  # B-1736: a SELL for this holding went out within EXIT_IN_FLIGHT_WINDOW_S; Kotak may not show it yet
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_exit_in_flight", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], strategy=row["strategy"], leg="exit",
+            detail=f"a market SELL for {_inflight.get('qty')} was sent {time.time() - _inflight['ts']:.0f}s ago; "
+                   f"not sending a second one (the SL stays resting)")
         return
 
     if row["sl_order_id"]:
@@ -28695,7 +28799,7 @@ def _log_swing_ensure_sl_result(conn, symbol: str, kotak_trading_symbol: str, re
     if res.get("band_clamped_from") is not None:
         band_note += (f"; strategy stop Rs{float(res['band_clamped_from']):.2f} is outside the day's price band, "
                      f"so the stop rests at the band floor Rs{trg:.2f}")
-    if action == "adopted_existing":
+    if action in ("adopted_existing", "adopted_small_step"):  # B-1737
         _log_real_order_event(
             conn, symbol, "sl", "adopted", kotak_trading_symbol=kotak_trading_symbol, order_id=res.get("order_id"),
             prev_state="live SL at Kotak", new_state=f"resting SELL trigger Rs{trg:.2f}",
@@ -31673,6 +31777,7 @@ def _retry_deferred_swing_short_covers(conn) -> int:
     return n
 
 
+@_single_flight_real_exit("swing_short")
 def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
     """Buy-to-cover for a short-swing position, called ONLY by the short-swing engine. Cancels the resting BUY-stop
     first, covers the exact row qty, logs the reason. Never gated by the entry switch (closing is always allowed).
